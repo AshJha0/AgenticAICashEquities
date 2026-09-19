@@ -1,15 +1,19 @@
 """Execution tracing.
 
 ``InMemoryTracer`` records a tree of spans per investigation and is what the
-API returns under ``/investigations/{id}/trace``. ``OpenTelemetryTracer``
-forwards the same spans to an OTel SDK when it is installed and
-configured (``pip install .[observability]``); the harness code is
-identical in both cases.
+API returns under ``/investigations/{id}/trace``. The *current span* lives in
+a ``contextvars.ContextVar`` so spans opened by concurrent asyncio tasks
+(tool batches, agents calling tools) get the right parent and events attach
+to the span that emitted them. ``OpenTelemetryTracer`` forwards the same
+spans to an OTel SDK when it is installed and configured
+(``pip install .[observability]``); the harness code is identical in both cases.
 """
 
 from __future__ import annotations
 
 import contextlib
+import contextvars
+import os
 import time
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
@@ -17,6 +21,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ceap.domain.common import new_id, utc_now
+
+_current_span: contextvars.ContextVar[Span | None] = contextvars.ContextVar("ceap_current_span", default=None)
 
 
 @dataclass
@@ -60,23 +66,27 @@ class ExecutionTracer(ABC):
 
 
 class InMemoryTracer(ExecutionTracer):
-    def __init__(self, trace_id: str | None = None) -> None:
+    def __init__(self, trace_id: str | None = None, max_spans: int = 10_000) -> None:
         self.trace_id = trace_id or new_id("TRACE")
         self.spans: list[Span] = []
-        self._stack: list[Span] = []
+        self.max_spans = max_spans
+        self.dropped_spans = 0
 
     @contextlib.asynccontextmanager
     async def span(self, name: str, **attributes: Any) -> AsyncIterator[Span]:
-        parent = self._stack[-1].id if self._stack else None
+        parent = _current_span.get()
         span = Span(
             id=new_id("SPAN"),
             name=name,
-            parent_id=parent,
+            parent_id=parent.id if parent else None,
             started_at=utc_now().isoformat(),
             attributes=dict(attributes),
         )
-        self.spans.append(span)
-        self._stack.append(span)
+        if len(self.spans) < self.max_spans:
+            self.spans.append(span)
+        else:
+            self.dropped_spans += 1
+        token = _current_span.set(span)
         try:
             yield span
         except BaseException as exc:
@@ -86,13 +96,14 @@ class InMemoryTracer(ExecutionTracer):
         finally:
             span.ended_at = utc_now().isoformat()
             span.duration_ms = round((time.perf_counter() - span._t0) * 1000.0, 3)
-            self._stack.pop()
+            _current_span.reset(token)
 
     def event(self, name: str, **attributes: Any) -> None:
         payload = {"name": name, "timestamp": utc_now().isoformat(), **attributes}
-        if self._stack:
-            self._stack[-1].events.append(payload)
-        else:
+        current = _current_span.get()
+        if current is not None:
+            current.events.append(payload)
+        elif len(self.spans) < self.max_spans:
             self.spans.append(
                 Span(
                     id=new_id("SPAN"),
@@ -106,7 +117,11 @@ class InMemoryTracer(ExecutionTracer):
             )
 
     def export(self) -> dict[str, Any]:
-        return {"trace_id": self.trace_id, "spans": [s.to_dict() for s in self.spans]}
+        return {
+            "trace_id": self.trace_id,
+            "spans": [s.to_dict() for s in self.spans],
+            "dropped_spans": self.dropped_spans,
+        }
 
     def summary(self) -> dict[str, Any]:
         by_name: dict[str, dict[str, float]] = {}
@@ -139,8 +154,6 @@ class OpenTelemetryTracer(InMemoryTracer):  # pragma: no cover - requires option
 
 def build_tracer() -> ExecutionTracer:
     """OpenTelemetry when configured (endpoint set + SDK installed), in-memory otherwise."""
-    import os
-
     if os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
         try:
             import opentelemetry  # noqa: F401

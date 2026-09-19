@@ -31,7 +31,15 @@ def vwap_by_bucket(
     """Return ``[(bucket_start_epoch, vwap, volume), ...]`` for fixed-width time buckets."""
     if len(timestamps) == 0:
         return []
-    epoch = np.asarray(timestamps, dtype="datetime64[s]").astype("int64")
+    first = timestamps[0]
+    if hasattr(first, "timestamp"):  # datetime objects (aware or naive)
+        epoch = np.array([int(t.timestamp()) for t in timestamps], dtype="int64")
+    else:  # numpy datetime64 or epoch seconds
+        epoch = (
+            np.asarray(timestamps).astype("datetime64[s]").astype("int64")
+            if np.asarray(timestamps).dtype.kind == "M"
+            else np.asarray(timestamps, dtype="int64")
+        )
     buckets = (epoch // bucket_seconds) * bucket_seconds
     result: list[tuple[float, float, float]] = []
     for b in np.unique(buckets):

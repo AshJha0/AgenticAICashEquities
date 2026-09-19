@@ -22,6 +22,31 @@ _RANGE = re.compile(
     re.IGNORECASE,
 )
 _DATE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
+_UNIT_AFTER = re.compile(r"^\s*(bps|bp|%|percent|shares|ticks|lots|x)\b", re.IGNORECASE)
+
+
+def _pick_range(question: str) -> re.Match[str] | None:
+    """Choose the range that most plausibly denotes a time window.
+
+    A clock-like range (``14:00``, ``2pm``) always wins over a bare numeric
+    range such as ``from 3 to 5 bps``; a bare numeric range immediately
+    followed by a unit is never treated as a window.
+    """
+    matches = list(_RANGE.finditer(question))
+    if not matches:
+        return None
+
+    def clocklike(m: re.Match[str]) -> bool:
+        text = m.group("a") + m.group("b")
+        return ":" in text or re.search(r"[ap]m", text, re.IGNORECASE) is not None
+
+    for m in matches:
+        if clocklike(m):
+            return m
+    last = matches[-1]
+    if _UNIT_AFTER.match(question[last.end() :]):
+        return None
+    return last
 
 
 @dataclass(frozen=True)
@@ -64,20 +89,24 @@ def parse_question(
     question: str, default_date: date, symbols: tuple[str, ...] = SYMBOLS, today: date | None = None
 ) -> ParsedRequest:
     upper = question.upper()
-    symbol = next((s for s in symbols if re.search(rf"\b{s}\b", upper)), None)
+    found = [(m.start(), s) for s in symbols if (m := re.search(rf"\b{re.escape(s)}\b", upper))]
+    symbol = min(found)[1] if found else None  # the first ticker mentioned wins
     today = today or date.today()
 
     session_date = default_date
     relative = None
     if m := _DATE.search(question):
-        session_date = date.fromisoformat(m.group(1))
+        try:
+            session_date = date.fromisoformat(m.group(1))
+        except ValueError:
+            pass  # a malformed date in prose is ignored rather than becoming a 500
     elif re.search(r"\byesterday\b", question, re.IGNORECASE):
         session_date, relative = today - timedelta(days=1), "yesterday"
     elif re.search(r"\btoday\b", question, re.IGNORECASE):
         session_date, relative = today, "today"
 
     ws = we = None
-    if m := _RANGE.search(question):
+    if m := _pick_range(question):
         a, b = _to_time(m.group("a")), _to_time(m.group("b"))
         if a and b:
             ws = datetime(session_date.year, session_date.month, session_date.day, a[0], a[1], tzinfo=LONDON)

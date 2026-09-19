@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from typing import Any
+
 from ceap.agents.base import BaseAgent, confidence_from_excess, finite
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.findings import Finding
@@ -52,7 +55,9 @@ class EngineeringAgent(BaseAgent):
         slo = bool(latency.get("slo_breached"))
         window_p99 = (latency.get("window") or {}).get("p99_us")
         deps = deployments.get("items", [])
-        deps_pre_window = [d for d in deps if d["timestamp"] < w.end and d["timestamp"] >= w.baseline_start]
+        deps_pre_window = [
+            d for d in deps if _parse_ts(w.baseline_start) <= _parse_ts(d["timestamp"]) < _parse_ts(w.end)
+        ]
         error_count = errors.get("count", 0)
         warn_count = warns.get("count", 0)
         feed_gaps = ((md_metrics.get("summary") or {}).get("feed_gap_count") or {}).get("sum", 0.0)
@@ -87,7 +92,7 @@ class EngineeringAgent(BaseAgent):
 
         if finite(lr) and lr >= 3.0:
             add(
-                f"Order-gateway acknowledgement latency was {lr:.1f}x the baseline (p99 {window_p99:.0f} us{', SLO breached' if slo else ''}).",
+                f"Order-gateway acknowledgement latency was {lr:.1f}x the baseline (p99 {_fmt_us(window_p99)}{', SLO breached' if slo else ''}).",
                 confidence_from_excess(lr - 3.0, 3.0),
                 (*lat_ev, calc.id),
                 anomaly="TECHNOLOGY_LATENCY",
@@ -95,7 +100,7 @@ class EngineeringAgent(BaseAgent):
             )
         elif finite(lr):
             add(
-                f"Execution latency remained within the normal range ({lr:.2f}x baseline, p99 {window_p99:.0f} us).",
+                f"Execution latency remained within the normal range ({lr:.2f}x baseline, p99 {_fmt_us(window_p99)}).",
                 0.85,
                 (*lat_ev, calc.id),
                 latency_ratio=lr,
@@ -160,3 +165,14 @@ class EngineeringAgent(BaseAgent):
             if finite(lr)
             else "no latency data",
         )
+
+
+def _parse_ts(value: Any) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    ts = datetime.fromisoformat(str(value))
+    return ts if ts.tzinfo else ts.replace(tzinfo=UTC)
+
+
+def _fmt_us(x: Any) -> str:
+    return f"{float(x):.0f} us" if finite(x) else "n/a"

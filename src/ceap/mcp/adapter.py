@@ -22,6 +22,7 @@ from ceap.domain.tools import (
     ToolRequest,
     ToolResult,
     ToolStatus,
+    TransientToolError,
 )
 from ceap.mcp.client import MCPClient, MCPError
 
@@ -90,6 +91,8 @@ class MCPToolAdapter(Tool):
             data = await self._client.invoke(self._server, self._name, dict(request.arguments))
         except MCPError as exc:
             return ToolResult(status=ToolStatus.ERROR, error=str(exc), execution_time_ms=_ms(started))
+        except (ConnectionError, OSError, TimeoutError) as exc:  # transport faults: let the harness retry
+            raise TransientToolError(f"{self.id}: transport error: {type(exc).__name__}: {exc}") from exc
         except Exception as exc:  # noqa: BLE001 - surface as tool error, harness decides on retry
             return ToolResult(
                 status=ToolStatus.ERROR, error=f"{type(exc).__name__}: {exc}", execution_time_ms=_ms(started)

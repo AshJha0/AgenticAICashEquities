@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 
@@ -39,7 +39,7 @@ class QuoteIndex:
             return None
         idx = int(np.searchsorted(self._ts, ts.timestamp(), side="right")) - 1
         if idx < 0:
-            return self._quotes[0]
+            return None  # no quote yet: never look ahead
         return self._quotes[idx]
 
     def mid_at(self, ts: datetime) -> float:
@@ -48,8 +48,19 @@ class QuoteIndex:
 
     def mids_between(self, start: datetime, end: datetime) -> np.ndarray:
         lo = int(np.searchsorted(self._ts, start.timestamp(), side="left"))
-        hi = int(np.searchsorted(self._ts, end.timestamp(), side="right"))
+        hi = int(np.searchsorted(self._ts, end.timestamp(), side="left"))  # [start, end)
         return np.array([q.mid for q in self._quotes[lo:hi] if not q.is_crossed], dtype=float)
+
+    @property
+    def last_timestamp(self) -> datetime | None:
+        return self._quotes[-1].timestamp if self._quotes else None
+
+    def sample_seconds(self) -> float:
+        if len(self._ts) < 2:
+            return 1.0
+        gaps = np.diff(self._ts)
+        gaps = gaps[gaps > 0]
+        return float(np.median(gaps)) if gaps.size else 1.0
 
 
 def _select_parent(orders: Sequence[Order], start: datetime, end: datetime) -> Order | None:
@@ -108,9 +119,25 @@ class StandardExecutionAnalytics(ExecutionAnalytics):
 
         mids_window = index.mids_between(start, end)
         last_fill_ts = fills[-1].timestamp if fills else end
-        post_ts = min(end, last_fill_ts) if fills else end
+        # post-trade reference: the mid ``post_trade_horizon_seconds`` after the last fill, bounded
+        # by the quotes available, so temporary impact measures reversion rather than the fill itself
+        post_ts = last_fill_ts + timedelta(seconds=self.post_trade_horizon_seconds)
+        if index.last_timestamp is not None and post_ts > index.last_timestamp:
+            post_ts = index.last_timestamp
         post_mid = index.mid_at(post_ts)
         final_mid = index.mid_at(end)
+        # a window shorter than the parent's horizon must not charge opportunity cost on the
+        # whole parent: pro-rate the target to the fraction of the horizon covered
+        opportunity_target = float(target_qty)
+        if (
+            parent is not None
+            and parent.end_time is not None
+            and end < parent.end_time
+            and parent.end_time > parent.timestamp
+        ):
+            covered = (min(end, parent.end_time) - max(start, parent.timestamp)).total_seconds()
+            horizon = (parent.end_time - parent.timestamp).total_seconds()
+            opportunity_target = float(target_qty) * max(0.0, min(1.0, covered / horizon))
 
         fill_mids = np.array([index.mid_at(e.timestamp) for e in fills], dtype=float)
         per_fill = per_fill_slippage_bps(side, exec_prices, fill_mids) if fills else np.array([])
@@ -134,7 +161,7 @@ class StandardExecutionAnalytics(ExecutionAnalytics):
             market_vwap=mkt_vwap,
             arrival_price=float(arrival_price),
             implementation_shortfall_bps=implementation_shortfall_bps(
-                side, float(arrival_price), exec_prices, exec_qty, float(target_qty), final_price=final_mid
+                side, float(arrival_price), exec_prices, exec_qty, opportunity_target, final_price=final_mid
             ),
             slippage_vs_arrival_bps=slippage_bps(side, exec_vwap, float(arrival_price)),
             slippage_vs_vwap_bps=slippage_bps(side, exec_vwap, mkt_vwap)
@@ -147,7 +174,9 @@ class StandardExecutionAnalytics(ExecutionAnalytics):
             market_impact_bps=market_impact_bps(side, float(arrival_price), post_mid),
             temporary_impact_bps=temporary_impact_bps(side, exec_vwap, post_mid),
             price_drift_bps=price_drift_bps(mids_window),
-            realised_volatility_bps=realised_volatility_bps(mids_window),
+            realised_volatility_bps=realised_volatility_bps(
+                mids_window, sample_seconds=index.sample_seconds()
+            ),
             average_latency_us=float(latencies.mean()) if latencies.size else float("nan"),
             reject_rate=float(rejects / len(children)) if children else 0.0,
             execution_count=len(fills),

@@ -132,14 +132,17 @@ class ReportAgent(BaseAgent):
                 "llm_model": response.model,
             },
         )
+        output: dict[str, Any] = {
+            "report": report,
+            "llm_model": response.model,
+            "tokens": {"input": response.input_tokens, "output": response.output_tokens},
+        }
+        if response.fallback_reason:
+            output["llm_fallback"] = response.fallback_reason
         return AgentResult(
             agent_id=self.id,
             success=True,
-            output={
-                "report": report,
-                "llm_model": response.model,
-                "tokens": {"input": response.input_tokens, "output": response.output_tokens},
-            },
+            output=output,
             summary=f"report generated ({len(narrative)} chars, {len(number_warnings)} number warnings)",
         )
 

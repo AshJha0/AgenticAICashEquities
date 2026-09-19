@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import re
 from abc import ABC, abstractmethod
+from collections import deque
 from typing import Any
 
 from ceap.llm.models import LLMRequest, LLMResponse
@@ -51,20 +52,22 @@ def extract_json(text: str) -> dict[str, Any] | None:
 class MockLLMClient(LLMClient):
     """Deterministic stand-in used when no model is configured."""
 
-    def __init__(self, model: str = "mock-deterministic-v1") -> None:
+    def __init__(self, model: str = "mock-deterministic-v1", keep_calls: int = 50) -> None:
         self.model = model
-        self.calls: list[LLMRequest] = []
+        self.calls: deque[LLMRequest] = deque(maxlen=keep_calls)  # bounded: this client is long-lived
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         self.calls.append(request)
         last = request.messages[-1]["content"] if request.messages else ""
-        facts = extract_json(last) or {}
         if request.purpose == "planning":
+            # Structured parameters arrive out-of-band; never parse them out of the prose,
+            # which contains untrusted user text (a question containing "{}" must not win).
+            facts = dict(request.metadata.get("parameters") or {})
             content = json.dumps(canonical_plan(facts))
         elif request.purpose == "narrative":
-            content = _mock_narrative(facts)
+            content = _mock_narrative(extract_json(last) or {})
         elif request.purpose == "critique":
-            content = json.dumps(_mock_critique(facts))
+            content = json.dumps(_mock_critique(extract_json(last) or {}))
         else:
             content = "OK"
         return LLMResponse(

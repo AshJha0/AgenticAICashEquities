@@ -74,18 +74,13 @@ class BaseAgent(Agent):
 
         Either way the data is backed by evidence recorded in memory.
         """
-        cached = self.output(
-            ctx,
-            tool_id,
-            **{k: v for k, v in arguments.items() if k in ("symbol", "start", "end", "service", "level")},
-        )
+        # Exact-argument match: a plan step that called the same tool with *different*
+        # arguments (another dataset, strategy or quantity) must not be reused as evidence.
+        cached = self.memory(ctx).find_exact(tool_id, arguments)
         if cached is not None:
             return cached.data, cached.evidence_ids
         data = await ctx.tools.invoke(tool_id, arguments)
-        fresh = self.memory(ctx).find(
-            tool_id,
-            **{k: v for k, v in arguments.items() if k in ("symbol", "start", "end", "service", "level")},
-        )
+        fresh = self.memory(ctx).find_exact(tool_id, arguments)
         return data, (fresh.evidence_ids if fresh else ())
 
     def calc_evidence(

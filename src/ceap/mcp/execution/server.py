@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from ceap.analytics.execution_metrics import StandardExecutionAnalytics
@@ -108,7 +109,7 @@ def build_server(
         s, e = window_of(ds, start, end)
         orders = await er.orders(symbol, s, e)
         fills = await er.executions(symbol, s, e)
-        quotes = await mr.quotes(symbol, s, e)
+        quotes = await mr.quotes(symbol, s, e + timedelta(seconds=analytics.post_trade_horizon_seconds))
         trades = await mr.trades(symbol, s, e)
         metrics = analytics.calculate(orders, fills, quotes, trades, s, e)
         return to_jsonable(metrics)
@@ -124,7 +125,7 @@ def build_server(
         metrics = analytics.calculate(
             await er.orders(symbol, s, e),
             await er.executions(symbol, s, e),
-            await mr.quotes(symbol, s, e),
+            await mr.quotes(symbol, s, e + timedelta(seconds=analytics.post_trade_horizon_seconds)),
             await mr.trades(symbol, s, e),
             s,
             e,

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import functools
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -29,6 +31,8 @@ from ceap.observability.metrics import metrics
 from ceap.platform import InvestigationRequest, Platform
 from ceap.policy.approvals import QueuedApprovalGateway
 
+log = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
@@ -54,6 +58,8 @@ async def health(request: Request) -> HealthOut:
         llm=p.llm.name,
         servers=p.mcp_client.servers(),
         tools=len(registry),
+        llm_usage=getattr(p.llm, "usage", None),
+        running=len(request.app.state.ceap.running),
     )
 
 
@@ -108,7 +114,11 @@ async def create_investigation(
     principal: Principal = Depends(require_capability("investigate")),
 ) -> InvestigationAccepted:
     p = _platform(request)
-    parsed = parse_question(body.question, resolve_session_date(body.session_date))
+    try:
+        session_date = resolve_session_date(body.session_date)
+    except ValueError as exc:
+        raise HTTPException(422, f"invalid session_date: {exc}") from exc
+    parsed = parse_question(body.question, session_date)
     symbol = (body.symbol or parsed.symbol or "").upper()
     ws = _aware(body.window_start) or parsed.window_start
     we = _aware(body.window_end) or parsed.window_end
@@ -138,8 +148,12 @@ async def create_investigation(
         p.validate_request(req)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    state = request.app.state.ceap
     task = p.build_task(req)
-    request.app.state.running[task.id] = asyncio.create_task(p.investigate(req, task))
+    p.owners[task.id] = principal.name
+    background = asyncio.create_task(_run_investigation(state, p, req, task), name=f"investigation:{task.id}")
+    state.running[task.id] = background
+    background.add_done_callback(functools.partial(_on_done, state, p, task.id))
     bs, be = req.resolved_baseline()
     return InvestigationAccepted(
         task_id=task.id,
@@ -158,6 +172,25 @@ async def create_investigation(
     )
 
 
+async def _run_investigation(state: Any, p: Platform, req: InvestigationRequest, task: Any) -> None:
+    async with state.semaphore:  # bound concurrent investigations
+        await p.investigate(req, task)
+
+
+def _on_done(state: Any, p: Platform, task_id: str, background: asyncio.Task[Any]) -> None:
+    """Observe the background task: record failures so nothing stays RUNNING forever."""
+    state.running.pop(task_id, None)
+    if background.cancelled():
+        if task_id not in p.results:
+            p.record_failure(task_id, "investigation task cancelled during shutdown")
+        return
+    exc = background.exception()
+    if exc is not None:
+        log.error("investigation %s crashed outside the harness: %s", task_id, exc)
+        if task_id not in p.results:
+            p.record_failure(task_id, f"{type(exc).__name__}: {exc}")
+
+
 def _status(request: Request, task_id: str) -> InvestigationStatus:
     p = _platform(request)
     result = p.results.get(task_id)
@@ -170,7 +203,7 @@ def _status(request: Request, task_id: str) -> InvestigationStatus:
             duration_ms=result.duration_ms,
             warnings=result.warnings,
         )
-    if task_id in request.app.state.running:
+    if task_id in request.app.state.ceap.running:
         return InvestigationStatus(task_id=task_id, status="RUNNING")
     if task_id in p.tasks:
         return InvestigationStatus(task_id=task_id, status="PENDING")
@@ -182,7 +215,7 @@ async def list_investigations(
     request: Request, principal: Principal = Depends(require_capability("investigate:read"))
 ) -> list[dict[str, Any]]:
     p = _platform(request)
-    ids = set(p.tasks) | set(request.app.state.running)
+    ids = set(p.tasks) | set(request.app.state.ceap.running)
     return [
         _status(request, tid).model_dump()
         | {"question": p.tasks[tid].description if tid in p.tasks else None}
@@ -260,8 +293,14 @@ async def cancel_investigation(
     task_id: str, request: Request, principal: Principal = Depends(require_capability("investigate"))
 ) -> InvestigationStatus:
     p = _platform(request)
-    if not p.cancel(task_id, f"cancelled by {principal.name}"):
+    owner = p.owners.get(task_id)
+    if owner is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown investigation {task_id}")
+    if owner != principal.name and "approvals:decide" not in principal.capabilities:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN, "only the owner or an admin may cancel an investigation"
+        )
+    p.cancel(task_id, f"cancelled by {principal.name}")
     return _status(request, task_id)
 
 
@@ -290,4 +329,6 @@ async def decide_approval(
         decision = gateway.decide(approval_id, body.approved, principal.name, body.comment)
     except KeyError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
     return to_jsonable(decision)

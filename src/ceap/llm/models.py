@@ -26,3 +26,4 @@ class LLMResponse:
     output_tokens: int
     model: str
     stop_reason: str | None = None
+    fallback_reason: str | None = None  # set by the router when a fallback client answered

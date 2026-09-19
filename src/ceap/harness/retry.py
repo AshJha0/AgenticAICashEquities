@@ -8,11 +8,12 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TypeVar
 
+from ceap.domain.tools import TransientToolError
+
 T = TypeVar("T")
 
 
-class RetryableError(RuntimeError):
-    """Raise to signal a transient failure the harness may retry."""
+RetryableError = TransientToolError  # raise to signal a transient failure the harness may retry
 
 
 @dataclass(frozen=True)

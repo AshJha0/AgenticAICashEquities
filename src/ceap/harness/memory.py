@@ -20,7 +20,14 @@ class ToolOutput:
     execution_time_ms: float
 
     def matches(self, **filters: Any) -> bool:
+        """True when every filter key matches this output's arguments (``None`` filters match absence)."""
         return all(self.arguments.get(k) == v for k, v in filters.items())
+
+    def matches_exactly(self, arguments: dict[str, Any]) -> bool:
+        """True when the argument dicts are equal after dropping ``None`` values on both sides."""
+        mine = {k: v for k, v in self.arguments.items() if v is not None}
+        theirs = {k: v for k, v in arguments.items() if v is not None}
+        return mine == theirs
 
 
 @dataclass
@@ -59,6 +66,12 @@ class InvestigationMemory:
     def find(self, tool_id: str, **filters: Any) -> ToolOutput | None:
         for out in reversed(self.tool_outputs):
             if out.tool_id == tool_id and out.matches(**filters):
+                return out
+        return None
+
+    def find_exact(self, tool_id: str, arguments: dict[str, Any]) -> ToolOutput | None:
+        for out in reversed(self.tool_outputs):
+            if out.tool_id == tool_id and out.matches_exactly(arguments):
                 return out
         return None
 

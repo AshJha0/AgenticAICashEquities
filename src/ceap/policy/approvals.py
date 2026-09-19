@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from abc import ABC, abstractmethod
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -51,8 +52,8 @@ class ApprovalGateway(ABC):
 class AutoApprovalGateway(ApprovalGateway):
     """Development default: approves everything but records that it did."""
 
-    def __init__(self) -> None:
-        self.log: list[ApprovalRequest] = []
+    def __init__(self, keep: int = 200) -> None:
+        self.log: deque[ApprovalRequest] = deque(maxlen=keep)
 
     async def request(self, approval: ApprovalRequest) -> ApprovalDecision:
         self.log.append(approval)
@@ -71,7 +72,7 @@ class QueuedApprovalGateway(ApprovalGateway):
         self.timeout_seconds = timeout_seconds
         self._pending: dict[str, ApprovalRequest] = {}
         self._futures: dict[str, asyncio.Future[ApprovalDecision]] = {}
-        self.history: list[ApprovalDecision] = []
+        self.history: deque[ApprovalDecision] = deque(maxlen=500)
 
     def pending(self) -> list[ApprovalRequest]:
         return list(self._pending.values())
@@ -97,7 +98,8 @@ class QueuedApprovalGateway(ApprovalGateway):
         fut = self._futures.get(request_id)
         if fut is None:
             raise KeyError(f"no pending approval {request_id}")
+        if fut.done():
+            raise RuntimeError(f"approval {request_id} was already decided")
         decision = ApprovalDecision(request_id, approved, decided_by, comment)
-        if not fut.done():
-            fut.set_result(decision)
+        fut.set_result(decision)
         return decision

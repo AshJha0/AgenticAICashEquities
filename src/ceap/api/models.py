@@ -110,3 +110,5 @@ class HealthOut(BaseModel):
     llm: str
     servers: list[str]
     tools: int
+    llm_usage: dict[str, int] | None = None
+    running: int = 0

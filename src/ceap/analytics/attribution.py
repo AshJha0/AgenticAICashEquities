@@ -83,8 +83,22 @@ class AttributionResult:
         }
 
 
-def _ratio(a: float, b: float) -> float:
-    if a is None or b is None or math.isnan(a) or math.isnan(b) or b == 0:
+def _f(value: Any) -> float:
+    """Coerce tool output (which may carry None for NaN) to a float."""
+    try:
+        return float(value) if value is not None else float("nan")
+    except (TypeError, ValueError):
+        return float("nan")
+
+
+def _finite_or(value: Any, default: float) -> float:
+    x = _f(value)
+    return default if math.isnan(x) else x
+
+
+def _ratio(a: float | None, b: float | None) -> float:
+    a, b = _f(a), _f(b)
+    if math.isnan(a) or math.isnan(b) or b == 0:
         return float("nan")
     return a / b
 
@@ -118,9 +132,8 @@ def attribute_causes(
     base_vs = baseline.slippage_vs_vwap_bps if baseline else 0.0
     vwap_delta = window.slippage_vs_vwap_bps - (base_vs if not math.isnan(base_vs) else 0.0)
     # A VWAP algo is judged against interval VWAP (drift-neutral) as well as arrival (IS).
-    deteriorated = (
-        max(is_delta, vwap_delta if not math.isnan(vwap_delta) else -math.inf) >= t.deterioration_bps
-    )
+    deltas = [d for d in (is_delta, vwap_delta) if not math.isnan(d)]
+    deteriorated = bool(deltas) and max(deltas) >= t.deterioration_bps
 
     # --- market volatility --------------------------------------------------
     vol_ratio = _ratio(
@@ -175,13 +188,13 @@ def attribute_causes(
 
     # --- technology latency -------------------------------------------------
     lat_ratio = _ratio(window.average_latency_us, baseline.average_latency_us if baseline else float("nan"))
-    eng_lat_ratio = float(eng.get("latency_ratio", float("nan")))
+    eng_lat_ratio = _f(eng.get("latency_ratio"))
     lat_ratio_eff = (
         max(x for x in (lat_ratio, eng_lat_ratio) if not math.isnan(x))
         if not (math.isnan(lat_ratio) and math.isnan(eng_lat_ratio))
         else float("nan")
     )
-    reject = max(window.reject_rate, float(eng.get("reject_rate", 0.0)))
+    reject = max(_finite_or(window.reject_rate, 0.0), _finite_or(eng.get("reject_rate"), 0.0))
     tech_score = max(_sig(lat_ratio_eff - t.latency_ratio, 2.0), _sig(reject - t.reject_rate, 0.05))
     scores.append(
         CauseScore(
@@ -235,7 +248,7 @@ def attribute_causes(
 
     # --- unexpected price movement ------------------------------------------
     adverse_drift = window.side.sign * window_market.price_drift_bps
-    jump = float(eng.get("max_abs_move_bps", float("nan")))
+    jump = _f(eng.get("max_abs_move_bps"))
     move = max(adverse_drift, jump) if not math.isnan(jump) else adverse_drift
     move_score = _sig(move - t.price_move_bps, 40.0)
     if vol_ratio is not None and not math.isnan(vol_ratio) and vol_ratio > t.volatility_ratio:
@@ -279,11 +292,12 @@ def _venue_degradation(window: ExecutionMetrics, t: Thresholds) -> tuple[float, 
     metrics: dict[str, Any] = {}
     for v in stats:
         peers = [p for p in stats if p.venue != v.venue]
-        peer_fill = sum(p.fill_rate for p in peers if not math.isnan(p.fill_rate)) / max(1, len(peers))
+        finite_fill = [p.fill_rate for p in peers if not math.isnan(p.fill_rate)]
+        peer_fill = sum(finite_fill) / len(finite_fill) if finite_fill else float("nan")
         peer_slip = [p.average_slippage_bps for p in peers if not math.isnan(p.average_slippage_bps)]
         peer_slip_mean = sum(peer_slip) / len(peer_slip) if peer_slip else float("nan")
-        peer_reject = sum(p.reject_rate for p in peers) / max(1, len(peers))
-        fill_gap = peer_fill - v.fill_rate if not math.isnan(v.fill_rate) else 0.0
+        peer_reject = sum(p.reject_rate for p in peers) / len(peers)
+        fill_gap = peer_fill - v.fill_rate if not (math.isnan(v.fill_rate) or math.isnan(peer_fill)) else 0.0
         slip_excess = (
             (v.average_slippage_bps - peer_slip_mean)
             if not (math.isnan(v.average_slippage_bps) or math.isnan(peer_slip_mean))

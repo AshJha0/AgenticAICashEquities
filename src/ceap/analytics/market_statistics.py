@@ -73,7 +73,13 @@ def calculate_market_statistics(
         stale_quote_fraction=stale_quote_fraction(quotes),
         crossed_quote_count=crossed_quote_count(quotes),
         quote_count=len(quotes),
-        venue_volume=dict(
-            Counter({t.venue: 0 for t in trades}) + Counter({t.venue: t.quantity for t in trades})
-        ),
+        venue_volume=_venue_volume(trades),
     )
+
+
+def _venue_volume(trades: Sequence[Trade]) -> dict[str, int]:
+    """Total traded quantity per venue (a dict comprehension would keep only the last print)."""
+    totals: Counter[str] = Counter()
+    for t in trades:
+        totals[t.venue] += t.quantity
+    return dict(totals)

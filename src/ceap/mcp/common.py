@@ -49,5 +49,7 @@ def paginate(items: list[Any], limit: int, offset: int = 0) -> dict[str, Any]:
 def downsample(items: list[Any], max_points: int) -> list[Any]:
     if max_points <= 0 or len(items) <= max_points:
         return items
-    step = max(1, len(items) // max_points)
-    return items[::step][:max_points]
+    import numpy as np
+
+    idx = np.linspace(0, len(items) - 1, max_points).round().astype(int)
+    return [items[i] for i in dict.fromkeys(idx.tolist())]  # evenly spaced, first and last always kept

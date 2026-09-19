@@ -41,7 +41,8 @@ class RiskAgent(BaseAgent):
         breached = [c for c in limits.get("checks", []) if c.get("breached")]
         if breached:
             names = ", ".join(
-                f"{c['limit_name']} ({c['observed_value']:.2f} vs {c['limit_value']:.2f})" for c in breached
+                f"{c['limit_name']} ({float(c['observed_value'] or 0):.2f} vs {float(c['limit_value'] or 0):.2f})"
+                for c in breached
             )
             add(
                 f"The parent order breached trading limits: {names}.",
@@ -61,7 +62,7 @@ class RiskAgent(BaseAgent):
         if exposure.get("gross_exposure") is not None:
             add(
                 f"Post-window gross exposure in {w.symbol} was {exposure['gross_exposure']:,.0f} USD "
-                f"({exposure.get('notional_utilisation', 0) or 0:.0%} of the notional limit).",
+                f"({(exposure.get('notional_utilisation') or 0):.0%} of the notional limit).",
                 0.85,
                 (*e_ev,),
                 gross_exposure=exposure["gross_exposure"],

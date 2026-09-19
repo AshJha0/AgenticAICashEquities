@@ -29,6 +29,7 @@ class LLMRouter(LLMClient):
         self.fallback = fallback
         self.models_by_purpose = dict(models_by_purpose or {})
         self.usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "calls": 0, "fallbacks": 0}
+        self.last_fallback_reason: str | None = None
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         model = request.model or self.models_by_purpose.get(request.purpose)
@@ -38,9 +39,13 @@ class LLMRouter(LLMClient):
         except Exception as exc:  # noqa: BLE001 - deliberate fallback boundary
             if self.fallback is None:
                 raise
-            log.warning("primary LLM failed (%s); using fallback", exc)
+            reason = f"{type(exc).__name__}: {str(exc)[:200]}"
+            log.warning("primary LLM failed (%s); using fallback", reason)
             self.usage["fallbacks"] += 1
-            response = await self.fallback.complete(request)
+            self.last_fallback_reason = reason
+            fallback_response = await self.fallback.complete(request)
+            # the fallback is visible to callers: agents turn it into an investigation warning
+            response = LLMResponse(**{**fallback_response.__dict__, "fallback_reason": reason})
         self.usage["calls"] += 1
         self.usage["input_tokens"] += response.input_tokens
         self.usage["output_tokens"] += response.output_tokens
@@ -59,7 +64,7 @@ def build_router(settings: Settings | None = None) -> LLMRouter:
             primary: LLMClient = AnthropicLLMClient(
                 api_key=settings.anthropic_api_key, model=settings.llm_model
             )
-        except RuntimeError as exc:
+        except Exception as exc:  # noqa: BLE001 - missing SDK/key: degrade to the mock, loudly
             log.warning("%s - falling back to mock LLM", exc)
             return LLMRouter(mock)
         models = {

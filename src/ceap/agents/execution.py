@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from ceap.agents.base import BaseAgent, confidence_from_excess, finite
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.findings import Finding
@@ -59,10 +61,14 @@ class ExecutionAgent(BaseAgent):
                 order_id=parent["order_id"],
             )
         if finite(is_w):
-            direction = "increased" if is_delta > 0 else "decreased"
+            direction = (
+                "increased"
+                if finite(is_delta) and is_delta > 0
+                else ("decreased" if finite(is_delta) else "changed")
+            )
             add(
                 f"Implementation shortfall was {is_w:+.1f} bps versus arrival {win['arrival_price']:.4f} "
-                f"({direction} by {abs(is_delta):.1f} bps relative to the baseline's {is_b:+.1f} bps).",
+                f"({direction} by {abs(is_delta):.1f} bps relative to the baseline's {_fmt_bps(is_b)}).",
                 0.9 if finite(is_delta) else 0.7,
                 ev,
                 is_bps=is_w,
@@ -71,7 +77,7 @@ class ExecutionAgent(BaseAgent):
         if finite(vs_w):
             add(
                 f"Execution VWAP {win['vwap']:.4f} versus interval VWAP {win['market_vwap']:.4f}: slippage {vs_w:+.1f} bps "
-                f"(baseline {vs_b:+.1f} bps, delta {vs_delta:+.1f} bps).",
+                f"(baseline {_fmt_bps(vs_b)}, delta {_fmt_bps(vs_delta)}).",
                 0.9,
                 ev,
                 vwap_slippage_bps=vs_w,
@@ -80,7 +86,7 @@ class ExecutionAgent(BaseAgent):
         fr, part = win.get("fill_rate"), win.get("participation_rate")
         if finite(fr):
             add(
-                f"Fill rate was {fr:.1%} of the parent quantity with participation of {part:.1%} of market volume.",
+                f"Fill rate was {fr:.1%} of the parent quantity with participation of {_fmt_pct(part)} of market volume.",
                 0.9,
                 ev,
                 fill_rate=fr,
@@ -89,7 +95,7 @@ class ExecutionAgent(BaseAgent):
         if finite(part) and part > 0.20:
             add(
                 f"Participation of {part:.1%} exceeded the 20% VWAP ceiling - the order was large relative to available volume "
-                f"(market impact {win.get('market_impact_bps', float('nan')):+.1f} bps).",
+                f"(market impact {_fmt_bps(win.get('market_impact_bps'))}).",
                 confidence_from_excess(part - 0.20, 0.1),
                 ev,
                 anomaly="LARGE_ORDER_IMPACT",
@@ -112,14 +118,17 @@ class ExecutionAgent(BaseAgent):
             peers = [p for k, p in stats.items() if k != name]
             if not peers:
                 continue
-            peer_fill = sum(p["fill_rate"] for p in peers if finite(p.get("fill_rate"))) / max(1, len(peers))
+            finite_fills = [p["fill_rate"] for p in peers if finite(p.get("fill_rate"))]
+            peer_fill = sum(finite_fills) / len(finite_fills) if finite_fills else float("nan")
             peer_slip = [p["average_slippage_bps"] for p in peers if finite(p.get("average_slippage_bps"))]
             slip_excess = (
                 (v["average_slippage_bps"] - sum(peer_slip) / len(peer_slip))
                 if peer_slip and finite(v.get("average_slippage_bps"))
                 else 0.0
             )
-            fill_gap = (peer_fill - v["fill_rate"]) if finite(v.get("fill_rate")) else 0.0
+            fill_gap = (
+                (peer_fill - v["fill_rate"]) if finite(v.get("fill_rate")) and finite(peer_fill) else 0.0
+            )
             score = max(fill_gap / 0.25, slip_excess / 2.0)
             if worst is None or score > worst[1]:
                 worst = (name, score, fill_gap, slip_excess, peer_fill, v)
@@ -152,17 +161,19 @@ class ExecutionAgent(BaseAgent):
             )
 
         # configuration / policy consistency (deterministic comparison, document-backed)
-        config = self.output(context, "execution.get_strategy_configuration", symbol=w.symbol)
+        config = self.output(
+            context, "execution.get_strategy_configuration", symbol=w.symbol, strategy="VWAP"
+        )
         knowledge = self.output(context, "knowledge.search_documents")
         if config and finite(part):
             ceiling = config.data.get("max_participation_rate")
             target = config.data.get("target_participation_rate")
             doc_ev = tuple(knowledge.evidence_ids) if knowledge else ()
-            if ceiling is not None:
+            if finite(ceiling):
                 within = part <= ceiling
                 add(
                     f"Observed participation {part:.1%} was {'within' if within else 'above'} the configured VWAP ceiling of {ceiling:.0%} "
-                    f"(target {target:.0%}) - behaviour {'consistent' if within else 'inconsistent'} with the strategy configuration and runbook.",
+                    f"(target {_fmt_pct(target)}) - behaviour {'consistent' if within else 'inconsistent'} with the strategy configuration and runbook.",
                     0.85,
                     (*config.evidence_ids, *doc_ev, *win_ev),
                     participation_rate=part,
@@ -185,3 +196,11 @@ class ExecutionAgent(BaseAgent):
             if finite(is_w) and finite(fr)
             else "no execution metrics",
         )
+
+
+def _fmt_bps(x: Any) -> str:
+    return f"{float(x):+.1f} bps" if finite(x) else "n/a"
+
+
+def _fmt_pct(x: Any) -> str:
+    return f"{float(x):.1%}" if finite(x) else "n/a"

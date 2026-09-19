@@ -13,6 +13,7 @@ in-process and the network representation never drift apart.
 
 from __future__ import annotations
 
+import functools
 import inspect
 import typing
 from collections.abc import Awaitable, Callable
@@ -39,8 +40,16 @@ _JSON_TYPES: dict[Any, dict[str, Any]] = {
 def _schema_for(annotation: Any) -> dict[str, Any]:
     origin = typing.get_origin(annotation)
     if origin is typing.Union or (origin is not None and str(origin) == "<class 'types.UnionType'>"):
-        args = [a for a in typing.get_args(annotation) if a is not type(None)]
-        return _schema_for(args[0]) if len(args) == 1 else {"anyOf": [_schema_for(a) for a in args]}
+        all_args = typing.get_args(annotation)
+        args = [a for a in all_args if a is not type(None)]
+        base = _schema_for(args[0]) if len(args) == 1 else {"anyOf": [_schema_for(a) for a in args]}
+        if len(args) != len(all_args):  # Optional[...] -> nullable
+            base = (
+                {"anyOf": [base, {"type": "null"}]}
+                if "anyOf" not in base
+                else {"anyOf": [*base["anyOf"], {"type": "null"}]}
+            )
+        return base
     if origin in (list, tuple):
         return {"type": "array"}
     if origin is dict:
@@ -167,13 +176,13 @@ class MCPServerDefinition:
 
 
 def _jsonable_wrapper(fn: ToolFn) -> ToolFn:
-    """FastMCP serialises return values; make sure dataclasses become JSON first."""
+    """FastMCP serialises return values; make sure dataclasses/NaN become JSON first."""
 
+    @functools.wraps(fn)
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         return to_jsonable(await fn(*args, **kwargs))
 
-    wrapper.__name__ = fn.__name__
-    wrapper.__doc__ = fn.__doc__
+    # resolve string annotations (PEP 563) so FastMCP does not look them up in this module
+    wrapper.__annotations__ = typing.get_type_hints(fn)
     wrapper.__signature__ = inspect.signature(fn)  # type: ignore[attr-defined]
-    wrapper.__annotations__ = dict(getattr(fn, "__annotations__", {}))
     return wrapper

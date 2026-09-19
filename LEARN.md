@@ -364,7 +364,7 @@ false_positive_rate  0.02
 completed            1.00
 unresolved_findings  0
 number_warnings      0
-mean_duration_ms     ~930
+mean_duration_ms     ~850
 ```
 
 Things to be honest about:

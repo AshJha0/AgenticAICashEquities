@@ -74,7 +74,7 @@ false_positive_rate  0.02   (S50: a large drift inside a high-volatility window 
 completed            1.00
 unresolved_findings  0
 number_warnings      0
-mean_duration_ms     ~900
+mean_duration_ms     ~850
 ```
 
 ## Adversarial suite

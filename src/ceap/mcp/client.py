@@ -8,7 +8,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+import os
+import sys
 from abc import ABC, abstractmethod
 from contextlib import AsyncExitStack
 from dataclasses import dataclass, field
@@ -65,10 +68,20 @@ class InProcessMCPClient(MCPClient):
 
 @dataclass
 class StdioServerSpec:
+    """How to spawn one server. ``command`` defaults to the current interpreter so a virtual
+    environment is honoured; ``PYTHONPATH`` is forwarded so ``src``-layout checkouts work."""
+
     name: str
-    command: str
+    command: str = sys.executable
     args: list[str] = field(default_factory=list)
     env: dict[str, str] | None = None
+
+    def environment(self) -> dict[str, str]:
+        env = dict(self.env or {})
+        for key in ("PYTHONPATH", "VIRTUAL_ENV", "CONDA_PREFIX", "PYTHONUTF8"):
+            if key in os.environ and key not in env:
+                env[key] = os.environ[key]
+        return env
 
 
 class StdioMCPClient(MCPClient):
@@ -78,6 +91,7 @@ class StdioMCPClient(MCPClient):
         self._specs = {s.name: s for s in specs}
         self._sessions: dict[str, Any] = {}
         self._stack = AsyncExitStack()
+        self._lock = asyncio.Lock()
 
     def servers(self) -> list[str]:
         return sorted(self._specs)
@@ -85,19 +99,22 @@ class StdioMCPClient(MCPClient):
     async def _session(self, name: str) -> Any:
         if name in self._sessions:
             return self._sessions[name]
-        from mcp.client.stdio import stdio_client
+        async with self._lock:  # one subprocess per server even under concurrent first calls
+            if name in self._sessions:
+                return self._sessions[name]
+            from mcp.client.stdio import stdio_client
 
-        from mcp import ClientSession, StdioServerParameters
+            from mcp import ClientSession, StdioServerParameters
 
-        spec = self._specs.get(name)
-        if spec is None:
-            raise MCPError(f"unknown MCP server: {name}")
-        params = StdioServerParameters(command=spec.command, args=spec.args, env=spec.env)
-        read, write = await self._stack.enter_async_context(stdio_client(params))
-        session = await self._stack.enter_async_context(ClientSession(read, write))
-        await session.initialize()
-        self._sessions[name] = session
-        return session
+            spec = self._specs.get(name)
+            if spec is None:
+                raise MCPError(f"unknown MCP server: {name}")
+            params = StdioServerParameters(command=spec.command, args=spec.args, env=spec.environment())
+            read, write = await self._stack.enter_async_context(stdio_client(params))
+            session = await self._stack.enter_async_context(ClientSession(read, write))
+            await session.initialize()
+            self._sessions[name] = session
+            return session
 
     async def discover_tools(self, server: str) -> list[dict[str, Any]]:
         session = await self._session(server)
@@ -112,7 +129,7 @@ class StdioMCPClient(MCPClient):
                     "description": t.description or "",
                     "inputSchema": t.inputSchema,
                     "annotations": {
-                        "readOnlyHint": bool(getattr(ann, "readOnlyHint", True)) if ann else True,
+                        "readOnlyHint": _read_only_hint(ann),
                         "riskLevel": meta.get("riskLevel", "LOW"),
                         "requiredCapabilities": meta.get("requiredCapabilities", []),
                     },
@@ -127,7 +144,10 @@ class StdioMCPClient(MCPClient):
             raise MCPError(f"{server}.{tool} failed: {result.content}")
         structured = getattr(result, "structuredContent", None)
         if structured is not None:
-            return structured.get("result", structured) if isinstance(structured, dict) else structured
+            # FastMCP wraps non-object returns as {"result": ...}; only unwrap that exact shape
+            if isinstance(structured, dict) and set(structured) == {"result"}:
+                return structured["result"]
+            return structured
         texts = [c.text for c in result.content if getattr(c, "type", "") == "text"]
         if len(texts) == 1:
             try:
@@ -139,3 +159,11 @@ class StdioMCPClient(MCPClient):
     async def close(self) -> None:
         await self._stack.aclose()
         self._sessions.clear()
+
+
+def _read_only_hint(annotations: Any) -> bool:
+    """A missing/None hint means "unknown" - treat as read-only only when explicitly true or absent."""
+    if annotations is None:
+        return True
+    hint = getattr(annotations, "readOnlyHint", None)
+    return True if hint is None else bool(hint)

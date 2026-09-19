@@ -9,13 +9,20 @@ import sys
 from pathlib import Path
 
 from ceap.api.parsing import parse_question, resolve_session_date
+from ceap.config import SettingsError
 from ceap.data.repositories import DatasetStore
 from ceap.data.scenarios import SCENARIO_TEMPLATES, all_scenarios, get_scenario
+from ceap.domain.common import to_jsonable
 from ceap.platform import InvestigationRequest, Platform
+from ceap.policy.permissions import Role
 
 
 def _cmd_investigate(args: argparse.Namespace) -> int:
-    parsed = parse_question(args.question, resolve_session_date(args.session_date))
+    try:
+        parsed = parse_question(args.question, resolve_session_date(args.session_date))
+    except ValueError as exc:
+        print(f"Invalid --session-date: {exc}", file=sys.stderr)
+        return 2
     symbol = (args.symbol or parsed.symbol or "").upper()
     if not symbol or not parsed.window_start or not parsed.window_end:
         print(
@@ -40,7 +47,10 @@ def _cmd_investigate(args: argparse.Namespace) -> int:
         return 2
     if args.json:
         Path(args.json).write_text(
-            json.dumps(result.to_dict(include_trace=args.trace), indent=2, default=str)
+            json.dumps(
+                to_jsonable(result.to_dict(include_trace=args.trace)), indent=2, default=str, allow_nan=False
+            ),
+            encoding="utf-8",
         )
         print(f"wrote {args.json}")
     if result.report:
@@ -98,7 +108,7 @@ def build_parser() -> argparse.ArgumentParser:
     inv.add_argument("--symbol")
     inv.add_argument("--dataset", default="T01", help="scenario dataset id (T01..T10 or S01..S50)")
     inv.add_argument("--session-date", dest="session_date")
-    inv.add_argument("--role", default="trader")
+    inv.add_argument("--role", default="trader", choices=[r.value for r in Role])
     inv.add_argument("--json", help="write the full result to this file")
     inv.add_argument("--trace", action="store_true", help="include the execution trace in --json output")
     inv.set_defaults(func=_cmd_investigate)
@@ -125,8 +135,18 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    for stream in (
+        sys.stdout,
+        sys.stderr,
+    ):  # Windows consoles default to cp1252; reports may contain '→', '≈'
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     args = build_parser().parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except SettingsError as exc:
+        print(f"Configuration error: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":  # pragma: no cover

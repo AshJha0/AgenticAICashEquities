@@ -7,6 +7,7 @@ the harness never talks MCP directly.
 
 from __future__ import annotations
 
+import builtins
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -24,6 +25,10 @@ class RiskLevel(str, Enum):
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
     CRITICAL = "CRITICAL"
+
+
+class TransientToolError(RuntimeError):
+    """A transport-level failure the control plane may retry (connection reset, timeout)."""
 
 
 class ToolStatus(str, Enum):
@@ -109,10 +114,10 @@ class ToolRegistry:
     def has(self, tool_id: str) -> bool:
         return tool_id in self._tools
 
-    def list(self) -> list[ToolMetadata]:
+    def list(self) -> builtins.list[ToolMetadata]:
         return [t.metadata for t in self._tools.values()]
 
-    def ids(self) -> list[str]:
+    def ids(self) -> builtins.list[str]:
         return sorted(self._tools)
 
     def __len__(self) -> int:

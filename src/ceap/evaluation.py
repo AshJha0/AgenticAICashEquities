@@ -39,7 +39,7 @@ async def evaluate_scenario(platform: Platform, spec: ScenarioSpec) -> dict[str,
         "primary": primary,
         "material": sorted(material),
         "primary_hit": primary in truth,
-        "coverage": truth <= material or truth == {"NORMAL"} and not material,
+        "coverage": (truth <= material) or (truth == {"NORMAL"} and not material),
         "false_positives": sorted(material - truth),
         "completed": result.success,
         "unresolved_findings": unresolved,
@@ -62,7 +62,7 @@ async def run_evaluation(
         if verbose:
             flag = "OK " if row["primary_hit"] and row["coverage"] else "MISS"
             print(
-                f"{flag} {row['scenario']} {row['symbol']:5s} {row['template']:24s} primary={row['primary']:20s} fp={row['false_positives']} {row['duration_ms']:.0f}ms"
+                f"{flag} {row['scenario']} {row['symbol']:5s} {row['template']:24s} primary={str(row['primary'] or '-'):20s} fp={row['false_positives']} {row['duration_ms']:.0f}ms"
             )
     n = len(rows)
     return {

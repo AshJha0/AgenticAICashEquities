@@ -65,15 +65,15 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
 <div class="wrap">
   <h2>Measured, not claimed</h2>
   <div class="numbers">
-    Test suite&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 116 tests green — 63 unit · 15 integration · 12 MCP (incl. a real stdio round-trip) · 18 agent · 6 adversarial · 2 evaluation<br>
+    Test suite&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 138 tests green — 63 unit · 15 integration · 12 MCP (incl. a real stdio round-trip) · 40 agent (22 review regressions) · 6 adversarial · 2 evaluation<br>
     Scenario evaluation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 50 / 50 primary cause correct · 100% ground-truth coverage · 2% false-positive rate (one scenario) · 0 unresolved evidence · 0 narrative number warnings<br>
     Investigation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ≈0.9 s end to end with the deterministic LLM: plan → 15 tool calls in parallel batches → 5 specialist agents → critic → evidence validation → audited report<br>
     Capability surface&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5 MCP servers · 26 read-only tools · schemas derived from Python signatures · in-process or FastMCP over stdio from one definition<br>
-    Harness&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 11-state machine · 8 agents · policy → approval → retry/timeout → tool → evidence on every call · governance steps the plan cannot drop<br>
+    Harness&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 11-state machine · 8 agents · policy → approval → retry/timeout → tool → evidence on every call · governance steps the plan cannot drop or reorder · arguments pinned to the task's symbol, dataset and window<br>
     Synthetic market&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; per scenario: 14,400 1-second NBBO quotes · ≈22k prints on 5 venues · 1,440 five-level books · 242 orders · ≈435 fills · 1,680 telemetry points — seeded, byte-reproducible<br>
     Analytics&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 31 pure functions: VWAP · TWAP · Perold IS with opportunity cost · slippage · effective spread · impact · volatility · depth · attribution over 8 causes<br>
     Knowledge (RAG)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8 runbook/policy documents · 34 chunks · dependency-free hashed TF-IDF · served as DOCUMENT evidence through MCP<br>
-    Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ≈9.5k lines of typed Python in <code>src/ceap</code> · ≈2k lines of tests · ruff clean · Python 3.11+
+    Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ≈10.3k lines of typed Python in <code>src/ceap</code> · ≈2.4k lines of tests · ruff clean · mypy clean (99 files) · Python 3.11+
   </div>
 
   <div class="honest">

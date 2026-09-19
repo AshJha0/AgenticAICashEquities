@@ -39,7 +39,7 @@ async def registry(mcp_client):
 
 @pytest.fixture(scope="session")
 def settings() -> Settings:
-    return Settings(llm_provider="mock", auto_approve=True, environment="test")
+    return Settings(llm_provider="mock", auto_approve=True)  # CEAP_ENV=dev: dev API keys apply
 
 
 @pytest.fixture(scope="session")

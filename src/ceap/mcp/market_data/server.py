@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from ceap.analytics.execution_metrics import QuoteIndex
@@ -64,7 +65,9 @@ def build_server(store: DatasetStore) -> MCPServerDefinition:
     async def get_order_book(symbol: str, timestamp: str, dataset: str | None = None) -> dict[str, Any]:
         ds, r = repo(dataset)
         ts = parse_ts(timestamp)
-        books = await r.order_books(symbol, ds.sim_start, ts)
+        books = await r.order_books(
+            symbol, ds.sim_start, ts + timedelta(microseconds=1)
+        )  # "not after" is inclusive
         if not books:
             return {"symbol": symbol, "timestamp": ts.isoformat(), "book": None}
         b = books[-1]

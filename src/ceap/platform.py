@@ -6,6 +6,7 @@ Both the API and the CLI build a :class:`Platform` and call
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -83,9 +84,10 @@ class Platform:
         )
         self.policy = RulePolicyEngine(allowed_symbols=frozenset(SYMBOLS))
         self._registry: ToolRegistry | None = None
-        self.results: dict[str, HarnessResult] = {}
-        self.tasks: dict[str, Task] = {}
+        self.results: OrderedDict[str, HarnessResult] = OrderedDict()
+        self.tasks: OrderedDict[str, Task] = OrderedDict()
         self.cancellations: dict[str, CancellationToken] = {}
+        self.owners: dict[str, str] = {}
 
     async def registry(self) -> ToolRegistry:
         if self._registry is None:
@@ -132,6 +134,7 @@ class Platform:
         )
         self.tasks[task.id] = task
         self.cancellations[task.id] = CancellationToken()
+        self._evict()
         return task
 
     def policy_context(self, req: InvestigationRequest, task: Task) -> PolicyContext:
@@ -180,7 +183,28 @@ class Platform:
         harness = await self.harness()
         result = await harness.execute(task, self.policy_context(req, task), token)
         self.results[task.id] = result
+        self.cancellations.pop(task.id, None)
         return result
+
+    def record_failure(self, task_id: str, error: str) -> HarnessResult:
+        """Record a terminal failure that happened outside the harness (setup, crash)."""
+        result = HarnessResult.failed(task_id, error)
+        self.results[task_id] = result
+        self.cancellations.pop(task_id, None)
+        return result
+
+    def _evict(self) -> None:
+        """Bound memory: keep only the most recent finished results and their tasks."""
+        limit = self.settings.max_retained_results
+        while len(self.results) > limit:
+            oldest, _ = self.results.popitem(last=False)
+            self.tasks.pop(oldest, None)
+            self.owners.pop(oldest, None)
+        # tasks that never ran (validated but not started) are dropped once they are far behind
+        stale = [tid for tid in self.tasks if tid not in self.results and tid not in self.cancellations]
+        for tid in stale[: max(0, len(self.tasks) - limit * 2)]:
+            self.tasks.pop(tid, None)
+            self.owners.pop(tid, None)
 
     def cancel(self, task_id: str, reason: str = "cancelled by user") -> bool:
         token = self.cancellations.get(task_id)

@@ -57,7 +57,12 @@ def test_extract_json_handles_fences_and_trailing_text():
 async def test_mock_llm_purposes():
     llm = MockLLMClient()
     plan = await llm.complete(
-        LLMRequest("s", [{"role": "user", "content": '{"symbol":"MSFT"}'}], purpose="planning")
+        LLMRequest(
+            "s",
+            [{"role": "user", "content": "question with {} braces"}],
+            purpose="planning",
+            metadata={"parameters": {"symbol": "MSFT"}},
+        )
     )
     assert '"steps"' in plan.content and "MSFT" in plan.content
     other = await llm.complete(LLMRequest("s", [{"role": "user", "content": "hi"}]))

@@ -167,7 +167,7 @@ async def test_unknown_tool_in_plan_fails_validation(platform):
     )
     result = await harness.execute(task, platform.policy_context(req, task))
     assert result.state is HarnessState.FAILED and "unknown tool shell.exec" in result.error
-    assert not result.step_results  # nothing executed
+    assert not [s for s in result.step_results if s["type"] == "TOOL_CALL"]  # nothing executed
 
 
 async def test_policy_denial_at_validation_time(platform):

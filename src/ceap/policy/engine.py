@@ -106,8 +106,13 @@ class RulePolicyEngine(PolicyEngine):
     def _rule_symbol_universe(
         self, req: ToolRequest, meta: ToolMetadata, ctx: PolicyContext
     ) -> PolicyEvaluation | None:
-        universe: Any = ctx.attributes.get("allowed_symbols", self.allowed_symbols)
+        universe: Any = self.allowed_symbols
+        requested = ctx.attributes.get("allowed_symbols")
+        if requested:  # a per-request universe can only narrow the engine's universe, never widen it
+            universe = frozenset(requested) & universe if universe else frozenset(requested)
         symbol = req.arguments.get("symbol")
+        if not isinstance(symbol, (str, type(None))):
+            return PolicyEvaluation(PolicyDecision.DENY, "symbol must be a string", "argument-guard", meta.id)
         if universe and symbol and symbol not in universe:
             return PolicyEvaluation(
                 PolicyDecision.DENY, f"symbol {symbol} outside permitted universe", "symbol-universe", meta.id

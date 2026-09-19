@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cash-equities-agentic-platform"
-version = "0.1.0"
+version = "0.2.0"
 description = "Enterprise-style Agentic AI platform for investigating cash-equity execution quality (Python + MCP + LLM + multi-agent harness)."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -25,7 +25,8 @@ dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.27",
     "httpx>=0.26",
-    "mcp>=1.2",
+    "mcp>=1.19",
+    "tzdata>=2024.1",
 ]
 
 [project.optional-dependencies]

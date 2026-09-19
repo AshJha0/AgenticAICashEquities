@@ -76,46 +76,35 @@ def build_server(store: DatasetStore) -> MCPServerDefinition:
 
     @server.tool("Check an order quantity / participation rate against configured trading limits.")
     async def check_limit(
-        symbol: str, order_quantity: int, participation_rate: float | None = None, dataset: str | None = None
+        symbol: str,
+        order_quantity: int,
+        participation_rate: float | None = None,
+        side: str = "BUY",
+        dataset: str | None = None,
     ) -> dict[str, Any]:
         ds = select_dataset(store, dataset)
         limit = next((lm for lm in ds.limits if lm.symbol == symbol), None)
         if limit is None:
             return {"symbol": symbol, "found": False, "checks": []}
         position = await get_position(symbol, None, dataset)
-        projected = position["start_of_day_quantity"] + order_quantity
+        signed = int(order_quantity) if side.upper() == "BUY" else -int(order_quantity)
+        projected = int(position["quantity_as_of"]) + signed
+
+        def check(name: str, limit_value: float, observed: float) -> LimitCheck:
+            util = abs(observed) / limit_value if limit_value else float("inf")
+            return LimitCheck(symbol, name, limit_value, observed, abs(observed) > limit_value, util)
+
         checks = [
-            LimitCheck(
-                symbol,
-                "max_order_quantity",
-                limit.max_order_quantity,
-                order_quantity,
-                order_quantity > limit.max_order_quantity,
-                order_quantity / limit.max_order_quantity,
-            ),
-            LimitCheck(
-                symbol,
-                "max_position",
-                limit.max_position,
-                projected,
-                projected > limit.max_position,
-                projected / limit.max_position,
-            ),
+            check("max_order_quantity", limit.max_order_quantity, order_quantity),
+            check("max_position", limit.max_position, projected),
         ]
         if participation_rate is not None:
-            checks.append(
-                LimitCheck(
-                    symbol,
-                    "max_participation_rate",
-                    limit.max_participation_rate,
-                    participation_rate,
-                    participation_rate > limit.max_participation_rate,
-                    participation_rate / limit.max_participation_rate,
-                )
-            )
+            checks.append(check("max_participation_rate", limit.max_participation_rate, participation_rate))
         return {
             "symbol": symbol,
             "found": True,
+            "side": side.upper(),
+            "projected_position": projected,
             "any_breached": any(c.breached for c in checks),
             "checks": [to_jsonable(c) for c in checks],
         }

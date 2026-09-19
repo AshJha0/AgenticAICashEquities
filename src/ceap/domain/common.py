@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -51,7 +52,9 @@ def to_jsonable(obj: Any) -> Any:
 
     if isinstance(obj, Enum):  # before str: str-backed enums must serialise to their value
         return obj.value
-    if obj is None or isinstance(obj, (str, int, float, bool)):
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None  # NaN/inf are not JSON; strict parsers reject them
+    if obj is None or isinstance(obj, (str, int, bool)):
         return obj
     if isinstance(obj, datetime):
         return obj.isoformat()
@@ -65,7 +68,7 @@ def to_jsonable(obj: Any) -> Any:
         import numpy as np
 
         if isinstance(obj, np.generic):
-            return obj.item()
+            return to_jsonable(obj.item())
         if isinstance(obj, np.ndarray):
             return obj.tolist()
     except ImportError:  # pragma: no cover

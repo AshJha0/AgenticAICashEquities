@@ -225,6 +225,7 @@ suite includes a real stdio round-trip.
 
 | Variable | Default | Meaning |
 |---|---|---|
+| `CEAP_ENV` | `dev` | `dev` enables the dev API keys and auto-approval; any other value requires `CEAP_API_KEYS` and queues approvals unless `CEAP_AUTO_APPROVE=true` is set explicitly |
 | `ANTHROPIC_API_KEY` | – | enables the Anthropic client (`CEAP_LLM_PROVIDER=auto`) |
 | `CEAP_LLM_PROVIDER` | `auto` | `auto` / `mock` / `anthropic` |
 | `CEAP_LLM_MODEL` | `claude-sonnet-4-5` | narrative / critique model |
@@ -233,8 +234,10 @@ suite includes a real stdio round-trip.
 | `CEAP_STEP_TIMEOUT_SECONDS` | `30` | per tool call |
 | `CEAP_TASK_TIMEOUT_SECONDS` | `300` | per investigation |
 | `CEAP_MAX_RETRIES` | `2` | transient tool failures |
-| `CEAP_AUTO_APPROVE` | `true` | `false` queues approvals for `/approvals` |
-| `CEAP_API_KEYS` | dev keys | `key:role,...` (roles: viewer, trader, quant, engineer, admin) |
+| `CEAP_AUTO_APPROVE` | `true` in dev, else `false` | `false` queues approvals for `/approvals` |
+| `CEAP_API_KEYS` | dev keys (dev only) | `key:role,...` (roles: viewer, trader, quant, engineer, admin); keys must be ≥ 8 characters |
+| `CEAP_MAX_CONCURRENT_INVESTIGATIONS` | `4` | background investigations run under a semaphore |
+| `CEAP_MAX_RETAINED_RESULTS` | `200` | oldest investigation results are evicted beyond this |
 | `CEAP_KNOWLEDGE_DIR` | `data/reference/knowledge` | RAG corpus |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | – | mirrors harness spans to OpenTelemetry |
 

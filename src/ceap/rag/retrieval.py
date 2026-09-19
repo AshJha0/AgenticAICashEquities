@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from ceap.rag.embeddings import Embedder, HashingEmbedder
 from ceap.rag.ingestion import Chunk, Document, chunk_document, load_documents
 
 DEFAULT_KNOWLEDGE_DIR = Path(__file__).resolve().parents[3] / "data" / "reference" / "knowledge"
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -44,8 +46,9 @@ class KnowledgeBase:
         return len(self.chunks)
 
     def search(self, query: str, k: int = 4, min_score: float = 0.05) -> list[RetrievalHit]:
-        if not self.chunks or not query.strip():
+        if not self.chunks or not query.strip() or k <= 0:
             return []
+        k = min(int(k), 50)
         q = self.embedder.embed([query])[0]
         scores = self._matrix @ q
         order = np.argsort(-scores)[:k]
@@ -64,4 +67,6 @@ class KnowledgeBase:
 def build_knowledge_base(directory: str | Path | None = None) -> KnowledgeBase:
     path = Path(directory) if directory else DEFAULT_KNOWLEDGE_DIR
     docs = load_documents(path) if path.exists() else []
+    if not docs:
+        log.warning("knowledge base is empty: no *.md documents under %s (set CEAP_KNOWLEDGE_DIR)", path)
     return KnowledgeBase(docs)
