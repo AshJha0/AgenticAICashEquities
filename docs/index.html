@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgenticAICashEquities — agentic AI platform for cash-equity execution investigation</title>
+<!-- GitHub Pages landing page. If the repository is renamed, update the
+     github.com/AshJha0/AgenticAICashEquities links below to match. -->
+<style>
+:root{--teal:#16697a;--green:#16a085;--ink:#1a1a2e;--muted:#556}
+body{font-family:'Segoe UI',Arial,sans-serif;margin:0;color:var(--ink);background:#f7f8fa}
+header{background:var(--teal);color:#fff;padding:3rem 2rem}
+header h1{margin:0 0 .5rem;font-size:2.2rem}
+header p{margin:0;max-width:52rem;opacity:.92;line-height:1.5}
+.wrap{max-width:64rem;margin:0 auto;padding:0 2rem}
+nav{margin-top:1.2rem}
+nav a{display:inline-block;background:var(--green);color:#fff;text-decoration:none;
+  padding:.55rem 1.1rem;margin:.25rem .6rem .25rem 0;border-radius:4px;font-weight:600}
+nav a.secondary{background:rgba(255,255,255,.15)}
+h2{color:var(--teal);border-bottom:2px solid #e3e8ec;padding-bottom:.3rem;margin-top:2.5rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(17rem,1fr));gap:1rem;margin:1.2rem 0}
+.card{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12);padding:1rem 1.2rem;border-radius:4px}
+.card h3{margin:.1rem 0 .5rem;font-size:1.02rem;color:var(--teal)}
+.card p{margin:0;font-size:.9rem;color:var(--muted);line-height:1.45}
+pre{background:#10222a;color:#d7e3ea;padding:1rem 1.2rem;border-radius:4px;overflow-x:auto;
+  font-size:.85rem;line-height:1.5}
+.numbers{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.12);border-radius:4px;
+  padding:1rem 1.4rem;font-family:Consolas,monospace;font-size:.88rem;line-height:1.7}
+.honest{background:#fff8ec;border-left:4px solid var(--green);padding:.8rem 1.2rem;
+  border-radius:4px;font-size:.92rem;line-height:1.55;margin:1.2rem 0}
+.boundary{display:grid;grid-template-columns:repeat(auto-fill,minmax(13rem,1fr));gap:.6rem;margin:1rem 0}
+.boundary div{background:#fff;border-top:3px solid var(--green);box-shadow:0 1px 3px rgba(0,0,0,.12);
+  border-radius:4px;padding:.7rem .9rem;font-size:.88rem;line-height:1.4}
+.boundary strong{display:block;color:var(--teal);margin-bottom:.2rem}
+footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>AgenticAICashEquities</h1>
+    <p>An enterprise-style Agentic AI platform that investigates, analyses and explains
+       cash-equity trading and market behaviour. Ask <em>"Why did our AAPL execution quality
+       deteriorate between 14:00 and 15:00?"</em> and it plans the investigation, pulls orders,
+       fills, market data, order-book depth, venue statistics, technology telemetry and runbooks
+       through MCP, computes every number with deterministic quant analytics, lets specialist
+       agents interpret the evidence, has an independent critic challenge the findings, and
+       writes an auditable report in which every claim points at an evidence record.
+       Python · MCP · LLM · multi-agent harness · policy engine · RAG · FastAPI.</p>
+    <nav>
+      <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/LEARN.md">Learn (guide)</a>
+      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/COOKBOOK.md">Cookbook</a>
+      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/architecture/overview.md">Architecture</a>
+      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/DIAGRAMS.md">Diagrams</a>
+      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/SPECIFICATION.md">Specification</a>
+      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/threat-model/threat-model.md">Threat model</a>
+      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/evaluation/evaluation.md">Evaluation</a>
+      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/api/api.md">API</a>
+      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities">GitHub</a>
+      <a class="secondary" href="https://ashjha0.github.io/quant-portfolio/">Quant portfolio</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <h2>Measured, not claimed</h2>
+  <div class="numbers">
+    Test suite&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 116 tests green — 63 unit · 15 integration · 12 MCP (incl. a real stdio round-trip) · 18 agent · 6 adversarial · 2 evaluation<br>
+    Scenario evaluation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 50 / 50 primary cause correct · 100% ground-truth coverage · 2% false-positive rate (one scenario) · 0 unresolved evidence · 0 narrative number warnings<br>
+    Investigation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ≈0.9 s end to end with the deterministic LLM: plan → 15 tool calls in parallel batches → 5 specialist agents → critic → evidence validation → audited report<br>
+    Capability surface&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5 MCP servers · 26 read-only tools · schemas derived from Python signatures · in-process or FastMCP over stdio from one definition<br>
+    Harness&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 11-state machine · 8 agents · policy → approval → retry/timeout → tool → evidence on every call · governance steps the plan cannot drop<br>
+    Synthetic market&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; per scenario: 14,400 1-second NBBO quotes · ≈22k prints on 5 venues · 1,440 five-level books · 242 orders · ≈435 fills · 1,680 telemetry points — seeded, byte-reproducible<br>
+    Analytics&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 31 pure functions: VWAP · TWAP · Perold IS with opportunity cost · slippage · effective spread · impact · volatility · depth · attribution over 8 causes<br>
+    Knowledge (RAG)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8 runbook/policy documents · 34 chunks · dependency-free hashed TF-IDF · served as DOCUMENT evidence through MCP<br>
+    Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ≈9.5k lines of typed Python in <code>src/ceap</code> · ≈2k lines of tests · ruff clean · Python 3.11+
+  </div>
+
+  <div class="honest">
+    <strong>The LLM writes the explanation; the numbers come from deterministic systems.</strong>
+    That boundary is enforced in code, not prose. The critic may only <em>lower</em> confidence.
+    Findings whose evidence ids do not resolve are dropped before the report is written. The
+    narrative is audited afterwards: every number must trace to the structured facts handed to
+    the model and every evidence id must exist — the adversarial suite feeds the reporter a
+    fabricated "0.0000 bps / 99.9% fill / EXEC-deadbeef" narrative and checks that all three are
+    flagged. The evaluation numbers above were produced with the offline deterministic model;
+    with a real model the same audits measure plan quality and narrative fidelity. The one
+    false positive (S50) is a 200 bps drift inside a 3× volatility window scored as a secondary
+    "price movement" — defensible, and reported rather than tuned away.
+  </div>
+
+  <h2>The architectural boundary</h2>
+  <div class="boundary">
+    <div><strong>LLM</strong>reasoning, planning, narrative — never a metric, never an evidence id</div>
+    <div><strong>Python analytics</strong>deterministic computation: VWAP, IS, slippage, impact, attribution</div>
+    <div><strong>MCP</strong>the capability interface — the only way to reach data</div>
+    <div><strong>Harness</strong>the control plane — agents never control the loop</div>
+    <div><strong>Policy engine</strong>authority: allow / deny / require approval, explained by rule</div>
+    <div><strong>Evidence</strong>auditability: every finding cites resolvable records</div>
+  </div>
+
+  <h2>What's inside</h2>
+  <div class="grid">
+    <div class="card"><h3>Domain model</h3>
+      <p>Framework-free frozen dataclasses and interfaces for the whole vocabulary — Task, Plan,
+         PlanStep, Agent, Tool, ToolRequest/Result, Evidence (10 types), Finding, Quote, Trade,
+         OrderBook, Order, Execution, ExecutionMetrics, PolicyDecision, repositories, reports.
+         Nothing here imports MCP, an LLM SDK or a web framework.</p></div>
+    <div class="card"><h3>Deterministic quant analytics</h3>
+      <p>Pure NumPy functions with known-answer tests: VWAP/TWAP, Perold implementation
+         shortfall (execution + opportunity legs, sign-correct for sells), arrival/VWAP/per-fill
+         slippage, effective spread, permanent vs temporary impact, square-root impact estimate,
+         realised and annualised volatility, drift/jump detection, depth, imbalance,
+         stale/crossed-quote diagnostics.</p></div>
+    <div class="card"><h3>Cause attribution</h3>
+      <p>Window vs baseline scoring over a fixed catalogue — volatility, spreads, liquidity,
+         venue degradation, technology latency, market-data anomaly, large-order impact, price
+         movement — with documented thresholds, saturating scores, a materiality cut-off and
+         guards (platform-wide rejects are not blamed on a venue; drift under high vol is
+         discounted).</p></div>
+    <div class="card"><h3>Synthetic cash-equity market</h3>
+      <p>Seeded GBM mid path, tick-rounded NBBO with log-normal spread and size noise, Poisson
+         prints across XNAS/ARCA/BATS/IEX/DARK1, five-level books, baseline and window VWAP
+         parents with 30-second child slices, fills that cross the spread and walk the book,
+         latency, rejects, engineering metrics/logs/deployments, positions and limits.</p></div>
+    <div class="card"><h3>50 evaluation scenarios</h3>
+      <p>Ten templates — normal, high volatility, wide spreads, low liquidity, venue degradation,
+         technology latency, market-data anomaly, large parent order, unexpected price move,
+         mixed market + technology — across AAPL, MSFT, NVDA, AMZN and META with structured
+         ground truth; effects are injected only inside 14:00–15:00 so the prior hour is a clean
+         baseline.</p></div>
+    <div class="card"><h3>MCP servers</h3>
+      <p>market_data (quotes, trades, book, statistics, reference), execution (parent/child
+         orders, fills, TCA metrics, venue statistics, strategy config), risk (position,
+         exposure, limit check, stress), engineering (logs, metrics, deployments, latency),
+         knowledge (RAG). One definition serves in-process calls and a real FastMCP stdio
+         server; annotations carry read-only, risk level and required capabilities.</p></div>
+    <div class="card"><h3>MCP client &amp; adapter</h3>
+      <p><code>MCPClient</code> abstraction with in-process and stdio implementations (official
+         SDK). <code>MCPToolAdapter</code> turns discovered descriptors into domain tools; every
+         invocation yields an evidence record with the arguments, correlation id and a SHA-256
+         digest of the payload, so the audit trail exists before any agent interprets the data.</p></div>
+    <div class="card"><h3>Agent harness</h3>
+      <p>Explicit state machine (CREATED → PLANNING → VALIDATING_PLAN → EXECUTING ⇄
+         AWAITING_APPROVAL → CRITIQUING → VALIDATING_EVIDENCE → FINALISING → COMPLETED),
+         a policy-gated executor with bounded retry, per-step timeout and cooperative
+         cancellation, <code>asyncio.TaskGroup</code> batching of independent tool calls, memory,
+         tracing — and critic/validation/finalise appended whenever a plan omits them.</p></div>
+    <div class="card"><h3>Planner</h3>
+      <p>The model proposes a JSON plan restricted to the discovered catalogue; unknown tools,
+         agents, step types and arguments are stripped and recorded, the dataset selector is
+         injected only where the schema accepts it, unusable output falls back to a canonical
+         plan, and the harness validates the result again — including a policy pre-check of
+         every tool call before anything runs.</p></div>
+    <div class="card"><h3>Specialist agents</h3>
+      <p>Market (what happened in the market?), Execution (what happened to our orders?), Quant
+         (what does the data show and why?), Risk (unusual exposure or limit usage?),
+         Engineering (did technology behave normally?). Each reads the plan's tool outputs from
+         memory, fetches anything missing through the same policy path, and returns findings
+         with evidence ids plus CALCULATION evidence for its own derivations.</p></div>
+    <div class="card"><h3>Critic</h3>
+      <p>Deterministic checks first: every cited evidence id must resolve; an anomaly claim must
+         be corroborated by the attribution score; cross-agent contradictions (quant blames
+         technology, engineering says latency is normal) are flagged; single-evidence findings
+         are capped. An optional LLM critique then runs and can only lower confidence.</p></div>
+    <div class="card"><h3>Reporter with audits</h3>
+      <p>Structured facts go to the model; the narrative comes back in the report's section
+         structure. A number audit checks every figure against the facts (tolerant of rounding
+         and percentage forms) and an evidence-id audit checks every cited id; discrepancies are
+         attached to the report as warnings rather than silently accepted.</p></div>
+    <div class="card"><h3>Policy engine &amp; approvals</h3>
+      <p>Ordered rules — deny list, read-only, required capabilities, argument guards, symbol
+         universe, risk level — returning ALLOW / DENY / REQUIRE_APPROVAL with the rule that
+         fired. Roles (viewer, trader, quant, engineer, admin) map to capabilities. Approval
+         gateways: automatic (dev), queued with timeout (human decides via the API), deny.</p></div>
+    <div class="card"><h3>RAG knowledge base</h3>
+      <p>Eight enterprise documents — VWAP runbook, TCA methodology, venue configuration,
+         trading limits, execution policy, market-data architecture, incident runbook,
+         algorithm documentation — chunked by heading, embedded with a dependency-free hashed
+         TF-IDF embedder, and exposed through the knowledge MCP server so retrieved passages
+         become DOCUMENT evidence.</p></div>
+    <div class="card"><h3>API, CLI, observability</h3>
+      <p>FastAPI gateway with API-key auth and capability checks (202-accepted investigations,
+         report, full result, trace, cancel, approvals), a <code>ceap</code> CLI
+         (investigate · scenarios · evaluate · generate-data · serve), Prometheus text metrics,
+         JSON-lines logging and an in-memory tracer that mirrors to OpenTelemetry when
+         configured.</p></div>
+    <div class="card"><h3>Adversarial suite</h3>
+      <p>Prompt injection in the question, rogue plans with unknown/mutating tools and malformed
+         steps, unparsable model output, a critic that tries to raise confidence, fabricated
+         numbers and evidence ids in the narrative, oversized and out-of-universe tool
+         arguments — each mapped to a control in the threat model.</p></div>
+    <div class="card"><h3>Stage 2 ready</h3>
+      <p>The roadmap — Research Agent → Alpha Analysis → Backtest Engine → Risk Agent → Critic →
+         Human Approval — reuses the harness, policy engine, approval gateway and evidence model
+         unchanged; the <code>HUMAN_APPROVAL</code> step type and queued approvals already exist.</p></div>
+  </div>
+
+  <h2>What an investigation looks like</h2>
+<pre>$ ceap investigate "Why did our execution quality for AAPL deteriorate between 14:00 and 15:00?" --dataset T06
+
+AAPL EXECUTION INVESTIGATION 14:00-15:00 London
+
+EXECUTIVE SUMMARY
+Headline execution cost did not deteriorate versus the baseline (implementation shortfall delta
+-35.9 bps, slippage versus interval VWAP delta +0.4 bps); however the evidence identifies
+technology latency as a material anomaly during the window. ...
+
+PRIMARY OBSERVATIONS
+1. Primary anomaly: technology latency / rejects in the execution path (score 0.97; execution
+   latency ratio vs baseline = 9.98 (threshold 3.0); reject rate = 10.0%). [confidence 0.94]
+2. Order-gateway acknowledgement latency was 10.0x the baseline (p99 9828 us, SLO breached). [0.91]
+3. Deployment CHG-40388 (smart-order-router 2.14.1: Routing latency budget and venue timeout
+   changes) went live at 2026-09-18T13:52:00+01:00 - shortly before the window. [0.85]
+...
+TECHNOLOGY
+Execution latency: Elevated (ratio 9.98 vs baseline)   Reject rate: Elevated (10.0%)
+Deployments in scope: 1; error logs: 41
+
+EVIDENCE
+- CHANGE-3a3ac7ec  - ENG-1302fd13  - EXEC-5672d0d8  - TCA-16395dc6  ...</pre>
+
+  <h2>Part of a wider portfolio</h2>
+  <div class="grid">
+    <div class="card"><h3><a href="https://ashjha0.github.io/intraday-alpha-platform/" style="color:inherit">intraday-alpha-platform</a></h3>
+      <p>The polyglot research-to-production trading platform this project sits alongside:
+         market data → order books → 205-feature factory → 24 alphas → validation → ML →
+         portfolio → fail-closed risk → execution/SOR → TCA, golden-tested across Python, C++,
+         Rust and Java. <a href="https://github.com/AshJha0/intraday-alpha-platform">GitHub&nbsp;→</a></p></div>
+    <div class="card"><h3><a href="https://ashjha0.github.io/quant-portfolio/" style="color:inherit">quant-portfolio</a></h3>
+      <p>The end-to-end quantitative finance portfolio: project areas built in Python with C++
+         and Rust performance twins, golden-vector cross-language validation, a learning guide
+         and a cookbook. <a href="https://github.com/AshJha0/quant-portfolio">GitHub&nbsp;→</a></p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/Quant-Finance-Library" style="color:inherit">quantfinlib</a></h3>
+      <p>A zero-dependency quantitative finance platform for the JVM — research, validation,
+         execution and connectivity, with CI on every push.
+         <a href="https://github.com/AshJha0/Quant-Finance-Library">GitHub&nbsp;→</a></p></div>
+  </div>
+
+  <h2>Quick start</h2>
+<pre>git clone https://github.com/AshJha0/AgenticAICashEquities && cd AgenticAICashEquities
+python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+
+# an investigation from the CLI — offline, deterministic model, ~1 s
+ceap investigate "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall increased." --dataset T06
+
+# the whole suite: unit, integration, MCP (incl. stdio), agent, adversarial, 50-scenario evaluation
+pytest
+
+# evaluation table against structured ground truth
+ceap evaluate
+
+# the API — docs at http://127.0.0.1:8000/docs
+ceap serve
+curl -s -X POST http://127.0.0.1:8000/investigations -H "X-API-Key: dev-trader-key" \
+     -H "Content-Type: application/json" \
+     -d '{"question": "Why did AAPL execution deteriorate between 14:00 and 15:00?", "dataset": "T05"}'
+
+# real MCP over stdio: the five servers as subprocesses, 26 tools discovered
+python scripts/run_stdio_mcp_demo.py
+
+# use a real model (optional): pip install -e ".[llm]" and export ANTHROPIC_API_KEY=...</pre>
+
+  <footer>AgenticAICashEquities — an agentic, evidence-first execution-quality investigation
+    platform built on fully synthetic data for education and demonstration. See
+    <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/SPECIFICATION.md">the
+    governing specification</a> and
+    <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/README.md">README</a>.</footer>
+</div>
+</body>
+</html>

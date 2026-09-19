@@ -242,10 +242,17 @@ suite includes a real stdio round-trip.
 
 ## Documentation
 
+Site: **https://ashjha0.github.io/AgenticAICashEquities/** (landing page with measured numbers; published from `docs/`, see [docs/GITHUB_PAGES.md](docs/GITHUB_PAGES.md)).
+
+* [LEARN.md](LEARN.md) – guided tour: concepts, how the repo implements them, real numbers, interview questions
+* [COOKBOOK.md](COOKBOOK.md) – 27 copy-pasteable recipes
+* [docs/SPECIFICATION.md](docs/SPECIFICATION.md) – the governing specification with realised / partial / roadmap status per requirement
 * [docs/architecture/overview.md](docs/architecture/overview.md) – components, data flow, design decisions
+* [docs/DIAGRAMS.md](docs/DIAGRAMS.md) – Mermaid diagrams: pipeline, state machine, tool-call path, evidence model, MCP topology, sequence, attribution
 * [docs/threat-model/threat-model.md](docs/threat-model/threat-model.md) – assets, threats, controls, adversarial tests
-* [docs/api/api.md](docs/api/api.md) – endpoints, auth, schemas
 * [docs/evaluation/evaluation.md](docs/evaluation/evaluation.md) – scenarios, thresholds, metrics, results
+* [docs/api/api.md](docs/api/api.md) – endpoints, auth, schemas
+* [docs/INDEX.md](docs/INDEX.md) – everything above in one table
 
 ## Roadmap (stage 2)
 
