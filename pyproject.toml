@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cash-equities-agentic-platform"
+version = "0.1.0"
+description = "Enterprise-style Agentic AI platform for investigating cash-equity execution quality (Python + MCP + LLM + multi-agent harness)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Ashish Nath Jha", email = "ashishnathjha@gmail.com" }]
+keywords = ["agentic-ai", "mcp", "cash-equities", "tca", "execution-quality", "llm", "multi-agent"]
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "pydantic>=2.5",
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "httpx>=0.26",
+    "mcp>=1.2",
+]
+
+[project.optional-dependencies]
+llm = ["anthropic>=0.40"]
+quant = ["polars>=0.20", "pyarrow>=14", "duckdb>=0.10", "scipy>=1.11"]
+ml = ["scikit-learn>=1.4", "xgboost>=2.0"]
+observability = [
+    "opentelemetry-api>=1.22",
+    "opentelemetry-sdk>=1.22",
+    "prometheus-client>=0.19",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.3",
+    "mypy>=1.8",
+]
+all = [
+    "cash-equities-agentic-platform[llm,quant,ml,observability,dev]",
+]
+
+[project.scripts]
+ceap = "ceap.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ceap = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["src"]
+addopts = "-q"
+markers = [
+    "evaluation: scenario-based evaluation suite",
+    "adversarial: adversarial / safety tests",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "W"]
+ignore = ["E501", "B008", "UP042"]  # B008: FastAPI Depends(); UP042: str-Enum kept for 3.11 JSON compat
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+mypy_path = "src"

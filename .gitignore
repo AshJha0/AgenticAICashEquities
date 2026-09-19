@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# environment
+.env
+
+# generated data exports (keep the knowledge corpus and .gitkeep files)
+data/market/*.csv
+data/market/*.parquet
+data/orders/*.csv
+data/orders/*.parquet
+data/executions/*.csv
+data/executions/*.parquet
+data/reference/*.csv
+data/reference/*.parquet
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
