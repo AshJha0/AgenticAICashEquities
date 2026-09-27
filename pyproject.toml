@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cash-equities-agentic-platform"
-version = "0.2.0"
+version = "0.2.1"
 description = "Enterprise-style Agentic AI platform for investigating cash-equity execution quality (Python + MCP + LLM + multi-agent harness)."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -25,7 +25,7 @@ dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.27",
     "httpx>=0.26",
-    "mcp>=1.19",
+    "mcp>=1.19,<2",
     "tzdata>=2024.1",
 ]
 
@@ -77,7 +77,10 @@ select = ["E", "F", "I", "B", "UP", "N", "W"]
 ignore = ["E501", "B008", "UP042"]  # B008: FastAPI Depends(); UP042: str-Enum kept for 3.11 JSON compat
 
 [tool.mypy]
-python_version = "3.11"
+# Matches the Python version CI installs (numpy's stubs require 3.12 syntax
+# regardless of this setting once numpy >= 2.1 is resolved); runtime support
+# still targets Python >= 3.11 per requires-python above.
+python_version = "3.12"
 strict = false
 ignore_missing_imports = true
 mypy_path = "src"

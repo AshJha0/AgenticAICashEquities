@@ -88,7 +88,7 @@ def london(session_date: date, hh: int, mm: int = 0) -> datetime:
     return datetime(session_date.year, session_date.month, session_date.day, hh, mm, tzinfo=LONDON)
 
 
-def _round_tick(x: np.ndarray | float) -> np.ndarray | float:
+def _round_tick(x: np.ndarray | float) -> np.ndarray:
     return np.round(np.asarray(x) / TICK) * TICK
 
 

@@ -10,7 +10,7 @@ SECONDS_PER_TRADING_DAY = 6.5 * 3600
 TRADING_DAYS_PER_YEAR = 252
 
 
-def log_returns(prices: Sequence[float]) -> np.ndarray:
+def log_returns(prices: Sequence[float] | np.ndarray) -> np.ndarray:
     p = np.asarray(prices, dtype=float)
     p = p[p > 0]
     if p.size < 2:
@@ -19,7 +19,7 @@ def log_returns(prices: Sequence[float]) -> np.ndarray:
 
 
 def realised_volatility_bps(
-    prices: Sequence[float], sample_seconds: float = 1.0, horizon_seconds: float = 60.0
+    prices: Sequence[float] | np.ndarray, sample_seconds: float = 1.0, horizon_seconds: float = 60.0
 ) -> float:
     """Std-dev of log returns scaled to ``horizon_seconds``, in bps.
 
@@ -34,7 +34,7 @@ def realised_volatility_bps(
     return per_sample * scale * 10_000.0
 
 
-def annualise_volatility(prices: Sequence[float], sample_seconds: float = 1.0) -> float:
+def annualise_volatility(prices: Sequence[float] | np.ndarray, sample_seconds: float = 1.0) -> float:
     """Annualised volatility (decimal) from intraday sampled prices."""
     r = log_returns(prices)
     if r.size < 2:
@@ -44,7 +44,7 @@ def annualise_volatility(prices: Sequence[float], sample_seconds: float = 1.0) -
     return per_sample * np.sqrt(samples_per_day * TRADING_DAYS_PER_YEAR)
 
 
-def price_drift_bps(prices: Sequence[float]) -> float:
+def price_drift_bps(prices: Sequence[float] | np.ndarray) -> float:
     p = np.asarray(prices, dtype=float)
     if p.size < 2 or p[0] <= 0:
         return float("nan")

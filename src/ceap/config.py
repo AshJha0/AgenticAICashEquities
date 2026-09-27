@@ -8,10 +8,13 @@ queued for a human unless ``CEAP_AUTO_APPROVE=true`` is set deliberately.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 
 from ceap.policy.permissions import Role
+
+logger = logging.getLogger(__name__)
 
 DEV_API_KEYS = "dev-trader-key:trader,dev-quant-key:quant,dev-admin-key:admin,dev-viewer-key:viewer"
 LLM_PROVIDERS = ("auto", "mock", "anthropic")
@@ -119,6 +122,12 @@ class Settings:
             )
         if not self.is_dev and any(key.startswith("dev-") for key in self.api_keys):
             raise SettingsError("development API keys (dev-*) must not be used outside CEAP_ENV=dev")
+        if self.is_dev:
+            logger.warning(
+                "CEAP_ENV=dev: serving with dev-* API keys and/or default auto-approve=%s. "
+                "This configuration must never be used outside a local/demo environment.",
+                self.auto_approve,
+            )
 
 
 def _parse_api_keys(raw: str) -> dict[str, str]:
@@ -135,6 +144,8 @@ def _parse_api_keys(raw: str) -> dict[str, str]:
             raise SettingsError("API keys must be at least 8 characters")
         if role not in valid_roles:
             raise SettingsError(f"unknown role {role!r} for API key; valid roles: {sorted(valid_roles)}")
+        if key in out:
+            raise SettingsError(f"duplicate API key entry {key!r} in CEAP_API_KEYS")
         out[key] = role
     return out
 

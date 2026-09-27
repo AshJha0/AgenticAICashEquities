@@ -17,7 +17,7 @@ def slippage_bps(side: Side, execution_price: float, benchmark_price: float) -> 
 
 
 def per_fill_slippage_bps(
-    side: Side, exec_prices: Sequence[float], benchmark_prices: Sequence[float]
+    side: Side, exec_prices: Sequence[float] | np.ndarray, benchmark_prices: Sequence[float] | np.ndarray
 ) -> np.ndarray:
     """Vectorised slippage of each fill against the benchmark prevailing at that fill."""
     p = np.asarray(exec_prices, dtype=float)
@@ -29,7 +29,9 @@ def per_fill_slippage_bps(
     return np.where(b > 0, out, np.nan)
 
 
-def effective_spread_bps(exec_prices: Sequence[float], mids: Sequence[float], side: Side) -> float:
+def effective_spread_bps(
+    exec_prices: Sequence[float] | np.ndarray, mids: Sequence[float] | np.ndarray, side: Side
+) -> float:
     """Effective spread = 2 * |exec - mid| / mid, quantity-unweighted mean in bps."""
     p = np.asarray(exec_prices, dtype=float)
     m = np.asarray(mids, dtype=float)

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.1 – CI, dependency pinning, test organisation
+
+- Add GitHub Actions CI (`ruff`, `mypy`, `pytest`) running against a pinned `requirements.lock`.
+- Pin `mcp>=1.19,<2` (the code uses the v1 `FastMCP` API, renamed in `mcp` 2.x) and generate
+  `requirements.lock` via pip-compile for reproducible installs.
+- `Settings.validate_for_serving()` now logs a warning when serving with dev API keys /
+  auto-approve; `CEAP_API_KEYS` rejects duplicate key entries; add `.env.production.example`.
+- Fix 13 latent `mypy` errors in the analytics layer surfaced by a newer `numpy` (widen
+  `Sequence[float]` parameters to also accept `np.ndarray`; narrow `_round_tick`'s return type).
+- Split `tests/unit/test_analytics.py` into per-metric files under `tests/unit/analytics/` with a
+  few added edge-case tests (145 tests total; ruff and mypy clean).
+
 ## 0.2.0 – Review pass: hardening, correctness, bounded resources
 
 Findings from a full code review (three independent reviewers plus `mypy --strict`-style typing),

@@ -22,8 +22,8 @@ from ceap.domain.execution import Side
 def implementation_shortfall_bps(
     side: Side,
     decision_price: float,
-    exec_prices: Sequence[float],
-    exec_quantities: Sequence[float],
+    exec_prices: Sequence[float] | np.ndarray,
+    exec_quantities: Sequence[float] | np.ndarray,
     target_quantity: float,
     final_price: float | None = None,
 ) -> float:
