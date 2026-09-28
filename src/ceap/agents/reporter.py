@@ -415,7 +415,11 @@ def _default_research_summary(assessment: dict[str, Any]) -> str:
 # ----------------------------------------------------------------- audits
 _NUM = re.compile(r"(?<![\w:.-])[-+]?\d+(?:,\d{3})*(?:\.\d+)?(?![\w:])")
 _ISO = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?")
-_ID = re.compile(r"\b[A-Z]{1,8}-[0-9a-f]{8}\b")
+# Only ids shaped like an actual Evidence record (see ceap.domain.evidence._PREFIX) are audited;
+# other id-shaped tokens in the facts (e.g. an approval request id, "APR-...") are legitimate
+# and are not expected to resolve as evidence.
+_EVIDENCE_PREFIXES = ("MARKET", "ORDER", "EXEC", "BOOK", "ENG", "LOG", "DOC", "TCA", "CHANGE", "RISK", "SIG", "BT")
+_ID = re.compile(r"\b(?:" + "|".join(_EVIDENCE_PREFIXES) + r")-[0-9a-f]{8}\b")
 
 
 def _collect_numbers(obj: Any, out: set[float]) -> None:
@@ -445,7 +449,21 @@ def audit_numbers(narrative: str, facts: dict[str, Any]) -> list[str]:
     _collect_numbers(facts, fact_numbers)
     derived: set[float] = set()
     for v in fact_numbers:
-        derived.update({v, v * 100.0, (v - 1.0) * 100.0, abs(v), -v})
+        derived.update(
+            {
+                v,
+                v * 100.0,  # fraction -> percent
+                (v - 1.0) * 100.0,  # ratio -> percent change
+                abs(v),
+                -v,
+                v * 1000.0,  # fraction -> per-mille
+                v * 10_000.0,  # fraction -> basis points
+                v / 10.0,
+                v / 100.0,
+                v / 1000.0,
+                v / 10_000.0,
+            }
+        )
     warnings: list[str] = []
     text = _ISO.sub(" ", narrative)
     for m in _NUM.finditer(text):

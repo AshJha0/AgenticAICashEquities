@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.1 – Real-model fixes found by a live Stage 2 evaluation run
+
+Found by running `ceap evaluate --suite research` against `claude-haiku-4-5` for the first time
+(prior verification used only the offline deterministic mock).
+
+- `AnthropicLLMClient` sent `temperature`, which `anthropic` >= 1.x no longer accepts on
+  `messages.create()`; every "live" call raised and silently fell back to the mock. Removed the
+  parameter (sampling controls are gone from the current API; `LLMRequest.temperature` is
+  unused).
+- The narrative evidence-id audit flagged the approval request id (`APR-...`) as a fabricated
+  evidence reference — it was never meant to resolve as `Evidence`. The audit regex now only
+  matches ids shaped like an actual evidence prefix (`ceap.domain.evidence._PREFIX`).
+- The narrative number audit didn't recognise bps/per-mille scalings a reporter model legitimately
+  uses (e.g. quoting a fraction as bps); extended the derived-value set with `x1000`, `x10000` and
+  their inverses.
+- A real (non-mock) planner occasionally produced an incomplete research plan under
+  `CEAP_LLM_MODEL=claude-haiku-4-5` alone (5/21 scenarios landed on `INCOMPLETE_ANALYSIS`).
+  Setting `CEAP_LLM_PLANNING_MODEL=claude-sonnet-5` fixed it: 21/21 verdict accuracy and flag
+  coverage on a second live run, with false-flag rate down from 0.33 to 0.10.
+
 ## 0.3.0 – Stage 2: Research → Alpha → Backtest → Risk → Critic → Human Approval
 
 The platform now runs a second workflow on the same harness, policy engine, evidence model and

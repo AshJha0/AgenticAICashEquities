@@ -618,7 +618,6 @@ class AnthropicLLMClient(LLMClient):
             "system": request.system_prompt,
             "messages": request.messages,
             "max_tokens": request.max_tokens,
-            "temperature": request.temperature,
         }
         if request.tools:
             kwargs["tools"] = request.tools
