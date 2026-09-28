@@ -37,7 +37,7 @@ async def test_health_and_system_endpoints(client):
     assert h["status"] == "ok" and h["tools"] >= 20 and "knowledge" in h["servers"]
     assert (await client.get("/tools")).status_code == 401
     tools = (await client.get("/tools", headers=VIEWER)).json()
-    assert all(t["read_only"] for t in tools)
+    assert all(t["read_only"] or t["id"] == "execution.stage_orders" for t in tools)
     assert len((await client.get("/scenarios")).json()) == 10
     assert len((await client.get("/scenarios?all=true")).json()) == 50
     assert "ceap_" in (await client.get("/metrics")).text or (await client.get("/metrics")).text == ""

@@ -29,6 +29,8 @@ def test_evidence_ids_are_prefixed_by_type():
     e = Evidence.create(EvidenceType.EXECUTION_DATA, "src", "desc")
     assert e.id.startswith("EXEC-")
     assert Evidence.create(EvidenceType.CALCULATION, "s", "d").id.startswith("TCA-")
+    assert Evidence.create(EvidenceType.SIGNAL, "s", "d").id.startswith("SIG-")
+    assert Evidence.create(EvidenceType.BACKTEST, "s", "d").id.startswith("BT-")
     assert new_id("X").startswith("X-") and len(new_id()) == 8
 
 

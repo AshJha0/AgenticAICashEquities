@@ -271,25 +271,31 @@ flowchart BT
     evaluation["ceap.evaluation"] --> platform
 ```
 
-## 9. Stage 2 extension
+## 9. Stage 2: research workflow (realised in 0.3.0)
 
-The roadmap reuses the harness, policy engine, approval gateway and evidence model
-unchanged; `StepType.HUMAN_APPROVAL` and `QueuedApprovalGateway` already exist.
+The research workflow runs on the same harness, policy engine, approval gateway and evidence
+model. Tool calls come first (their outputs are cached evidence), the agents interpret them, the
+critic computes the deterministic assessment, and the harness owns the governance tail: proposal
+approval, then - only when requested and only for a principal with `trading:execute` - a second
+approval and the single non-read-only tool, `execution.stage_orders` (paper orders).
 
 ```mermaid
 flowchart LR
-    RA["Research agent<br/>hypothesis → data requests"] --> AA["Alpha analysis<br/>deterministic stats · IC · turnover"]
-    AA --> BT["Backtest engine<br/>event-driven · cost model"]
-    BT --> RK["Risk agent<br/>limits · exposure · stress"]
-    RK --> CR["Critic agent<br/>evidence · contradictions"]
-    CR --> HA["HUMAN_APPROVAL step<br/>QueuedApprovalGateway"]
-    HA --> OUT["Approved research artefact<br/>every number from analytics · every claim with evidence"]
-    subgraph SAME["unchanged: harness · policy · evidence · MCP"]
-        RA
-        AA
-        BT
-        RK
-        CR
-        HA
-    end
+    RD["research_data<br/>universe · daily bars · regime"] --> RA["Research agent<br/>hypothesis · coverage"]
+    AL["alpha.evaluate_signal<br/>rank IC · t-stat · turnover · decay"] --> AA["Alpha agent<br/>ALPHA / NO_ALPHA / ROBUST"]
+    BE["backtest.run_backtest<br/>event-driven · cost model · walk-forward"] --> BA["Backtest agent<br/>PROFITABLE / OVERFIT / COST_DRAG"]
+    RK["risk.*portfolio*<br/>recomputed target · limits · stress"] --> PR["Portfolio risk agent<br/>LIMIT_BREACH / STRESS_LOSS"]
+    RA --> CR
+    AA --> CR
+    BA --> CR
+    PR --> CR["Critic<br/>assess_research → verdict + flags<br/>caps contradicted claims"]
+    CR --> VA["VALIDATION<br/>every finding resolves its evidence"]
+    VA --> HA["HUMAN_APPROVAL gov-approval<br/>sees the assessment + target portfolio"]
+    HA -- declined --> FAILED["FAILED<br/>no report"]
+    HA -- approved --> SA{"stage_orders<br/>requested?"}
+    SA -- no --> FIN["FINALISE<br/>research proposal"]
+    SA -- yes --> HB["HUMAN_APPROVAL gov-stage-approval<br/>sees the order preview"]
+    HB -- declined --> FIN
+    HB -- approved --> SO["execution.stage_orders<br/>HIGH · trading:execute · paper"]
+    SO --> FIN
 ```

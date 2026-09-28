@@ -14,16 +14,31 @@ class Role(str, Enum):
 
 
 ROLE_CAPABILITIES: dict[Role, frozenset[str]] = {
-    Role.VIEWER: frozenset({"tools:read", "investigate:read"}),
-    Role.TRADER: frozenset({"tools:read", "investigate", "investigate:read", "risk:medium"}),
-    Role.QUANT: frozenset({"tools:read", "investigate", "investigate:read", "risk:medium", "data:export"}),
-    Role.ENGINEER: frozenset({"tools:read", "investigate", "investigate:read", "engineering:deep"}),
+    Role.VIEWER: frozenset({"tools:read", "investigate:read", "research:read"}),
+    Role.TRADER: frozenset({"tools:read", "investigate", "investigate:read", "research:read", "risk:medium"}),
+    Role.QUANT: frozenset(
+        {
+            "tools:read",
+            "investigate",
+            "investigate:read",
+            "research",
+            "research:read",
+            "risk:medium",
+            "data:export",
+        }
+    ),
+    Role.ENGINEER: frozenset(
+        {"tools:read", "investigate", "investigate:read", "research:read", "engineering:deep"}
+    ),
     Role.ADMIN: frozenset(
         {
             "tools:read",
             "tools:write",
             "investigate",
             "investigate:read",
+            "research",
+            "research:read",
+            "trading:execute",
             "risk:medium",
             "risk:high",
             "data:export",

@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.3.0 – Stage 2: Research → Alpha → Backtest → Risk → Critic → Human Approval
+
+The platform now runs a second workflow on the same harness, policy engine, evidence model and
+approval gateway: evaluate a trading signal on a research universe and propose whether to promote it,
+with a human approval gate and an optional, separately approved paper order-staging step.
+
+### Data and analytics
+- `ceap.data.historical`: a seeded 30-name, four-year daily history generator (factor model with a
+  scenario-controlled embedded premium computed from the same signal code the analytics use);
+  `HistoricalStore` mirrors `DatasetStore`. Liquidity tiers, spreads and ADV are per name.
+- `ceap.data.research_scenarios`: seven templates × three seeds = 21 scenarios with structured
+  ground truth (`expected_verdict`, `expected_flags`): momentum premium, no alpha, reversal premium,
+  regime break, cost drag, concentration, mixed.
+- `ceap.analytics.signals` (momentum_12_1, reversal_5, low_vol_60), `signal_statistics` (rank IC,
+  t-stat, IR, hit rate, turnover, decay, quantile spread - one-day ICs for honest t-stats),
+  `backtest` (event-driven daily loop, half-spread + square-root impact cost model, walk-forward
+  split, per-period statistics, P&L concentration), `portfolio_risk` (recomputed target portfolio,
+  limits, stress) and `research_assessment` (the deterministic verdict and flags).
+- `ceap.domain.research`: scope, statistics, backtest, risk and assessment objects plus
+  `research_tool_arguments` - the single source of tool arguments for the plan, the agents and the
+  harness tail, so no tool is invoked twice. `EvidenceType.SIGNAL` / `BACKTEST`.
+
+### MCP servers
+- New `research_data`, `alpha` and `backtest` servers; `risk` gains `get_portfolio_exposure`,
+  `check_portfolio_limits`, `calculate_portfolio_stress` (they recompute the portfolio from
+  `(signal, dataset, as_of)` and never trust backtest output); `execution` gains the only
+  non-read-only tool, `stage_orders` (HIGH risk, requires `trading:execute`; idempotent paper
+  orders held in memory) and `get_staged_orders`. All run in-process or over stdio.
+
+### Harness, policy, agents
+- `Task.input["kind"]` selects the workflow. The governance tail is harness-owned for both kinds
+  and, for research, is critic → validation → **proposal approval** → [**staging approval** →
+  `stage_orders`] → finalise; plan-supplied approval steps are stripped, a declined proposal fails
+  the task, a declined staging approval skips staging and the report says so. The approver sees the
+  critic's assessment and the recomputed target portfolio (or the order preview).
+- Plan validation pins `signal`, accepts any symbol of the task universe, and pins `in_sample_end` /
+  `as_of` to the task's dates. The planner only ever shows the model read-only tools.
+- Agents `research`, `alpha`, `backtest`, `portfolio_risk`; the critic computes the deterministic
+  research assessment and caps findings that contradict it; the reporter writes the proposal
+  (HYPOTHESIS, SIGNAL STATISTICS, BACKTEST, RISK, VERDICT, APPROVAL, STAGED ORDERS) with the same
+  number and evidence-id audits; `InvestigationReport.kind` / `proposal`.
+- Capabilities: `research` (quant, admin), `research:read` (all roles), `trading:execute` (admin).
+  Requesting order staging without `tools:write` + `trading:execute` is refused up front.
+
+### API, CLI, evaluation
+- `POST /research`, `GET /research[/{id}[/report|/result|/trace]]`, `POST /research/{id}/cancel`,
+  `GET /research-scenarios`; `ReportOut.kind` / `proposal`; approvals endpoints unchanged.
+- `ceap research "…" [--signal --dataset --stage-orders --role admin]`, `ceap research-scenarios`,
+  `ceap evaluate --suite investigation|research|all`.
+- 21-scenario research evaluation (verdict accuracy, flag coverage, false flags, approvals) next to
+  the 50-scenario execution evaluation; new unit, MCP, agent, adversarial and API suites.
+
 ## 0.2.1 – CI, dependency pinning, test organisation
 
 - Add GitHub Actions CI (`ruff`, `mypy`, `pytest`) running against a pinned `requirements.lock`.

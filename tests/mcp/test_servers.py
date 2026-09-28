@@ -18,7 +18,16 @@ BASE = {"symbol": "AAPL", "start": "2026-09-18T13:00:00", "end": "2026-09-18T14:
 
 
 async def test_discovery_exposes_expected_tools(mcp_client):
-    assert mcp_client.servers() == ["engineering", "execution", "knowledge", "market_data", "risk"]
+    assert mcp_client.servers() == [
+        "alpha",
+        "backtest",
+        "engineering",
+        "execution",
+        "knowledge",
+        "market_data",
+        "research_data",
+        "risk",
+    ]
     market = {t["name"] for t in await mcp_client.discover_tools("market_data")}
     assert {"get_quote", "get_order_book", "get_trades", "get_market_statistics"} <= market
     execution = {t["name"] for t in await mcp_client.discover_tools("execution")}
@@ -39,7 +48,12 @@ async def test_discovery_exposes_expected_tools(mcp_client):
 
 
 async def test_every_tool_is_read_only_and_low_or_medium_risk(registry):
+    """Every analysis tool is read-only; the one execution hook is explicitly gated."""
     for meta in registry.list():
+        if meta.id == "execution.stage_orders":
+            assert not meta.read_only and meta.risk_level.value == "HIGH"
+            assert meta.required_capabilities == frozenset({"trading:execute"})
+            continue
         assert meta.read_only, meta.id
         assert meta.risk_level.value in ("LOW", "MEDIUM"), meta.id
 

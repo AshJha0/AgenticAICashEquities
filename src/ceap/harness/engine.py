@@ -27,10 +27,11 @@ from ceap.domain.findings import Finding
 from ceap.domain.plans import Plan, PlanStep, PlanValidationError, StepType
 from ceap.domain.policy import PolicyContext, PolicyDecision, PolicyEngine
 from ceap.domain.reports import InvestigationReport
+from ceap.domain.research import research_tool_arguments
 from ceap.domain.tasks import Task
-from ceap.domain.tools import ToolRegistry, ToolResult, ToolStatus
+from ceap.domain.tools import ToolRegistry, ToolRequest, ToolResult, ToolStatus
 from ceap.harness.cancellation import CancellationToken, TaskCancelled
-from ceap.harness.executor import HarnessToolInvoker, RunContext, StepExecutor
+from ceap.harness.executor import HarnessToolInvoker, RunContext, StepExecutor, race_cancellation
 from ceap.harness.memory import InvestigationMemory
 from ceap.harness.retry import RetryPolicy
 from ceap.harness.state_machine import HarnessState, StateMachine
@@ -41,14 +42,37 @@ from ceap.policy.approvals import ApprovalGateway, ApprovalRequest, AutoApproval
 log = logging.getLogger(__name__)
 
 CRITIC_AGENT_ID = "critic"
+PORTFOLIO_RISK_AGENT_ID = "portfolio_risk"
 MAX_PARALLEL_TOOL_CALLS = 8
 MAX_PLAN_STEPS = 64
 MAX_TOOL_CALLS_PER_PLAN = 48
 MAX_TOOL_ARGUMENTS_BYTES = 8_192
-GOVERNANCE_TYPES = (StepType.VALIDATION, StepType.FINALISE)
+# governance steps are never taken from the plan: the harness strips them and appends its own tail
+GOVERNANCE_TYPES = (StepType.VALIDATION, StepType.FINALISE, StepType.HUMAN_APPROVAL)
+RESEARCH_KIND = "research"
+APPROVAL_STEP_ID = "gov-approval"
+STAGE_APPROVAL_STEP_ID = "gov-stage-approval"
+STAGE_STEP_ID = "gov-stage-orders"
+STAGE_TOOL_ID = "execution.stage_orders"
+HUMAN_APPROVAL_TOOL_ID = "harness.human_approval"
 # task-input keys whose values a plan may use for the corresponding tool arguments
-_PINNED_ARGS = {"symbol": ("symbol",), "dataset": ("dataset",)}
-_WINDOW_ARGS = ("start", "end", "baseline_start", "baseline_end")
+# (a list-valued task input, e.g. the research universe, admits any of its elements)
+_PINNED_ARGS = {"symbol": ("symbol", "universe"), "dataset": ("dataset",), "signal": ("signal",)}
+_WINDOW_ARGS = ("start", "end", "baseline_start", "baseline_end", "in_sample_end", "as_of")
+_WINDOW_SOURCE_KEYS = (
+    "window_start",
+    "window_end",
+    "baseline_start",
+    "baseline_end",
+    "start",
+    "end",
+    "in_sample_end",
+    "as_of",
+)
+
+
+def task_kind(task: Task) -> str:
+    return str(task.input.get("kind") or "investigation")
 
 
 @dataclass
@@ -208,7 +232,7 @@ class AgentHarness:
                 # ---- plan validation -------------------------------------------
                 sm.transition(HarnessState.VALIDATING_PLAN, "plan produced")
                 async with self.tracer.span("harness.validate_plan", steps=len(plan.steps)):
-                    plan, dropped_steps = self._enforce_governance_steps(plan)
+                    plan, dropped_steps = self._enforce_governance_steps(plan, task)
                     for d in dropped_steps:
                         warnings.append(f"plan step dropped by governance: {d}")
                     await self._validate_plan(plan, policy_context, task)
@@ -217,10 +241,29 @@ class AgentHarness:
                 sm.transition(HarnessState.EXECUTING, "plan validated")
                 agents_since_critic = 0
                 critic_ran = False
+                declined: set[str] = set()  # optional approval steps a human declined
                 for batch in _batches(plan.ordered_steps()):
                     cancellation.raise_if_cancelled()
                     if utc_now() > deadline:
                         raise TimeoutError("task deadline exceeded")
+                    blocked = [s for s in batch if any(d in declined for d in s.depends_on)]
+                    if blocked:
+                        for step in blocked:
+                            step_results.append(
+                                {
+                                    "step_id": step.id,
+                                    "type": step.type.value,
+                                    "status": "SKIPPED",
+                                    "error": "skipped: a required approval was declined",
+                                }
+                            )
+                            if step.id == STAGE_STEP_ID:
+                                memory.scratch["staging"] = {
+                                    "step_id": step.id,
+                                    "status": "SKIPPED",
+                                    "error": "order staging declined by the approver",
+                                }
+                        continue
                     kind = batch[0].type
                     if kind is StepType.TOOL_CALL:
                         results = await self._run_tool_batch(batch, executor, run)
@@ -228,6 +271,12 @@ class AgentHarness:
                             step_results.append(_step_record(step, result))
                             if not result.ok:
                                 warnings.append(f"step {step.id} ({step.description}) failed: {result.error}")
+                            if step.id == STAGE_STEP_ID:
+                                memory.scratch["staging"] = {
+                                    "step_id": step.id,
+                                    "status": result.status.value,
+                                    "error": result.error,
+                                }
                         continue
                     step = batch[0]
                     if step.type is StepType.AGENT_CALL:
@@ -257,7 +306,7 @@ class AgentHarness:
                         else:
                             agents_since_critic += 1
                     elif step.type is StepType.HUMAN_APPROVAL:
-                        approved = await self._human_gate(step, run, sm, warnings)
+                        approved = await self._human_gate(step, run, sm, warnings, memory)
                         step_results.append(
                             {
                                 "step_id": step.id,
@@ -266,9 +315,12 @@ class AgentHarness:
                             }
                         )
                         if not approved:
-                            raise PlanValidationError(
-                                f"human approval declined at step {step.id}: {step.description}"
-                            )
+                            if step.metadata.get("optional"):
+                                declined.add(step.id)  # dependants are skipped; the task completes
+                            else:
+                                raise PlanValidationError(
+                                    f"human approval declined at step {step.id}: {step.description}"
+                                )
                     elif step.type is StepType.VALIDATION:
                         if not critic_ran or agents_since_critic:  # governance: critique what was added
                             await self._force_critic(memory, run, executor, task, step_results, warnings)
@@ -372,7 +424,7 @@ class AgentHarness:
         if len(set(ids)) != len(ids):
             raise PlanValidationError("plan step ids are not unique")
         allowed_window_values = {
-            str(task.input.get(k)) for k in ("window_start", "window_end", "baseline_start", "baseline_end")
+            str(task.input.get(k)) for k in _WINDOW_SOURCE_KEYS if task.input.get(k) is not None
         }
         for step in plan.steps:
             if step.type is StepType.TOOL_CALL:
@@ -418,7 +470,15 @@ class AgentHarness:
                 raise PlanValidationError(f"step {step.id}: argument {key} must be a scalar")
         for key, task_keys in _PINNED_ARGS.items():
             if key in arguments:
-                expected = {str(task.input.get(k)) for k in task_keys if task.input.get(k) is not None}
+                expected: set[str] = set()
+                for k in task_keys:
+                    value = task.input.get(k)
+                    if value is None:
+                        continue
+                    if isinstance(value, (list, tuple, set, frozenset)):
+                        expected.update(str(v) for v in value)
+                    else:
+                        expected.add(str(value))
                 if expected and str(arguments[key]) not in expected:
                     raise PlanValidationError(
                         f"step {step.id}: argument {key}={arguments[key]!r} is not pinned to the task ({sorted(expected)})"
@@ -429,63 +489,35 @@ class AgentHarness:
                     f"step {step.id}: argument {key}={arguments[key]!r} is not a task window boundary"
                 )
 
-    def _enforce_governance_steps(self, plan: Plan) -> tuple[Plan, list[str]]:
-        """Strip any critic / validation / finalise steps the plan contains and append the
-        canonical trio at the end, so the critic always runs after every specialist."""
+    def _enforce_governance_steps(self, plan: Plan, task: Task) -> tuple[Plan, list[str]]:
+        """Strip any critic / validation / approval / finalise steps the plan contains and append the
+        harness-owned governance tail, so the critic always runs after every specialist and a human
+        approval (for research tasks) always follows the critique."""
         steps = list(plan.ordered_steps())
         kept: list[PlanStep] = []
-        dropped: list[str] = []
+        dropped_steps: list[PlanStep] = []
         for s in steps:
             is_gov = s.type in GOVERNANCE_TYPES or (
                 s.type is StepType.AGENT_CALL and s.agent_id == CRITIC_AGENT_ID
             )
             if is_gov:
-                dropped.append(
-                    f"{s.id} ({s.type.value}{'/' + s.agent_id if s.agent_id else ''}) - governance steps are appended by the harness"
-                )
+                dropped_steps.append(s)
             else:
                 kept.append(s)
-        next_seq = len(kept) + 1
-        additions: list[PlanStep] = []
-        if CRITIC_AGENT_ID in self.agents:
-            additions.append(
-                PlanStep(
-                    id="gov-critic",
-                    sequence=next_seq,
-                    type=StepType.AGENT_CALL,
-                    description="Governance: independent critique",
-                    agent_id=CRITIC_AGENT_ID,
-                )
-            )
-            next_seq += 1
-        additions.append(
-            PlanStep(
-                id="gov-validation",
-                sequence=next_seq,
-                type=StepType.VALIDATION,
-                description="Governance: validate evidence references",
-            )
-        )
-        additions.append(
-            PlanStep(
-                id="gov-finalise",
-                sequence=next_seq + 1,
-                type=StepType.FINALISE,
-                description="Governance: produce report",
-            )
-        )
-        merged = kept + additions
+        tail = self._governance_tail(task)
+        merged = kept + tail
         resequenced = tuple(replace(s, sequence=i + 1) for i, s in enumerate(merged))
-        # only report drops that were not simply the canonical trio in canonical position
-        canonical_tail = [s for s in steps[-3:]]
+        # only report drops that were the canonical governance steps in canonical (trailing) position
+        n = len(dropped_steps)
         canonical = (
-            len(canonical_tail) == 3
-            and canonical_tail[0].type is StepType.AGENT_CALL
-            and canonical_tail[0].agent_id == CRITIC_AGENT_ID
-            and canonical_tail[1].type is StepType.VALIDATION
-            and canonical_tail[2].type is StepType.FINALISE
-            and len(dropped) == 3
+            n > 0
+            and steps[-n:] == dropped_steps
+            and _is_subsequence([_signature(s) for s in dropped_steps], [_signature(s) for s in tail])
         )
+        dropped = [
+            f"{s.id} ({s.type.value}{'/' + s.agent_id if s.agent_id else ''}) - governance steps are appended by the harness"
+            for s in dropped_steps
+        ]
         return Plan(
             id=plan.id,
             task_id=plan.task_id,
@@ -493,6 +525,73 @@ class AgentHarness:
             rationale=plan.rationale,
             generated_by=plan.generated_by,
         ), ([] if canonical else dropped)
+
+    def _governance_tail(self, task: Task) -> list[PlanStep]:
+        """critic -> validation [-> proposal approval [-> staging approval -> stage orders]] -> finalise."""
+        tail: list[PlanStep] = []
+        if CRITIC_AGENT_ID in self.agents:
+            tail.append(
+                PlanStep(
+                    id="gov-critic",
+                    sequence=0,
+                    type=StepType.AGENT_CALL,
+                    description="Governance: independent critique",
+                    agent_id=CRITIC_AGENT_ID,
+                )
+            )
+        tail.append(
+            PlanStep(
+                id="gov-validation",
+                sequence=0,
+                type=StepType.VALIDATION,
+                description="Governance: validate evidence references",
+            )
+        )
+        if task_kind(task) == RESEARCH_KIND:
+            scope = {
+                k: task.input.get(k)
+                for k in ("kind", "dataset", "signal", "start", "end", "in_sample_end", "stage_orders")
+            }
+            tail.append(
+                PlanStep(
+                    id=APPROVAL_STEP_ID,
+                    sequence=0,
+                    type=StepType.HUMAN_APPROVAL,
+                    description="Governance: human approval of the research proposal",
+                    metadata=scope,
+                )
+            )
+            if task.input.get("stage_orders"):
+                arguments = research_tool_arguments(task.input)["stage_orders"]
+                tail.append(
+                    PlanStep(
+                        id=STAGE_APPROVAL_STEP_ID,
+                        sequence=0,
+                        type=StepType.HUMAN_APPROVAL,
+                        description="Governance: human approval to stage paper orders",
+                        metadata={**scope, "optional": True, "tool_id": STAGE_TOOL_ID, "arguments": arguments},
+                        depends_on=(APPROVAL_STEP_ID,),
+                    )
+                )
+                tail.append(
+                    PlanStep(
+                        id=STAGE_STEP_ID,
+                        sequence=0,
+                        type=StepType.TOOL_CALL,
+                        description="Stage paper orders for the approved proposal",
+                        tool_request=ToolRequest(tool_id=STAGE_TOOL_ID, arguments=arguments),
+                        depends_on=(STAGE_APPROVAL_STEP_ID,),
+                    )
+                )
+        tail.append(
+            PlanStep(
+                id="gov-finalise",
+                sequence=0,
+                type=StepType.FINALISE,
+                description="Governance: produce report",
+            )
+        )
+        return tail
 
     async def _run_tool_batch(
         self, batch: list[PlanStep], executor: StepExecutor, run: RunContext
@@ -624,20 +723,25 @@ class AgentHarness:
         return result
 
     async def _human_gate(
-        self, step: PlanStep, run: RunContext, sm: StateMachine, warnings: list[str]
+        self,
+        step: PlanStep,
+        run: RunContext,
+        sm: StateMachine,
+        warnings: list[str],
+        memory: InvestigationMemory,
     ) -> bool:
         request = ApprovalRequest.create(
             run.task_id,
             step.id,
-            "harness.human_approval",
-            dict(step.metadata),
+            HUMAN_APPROVAL_TOOL_ID,
+            _approval_payload(step, memory),
             step.description,
             run.policy_context.principal,
         )
         if sm.state is HarnessState.EXECUTING:
             sm.transition(HarnessState.AWAITING_APPROVAL, "human approval step")
         try:
-            decision = await self.approvals.request(request)
+            decision = await race_cancellation(self.approvals.request(request), run.cancellation)
         finally:
             if sm.state is HarnessState.AWAITING_APPROVAL:
                 sm.transition(HarnessState.EXECUTING, "human approval decided")
@@ -647,6 +751,14 @@ class AgentHarness:
             approved=decision.approved,
             decided_by=decision.decided_by,
         )
+        memory.scratch.setdefault("approvals", {})[step.id] = {
+            "request_id": request.id,
+            "step_id": step.id,
+            "approved": decision.approved,
+            "decided_by": decision.decided_by,
+            "comment": decision.comment,
+            "decided_at": decision.decided_at.isoformat(),
+        }
         if not decision.approved:
             warnings.append(f"human approval declined at {step.id}: {decision.comment}")
         return decision.approved
@@ -666,6 +778,48 @@ class AgentHarness:
             kept.append(f)
         memory.replace_findings(kept)
         return dropped
+
+
+def _signature(step: PlanStep) -> tuple[str, str | None]:
+    tool_id = step.tool_request.tool_id if step.tool_request else None
+    return step.type.value, step.agent_id or tool_id
+
+
+def _is_subsequence(needle: list[Any], haystack: list[Any]) -> bool:
+    it = iter(haystack)
+    return all(any(item == candidate for candidate in it) for item in needle)
+
+
+def _approval_payload(step: PlanStep, memory: InvestigationMemory) -> dict[str, Any]:
+    """What the approver sees: the critic's assessment and the recomputed target portfolio."""
+    payload: dict[str, Any] = dict(step.metadata)
+    outputs = memory.agent_outputs
+    assessment = (outputs.get(CRITIC_AGENT_ID) or {}).get("assessment") or {}
+    exposure = (outputs.get(PORTFOLIO_RISK_AGENT_ID) or {}).get("exposure") or {}
+    positions = exposure.get("positions") or []
+    if step.id == APPROVAL_STEP_ID:
+        payload["proposal"] = assessment
+        payload["target_portfolio"] = {
+            "as_of": exposure.get("as_of"),
+            "names": len(positions),
+            "gross": exposure.get("gross"),
+            "net": exposure.get("net"),
+            "max_abs_weight": exposure.get("max_abs_weight"),
+            "beta": exposure.get("beta"),
+            "max_adv_participation": exposure.get("max_adv_participation"),
+        }
+    elif step.id == STAGE_APPROVAL_STEP_ID:
+        payload["proposal"] = {"verdict": assessment.get("verdict"), "flags": assessment.get("flags")}
+        payload["orders_preview"] = [
+            {
+                "symbol": p.get("symbol"),
+                "side": "BUY" if (p.get("quantity") or 0) > 0 else "SELL",
+                "quantity": abs(int(p.get("quantity") or 0)),
+                "notional": p.get("notional"),
+            }
+            for p in positions
+        ]
+    return payload
 
 
 def _leaf_exception(exc: BaseException) -> BaseException:

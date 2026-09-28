@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from ceap.config import Settings
+from ceap.data.historical import HistoricalStore
 from ceap.data.repositories import DatasetStore
 from ceap.data.scenarios import get_scenario
 from ceap.llm.client import MockLLMClient
@@ -18,6 +19,11 @@ def store() -> DatasetStore:
 
 
 @pytest.fixture(scope="session")
+def history() -> HistoricalStore:
+    return HistoricalStore()
+
+
+@pytest.fixture(scope="session")
 def dataset_t01(store):
     return store.get(get_scenario("T01"))
 
@@ -28,8 +34,8 @@ def dataset_t06(store):
 
 
 @pytest.fixture(scope="session")
-def mcp_client(store):
-    return build_in_process_client(store)
+def mcp_client(store, history):
+    return build_in_process_client(store, history=history)
 
 
 @pytest.fixture

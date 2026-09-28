@@ -27,3 +27,5 @@ class InvestigationReport:
     attribution: dict[str, Any] = field(default_factory=dict)
     critique: dict[str, Any] = field(default_factory=dict)
     trace_id: str | None = None
+    kind: str = "investigation"
+    proposal: dict[str, Any] = field(default_factory=dict)

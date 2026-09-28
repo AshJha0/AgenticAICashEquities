@@ -11,6 +11,16 @@ technology telemetry and enterprise runbooks through **MCP**, computes every num
 independent **critic** challenge the findings, and writes an **auditable report** in which every
 claim points at an evidence record.
 
+Or ask it (Stage 2, since 0.3.0):
+
+> *"Does 12-1 momentum work on this universe? Evaluate it out-of-sample with costs and propose whether to promote it."*
+
+and the same harness runs **Research → Alpha → Backtest → Risk → Critic → Human Approval**: rank-IC
+statistics, an event-driven backtest with a cost model and a walk-forward split, portfolio limits and
+stress on a *recomputed* target portfolio, a deterministic verdict with flags, a human approval gate
+that sees the assessment, and - for an admin who asks for it - a second approval and a *paper*
+order-staging step behind the platform's only non-read-only tool.
+
 ```
 Python 3.11+  ·  MCP  ·  LLM (Anthropic or offline mock)  ·  multi-agent harness  ·  FastAPI  ·  RAG  ·  policy engine  ·  OpenTelemetry-ready
 ```
@@ -42,11 +52,16 @@ ceap serve
 curl -s -X POST http://127.0.0.1:8000/investigations -H "X-API-Key: dev-trader-key" -H "Content-Type: application/json" \
      -d '{"question": "Why did AAPL execution deteriorate between 14:00 and 15:00?", "dataset": "T05"}'
 
-# 3. run the tests (unit, integration, MCP, agent, adversarial, 50-scenario evaluation)
+# 3. run a signal research proposal (Stage 2) - momentum on the R01 universe, or the regime-break dataset R04
+ceap research "Does 12-1 momentum work on R01? Evaluate it out-of-sample with costs." --role quant
+ceap research "Does momentum survive the regime break on R04?"
+ceap research "Promote momentum on R01 and stage the orders" --stage-orders --role admin   # two approval gates, paper orders
+
+# 4. run the tests (unit, integration, MCP, agent, adversarial, 50 + 21 scenario evaluations)
 pytest
 
-# 4. evaluate the platform against the 50-scenario ground truth
-ceap evaluate
+# 5. evaluate the platform against the ground truth: 50 execution scenarios, 21 research scenarios
+ceap evaluate --suite all
 ```
 
 To use a real model, set `ANTHROPIC_API_KEY` (and optionally `CEAP_LLM_MODEL`) and install the
@@ -108,22 +123,25 @@ EVIDENCE
               │  Critic → Evidence validation → Report  │  governance steps enforced
               └──────────────────┬──────────────────────┘
                                  ▼
-        Market · Execution · Quant · Risk · Engineering · Critic · Reporter   (ceap.agents)
+  Market · Execution · Quant · Risk · Engineering · Critic · Reporter          (ceap.agents, investigation)
+  Research · Alpha · Backtest · Portfolio risk · Critic · Reporter              (ceap.agents, research)
                                  ▼
                          ┌────────────────┐
                          │  ToolRegistry  │  MCPToolAdapter → MCPClient (in-process or stdio)
                          └───────┬────────┘
-     ┌──────────────┬────────────┼─────────────┬──────────────┐
-     ▼              ▼            ▼             ▼              ▼
- market_data    execution      risk       engineering     knowledge        (ceap.mcp.*)
- quotes/trades  orders/fills   positions  logs/metrics    runbooks/policy
- order book     TCA metrics    limits     deployments     (RAG)
- statistics     venue stats    stress     latency
+     ┌──────────────┬────────────┼─────────────┬──────────────┬──────────────┬───────────┬──────────┐
+     ▼              ▼            ▼             ▼              ▼              ▼           ▼          ▼
+ market_data    execution      risk       engineering     knowledge     research_data   alpha    backtest
+ quotes/trades  orders/fills   positions  logs/metrics    runbooks/     universe        signals  event-driven
+ order book     TCA metrics    limits     deployments     policy (RAG)  daily bars      rank IC  cost model
+ statistics     venue stats    stress     latency                       regime          decay    walk-forward
+                stage_orders*  portfolio                                                                   (ceap.mcp.*)
                                  ▼
                        ┌─────────────────────┐
-                       │  Quant Analytics    │  VWAP · TWAP · IS · slippage · spreads
-                       │  (deterministic)    │  impact · liquidity · volatility · attribution
+                       │  Quant Analytics    │  VWAP · TWAP · IS · slippage · spreads · impact · liquidity · volatility
+                       │  (deterministic)    │  attribution · signals · signal statistics · backtest · portfolio risk · assessment
                        └─────────────────────┘
+ * the only non-read-only tool: HIGH risk, requires trading:execute and its own human approval; paper orders only
 ```
 
 ### Investigation lifecycle
@@ -149,6 +167,32 @@ CREATED → PLANNING → VALIDATING_PLAN → EXECUTING ⇄ AWAITING_APPROVAL
 7. **Finalise** – the Reporter hands structured facts to the LLM; the narrative is then audited:
    every number must be traceable to the facts and every evidence id must exist.
 
+### Research lifecycle (Stage 2)
+
+```
+… → CRITIQUING → VALIDATING_EVIDENCE → AWAITING_APPROVAL (proposal) → [AWAITING_APPROVAL (staging) → stage_orders]
+  → FINALISING → COMPLETED
+```
+
+The same state machine; the differences are what the harness *owns*. `Task.input["kind"] == "research"`
+selects the research planner prompt, the canonical plan (universe summary → signal statistics →
+backtest → portfolio exposure / limits / stress → knowledge), the agents and the governance tail:
+
+* **Research agent** states the hypothesis and checks coverage and regime; **Alpha agent** reads the
+  rank-IC statistics (`ALPHA` / `NO_ALPHA` / `ROBUST`); **Backtest agent** reads the walk-forward
+  backtest (`PROFITABLE`, `OVERFIT`, `COST_DRAG`, `CONCENTRATION`); **Portfolio risk agent** reads the
+  *recomputed* target portfolio (`LIMIT_BREACH`, `STRESS_LOSS`). Every tool is called exactly once:
+  plan, agents and harness build their arguments from one function (`research_tool_arguments`).
+* The **critic** computes the deterministic assessment (`assess_research`: verdict + flags, recorded
+  as evidence) and caps any finding that contradicts it, then the optional LLM critique may only
+  lower confidence further.
+* **Human approval** is appended by the harness, never by the plan: the approver sees the assessment
+  and the target portfolio. A declined proposal fails the task with no report. If order staging was
+  requested (admin only), a second approval shows the order preview; declining it skips staging and
+  the proposal still completes. `execution.stage_orders` is idempotent and stages paper orders only.
+* The **proposal** (HYPOTHESIS, SIGNAL STATISTICS, BACKTEST, RISK, VERDICT, ALTERNATIVE EXPLANATIONS,
+  CRITIC, APPROVAL, STAGED ORDERS, EVIDENCE) passes the same number and evidence-id audits.
+
 ---
 
 ## Repository layout
@@ -156,22 +200,27 @@ CREATED → PLANNING → VALIDATING_PLAN → EXECUTING ⇄ AWAITING_APPROVAL
 ```
 src/ceap/
 ├── domain/        Task · Plan · PlanStep · Tool · ToolRequest/Result · Evidence · Finding · Order · Execution ·
-│                  Quote · Trade · OrderBook · ExecutionMetrics · PolicyDecision · repositories · reports
-├── analytics/     vwap · twap · implementation_shortfall · slippage · market_impact · liquidity ·
-│                  volatility · market_statistics · execution_metrics (TCA) · attribution
-├── data/          synthetic market model (6 symbols, 5 venues), 10 scenario templates x 5 symbols = 50 scenarios
+│                  Quote · Trade · OrderBook · ExecutionMetrics · PolicyDecision · repositories · reports ·
+│                  research (scope · signal statistics · backtest · portfolio risk · assessment)
+├── analytics/     vwap · twap · implementation_shortfall · slippage · market_impact · liquidity · volatility ·
+│                  market_statistics · execution_metrics (TCA) · attribution ·
+│                  signals · signal_statistics · backtest · portfolio_risk · research_assessment
+├── data/          synthetic market model (6 symbols, 5 venues), 10 scenario templates x 5 symbols = 50 scenarios;
+│                  historical (30-name, 4-year daily universe) · research_scenarios (7 templates x 3 seeds = 21)
 ├── mcp/           server definition (in-process + FastMCP export), client (in-process + stdio), adapter, registry,
-│                  market_data/ execution/ risk/ engineering/ knowledge/ servers (each runnable: python -m ceap.mcp.<name>)
+│                  market_data/ execution/ risk/ engineering/ knowledge/ research_data/ alpha/ backtest/
+│                  (each runnable: python -m ceap.mcp.<name>); execution/staging.py holds the paper order book
 ├── llm/           LLMClient · MockLLMClient (deterministic) · AnthropicLLMClient · router · prompts
 ├── harness/       engine (AgentHarness) · state_machine · executor · retry · cancellation · memory
-├── agents/        planner · market · execution · quant · risk · engineering · critic · reporter
+├── agents/        planner · market · execution · quant · risk · engineering · critic · reporter ·
+│                  research · alpha · backtest · portfolio_risk
 ├── policy/        rule engine · RBAC permissions · approval gateways (auto / queued / deny)
 ├── rag/           hashing TF-IDF embedder · chunking · KnowledgeBase
 ├── observability/ tracing (in-memory + OpenTelemetry) · metrics (Prometheus text) · JSON logging
 ├── api/           FastAPI app · routes · auth · schemas · request parsing
-├── platform.py    composition root
-├── evaluation.py  50-scenario evaluation
-└── cli.py         ceap investigate | scenarios | evaluate | generate-data | serve
+├── platform.py    composition root (InvestigationRequest · ResearchRequest)
+├── evaluation.py  50-scenario execution evaluation · 21-scenario research evaluation
+└── cli.py         ceap investigate | research | scenarios | research-scenarios | evaluate | generate-data | serve
 tests/             unit · integration · mcp · agent · evaluation · adversarial
 data/reference/knowledge/   runbooks, TCA methodology, venue config, limits, policies (RAG corpus)
 docs/              architecture · threat-model · api · evaluation
@@ -200,6 +249,28 @@ completion rate, unresolved-evidence count and narrative number-audit warnings. 
 test asserts ≥90 % primary accuracy and coverage, 100 % completion and zero unresolved evidence;
 the current build scores 50/50 on primary cause.
 
+### Research scenarios (Stage 2)
+
+The research universe is a seeded, 30-name, four-year daily history (one warm-up year, two
+in-sample years, one out-of-sample year) generated by a factor model with a scenario-controlled
+embedded premium - computed from the *same* signal code the analytics use, so generator and
+measurement cannot drift apart.
+
+| Template | Signal | Ground truth | Effect embedded |
+|---|---|---|---|
+| R01 momentum_premium | momentum_12_1 | PROMOTE | 2000 bps/yr per unit z-score |
+| R02 no_alpha | momentum_12_1 | REJECT · NO_ALPHA | none |
+| R03 reversal_premium | reversal_5 | PROMOTE | 5000 bps/yr, weekly rebalancing |
+| R04 regime_break | momentum_12_1 | REJECT · OVERFIT | premium ×−0.5 out-of-sample |
+| R05 cost_drag | reversal_5 | REJECT · COST_DRAG | reversal premium with spreads ×15 |
+| R06 concentration | momentum_12_1 | REJECT · CONCENTRATION + LIMIT_BREACH | premium in four names with 5 % of their ADV |
+| R07 mixed | momentum_12_1 | PROMOTE | spreads ×4, ADV ×0.5 |
+
+Each template runs with three seeds (RS01–RS21). `ceap evaluate --suite research` reports verdict
+accuracy, expected-flag coverage, false-flag rate, completion, approval rate and number-audit
+warnings; the test asserts ≥90 % verdict accuracy and coverage. The current build scores 21/21 on
+verdict with every expected flag covered.
+
 ---
 
 ## MCP servers
@@ -210,14 +281,19 @@ real `FastMCP` server over stdio:
 ```bash
 python -m ceap.mcp.market_data     # stdio MCP server: get_quote, get_quotes, get_order_book, get_trades, get_market_statistics, ...
 python -m ceap.mcp.execution       # get_parent_orders, get_child_orders, get_executions, get_execution_metrics, get_venue_statistics, ...
-python -m ceap.mcp.risk            # get_position, get_exposure, check_limit, calculate_stress
+python -m ceap.mcp.risk            # get_position, get_exposure, check_limit, calculate_stress,
+                                   # get_portfolio_exposure, check_portfolio_limits, calculate_portfolio_stress
 python -m ceap.mcp.engineering     # search_logs, get_service_metrics, get_deployments, get_latency_metrics, get_services
 python -m ceap.mcp.knowledge       # search_documents, get_document, list_documents (RAG)
+python -m ceap.mcp.research_data   # get_universe, get_daily_bars, get_universe_summary
+python -m ceap.mcp.alpha           # list_signals, evaluate_signal
+python -m ceap.mcp.backtest        # run_backtest
 ```
 
 Tool annotations carry `readOnlyHint`, a risk level and required capabilities, which the policy
-engine reads. `StdioMCPClient` drives these subprocesses with the official `mcp` SDK; the test
-suite includes a real stdio round-trip.
+engine reads. Every tool is read-only except `execution.stage_orders` (HIGH risk, `trading:execute`),
+which the harness alone schedules, after two human approvals. `StdioMCPClient` drives these
+subprocesses with the official `mcp` SDK; the test suite includes a real stdio round-trip.
 
 ---
 
@@ -235,7 +311,7 @@ suite includes a real stdio round-trip.
 | `CEAP_TASK_TIMEOUT_SECONDS` | `300` | per investigation |
 | `CEAP_MAX_RETRIES` | `2` | transient tool failures |
 | `CEAP_AUTO_APPROVE` | `true` in dev, else `false` | `false` queues approvals for `/approvals` |
-| `CEAP_API_KEYS` | dev keys (dev only) | `key:role,...` (roles: viewer, trader, quant, engineer, admin); keys must be ≥ 8 characters |
+| `CEAP_API_KEYS` | dev keys (dev only) | `key:role,...` (roles: viewer, trader, quant, engineer, admin); keys must be ≥ 8 characters. Research needs the `research` capability (quant, admin); order staging needs `trading:execute` (admin) |
 | `CEAP_MAX_CONCURRENT_INVESTIGATIONS` | `4` | background investigations run under a semaphore |
 | `CEAP_MAX_RETAINED_RESULTS` | `200` | oldest investigation results are evicted beyond this |
 | `CEAP_KNOWLEDGE_DIR` | `data/reference/knowledge` | RAG corpus |
@@ -257,12 +333,23 @@ Site: **https://ashjha0.github.io/AgenticAICashEquities/** (landing page with me
 * [docs/api/api.md](docs/api/api.md) – endpoints, auth, schemas
 * [docs/INDEX.md](docs/INDEX.md) – everything above in one table
 
-## Roadmap (stage 2)
+## Stage 2 (realised in 0.3.0)
 
-Research Agent → Alpha Analysis → Backtest Engine → Risk Agent → Critic → Human Approval: the same
-harness, policy engine and evidence model extend the platform from execution-quality investigation
-into an Agentic Equity Trading Research & Execution Platform. The `HUMAN_APPROVAL` step type and
-`QueuedApprovalGateway` already exist for that path.
+Research Agent → Alpha Analysis → Backtest Engine → Risk Agent → Critic → Human Approval (→ paper
+order staging): the same harness, policy engine and evidence model now run an Agentic Equity Trading
+Research & Execution workflow next to the execution-quality investigation. See the
+[research lifecycle](#research-lifecycle-stage-2), the [research scenarios](#research-scenarios-stage-2),
+`docs/DIAGRAMS.md` §9 and `CHANGELOG.md`.
+
+```bash
+# API: a quant proposes, an admin decides (with CEAP_AUTO_APPROVE=false the proposal waits in /approvals)
+curl -s -X POST http://127.0.0.1:8000/research -H "X-API-Key: dev-quant-key" -H "Content-Type: application/json" \
+     -d '{"question": "Does 12-1 momentum work on R01? Evaluate it out-of-sample with costs."}'
+curl -s http://127.0.0.1:8000/approvals -H "X-API-Key: dev-admin-key"            # shows the assessment + target portfolio
+curl -s -X POST http://127.0.0.1:8000/approvals/<id> -H "X-API-Key: dev-admin-key" -H "Content-Type: application/json" \
+     -d '{"approved": true, "comment": "promote"}'
+curl -s http://127.0.0.1:8000/research/<task_id>/report -H "X-API-Key: dev-quant-key"   # kind=research, proposal.verdict
+```
 
 ## License
 

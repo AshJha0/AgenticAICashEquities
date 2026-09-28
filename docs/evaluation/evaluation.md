@@ -77,11 +77,73 @@ number_warnings      0
 mean_duration_ms     ~850
 ```
 
+## Research evaluation (Stage 2)
+
+Seven research templates × three seeds → 21 scenarios (`ceap research-scenarios --all`). Each
+`ResearchScenarioSpec` carries `expected_verdict` and `expected_flags`.
+
+| Template | Signal | Embedded effect | Ground truth |
+|---|---|---|---|
+| momentum_premium | momentum_12_1 | 2000 bps/yr per unit z-score | PROMOTE |
+| no_alpha | momentum_12_1 | none | REJECT · NO_ALPHA |
+| reversal_premium | reversal_5 | 5000 bps/yr, rebalance every 5 days | PROMOTE |
+| regime_break | momentum_12_1 | premium ×−0.5 after the in-sample period | REJECT · OVERFIT |
+| cost_drag | reversal_5 | 5000 bps/yr with spreads ×15 | REJECT · COST_DRAG |
+| concentration | momentum_12_1 | 4000 bps/yr in the four least liquid names, at 5 % of their ADV | REJECT · CONCENTRATION, LIMIT_BREACH |
+| mixed | momentum_12_1 | 2000 bps/yr with spreads ×4 and ADV ×0.5 | PROMOTE |
+
+### Historical model
+
+* 30 names in three liquidity tiers (10 mega, 12 mid, 8 small), 1008 business days ending
+  2026-09-18: 252 warm-up, 504 in-sample, 252 out-of-sample.
+* `r = beta·market + k·z + eps`: market 6 %/yr at 16 % vol, betas U(0.7, 1.3), idiosyncratic vol
+  22/28/35 % by tier, `z` the clipped cross-sectional z-score of the scenario's own signal computed
+  on the path so far by `ceap.analytics.signals` (no generator/analytics drift), `k` the premium.
+* Dollar ADV is stationary per name (volume scales with 1/price); spreads are log-normal around a
+  per-name base with the scenario's multiplier.
+
+### Assessment thresholds (`ceap.analytics.research_assessment.ResearchThresholds`)
+
+| Flag | Rule |
+|---|---|
+| NO_ALPHA | in-sample one-day IC t-stat < 2.0 (or < 60 dates) |
+| OVERFIT | out-of-sample / in-sample net Sharpe < 0.5 (when in-sample > 0), or out-of-sample IC t-stat < 1.0, or out-of-sample net Sharpe < 0.5 not explained by costs |
+| COST_DRAG | gross out-of-sample Sharpe ≥ 0.5 but net < 0.5, or costs ≥ 50 % of gross return |
+| CONCENTRATION | top three names > 50 % of positive P&L |
+| LIMIT_BREACH | any portfolio limit check breached (gross 1.05, net 0.25, single name 15 %, beta 0.5, HHI 0.15, ADV participation 10 %) |
+
+`PROMOTE` iff no flag is raised. The alpha chain stops at the first failure (NO_ALPHA → OVERFIT →
+COST_DRAG); CONCENTRATION and LIMIT_BREACH are independent.
+
+### Metrics
+
+`ceap evaluate --suite research` / `tests/evaluation/test_research_scenarios.py` report
+**verdict_accuracy** (target ≥ 0.9), **flags_coverage** (every expected flag raised, ≥ 0.9),
+**false_flag_rate** (reported), **completed**, **approved** (the proposal gate was passed),
+**unresolved_findings** and **number_warnings** (targets 1.0 / 1.0 / 0 / 0).
+
+### Current results (mock LLM, this build)
+
+```
+scenarios            21
+verdict_accuracy     1.00
+flags_coverage       1.00
+false_flag_rate      0.10   (two concentration seeds also raise NO_ALPHA / OVERFIT: the four-name premium is thin)
+completed            1.00
+approved             1.00
+unresolved_findings  0
+number_warnings      0
+```
+
 ## Adversarial suite
 
 `tests/adversarial` covers prompt injection, rogue plans (unknown/mutating tools, malformed
 steps), unparsable model output, fabricated numbers and evidence ids, a critic that tries to raise
-confidence, and oversized or out-of-universe tool arguments. See the threat model for the mapping.
+confidence, and oversized or out-of-universe tool arguments. `test_research_adversarial.py` adds:
+an injected question that asks for order staging, a rogue research plan that schedules
+`execution.stage_orders` first and reaches outside the universe, a hand-built staging step for a
+quant (policy denies, task fails closed), and hand-built plans that try another symbol, signal or
+split date (plan validation rejects). See the threat model for the mapping.
 
 ## Evaluating with a real model
 

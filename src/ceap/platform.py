@@ -8,24 +8,32 @@ from __future__ import annotations
 
 from collections import OrderedDict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from ceap.agents import (
+    AlphaAgent,
+    BacktestAgent,
     CriticAgent,
     EngineeringAgent,
     ExecutionAgent,
     MarketAgent,
     PlannerAgent,
+    PortfolioRiskAgent,
     QuantAgent,
     ReportAgent,
+    ResearchAgent,
     RiskAgent,
 )
+from ceap.analytics.signals import SIGNALS
 from ceap.config import Settings, load_settings
+from ceap.data.historical import RESEARCH_UNIVERSE, HistoricalDataset, HistoricalStore
 from ceap.data.repositories import DatasetStore
+from ceap.data.research_scenarios import get_research_scenario
 from ceap.data.scenarios import SYMBOLS
 from ceap.domain.policy import PolicyContext
+from ceap.domain.research import DEFAULT_GROSS_NOTIONAL, DEFAULT_REBALANCE_DAYS, DEFAULT_SIGNAL
 from ceap.domain.tasks import Task, TaskPriority
 from ceap.domain.tools import ToolRegistry
 from ceap.harness.cancellation import CancellationToken
@@ -41,6 +49,7 @@ from ceap.policy.permissions import capabilities_for
 from ceap.rag.retrieval import KnowledgeBase, build_knowledge_base
 
 LONDON = ZoneInfo("Europe/London")
+DEFAULT_RESEARCH_DATASET = "R01"
 
 
 @dataclass
@@ -64,6 +73,37 @@ class InvestigationRequest:
         return self.window_start - length, self.window_start
 
 
+class RequestNotPermitted(ValueError):  # noqa: N818 - domain vocabulary
+    """The principal lacks a capability the request needs (403 at the API)."""
+
+
+@dataclass
+class ResearchRequest:
+    """A Stage 2 request: evaluate a signal on a research dataset and propose whether to promote it."""
+
+    question: str
+    signal: str = DEFAULT_SIGNAL
+    dataset: str = DEFAULT_RESEARCH_DATASET
+    start: date | None = None
+    end: date | None = None
+    in_sample_end: date | None = None
+    rebalance_days: int = DEFAULT_REBALANCE_DAYS
+    long_short: bool = True
+    gross_notional: float = DEFAULT_GROSS_NOTIONAL
+    stage_orders: bool = False
+    principal: str = "anonymous"
+    roles: frozenset[str] = frozenset({"quant"})
+    priority: TaskPriority = TaskPriority.NORMAL
+    attributes: dict[str, Any] = field(default_factory=dict)
+
+    def resolved_window(self, ds: HistoricalDataset) -> tuple[str, str, str]:
+        """``(start, end, in_sample_end)`` as ISO dates, defaulting to the dataset's walk-forward split."""
+        start = self.start.isoformat() if self.start else ds.start
+        end = self.end.isoformat() if self.end else ds.end
+        split = self.in_sample_end.isoformat() if self.in_sample_end else ds.in_sample_end
+        return start, end, split
+
+
 class Platform:
     def __init__(
         self,
@@ -73,16 +113,18 @@ class Platform:
         approvals: ApprovalGateway | None = None,
         store: DatasetStore | None = None,
         knowledge: KnowledgeBase | None = None,
+        history: HistoricalStore | None = None,
     ) -> None:
         self.settings = settings or load_settings()
         self.store = store or DatasetStore()
+        self.history = history or HistoricalStore()
         self.llm = llm or build_router(self.settings)
         self.knowledge = knowledge or build_knowledge_base(self.settings.knowledge_dir)
-        self.mcp_client = mcp_client or build_in_process_client(self.store, self.knowledge)
+        self.mcp_client = mcp_client or build_in_process_client(self.store, self.knowledge, self.history)
         self.approvals = approvals or (
             AutoApprovalGateway() if self.settings.auto_approve else QueuedApprovalGateway()
         )
-        self.policy = RulePolicyEngine(allowed_symbols=frozenset(SYMBOLS))
+        self.policy = RulePolicyEngine(allowed_symbols=frozenset(SYMBOLS) | frozenset(RESEARCH_UNIVERSE))
         self._registry: ToolRegistry | None = None
         self.results: OrderedDict[str, HarnessResult] = OrderedDict()
         self.tasks: OrderedDict[str, Task] = OrderedDict()
@@ -102,6 +144,10 @@ class Platform:
             "risk": RiskAgent(),
             "engineering": EngineeringAgent(),
             "critic": CriticAgent(self.llm),
+            "research": ResearchAgent(),
+            "alpha": AlphaAgent(),
+            "backtest": BacktestAgent(),
+            "portfolio_risk": PortfolioRiskAgent(),
         }
 
     async def harness(self, tracer: ExecutionTracer | None = None) -> AgentHarness:
@@ -137,7 +183,77 @@ class Platform:
         self._evict()
         return task
 
-    def policy_context(self, req: InvestigationRequest, task: Task) -> PolicyContext:
+    def build_research_task(self, req: ResearchRequest) -> Task:
+        ds = self.history.get(req.dataset)
+        start, end, split = req.resolved_window(ds)
+        task = Task.create(
+            req.question,
+            {
+                "kind": "research",
+                "dataset": req.dataset,
+                "signal": req.signal,
+                "start": start,
+                "end": end,
+                "in_sample_end": split,
+                "rebalance_days": int(req.rebalance_days),
+                "long_short": bool(req.long_short),
+                "gross_notional": float(req.gross_notional),
+                "stage_orders": bool(req.stage_orders),
+                "universe": list(ds.symbols),
+                "timezone": "UTC",
+            },
+            priority=req.priority,
+            requested_by=req.principal,
+        )
+        self.tasks[task.id] = task
+        self.cancellations[task.id] = CancellationToken()
+        self._evict()
+        return task
+
+    def validate_research_request(self, req: ResearchRequest) -> None:
+        """Fail fast: unknown signal/dataset, a window outside coverage, or a principal without the capability."""
+        if req.signal not in SIGNALS:
+            raise ValueError(f"unknown signal {req.signal}; available: {sorted(SIGNALS)}")
+        try:
+            ds = self.history.get(req.dataset)
+        except KeyError as exc:
+            raise ValueError(f"unknown research dataset {req.dataset} (see `ceap research-scenarios`)") from exc
+        start, end, split = req.resolved_window(ds)
+        try:
+            i0, i1 = ds.index_range(start, end)
+            s = ds.index_at_or_before(split)
+        except ValueError as exc:
+            raise ValueError(f"research window outside dataset coverage: {exc}") from exc
+        if i0 < ds.start_index:
+            raise ValueError(
+                f"start {start} falls inside the {ds.warmup_days}-day signal warm-up; the earliest start is {ds.start}"
+            )
+        if not i0 < s < i1:
+            raise ValueError("in_sample_end must fall strictly inside the research window")
+        if not 1 <= int(req.rebalance_days) <= 252:
+            raise ValueError("rebalance_days must be between 1 and 252")
+        if req.gross_notional <= 0:
+            raise ValueError("gross_notional must be positive")
+        caps = capabilities_for(req.roles)
+        if "research" not in caps:
+            raise RequestNotPermitted(f"roles {sorted(req.roles)} lack the research capability")
+        if req.stage_orders and not {"tools:write", "trading:execute"} <= caps:
+            raise RequestNotPermitted(
+                "staging orders requires the tools:write and trading:execute capabilities (admin role)"
+            )
+
+    async def research(self, req: ResearchRequest, task: Task | None = None) -> HarnessResult:
+        self.validate_research_request(req)
+        task = task or self.build_research_task(req)
+        self.tasks.setdefault(task.id, task)
+        token = self.cancellations.setdefault(task.id, CancellationToken())
+        harness = await self.harness()
+        result = await harness.execute(task, self.policy_context(req, task), token)
+        self.results[task.id] = result
+        self.cancellations.pop(task.id, None)
+        return result
+
+    def policy_context(self, req: InvestigationRequest | ResearchRequest, task: Task) -> PolicyContext:
         roles = frozenset(req.roles)
         return PolicyContext(
             principal=req.principal,
@@ -218,6 +334,31 @@ def london_time(date_str: str, hhmm: str) -> datetime:
     hh, mm = hhmm.split(":")
     return datetime.fromisoformat(date_str).replace(
         hour=int(hh), minute=int(mm), second=0, microsecond=0, tzinfo=LONDON
+    )
+
+
+def default_research_request(
+    dataset: str = "R01",
+    signal: str | None = None,
+    question: str | None = None,
+    stage_orders: bool = False,
+    roles: frozenset[str] | None = None,
+    principal: str = "quant.a",
+) -> ResearchRequest:
+    """A research request scoped to a scenario: its signal and rebalance frequency, the dataset's full window."""
+    spec = get_research_scenario(dataset)
+    signal = signal or spec.signal
+    return ResearchRequest(
+        question=question
+        or f"Does the {signal} signal work on the {dataset} universe? Evaluate it out-of-sample with costs and "
+        "propose whether to promote it.",
+        signal=signal,
+        dataset=dataset,
+        rebalance_days=spec.rebalance_days,
+        long_short=spec.long_short,
+        stage_orders=stage_orders,
+        principal=principal,
+        roles=roles if roles is not None else frozenset({"admin"} if stage_orders else {"quant"}),
     )
 
 

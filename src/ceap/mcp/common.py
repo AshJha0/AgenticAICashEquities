@@ -5,11 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from ceap.data.historical import HistoricalDataset, HistoricalStore
 from ceap.data.repositories import DatasetStore
 from ceap.data.synthetic import LONDON, SyntheticDataset
 from ceap.domain.common import ensure_utc
 
 DEFAULT_DATASET = "T01"
+DEFAULT_RESEARCH_DATASET = "R01"
 
 
 def parse_ts(value: str | datetime) -> datetime:
@@ -29,6 +31,10 @@ def parse_ts(value: str | datetime) -> datetime:
 
 def select_dataset(store: DatasetStore, dataset: str | None) -> SyntheticDataset:
     return store.get(dataset or DEFAULT_DATASET)
+
+
+def select_history(history: HistoricalStore, dataset: str | None) -> HistoricalDataset:
+    return history.get(dataset or DEFAULT_RESEARCH_DATASET)
 
 
 def window_of(

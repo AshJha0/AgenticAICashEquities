@@ -1,4 +1,4 @@
-"""Execution MCP server: parent/child orders, executions, TCA metrics, venue statistics."""
+"""Execution MCP server: parent/child orders, executions, TCA metrics, venue statistics, paper order staging."""
 
 from __future__ import annotations
 
@@ -6,19 +6,50 @@ from datetime import timedelta
 from typing import Any
 
 from ceap.analytics.execution_metrics import StandardExecutionAnalytics
+from ceap.analytics.portfolio_risk import target_portfolio
+from ceap.data.historical import HistoricalStore
 from ceap.data.repositories import DatasetStore, InMemoryExecutionRepository, InMemoryMarketDataRepository
 from ceap.domain.common import to_jsonable
-from ceap.mcp.common import paginate, select_dataset, window_of
+from ceap.domain.research import DEFAULT_GROSS_NOTIONAL
+from ceap.domain.tools import RiskLevel
+from ceap.mcp.common import DEFAULT_RESEARCH_DATASET, paginate, select_dataset, select_history, window_of
+from ceap.mcp.execution.staging import StagedOrderBook, StagedOrders
 from ceap.mcp.server import MCPServerDefinition
+
+TRADING_EXECUTE = "trading:execute"
+
+
+def _staged_view(staged: StagedOrders, already: bool) -> dict[str, Any]:
+    return {
+        "staging_id": staged.staging_id,
+        "already_staged": already,
+        "status": staged.status,
+        "signal": staged.signal,
+        "dataset": staged.dataset,
+        "as_of": staged.as_of,
+        "gross_notional": staged.gross_notional,
+        "long_short": staged.long_short,
+        "created_at": staged.created_at.isoformat(),
+        "count": len(staged.orders),
+        "buy_notional": staged.buy_notional,
+        "sell_notional": staged.sell_notional,
+        "orders": [to_jsonable(o) for o in staged.orders],
+    }
 
 
 def build_server(
-    store: DatasetStore, analytics: StandardExecutionAnalytics | None = None
+    store: DatasetStore,
+    analytics: StandardExecutionAnalytics | None = None,
+    history: HistoricalStore | None = None,
+    staged: StagedOrderBook | None = None,
 ) -> MCPServerDefinition:
     analytics = analytics or StandardExecutionAnalytics()
+    history = history or HistoricalStore()
+    book = staged or StagedOrderBook()
     server = MCPServerDefinition(
         "execution",
-        "Order management and execution data with deterministic TCA: parent/child orders, fills, execution metrics, venue statistics.",
+        "Order management and execution data with deterministic TCA: parent/child orders, fills, execution metrics, "
+        "venue statistics; paper order staging for approved research proposals.",
     )
 
     def repos(dataset: str | None):
@@ -150,6 +181,51 @@ def build_server(
             "venue_selection": "smart-order-router",
             "dark_pool_enabled": True,
             "urgency": "NORMAL",
+        }
+
+    @server.tool(
+        "Stage a PAPER order list that moves the book to the signal's recomputed target portfolio at as_of. "
+        "Nothing is routed to a venue. Idempotent per (signal, dataset, as_of, gross_notional, long_short). "
+        "Requires the trading:execute capability and human approval.",
+        read_only=False,
+        risk_level=RiskLevel.HIGH,
+        required_capabilities={TRADING_EXECUTE},
+    )
+    async def stage_orders(
+        signal: str,
+        dataset: str = DEFAULT_RESEARCH_DATASET,
+        as_of: str | None = None,
+        long_short: bool = True,
+        gross_notional: float = DEFAULT_GROSS_NOTIONAL,
+    ) -> dict[str, Any]:
+        ds = select_history(history, dataset)
+        report = target_portfolio(ds, signal, as_of, long_short, gross_notional)
+        staged_set, already = book.stage(report)
+        return _staged_view(staged_set, already)
+
+    @server.tool("List staged paper order sets, or return one by staging id.")
+    async def get_staged_orders(staging_id: str | None = None) -> dict[str, Any]:
+        if staging_id:
+            found = book.get(staging_id)
+            if found is None:
+                return {"staging_id": staging_id, "found": False}
+            return {"found": True, **_staged_view(found, True)}
+        items = book.list()
+        return {
+            "count": len(items),
+            "items": [
+                {
+                    "staging_id": s.staging_id,
+                    "signal": s.signal,
+                    "dataset": s.dataset,
+                    "as_of": s.as_of,
+                    "gross_notional": s.gross_notional,
+                    "count": len(s.orders),
+                    "status": s.status,
+                    "created_at": s.created_at.isoformat(),
+                }
+                for s in items
+            ],
         }
 
     return server

@@ -1,22 +1,27 @@
-"""Risk MCP server: positions, exposure, limit checks and stress."""
+"""Risk MCP server: positions, exposure, limit checks and stress - for the execution book and for research portfolios."""
 
 from __future__ import annotations
 
 from typing import Any
 
 from ceap.analytics.execution_metrics import QuoteIndex
+from ceap.analytics.portfolio_risk import check_limits, stress, target_portfolio
+from ceap.data.historical import HistoricalStore
 from ceap.data.repositories import DatasetStore
 from ceap.domain.common import to_jsonable
+from ceap.domain.research import DEFAULT_GROSS_NOTIONAL
 from ceap.domain.risk import LimitCheck, StressResult
 from ceap.domain.tools import RiskLevel
-from ceap.mcp.common import parse_ts, select_dataset
+from ceap.mcp.common import DEFAULT_RESEARCH_DATASET, parse_ts, select_dataset, select_history
 from ceap.mcp.server import MCPServerDefinition
 
 
-def build_server(store: DatasetStore) -> MCPServerDefinition:
+def build_server(store: DatasetStore, history: HistoricalStore | None = None) -> MCPServerDefinition:
+    history = history or HistoricalStore()
     server = MCPServerDefinition(
         "risk",
-        "Position, exposure, trading-limit and stress information for the cash-equities book.",
+        "Position, exposure, trading-limit and stress information for the cash-equities book, and portfolio-level "
+        "exposure, limit and stress checks for a research signal's recomputed target portfolio.",
     )
 
     @server.tool(
@@ -124,5 +129,70 @@ def build_server(store: DatasetStore) -> MCPServerDefinition:
         qty = position["quantity_as_of"]
         result = StressResult(symbol, shock_bps, qty, mid, round(qty * mid * shock_bps / 10_000.0, 2))
         return to_jsonable(result)
+
+    # ------------------------------------------------------ research portfolios
+    @server.tool(
+        "Recompute a signal's target portfolio at as_of (never trusting a backtest) and return its positions, "
+        "gross/net exposure, single-name concentration (HHI), market beta and ADV participation."
+    )
+    async def get_portfolio_exposure(
+        signal: str,
+        dataset: str = DEFAULT_RESEARCH_DATASET,
+        as_of: str | None = None,
+        long_short: bool = True,
+        gross_notional: float = DEFAULT_GROSS_NOTIONAL,
+    ) -> dict[str, Any]:
+        ds = select_history(history, dataset)
+        report = target_portfolio(ds, signal, as_of, long_short, gross_notional)
+        return to_jsonable(report)
+
+    @server.tool(
+        "Check the recomputed target portfolio against portfolio limits: gross, net, single-name weight, beta, "
+        "concentration and per-name ADV participation."
+    )
+    async def check_portfolio_limits(
+        signal: str,
+        dataset: str = DEFAULT_RESEARCH_DATASET,
+        as_of: str | None = None,
+        long_short: bool = True,
+        gross_notional: float = DEFAULT_GROSS_NOTIONAL,
+    ) -> dict[str, Any]:
+        ds = select_history(history, dataset)
+        report = target_portfolio(ds, signal, as_of, long_short, gross_notional)
+        checks = check_limits(report)
+        return {
+            "signal": signal,
+            "dataset": ds.scenario.id,
+            "as_of": report.as_of,
+            "any_breached": any(c.breached for c in checks),
+            "breached_symbols": sorted({c.symbol for c in checks if c.breached}),
+            "checks": [to_jsonable(c) for c in checks],
+        }
+
+    @server.tool(
+        "P&L impact of an instantaneous market shock (bps) on the recomputed target portfolio: through its "
+        "beta, through its net exposure, and for the largest single name.",
+        risk_level=RiskLevel.MEDIUM,
+    )
+    async def calculate_portfolio_stress(
+        signal: str,
+        dataset: str = DEFAULT_RESEARCH_DATASET,
+        as_of: str | None = None,
+        long_short: bool = True,
+        gross_notional: float = DEFAULT_GROSS_NOTIONAL,
+        shock_bps: float = -500.0,
+    ) -> dict[str, Any]:
+        ds = select_history(history, dataset)
+        report = target_portfolio(ds, signal, as_of, long_short, gross_notional)
+        return {
+            "signal": signal,
+            "dataset": ds.scenario.id,
+            "as_of": report.as_of,
+            "gross_notional": report.gross_notional,
+            "beta": report.beta,
+            "net": report.net,
+            "max_abs_weight": report.max_abs_weight,
+            **to_jsonable(stress(report, shock_bps)),
+        }
 
     return server

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -66,6 +66,51 @@ class ReportOut(BaseModel):
     critique: dict[str, Any]
     narrative: str
     generated_at: datetime
+    kind: str = "investigation"
+    proposal: dict[str, Any] = Field(default_factory=dict)
+
+
+class ResearchCreate(BaseModel):
+    question: str = Field(
+        ...,
+        min_length=5,
+        max_length=2000,
+        examples=["Does 12-1 momentum work on the R01 universe? Evaluate it out-of-sample with costs."],
+    )
+    signal: str | None = Field(default=None, description="Signal id; parsed from the question when omitted")
+    dataset: str | None = Field(default=None, description="Research dataset id (R01..R07, RS01..RS21)")
+    start: date | None = Field(default=None, description="First research date (defaults to the dataset's)")
+    end: date | None = None
+    in_sample_end: date | None = Field(default=None, description="Walk-forward split (defaults to the dataset's)")
+    rebalance_days: int | None = Field(default=None, ge=1, le=252, description="Defaults to the signal's")
+    long_short: bool = True
+    gross_notional: float = Field(default=50_000_000.0, gt=0)
+    stage_orders: bool = Field(default=False, description="Stage paper orders after approval (admin only)")
+
+
+class ResearchAccepted(BaseModel):
+    task_id: str
+    status: str
+    signal: str
+    dataset: str
+    start: date
+    end: date
+    in_sample_end: date
+    rebalance_days: int
+    long_short: bool
+    stage_orders: bool
+    links: dict[str, str]
+
+
+class ResearchScenarioOut(BaseModel):
+    id: str
+    template: str
+    name: str
+    description: str
+    signal: str
+    expected_verdict: str
+    expected_flags: list[str]
+    rebalance_days: int
 
 
 class ApprovalOut(BaseModel):

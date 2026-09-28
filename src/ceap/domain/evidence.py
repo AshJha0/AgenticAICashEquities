@@ -21,6 +21,8 @@ class EvidenceType(str, Enum):
     CALCULATION = "CALCULATION"
     CODE_CHANGE = "CODE_CHANGE"
     RISK = "RISK"
+    SIGNAL = "SIGNAL"
+    BACKTEST = "BACKTEST"
 
 
 _PREFIX = {
@@ -34,6 +36,8 @@ _PREFIX = {
     EvidenceType.CALCULATION: "TCA",
     EvidenceType.CODE_CHANGE: "CHANGE",
     EvidenceType.RISK: "RISK",
+    EvidenceType.SIGNAL: "SIG",
+    EvidenceType.BACKTEST: "BT",
 }
 
 

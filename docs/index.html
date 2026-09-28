@@ -190,10 +190,13 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
          steps, unparsable model output, a critic that tries to raise confidence, fabricated
          numbers and evidence ids in the narrative, oversized and out-of-universe tool
          arguments — each mapped to a control in the threat model.</p></div>
-    <div class="card"><h3>Stage 2 ready</h3>
-      <p>The roadmap — Research Agent → Alpha Analysis → Backtest Engine → Risk Agent → Critic →
-         Human Approval — reuses the harness, policy engine, approval gateway and evidence model
-         unchanged; the <code>HUMAN_APPROVAL</code> step type and queued approvals already exist.</p></div>
+    <div class="card"><h3>Stage 2: research workflow (0.3.0)</h3>
+      <p>Research Agent → Alpha Analysis → Backtest Engine → Risk Agent → Critic → Human Approval
+         on the same harness, policy engine, approval gateway and evidence model: rank-IC statistics,
+         an event-driven backtest with a cost model and walk-forward split, a recomputed target
+         portfolio checked against limits, a deterministic verdict with flags, a human approval gate
+         that sees the assessment, and an optional second gate before paper order staging — the
+         platform's only non-read-only tool. 21 research scenarios with ground truth: 21/21 on verdict.</p></div>
   </div>
 
   <h2>What an investigation looks like</h2>

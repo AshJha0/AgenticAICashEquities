@@ -13,9 +13,23 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
+from ceap.analytics.signals import SIGNALS
 from ceap.data.scenarios import SYMBOLS
 
 LONDON = ZoneInfo("Europe/London")
+_SIGNAL_KEYWORDS: tuple[tuple[str, str], ...] = (
+    ("momentum", "momentum_12_1"),
+    ("mean reversion", "reversal_5"),
+    ("mean-reversion", "reversal_5"),
+    ("reversal", "reversal_5"),
+    ("low vol", "low_vol_60"),
+    ("low-vol", "low_vol_60"),
+    ("low volatility", "low_vol_60"),
+)
+_RESEARCH_DATE_RANGE = re.compile(
+    r"(?:from|between)\s+(?P<a>\d{4}-\d{2}-\d{2})\s+(?:to|and|-|–|until)\s+(?P<b>\d{4}-\d{2}-\d{2})", re.IGNORECASE
+)
+_RESEARCH_DATASET = re.compile(r"\b(RS?\d{2})\b", re.IGNORECASE)
 _TIME = re.compile(r"\b([01]?\d|2[0-3])(?::([0-5]\d))?\s*(am|pm)?\b", re.IGNORECASE)
 _RANGE = re.compile(
     r"(?:between|from)\s+(?P<a>[0-2]?\d(?::[0-5]\d)?\s*(?:am|pm)?)\s+(?:and|to|-|–)\s+(?P<b>[0-2]?\d(?::[0-5]\d)?\s*(?:am|pm)?)",
@@ -56,6 +70,33 @@ class ParsedRequest:
     window_end: datetime | None
     session_date: date
     relative_day: str | None
+
+
+@dataclass(frozen=True)
+class ParsedResearch:
+    signal: str | None
+    dataset: str | None
+    start: date | None
+    end: date | None
+
+
+def parse_research_question(question: str) -> ParsedResearch:
+    """Extract the signal, research dataset and date range from a research question (rule-based)."""
+    lower = question.lower()
+    signal = next((sid for sid in SIGNALS if sid in lower), None)
+    if signal is None:
+        signal = next((sid for keyword, sid in _SIGNAL_KEYWORDS if keyword in lower), None)
+    m = _RESEARCH_DATASET.search(question)
+    dataset = m.group(1).upper() if m else None
+    start = end = None
+    if r := _RESEARCH_DATE_RANGE.search(question):
+        try:
+            start, end = date.fromisoformat(r.group("a")), date.fromisoformat(r.group("b"))
+        except ValueError:
+            start = end = None  # a malformed date in prose is ignored rather than becoming a 500
+        if start and end and end <= start:
+            start = end = None
+    return ParsedResearch(signal, dataset, start, end)
 
 
 def _to_time(token: str) -> tuple[int, int] | None:

@@ -23,8 +23,16 @@ from typing import Any
 
 from ceap.agents.base import BaseAgent, finite
 from ceap.analytics.attribution import MATERIAL_SCORE
+from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS, assess_research
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.findings import Finding
+from ceap.domain.research import (
+    ResearchFlag,
+    ResearchVerdict,
+    backtest_result_from_dict,
+    portfolio_risk_report_from_dict,
+    signal_statistics_from_dict,
+)
 from ceap.llm.client import LLMClient, extract_json
 from ceap.llm.models import LLMRequest
 from ceap.llm.prompts import CRITIC_SYSTEM_PROMPT
@@ -32,6 +40,8 @@ from ceap.llm.prompts import CRITIC_SYSTEM_PROMPT
 log = logging.getLogger(__name__)
 
 SINGLE_EVIDENCE_CAP = 0.7
+RESEARCH_KIND = "research"
+_RESEARCH_FLAGS = {f.value for f in ResearchFlag}
 
 
 class CriticAgent(BaseAgent):
@@ -115,7 +125,14 @@ class CriticAgent(BaseAgent):
                 )
             )
 
+        research_assessment: dict[str, Any] | None = None
+        if str(context.task_input.get("kind") or "") == RESEARCH_KIND:
+            adjusted, research_assessment = self._research_assessment(context, adjusted, assessments, contradictions)
+
         overall = self._overall(assessments, contradictions)
+        if research_assessment is not None:
+            flags = ", ".join(research_assessment["flags"]) or "no flags"
+            overall += f" Research assessment: {research_assessment['verdict']} ({flags})."
         llm_overall = None
         llm_fallback: str | None = None
         if self.llm is not None:
@@ -136,16 +153,88 @@ class CriticAgent(BaseAgent):
             "Critic assessment of findings",
             {"assessments": assessments, "contradictions": contradictions},
         )
+        output: dict[str, Any] = {"critique": critique, "adjusted_findings": tuple(adjusted)}
+        if research_assessment is not None:
+            output["assessment"] = research_assessment
+        if llm_fallback:
+            output["llm_fallback"] = llm_fallback
         return AgentResult(
             agent_id=self.id,
             success=True,
             evidence=(calc,),
-            output=(
-                {"critique": critique, "adjusted_findings": tuple(adjusted)}
-                | ({"llm_fallback": llm_fallback} if llm_fallback else {})
-            ),
+            output=output,
             summary=f"{len(assessments)} findings reviewed, {len(unsupported)} unsupported, {len(contradictions)} contradictions",
         )
+
+    def _research_assessment(
+        self,
+        context: AgentContext,
+        findings: list[Finding],
+        assessments: list[dict[str, Any]],
+        contradictions: list[str],
+    ) -> tuple[list[Finding], dict[str, Any]]:
+        """Deterministic research verdict, then cap findings that contradict it."""
+        outputs = context.state.get("agent_outputs") or {}
+        alpha_out = outputs.get("alpha") or {}
+        bt_out = outputs.get("backtest") or {}
+        risk_out = outputs.get("portfolio_risk") or {}
+        stats = signal_statistics_from_dict(alpha_out["signal_statistics"]) if alpha_out.get("signal_statistics") else None
+        backtest = backtest_result_from_dict(bt_out["backtest"]) if bt_out.get("backtest") else None
+        risk = portfolio_risk_report_from_dict(risk_out["risk"]) if risk_out.get("risk") else None
+        assessment = assess_research(stats, backtest, risk)
+        source = tuple(
+            e for e in (alpha_out.get("signal_evidence_id"), bt_out.get("backtest_evidence_id")) if isinstance(e, str)
+        )
+        flags = {f.value for f in assessment.flags}
+        calc = self.calc_evidence(
+            context,
+            f"Research assessment: {assessment.verdict.value} ({', '.join(sorted(flags)) or 'no flags'})",
+            assessment.to_dict(),
+            source,
+        )
+        metrics = assessment.metrics
+        is_t = metrics.get("is_ic_t_stat", float("nan"))
+        records = {a["finding_id"]: a for a in assessments}
+        out: list[Finding] = []
+        for f in findings:
+            claim = f.attributes.get("claim")
+            flag = f.attributes.get("flag")
+            cap: float | None = None
+            note = ""
+            if claim == "ALPHA" and (not finite(is_t) or float(is_t) < DEFAULT_THRESHOLDS.ic_t_stat_min):
+                cap, note = 0.4, "claims alpha but the in-sample IC t-stat is below the promotion threshold"
+            elif claim == "ROBUST" and ResearchFlag.OVERFIT.value in flags:
+                cap, note = 0.4, "claims robustness but the assessment flags OVERFIT"
+            elif (
+                claim == "PROFITABLE"
+                and assessment.verdict is ResearchVerdict.REJECT
+                and flags & {ResearchFlag.OVERFIT.value, ResearchFlag.COST_DRAG.value}
+            ):
+                cap, note = 0.5, "claims profitability but the assessment rejects the strategy"
+            elif f.attributes.get("coverage") == "COMPLETE" and ResearchFlag.INCOMPLETE_ANALYSIS.value in flags:
+                cap, note = 0.5, "claims complete coverage but the analysis is incomplete"
+            elif isinstance(flag, str) and flag in _RESEARCH_FLAGS and flag not in flags:
+                cap, note = 0.6, f"flag {flag} is not corroborated by the assessment"
+            if cap is None or f.confidence <= cap:
+                out.append(f)
+                continue
+            contradicting = list(f.contradicting_evidence)
+            if calc.id not in contradicting:
+                contradicting.append(calc.id)
+            contradictions.append(f"{f.id}: {note}")
+            record = records.get(f.id)
+            if record is not None:
+                record["adjusted_confidence"] = round(cap, 3)
+                record["notes"] = [*record.get("notes", []), note]
+            out.append(
+                replace(
+                    f,
+                    confidence=round(cap, 3),
+                    contradicting_evidence=tuple(contradicting),
+                    attributes={**f.attributes, "critic_notes": [*f.attributes.get("critic_notes", []), note]},
+                )
+            )
+        return out, {**assessment.to_dict(), "evidence_id": calc.id}
 
     @staticmethod
     def _overall(assessments: list[dict[str, Any]], contradictions: list[str]) -> str:

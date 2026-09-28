@@ -31,11 +31,16 @@ _SERVER_EVIDENCE = {
     "execution": EvidenceType.EXECUTION_DATA,
     "risk": EvidenceType.RISK,
     "engineering": EvidenceType.SYSTEM_METRIC,
+    "research_data": EvidenceType.MARKET_DATA,
+    "alpha": EvidenceType.SIGNAL,
+    "backtest": EvidenceType.BACKTEST,
 }
 _TOOL_EVIDENCE = {
     "get_order_book": EvidenceType.ORDER_BOOK,
     "get_parent_orders": EvidenceType.ORDER_DATA,
     "get_child_orders": EvidenceType.ORDER_DATA,
+    "stage_orders": EvidenceType.ORDER_DATA,
+    "get_staged_orders": EvidenceType.ORDER_DATA,
     "get_execution_metrics": EvidenceType.CALCULATION,
     "get_venue_statistics": EvidenceType.CALCULATION,
     "get_market_statistics": EvidenceType.CALCULATION,

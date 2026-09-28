@@ -89,4 +89,10 @@ def test_role_capabilities():
     assert "tools:write" in capabilities_for({"admin"})
     assert "tools:write" not in capabilities_for({"trader"})
     assert capabilities_for({"unknown-role"}) == frozenset()
+    # Stage 2: research is for quants and admins; only admins may stage orders; everyone may read research
+    assert "research" in capabilities_for({"quant"}) and "research" in capabilities_for({"admin"})
+    assert "research" not in capabilities_for({"trader"}) and "research" not in capabilities_for({"viewer"})
+    assert "trading:execute" in capabilities_for({"admin"})
+    assert all("trading:execute" not in capabilities_for({r}) for r in ("trader", "quant", "engineer", "viewer"))
+    assert all("research:read" in capabilities_for({r}) for r in ("trader", "quant", "engineer", "viewer", "admin"))
     assert Role("quant") is Role.QUANT

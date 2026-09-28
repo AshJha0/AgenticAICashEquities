@@ -166,5 +166,9 @@ A full investigation with the mock LLM completes in about one second.
   `Platform._agents` and `ALLOWED_AGENTS`.
 * New cause: add to `Cause`, score it in `attribute_causes`, add a scenario template with ground
   truth, extend the evaluation.
-* Stage 2 (research → alpha → backtest → risk → critic → human approval) reuses the harness,
-  policy engine, approval gateway and evidence model unchanged.
+* Stage 2 (research → alpha → backtest → risk → critic → human approval → optional paper order
+  staging) runs on the same harness, policy engine, approval gateway and evidence model:
+  `Task.input["kind"] == "research"` selects the research planner prompt, canonical plan, agents and
+  the governance tail with its approval gates. New signal: add a `SignalSpec` to
+  `ceap.analytics.signals`; new research scenario: add a template with ground truth to
+  `ceap.data.research_scenarios` and it joins the 21-scenario evaluation.

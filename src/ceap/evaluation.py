@@ -18,8 +18,9 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from ceap.data.research_scenarios import ResearchScenarioSpec, all_research_scenarios
 from ceap.data.scenarios import ScenarioSpec, all_scenarios
-from ceap.platform import Platform, default_request
+from ceap.platform import Platform, default_request, default_research_request
 
 
 async def evaluate_scenario(platform: Platform, spec: ScenarioSpec) -> dict[str, Any]:
@@ -71,6 +72,70 @@ async def run_evaluation(
         "coverage": sum(r["coverage"] for r in rows) / n if n else 0.0,
         "false_positive_rate": sum(bool(r["false_positives"]) for r in rows) / n if n else 0.0,
         "completed": sum(r["completed"] for r in rows) / n if n else 0.0,
+        "unresolved_findings": sum(len(r["unresolved_findings"]) for r in rows),
+        "number_warnings": sum(r["number_warnings"] for r in rows),
+        "mean_duration_ms": sum(r["duration_ms"] for r in rows) / n if n else 0.0,
+        "rows": rows,
+    }
+
+
+# ------------------------------------------------------------------ research
+async def evaluate_research_scenario(platform: Platform, spec: ResearchScenarioSpec) -> dict[str, Any]:
+    """Run the research pipeline on one scenario and compare the proposal with its ground truth."""
+    started = time.perf_counter()
+    result = await platform.research(default_research_request(spec.id))
+    proposal = result.report.proposal if result.report else {}
+    verdict = proposal.get("verdict")
+    flags = set(proposal.get("flags") or [])
+    expected = {f.value for f in spec.expected_flags}
+    evidence_ids = {e.id for e in result.evidence}
+    unresolved = [f.id for f in result.findings if any(e not in evidence_ids for e in f.supporting_evidence)]
+    approval = next((s["status"] for s in result.step_results if s.get("step_id") == "gov-approval"), None)
+    return {
+        "scenario": spec.id,
+        "template": spec.template,
+        "signal": spec.signal,
+        "expected_verdict": spec.expected_verdict.value,
+        "verdict": verdict,
+        "verdict_hit": verdict == spec.expected_verdict.value,
+        "expected_flags": sorted(expected),
+        "flags": sorted(flags),
+        "flags_coverage": expected <= flags,
+        "false_flags": sorted(flags - expected),
+        "completed": result.success,
+        "unresolved_findings": unresolved,
+        "number_warnings": len(
+            (result.report.critique.get("narrative_number_warnings") if result.report else []) or []
+        ),
+        "approval_state": approval,
+        "staged": bool((proposal.get("staging") or {}).get("staged")),
+        "duration_ms": round((time.perf_counter() - started) * 1000.0, 1),
+    }
+
+
+async def run_research_evaluation(
+    limit: int | None = None, verbose: bool = False, platform: Platform | None = None
+) -> dict[str, Any]:
+    platform = platform or Platform()
+    specs = all_research_scenarios()[:limit] if limit else all_research_scenarios()
+    rows = []
+    for spec in specs:
+        row = await evaluate_research_scenario(platform, spec)
+        rows.append(row)
+        if verbose:
+            flag = "OK " if row["verdict_hit"] and row["flags_coverage"] else "MISS"
+            print(
+                f"{flag} {row['scenario']} {row['template']:18s} expected={row['expected_verdict']:7s}{row['expected_flags']} "
+                f"got={str(row['verdict']):7s}{row['flags']} {row['duration_ms']:.0f}ms"
+            )
+    n = len(rows)
+    return {
+        "scenarios": n,
+        "verdict_accuracy": sum(r["verdict_hit"] for r in rows) / n if n else 0.0,
+        "flags_coverage": sum(r["flags_coverage"] for r in rows) / n if n else 0.0,
+        "false_flag_rate": sum(bool(r["false_flags"]) for r in rows) / n if n else 0.0,
+        "completed": sum(r["completed"] for r in rows) / n if n else 0.0,
+        "approved": sum(r["approval_state"] == "APPROVED" for r in rows) / n if n else 0.0,
         "unresolved_findings": sum(len(r["unresolved_findings"]) for r in rows),
         "number_warnings": sum(r["number_warnings"] for r in rows),
         "mean_duration_ms": sum(r["duration_ms"] for r in rows) / n if n else 0.0,

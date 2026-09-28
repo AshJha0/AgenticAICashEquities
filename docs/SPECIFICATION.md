@@ -294,5 +294,17 @@ deterministic narrative template in `ceap.llm.client`; POLICY CONTEXT and CRITIC
 **S-33.** Research Agent → Alpha Analysis → Backtest Engine → Risk Agent → Critic Agent →
 Human Approval, evolving the MVP into an Agentic Equity Trading Research & Execution
 Platform while keeping the architectural boundary.
-*Status: roadmap* — `StepType.HUMAN_APPROVAL`, `QueuedApprovalGateway`, the harness, policy
-engine and evidence model are ready to be reused; see `docs/DIAGRAMS.md` §9.
+*Status: realised (0.3.0)* — `ceap.agents.{research,alpha,backtest,portfolio_risk}`, the
+`research_data` / `alpha` / `backtest` MCP servers and the portfolio tools on `risk`;
+`ceap.analytics.{signals,signal_statistics,backtest,portfolio_risk,research_assessment}`;
+`ceap.data.{historical,research_scenarios}`. The harness appends the governance tail
+critic → validation → `HUMAN_APPROVAL` (the proposal, decided through `QueuedApprovalGateway`) and,
+when order staging is requested, a second `HUMAN_APPROVAL` followed by the one non-read-only tool,
+`execution.stage_orders` (HIGH risk, `trading:execute`, paper orders only). Pinned by
+`tests/agent/test_research_harness.py`, `tests/adversarial/test_research_adversarial.py`,
+`tests/integration/test_research_api.py` and the 21-scenario `tests/evaluation/test_research_scenarios.py`.
+
+| Phase | Scope | Status |
+|---|---|---|
+| 9 Research data & analytics | historical generator, research scenarios with ground truth, signals, IC statistics, backtest engine, portfolio risk, assessment | realised |
+| 10 Research workflow | research/alpha/backtest/portfolio-risk agents, critic assessment, proposal report, two approval gates, paper order staging, API/CLI, evaluation | realised |
