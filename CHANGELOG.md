@@ -1,18 +1,34 @@
 # Changelog
 
-## 0.3.2 – Fix CI: drop the self-referential lockfile entry
+## 0.3.3 – Fix CI for real: `pip-tools` has no cross-platform lock mode
+
+0.3.2's fix (dropping the self-referential lockfile line) was necessary but not sufficient - the
+next CI run failed on `pywin32==312`, a Windows-only transitive dependency of `mcp` with no
+distribution for Linux. Root cause: `pip-tools` resolves `requirements.lock` for whatever
+interpreter and OS it runs on (there is no `--universal`/cross-platform mode as in some other
+resolvers), so regenerating it on Windows always reintroduces both the self-referential entry and
+`pywin32` with no platform marker. Removed `pywin32` and added a comment at the top of
+`requirements.lock` documenting both entries to strip by hand after every future regeneration.
+CI verified green end-to-end after this fix (not just locally - see the process note below).
+
+## 0.3.2 – Fix CI: drop the self-referential lockfile entry (incomplete)
 
 CI has been failing since `requirements.lock` was introduced in 0.2.1 (never verified after
-release). `pip-compile` recorded the project itself as a `file:///C:/Work/Claude/...` requirement
-- a Windows absolute path that cannot resolve on the Linux runner (`pip install -r
-requirements.lock` failed with `No such file or directory: '/C:/Work/...'`). CI's second install
-step (`pip install -e . --no-deps`) already installs the project itself, so the self-referential
-line in the lockfile was both wrong and redundant; removed it.
+release - see the process note below). `pip-compile` recorded the project itself as a
+`file:///C:/Work/Claude/...` requirement - a Windows absolute path that cannot resolve on the
+Linux runner (`pip install -r requirements.lock` failed with `No such file or directory:
+'/C:/Work/...'`). CI's second install step (`pip install -e . --no-deps`) already installs the
+project itself, so the self-referential line in the lockfile was both wrong and redundant;
+removed it. This alone did not fix CI - see 0.3.3.
 
 Also (unreleased, from local testing): tried deriving pairwise relative-percent-change values for
 the narrative number audit to reduce false positives on legitimate arithmetic; reverted after it
 let a genuinely fabricated number ("99.9%") pass the audit undetected in the adversarial suite -
 the fix made the audit's core fabrication-detection guarantee worse than the noise it removed.
+
+**Process note:** none of v0.2.1, v0.3.0 or v0.3.1's CI runs were checked after release - all
+three failed, unnoticed, until 0.3.2/0.3.3. Going forward, a release is not done until the actual
+GitHub Actions run for that push is confirmed green, not just the local test suite.
 
 ## 0.3.1 – Real-model fixes found by a live Stage 2 evaluation run
 
