@@ -13,4 +13,4 @@ Architectural boundary (kept strictly throughout the code base):
 * Evidence       -> auditability
 """
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"

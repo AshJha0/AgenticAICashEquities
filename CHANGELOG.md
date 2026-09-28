@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.2 – Fix CI: drop the self-referential lockfile entry
+
+CI has been failing since `requirements.lock` was introduced in 0.2.1 (never verified after
+release). `pip-compile` recorded the project itself as a `file:///C:/Work/Claude/...` requirement
+- a Windows absolute path that cannot resolve on the Linux runner (`pip install -r
+requirements.lock` failed with `No such file or directory: '/C:/Work/...'`). CI's second install
+step (`pip install -e . --no-deps`) already installs the project itself, so the self-referential
+line in the lockfile was both wrong and redundant; removed it.
+
+Also (unreleased, from local testing): tried deriving pairwise relative-percent-change values for
+the narrative number audit to reduce false positives on legitimate arithmetic; reverted after it
+let a genuinely fabricated number ("99.9%") pass the audit undetected in the adversarial suite -
+the fix made the audit's core fabrication-detection guarantee worse than the noise it removed.
+
 ## 0.3.1 – Real-model fixes found by a live Stage 2 evaluation run
 
 Found by running `ceap evaluate --suite research` against `claude-haiku-4-5` for the first time
