@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.3.5 – Two new dedicated pages: AI/agents and quant
+
+0.3.4 folded Stage 2 and the real-model findings into the *existing* docs but added no new
+standalone page, so there was nowhere a reader could go to see "how does LLM/AI/agents work
+here" or "how does quant work here" as its own answer. Added:
+
+- `docs/ai-agents/ai-agents.md` – the LLM/AI/ML/agent boundary, where the model is actually
+  called (and where it explicitly is not), the full agent roster across both pipelines, how the
+  harness owns governance rather than the plan, the critic and narrative audits, the honest
+  real-model findings from 0.3.1, and an explicit "what is not here" section (no trained ML
+  models despite the `ml` extra, no autonomous trading loop, no fine-tuning/memory).
+- `docs/quant/quant.md` – the deterministic quant layer for both verticals (execution-quality TCA
+  and Stage 2 signal research), the formulas and thresholds behind `attribute_causes` and
+  `assess_research`, why the synthetic generators are built to share code with the analytics
+  that grade them, and an explicit "what is not here" section (no optimiser, no commercial risk
+  model, no live data/OMS, no ML).
+
+Linked from `README.md`, `docs/INDEX.md`, `docs/GITHUB_PAGES.md` and the `docs/index.html`
+navigation bar.
+
 ## 0.3.4 – Documentation pass: catch up every doc with Stage 2 and the real-model findings
 
 No code changes. `README.md`, `LEARN.md`, `COOKBOOK.md`, `docs/architecture/overview.md`,

@@ -326,9 +326,11 @@ subprocesses with the official `mcp` SDK; the test suite includes a real stdio r
 Site: **https://ashjha0.github.io/AgenticAICashEquities/** (landing page with measured numbers; published from `docs/`, see [docs/GITHUB_PAGES.md](docs/GITHUB_PAGES.md)).
 
 * [LEARN.md](LEARN.md) – guided tour: concepts, how the repo implements them, real numbers, interview questions
-* [COOKBOOK.md](COOKBOOK.md) – 27 copy-pasteable recipes
+* [COOKBOOK.md](COOKBOOK.md) – 33 copy-pasteable recipes
 * [docs/SPECIFICATION.md](docs/SPECIFICATION.md) – the governing specification with realised / partial / roadmap status per requirement
 * [docs/architecture/overview.md](docs/architecture/overview.md) – components, data flow, design decisions
+* [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md) – how LLM/AI/ML/agents actually work in this project (and what doesn't)
+* [docs/quant/quant.md](docs/quant/quant.md) – the deterministic quant layer: TCA, attribution, Stage 2 signal research (and what doesn't)
 * [docs/DIAGRAMS.md](docs/DIAGRAMS.md) – Mermaid diagrams: pipeline, state machine, tool-call path, evidence model, MCP topology, sequence, attribution
 * [docs/threat-model/threat-model.md](docs/threat-model/threat-model.md) – assets, threats, controls, adversarial tests
 * [docs/evaluation/evaluation.md](docs/evaluation/evaluation.md) – scenarios, thresholds, metrics, results

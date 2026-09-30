@@ -25,7 +25,7 @@ names begin with an underscore, add an empty `docs/.nojekyll` so Pages serves th
 | URL | content |
 |---|---|
 | `/` | `docs/index.html` — landing page (numbers block, boundary strip, subsystem cards, sample report, quick start) |
-| everything else | linked back to rendered Markdown on github.com: `LEARN.md`, `COOKBOOK.md`, `docs/architecture/overview.md`, `docs/DIAGRAMS.md`, `docs/SPECIFICATION.md`, `docs/threat-model/threat-model.md`, `docs/evaluation/evaluation.md`, `docs/api/api.md` |
+| everything else | linked back to rendered Markdown on github.com: `LEARN.md`, `COOKBOOK.md`, `docs/architecture/overview.md`, `docs/ai-agents/ai-agents.md`, `docs/quant/quant.md`, `docs/DIAGRAMS.md`, `docs/SPECIFICATION.md`, `docs/threat-model/threat-model.md`, `docs/evaluation/evaluation.md`, `docs/api/api.md` |
 
 Mermaid diagrams in `docs/DIAGRAMS.md` render natively on github.com — no plugin needed.
 
