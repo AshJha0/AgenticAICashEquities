@@ -166,7 +166,7 @@ two representations cannot drift.
 
 ```mermaid
 flowchart LR
-    subgraph DEF["ceap.mcp.server — MCPServerDefinition (x5)"]
+    subgraph DEF["ceap.mcp.server — MCPServerDefinition (x8)"]
         T["@server.tool(description, read_only, risk_level, required_capabilities)<br/>schema_from_signature()"]
     end
     DEF --> IP["InProcessMCPClient<br/>tests · CLI · API"]
@@ -174,7 +174,7 @@ flowchart LR
     FM --> STDIO["stdio transport<br/>official mcp SDK"]
     STDIO --> SC["StdioMCPClient<br/>ClientSession per server"]
     IP & SC --> DISC["build_tool_registry<br/>discover_tools → MCPToolAdapter"]
-    DISC --> REG["ToolRegistry<br/>26 tools: market_data.* · execution.* · risk.* · engineering.* · knowledge.*"]
+    DISC --> REG["ToolRegistry<br/>37 tools: market_data.* · execution.* · risk.* · engineering.* · knowledge.*<br/>research_data.* · alpha.* · backtest.* (Stage 2) — all read-only except execution.stage_orders"]
     REG --> HARN["Harness executor<br/>policy reads readOnlyHint · riskLevel · requiredCapabilities"]
 ```
 

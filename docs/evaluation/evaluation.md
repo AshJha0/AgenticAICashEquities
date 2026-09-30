@@ -135,6 +135,20 @@ unresolved_findings  0
 number_warnings      0
 ```
 
+### What changed against a real model (honest results, not projected)
+
+Run against `claude-haiku-4-5` as both planner and reporter: `verdict_accuracy` **0.95** and
+`flags_coverage` **0.81** — 5 of 21 scenarios came back `INCOMPLETE_ANALYSIS` because the model's
+plan skipped tool or agent steps the canonical plan always includes. This is plan-quality
+variance, not a platform failure: the harness handled the incomplete plan safely (no crash, a
+correct conservative verdict, no unresolved evidence). Pairing `claude-haiku-4-5` as the cheap
+narrator/critic with `claude-sonnet-5` as the planner (`CEAP_LLM_PLANNING_MODEL`) fixed it
+completely — `verdict_accuracy` **1.00**, `flags_coverage` **1.00**, `false_flag_rate` **0.10**
+on the second run. `number_warnings` stayed near zero after two real bugs the mock had never
+exercised were fixed (a stale `temperature` kwarg the installed SDK rejects, and the narrative
+audit being stricter than a real model's legitimate bps/per-mille arithmetic) — see CHANGELOG
+0.3.1. Cost: the full 21-scenario run is well under $2 on Haiku pricing.
+
 ## Adversarial suite
 
 `tests/adversarial` covers prompt injection, rogue plans (unknown/mutating tools, malformed
@@ -147,6 +161,9 @@ split date (plan validation rejects). See the threat model for the mapping.
 
 ## Evaluating with a real model
 
-Set `ANTHROPIC_API_KEY` and run `ceap evaluate`. The deterministic parts (metrics, attribution,
-critic checks, number audit) are unchanged; the evaluation then measures the model's plan quality
-(rejected steps are reported by the planner) and narrative fidelity (number and evidence audits).
+Set `ANTHROPIC_API_KEY` and run `ceap evaluate --suite investigation|research|all`. The
+deterministic parts (metrics, attribution, critic checks, number audit) are unchanged; the
+evaluation then measures the model's plan quality (rejected steps are reported by the planner)
+and narrative fidelity (number and evidence audits). For Stage 2, also set
+`CEAP_LLM_PLANNING_MODEL` to a stronger planner than the narrator/critic model — see "What
+changed against a real model" above for why that matters and what it costs.

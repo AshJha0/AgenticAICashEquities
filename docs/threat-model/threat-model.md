@@ -2,19 +2,25 @@
 
 ## Scope
 
-The platform reads trading, market and telemetry data and produces reports. It does not place,
-amend or cancel orders. The primary risks are therefore *wrong or misleading conclusions*,
-*unauthorised data access* and *abuse of the agentic control loop*.
+The platform reads trading, market and telemetry data and produces reports and research
+proposals. It does not place, amend or cancel **live** orders and has no venue connectivity: the
+one exception, `execution.stage_orders` (Stage 2), builds *paper* orders held in an in-memory
+`StagedOrderBook` and never routes anywhere. It is the platform's only non-read-only tool, and
+reaching it requires the `trading:execute` capability plus a human approval the harness alone
+schedules (see T17 below). The primary risks are therefore *wrong or misleading conclusions*,
+*unauthorised data access*, *abuse of the agentic control loop* and — narrowly, for that one tool
+— *unauthorised paper-order staging*.
 
 ## Assets
 
 | Asset | Why it matters |
 |---|---|
 | Order, execution and position data | commercially sensitive; regulated |
-| Investigation reports | drive desk decisions, escalation and regulatory explanations |
+| Investigation reports / research proposals | drive desk decisions, escalation, regulatory explanations and signal promotion calls |
 | Tool catalogue / MCP servers | the only capabilities the agents can exercise |
 | Policy configuration and API keys | authority over what runs and who sees what |
 | Evidence and trace store | audit trail |
+| Staged paper orders | the only state a research proposal can write; must never reach a real venue |
 
 ## Trust boundaries
 
@@ -47,6 +53,9 @@ before they influence anything, and it never touches data or tools directly.
 | T14 | Unsafe defaults in production (development keys, automatic approvals) | Dev keys and auto-approval apply only when `CEAP_ENV=dev`; `validate_for_serving()` refuses to start otherwise; API keys ≥ 8 chars, constant-time lookup, logged as digests | `test_dev_keys_do_not_apply_outside_dev` |
 | T15 | Resource exhaustion (unbounded metrics labels, spans, retained results, concurrent investigations) | Bounded metrics series and spans, bounded result/approval/mock-call logs, investigation semaphore, background-task failure recording, shutdown cancellation | `test_metrics_registry_is_bounded_and_escapes_labels`, `test_mock_llm_call_log_is_bounded`, `test_concurrent_approvals_do_not_flap_state` |
 | T16 | Silent model degradation (fallback to the mock goes unnoticed) | Router records `fallback_reason`; planner, critic and reporter surface `llm_fallback` in their output and the investigation warnings | `test_router_marks_fallback_and_agents_surface_it` |
+| T17 | Unauthorised order staging (Stage 2) | `execution.stage_orders` is the only non-read-only tool: HIGH risk, requires `trading:execute` (admin only); the harness schedules it itself, never the plan, and only after a *second*, separately-decided `HUMAN_APPROVAL` step whose payload is the order preview; requesting `stage_orders=True` without the capability is refused at request validation (403) before a task is even created | `tests/adversarial/test_research_adversarial.py::test_hand_built_staging_step_is_denied_for_a_quant`, `test_only_admins_may_request_order_staging` |
+| T18 | Research governance bypass (plan schedules its own approval or the staging tool) | Same harness-owned-tail mechanism as T12/T14, extended to research: plan-supplied `HUMAN_APPROVAL` steps are stripped, and the planner is shown only read-only tools so it cannot schedule `stage_orders` at all | `test_rogue_research_plan_is_sanitised`, `test_plan_supplied_approval_steps_are_stripped` |
+| T19 | A declined research approval leaves inconsistent state | Declining the proposal approval fails the task with no report; declining the staging approval alone completes the task with the proposal intact and the report stating orders were not staged — neither path leaves a half-staged order set | `test_declined_proposal_fails_cleanly`, `test_declined_staging_completes_without_orders_and_shows_the_proposal` |
 
 ## Residual risks and recommendations
 
@@ -56,6 +65,14 @@ before they influence anything, and it never touches data or tools directly.
   and content-hashed, since retrieved passages influence the narrative.
 * Attribution thresholds are heuristics calibrated on synthetic data; they must be recalibrated on
   real TCA history and versioned like code.
-* The number audit is tolerant (rounding, percentage forms); it detects fabrication rather than
-  proving correctness of prose.
+* The number audit is tolerant (rounding, percentage forms, bps/per-mille scalings); it detects
+  fabrication rather than proving correctness of prose — see `ceap.agents.reporter.audit_numbers`
+  for exactly which derived values are accepted, and CHANGELOG 0.3.2 for a rejected attempt (a
+  pairwise relative-change derivation) that made the audit *too* permissive and let a fabricated
+  number through in the adversarial suite.
 * Structured logs may contain symbols and quantities; apply the same access controls as the data.
+* `stage_orders` is paper-only by construction (no MCP tool in this codebase has venue
+  connectivity); if this platform is ever extended with a real execution adapter, that adapter
+  needs its own threat model — the RBAC/approval scaffolding here is necessary but not sufficient
+  for live trading risk (kill switches, position reconciliation, market-open/close guards, etc.
+  are all out of scope today).

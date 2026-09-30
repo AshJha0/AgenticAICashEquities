@@ -65,15 +65,16 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
 <div class="wrap">
   <h2>Measured, not claimed</h2>
   <div class="numbers">
-    Test suite&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 138 tests green — 63 unit · 15 integration · 12 MCP (incl. a real stdio round-trip) · 40 agent (22 review regressions) · 6 adversarial · 2 evaluation<br>
-    Scenario evaluation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 50 / 50 primary cause correct · 100% ground-truth coverage · 2% false-positive rate (one scenario) · 0 unresolved evidence · 0 narrative number warnings<br>
+    Test suite&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 212 tests green — 101 unit · 28 integration · 17 MCP (incl. a real stdio round-trip) · 52 agent (22 review regressions) · 10 adversarial · 4 evaluation<br>
+    Execution evaluation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 50 / 50 primary cause correct · 100% ground-truth coverage · 2% false-positive rate (one scenario) · 0 unresolved evidence · 0 narrative number warnings<br>
+    Research evaluation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 21 / 21 verdicts correct (Stage 2) · 100% expected-flag coverage · 0 unresolved evidence · 0 narrative number warnings<br>
     Investigation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ≈0.9 s end to end with the deterministic LLM: plan → 15 tool calls in parallel batches → 5 specialist agents → critic → evidence validation → audited report<br>
-    Capability surface&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 5 MCP servers · 26 read-only tools · schemas derived from Python signatures · in-process or FastMCP over stdio from one definition<br>
-    Harness&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 11-state machine · 8 agents · policy → approval → retry/timeout → tool → evidence on every call · governance steps the plan cannot drop or reorder · arguments pinned to the task's symbol, dataset and window<br>
-    Synthetic market&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; per scenario: 14,400 1-second NBBO quotes · ≈22k prints on 5 venues · 1,440 five-level books · 242 orders · ≈435 fills · 1,680 telemetry points — seeded, byte-reproducible<br>
-    Analytics&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 31 pure functions: VWAP · TWAP · Perold IS with opportunity cost · slippage · effective spread · impact · volatility · depth · attribution over 8 causes<br>
+    Capability surface&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8 MCP servers · 37 tools, all read-only except one (paper order staging, HIGH risk, human-approved) · schemas derived from Python signatures · in-process or FastMCP over stdio from one definition<br>
+    Harness&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 11-state machine · 12 agents (8 investigation + 4 research) · policy → approval → retry/timeout → tool → evidence on every call · governance steps the plan cannot drop or reorder · arguments pinned to the task's symbol/signal, dataset and window<br>
+    Synthetic market&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; per execution scenario: 14,400 1-second NBBO quotes · ≈22k prints on 5 venues · 1,440 five-level books · 242 orders · ≈435 fills · 1,680 telemetry points; per research dataset: 30-name, 4-year daily universe (1,008 trading days) — both seeded, byte-reproducible<br>
+    Analytics&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 60+ pure functions: VWAP · TWAP · Perold IS with opportunity cost · slippage · effective spread · impact · volatility · depth · attribution over 8 causes · (Stage 2) rank-IC signal statistics · event-driven backtest with a cost model · portfolio risk · deterministic research verdict<br>
     Knowledge (RAG)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8 runbook/policy documents · 34 chunks · dependency-free hashed TF-IDF · served as DOCUMENT evidence through MCP<br>
-    Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ≈10.3k lines of typed Python in <code>src/ceap</code> · ≈2.4k lines of tests · ruff clean · mypy clean (99 files) · Python 3.11+
+    Code&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ≈14.4k lines of typed Python in <code>src/ceap</code> (122 files) · ≈4.0k lines of tests · ruff clean · mypy clean · Python 3.12 in CI, 3.11+ supported
   </div>
 
   <div class="honest">
@@ -83,10 +84,14 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
     narrative is audited afterwards: every number must trace to the structured facts handed to
     the model and every evidence id must exist — the adversarial suite feeds the reporter a
     fabricated "0.0000 bps / 99.9% fill / EXEC-deadbeef" narrative and checks that all three are
-    flagged. The evaluation numbers above were produced with the offline deterministic model;
-    with a real model the same audits measure plan quality and narrative fidelity. The one
-    false positive (S50) is a 200 bps drift inside a 3× volatility window scored as a secondary
-    "price movement" — defensible, and reported rather than tuned away.
+    flagged. The evaluation numbers above were produced with the offline deterministic model.
+    Run for real for the first time in 0.3.1 (<code>claude-haiku-4-5</code>): verdict accuracy on
+    the research suite dropped to 19/21 with a weak planner alone (incomplete plans, handled
+    safely — no crash, no unresolved evidence) and came back to 21/21 once the planner was a
+    stronger model (<code>CEAP_LLM_PLANNING_MODEL=claude-sonnet-5</code>); that same run also
+    caught two real bugs the offline mock had been hiding (see CHANGELOG 0.3.1). The one false
+    positive in the execution suite (S50) is a 200 bps drift inside a 3× volatility window
+    scored as a secondary "price movement" — defensible, and reported rather than tuned away.
   </div>
 
   <h2>The architectural boundary</h2>
@@ -131,9 +136,11 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
          baseline.</p></div>
     <div class="card"><h3>MCP servers</h3>
       <p>market_data (quotes, trades, book, statistics, reference), execution (parent/child
-         orders, fills, TCA metrics, venue statistics, strategy config), risk (position,
-         exposure, limit check, stress), engineering (logs, metrics, deployments, latency),
-         knowledge (RAG). One definition serves in-process calls and a real FastMCP stdio
+         orders, fills, TCA metrics, venue statistics, strategy config, plus the one
+         non-read-only tool — paper order staging), risk (position, exposure, limit check,
+         stress, plus recomputed portfolio exposure/limits/stress for research), engineering
+         (logs, metrics, deployments, latency), knowledge (RAG), and (Stage 2) research_data,
+         alpha, backtest. One definition serves in-process calls and a real FastMCP stdio
          server; annotations carry read-only, risk level and required capabilities.</p></div>
     <div class="card"><h3>MCP client &amp; adapter</h3>
       <p><code>MCPClient</code> abstraction with in-process and stdio implementations (official
@@ -155,9 +162,10 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
     <div class="card"><h3>Specialist agents</h3>
       <p>Market (what happened in the market?), Execution (what happened to our orders?), Quant
          (what does the data show and why?), Risk (unusual exposure or limit usage?),
-         Engineering (did technology behave normally?). Each reads the plan's tool outputs from
-         memory, fetches anything missing through the same policy path, and returns findings
-         with evidence ids plus CALCULATION evidence for its own derivations.</p></div>
+         Engineering (did technology behave normally?), and (Stage 2) Research, Alpha, Backtest,
+         Portfolio risk. Each reads the plan's tool outputs from memory, fetches anything
+         missing through the same policy path, and returns findings with evidence ids plus
+         CALCULATION evidence for its own derivations.</p></div>
     <div class="card"><h3>Critic</h3>
       <p>Deterministic checks first: every cited evidence id must resolve; an anomaly claim must
          be corroborated by the attribution score; cross-agent contradictions (quant blames
@@ -189,7 +197,9 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
       <p>Prompt injection in the question, rogue plans with unknown/mutating tools and malformed
          steps, unparsable model output, a critic that tries to raise confidence, fabricated
          numbers and evidence ids in the narrative, oversized and out-of-universe tool
-         arguments — each mapped to a control in the threat model.</p></div>
+         arguments, (Stage 2) a rogue plan that schedules order staging first or reaches
+         outside the universe, a hand-built staging step for a principal without
+         <code>trading:execute</code> — each mapped to a control in the threat model.</p></div>
     <div class="card"><h3>Stage 2: research workflow (0.3.0)</h3>
       <p>Research Agent → Alpha Analysis → Backtest Engine → Risk Agent → Critic → Human Approval
          on the same harness, policy engine, approval gateway and evidence model: rank-IC statistics,
@@ -248,11 +258,14 @@ pip install -e ".[dev]"
 # an investigation from the CLI — offline, deterministic model, ~1 s
 ceap investigate "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall increased." --dataset T06
 
-# the whole suite: unit, integration, MCP (incl. stdio), agent, adversarial, 50-scenario evaluation
+# a signal research proposal (Stage 2) — offline, deterministic model
+ceap research "Does 12-1 momentum work on R01? Evaluate it out-of-sample with costs." --role quant
+
+# the whole suite: unit, integration, MCP (incl. stdio), agent, adversarial, 50 + 21 scenario evaluations
 pytest
 
-# evaluation table against structured ground truth
-ceap evaluate
+# evaluation tables against structured ground truth
+ceap evaluate --suite all
 
 # the API — docs at http://127.0.0.1:8000/docs
 ceap serve
@@ -260,10 +273,11 @@ curl -s -X POST http://127.0.0.1:8000/investigations -H "X-API-Key: dev-trader-k
      -H "Content-Type: application/json" \
      -d '{"question": "Why did AAPL execution deteriorate between 14:00 and 15:00?", "dataset": "T05"}'
 
-# real MCP over stdio: the five servers as subprocesses, 26 tools discovered
+# real MCP over stdio: the five Stage-1 servers as subprocesses, tools discovered
 python scripts/run_stdio_mcp_demo.py
 
-# use a real model (optional): pip install -e ".[llm]" and export ANTHROPIC_API_KEY=...</pre>
+# use a real model (optional): pip install -e ".[llm]" and export ANTHROPIC_API_KEY=...
+# for Stage 2, also set CEAP_LLM_PLANNING_MODEL to a stronger planner than the narrator model</pre>
 
   <footer>AgenticAICashEquities — an agentic, evidence-first execution-quality investigation
     platform built on fully synthetic data for education and demonstration. See

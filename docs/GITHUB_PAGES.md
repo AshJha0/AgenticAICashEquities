@@ -35,9 +35,10 @@ Mermaid diagrams in `docs/DIAGRAMS.md` render natively on github.com — no plug
 block against:
 
 - `pytest` — total and per-suite test counts (`pytest --collect-only -q`),
-- `ceap evaluate` — primary accuracy, coverage, false-positive rate, mean duration,
-- `python -c "from ceap.mcp.registry import build_default_servers as b; s=b(); print(sum(len(v.list_tools()) for v in s.values()))"` — tool count,
+- `ceap evaluate --suite all` — primary/verdict accuracy, coverage, false-positive/flag rate, mean duration, for both the 50-scenario execution suite and the 21-scenario research suite,
+- `python -c "from ceap.mcp.registry import build_default_servers as b; s=b(); print(len(s), sum(len(v.list_tools()) for v in s.values()))"` — server count and tool count,
 - `python -c "from ceap.data import DatasetStore; print(DatasetStore().get('T01').summary())"` — dataset sizes,
+- `python -c "from ceap.data.historical import HistoricalStore; print(HistoricalStore().get('R01').summary())"` — research dataset sizes,
 - `python -c "from ceap.rag.retrieval import build_knowledge_base as k; kb=k(); print(len(kb.documents), len(kb))"` — knowledge corpus.
 
 A wrong number on the landing page is a documentation bug — treat it like one.

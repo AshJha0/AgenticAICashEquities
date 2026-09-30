@@ -47,6 +47,15 @@ statistics; `calculate_market_statistics` produces `MarketStatistics`.
 technology, market data, large order, price movement) by comparing a window with its baseline.
 Thresholds live in `Thresholds` and are documented in the evaluation guide.
 
+**Stage 2** adds a parallel, equally deterministic set for signal research: `signals` (a small
+fixed library — momentum, reversal, low-vol), `signal_statistics` (rank IC via Spearman, t-stat,
+information ratio, turnover, decay, quantile spread — one-day non-overlapping ICs so t-stats are
+honest), `backtest` (event-driven daily loop, half-spread + square-root-impact cost model,
+walk-forward in-sample/out-of-sample split), `portfolio_risk` (target portfolio *recomputed* from
+the signal at the report date — never trusts the backtest's own weights — gross/net/HHI/beta/ADV
+participation, limit checks, stress) and `research_assessment` (`assess_research`: a deterministic
+`PROMOTE`/`REJECT` verdict plus flags — the Stage 2 analogue of `attribute_causes`).
+
 ### 3.3 Data (`ceap.data`)
 
 `SyntheticMarketGenerator` produces a seeded, deterministic dataset per scenario: one-second NBBO
@@ -59,16 +68,28 @@ investigation window so the preceding hour is always a clean baseline.
 interfaces. `ceap.data.export` writes CSV/Parquet under `data/` for external tooling (DuckDB,
 Polars).
 
+**Stage 2**: `HistoricalGenerator` produces a seeded 30-name, four-year daily universe (`ceap.data
+.historical`) — a factor model whose embedded premium is computed through the *same* signal code
+that later measures it, so the generator and the analytics can never silently drift apart.
+`HistoricalStore` mirrors `DatasetStore`. `ceap.data.research_scenarios` carries the 7-template
+(× 3 seeds = 21-scenario) ground truth: expected verdict and flags per scenario.
+
 ### 3.4 MCP (`ceap.mcp`)
 
 * `MCPServerDefinition` – decorator-based tool registration with JSON schemas derived from
   signatures, `readOnlyHint`, risk level and required capabilities; callable in-process or
   exported to `FastMCP` (`to_fastmcp()`, `run_stdio()`).
-* Servers: `market_data`, `execution`, `risk`, `engineering`, `knowledge`.
+* Servers: `market_data`, `execution`, `risk`, `engineering`, `knowledge`, and (Stage 2)
+  `research_data`, `alpha`, `backtest`. `execution.stage_orders` is the platform's only
+  non-read-only tool (HIGH risk, `trading:execute`) — it builds *paper* orders from the
+  recomputed target portfolio into an in-memory, idempotent `StagedOrderBook`; nothing is routed
+  to a venue. `risk` gains `get_portfolio_exposure` / `check_portfolio_limits` /
+  `calculate_portfolio_stress`, which recompute the target portfolio rather than trusting a
+  backtest's output.
 * `MCPClient` abstraction with `InProcessMCPClient` and `StdioMCPClient` (official SDK).
-* `MCPToolAdapter` turns a discovered descriptor into a domain `Tool`; every invocation yields an
-  `Evidence` record containing the tool id, arguments, correlation id and a SHA-256 digest of the
-  payload.
+* `MCPToolAdapter` turns a discovered descriptor into a domain `Tool` and attaches an
+  `Evidence` record — tool id, arguments, correlation id and a SHA-256 digest of the payload — to
+  every successful call.
 * `build_tool_registry` performs discovery and populates the `ToolRegistry`.
 
 ### 3.5 LLM (`ceap.llm`)
@@ -98,14 +119,18 @@ Consecutive independent `TOOL_CALL` steps are batched and executed concurrently 
 
 | Agent | Question | Output |
 |---|---|---|
-| Planner | what should we investigate? | typed, sanitised `Plan` |
+| Planner | what should we investigate? | typed, sanitised `Plan` (research or investigation, by `Task.input["kind"]`) |
 | Market | what happened in the market? | MARKET findings (volatility, spreads, depth, drift, feed quality) |
 | Execution | what happened to our orders? | EXECUTION findings (IS, VWAP slippage, fill/participation, venue outliers, configuration consistency) |
 | Quant | what does the data show and why? | ATTRIBUTION findings from `attribute_causes` |
 | Risk | unusual exposure or limit usage? | RISK findings from `risk.check_limit` / `get_exposure` |
 | Engineering | did technology behave normally? | TECHNOLOGY findings (latency ratio, SLO, deployments, error logs, feed gaps) |
-| Critic | are the conclusions supported? | adjusted findings + critique |
-| Reporter | write it up | `InvestigationReport` with narrative audits |
+| Research *(Stage 2)* | what is the hypothesis, and does the data cover it? | RESEARCH findings (hypothesis, coverage, regime) |
+| Alpha *(Stage 2)* | is the signal predictive, does it persist out-of-sample? | SIGNAL findings (`ALPHA`/`NO_ALPHA`/`ROBUST`, turnover, decay) |
+| Backtest *(Stage 2)* | does it survive costs out-of-sample? | BACKTEST findings (`PROFITABLE`/`OVERFIT`/`COST_DRAG`) |
+| Portfolio risk *(Stage 2)* | is the target portfolio within limits? | RISK findings from the recomputed target portfolio |
+| Critic | are the conclusions supported? | adjusted findings + critique (+ `assess_research` verdict for research tasks) |
+| Reporter | write it up | `InvestigationReport` (investigation narrative, or a Stage 2 proposal with narrative audits) |
 
 ### 3.8 Policy (`ceap.policy`)
 
@@ -144,6 +169,22 @@ Plan ─► 15 tool calls in parallel batches (orders, fills, market stats, book
 ```
 
 A full investigation with the mock LLM completes in about one second.
+
+## 4a. Data flow for a Stage 2 research question
+
+```
+question ─► parse signal/dataset/window ─► validate against dataset coverage ─► Task(kind=research)
+Task ─► Planner (LLM) ─► Plan ─► validation (structure + policy; symbol pinned to the task universe)
+Plan ─► 7 tool calls (universe summary, signal statistics, backtest, portfolio exposure/limits/
+        stress, research policy) ─► Research / Alpha / Backtest / Portfolio-risk agents ─► findings
+     ─► Critic (assess_research: verdict + flags, evidence-recorded) ─► adjusted findings
+     ─► evidence validation ─► HUMAN_APPROVAL (proposal) ─► [HUMAN_APPROVAL (staging) ─►
+        execution.stage_orders] ─► Reporter (LLM proposal + audits)
+     ─► InvestigationReport (kind=research, proposal) + trace + policy log
+```
+
+The two `HUMAN_APPROVAL` steps and the conditional `stage_orders` tail are appended by the harness,
+never by the plan — see §3.6 and `docs/DIAGRAMS.md` §9.
 
 ## 5. Design decisions
 

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.3.4 – Documentation pass: catch up every doc with Stage 2 and the real-model findings
+
+No code changes. `README.md`, `LEARN.md`, `COOKBOOK.md`, `docs/architecture/overview.md`,
+`docs/threat-model/threat-model.md`, `docs/evaluation/evaluation.md`, `docs/DIAGRAMS.md`,
+`docs/GITHUB_PAGES.md` and `docs/index.html` had drifted since v0.3.0-0.3.3 shipped Stage 2 and
+the real-model bug fixes. Notably:
+
+- The threat model's scope statement claimed the platform "does not place, amend or cancel
+  orders" - no longer true since Stage 2's `execution.stage_orders`. Corrected, with three new
+  threats (T17-T19) covering the order-staging trust boundary and its tests.
+- The architecture overview, MCP topology diagram and `LEARN.md`'s tool table were still
+  describing 5 servers / 26 tools; the platform now has 8 servers / 37 tools, and the agent
+  roster tables only listed the 6 investigation agents, missing the 4 research agents.
+- `LEARN.md` and `COOKBOOK.md` had zero mentions of Stage 2; added a guided-tour section and six
+  cookbook recipes (research CLI/Python/API, order staging, adding a signal, adding a research
+  scenario) at the same depth as the existing execution-quality content.
+- `docs/index.html`'s measured-numbers block was still quoting 138 tests (now 212) and had no
+  research-suite numbers; added them, plus a CI badge on `README.md` now that CI actually passes.
+- Evaluation and cookbook docs now carry the honest real-model findings from 0.3.1 (planner
+  model matters, two bugs the mock had hidden) instead of only the mock LLM's numbers.
+
 ## 0.3.3 – Fix CI for real: `pip-tools` has no cross-platform lock mode
 
 0.3.2's fix (dropping the self-referential lockfile line) was necessary but not sufficient - the

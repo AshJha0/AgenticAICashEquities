@@ -1,5 +1,7 @@
 # Cash Equities Agentic Platform (CEAP)
 
+[![CI](https://github.com/AshJha0/AgenticAICashEquities/actions/workflows/ci.yml/badge.svg)](https://github.com/AshJha0/AgenticAICashEquities/actions/workflows/ci.yml)
+
 An enterprise-style **Agentic AI platform** that investigates, analyses and explains cash-equity
 trading and market behaviour. Ask it:
 
@@ -305,7 +307,7 @@ subprocesses with the official `mcp` SDK; the test suite includes a real stdio r
 | `ANTHROPIC_API_KEY` | – | enables the Anthropic client (`CEAP_LLM_PROVIDER=auto`) |
 | `CEAP_LLM_PROVIDER` | `auto` | `auto` / `mock` / `anthropic` |
 | `CEAP_LLM_MODEL` | `claude-sonnet-4-5` | narrative / critique model |
-| `CEAP_LLM_PLANNING_MODEL` | = model | optional stronger planning model |
+| `CEAP_LLM_PLANNING_MODEL` | = model | stronger planning model; **recommended for Stage 2** — a weak planner (tested: Haiku alone) can produce an incomplete research plan; pairing `CEAP_LLM_MODEL=claude-haiku-4-5` with `CEAP_LLM_PLANNING_MODEL=claude-sonnet-5` took the 21-scenario evaluation from 5 incomplete plans to 0 (see CHANGELOG 0.3.1) |
 | `CEAP_DEFAULT_DATASET` | `T01` | scenario dataset when a request names none |
 | `CEAP_STEP_TIMEOUT_SECONDS` | `30` | per tool call |
 | `CEAP_TASK_TIMEOUT_SECONDS` | `300` | per investigation |

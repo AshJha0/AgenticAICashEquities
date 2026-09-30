@@ -33,6 +33,12 @@ Contents:
 25. [Export traces to OpenTelemetry](#25-export-traces-to-opentelemetry)
 26. [Run in Docker](#26-run-in-docker)
 27. [Publish the docs site](#27-publish-the-docs-site)
+28. [Run a signal research proposal (Stage 2)](#28-run-a-signal-research-proposal-stage-2)
+29. [Run a research proposal from Python](#29-run-a-research-proposal-from-python)
+30. [Stage paper orders behind a human approval (Stage 2)](#30-stage-paper-orders-behind-a-human-approval-stage-2)
+31. [Use the research API](#31-use-the-research-api)
+32. [Add a new signal](#32-add-a-new-signal)
+33. [Add a research scenario template](#33-add-a-research-scenario-template)
 
 ---
 
@@ -148,8 +154,8 @@ marked DENIED; the investigation continues without it.
 ```bash
 pip install -e ".[llm]"
 export ANTHROPIC_API_KEY=sk-ant-...
-export CEAP_LLM_MODEL=claude-sonnet-4-5            # optional
-export CEAP_LLM_PLANNING_MODEL=claude-opus-4-1     # optional, stronger planner
+export CEAP_LLM_MODEL=claude-haiku-4-5             # optional, cheap narrator/critic
+export CEAP_LLM_PLANNING_MODEL=claude-sonnet-5     # recommended: a stronger planner
 ceap investigate "..." --dataset T06
 ```
 
@@ -157,6 +163,15 @@ ceap investigate "..." --dataset T06
 router falls back to the deterministic mock and counts it in `router.usage["fallbacks"]`.
 The planner's `rejected_steps` and the report's `narrative_number_warnings` tell you how the
 model behaved.
+
+For Stage 2 research (`ceap research ...`), the planning model matters more than the narrator
+model: a weak planner alone (tested — `claude-haiku-4-5`) produced an incomplete plan on 5 of 21
+research scenarios; pairing it with `CEAP_LLM_PLANNING_MODEL=claude-sonnet-5` fixed all five (see
+CHANGELOG 0.3.1). `docs/evaluation/evaluation.md` has the full before/after numbers. This also
+caught two real bugs the offline mock had never exercised — check the installed `anthropic`
+package version if a "live" run's `llm_model` in the result keeps coming back as
+`mock-deterministic-v1` with no error: a stale SDK kwarg silently triggering the router's
+fallback is exactly what happened in 0.3.1.
 
 ## 8. Call an MCP tool directly (in-process)
 
@@ -181,7 +196,7 @@ Each server is a module you can run: `python -m ceap.mcp.market_data` (also `exe
 `risk`, `engineering`, `knowledge`). To drive them with the official SDK from Python:
 
 ```bash
-python scripts/run_stdio_mcp_demo.py     # discovers 26 tools and calls one
+python scripts/run_stdio_mcp_demo.py     # discovers the 5 Stage-1 servers' tools and calls one
 ```
 
 To point a generic MCP client (e.g. an IDE or desktop assistant) at a server, register the
@@ -437,3 +452,98 @@ The image sets `CEAP_ENV=prod` and `CEAP_AUTO_APPROVE=false`.
 
 See `docs/GITHUB_PAGES.md`: Settings → Pages → Deploy from a branch → `main` / `/docs`. The
 landing page is `docs/index.html`; everything else links to rendered Markdown on GitHub.
+
+## 28. Run a signal research proposal (Stage 2)
+
+```bash
+ceap research "Does 12-1 momentum work on R01? Evaluate it out-of-sample with costs." --role quant
+```
+
+The signal and dataset are parsed from the question when omitted ("momentum" → `momentum_12_1`,
+"reversal"/"mean reversion" → `reversal_5`, "low vol" → `low_vol_60`; a ticker like `R04` or
+`RS12`). `--dataset` picks the research scenario (R01–R07 templates, RS01–RS21 concrete).
+`--role` must have the `research` capability (`quant` or `admin`); `viewer`/`trader`/`engineer`
+do not. The proposal's VERDICT section carries `PROMOTE` or `REJECT` with any flags
+(`NO_ALPHA`, `OVERFIT`, `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`).
+
+## 29. Run a research proposal from Python
+
+```python
+import asyncio
+from ceap.platform import Platform, default_research_request
+
+platform = Platform()                                          # mock LLM unless ANTHROPIC_API_KEY is set
+result = asyncio.run(platform.research(default_research_request("R01")))
+
+print(result.state, result.duration_ms)                        # HarnessState.COMPLETED
+print(result.report.proposal["verdict"], result.report.proposal["flags"])   # PROMOTE []
+print(result.report.narrative)
+```
+
+`default_research_request(dataset, signal=None, stage_orders=False, roles=None)` scopes the
+request to the scenario's own signal and rebalance frequency; pass your own `ResearchRequest`
+for a custom signal, window or gross notional.
+
+## 30. Stage paper orders behind a human approval (Stage 2)
+
+```python
+import asyncio
+from ceap.platform import Platform, default_research_request
+
+platform = Platform()                                           # admin: has tools:write + trading:execute
+result = asyncio.run(platform.research(
+    default_research_request("R01", stage_orders=True, roles=frozenset({"admin"}))
+))
+staging = result.report.proposal["staging"]
+print(staging["staged"], staging["staging_id"], staging["count"])
+```
+
+Order staging needs *two* separately-decided `HUMAN_APPROVAL` steps the harness appends itself
+(the plan cannot schedule either): one for the research proposal, one for the order preview.
+With `CEAP_AUTO_APPROVE=false` both show up in `GET /approvals` — see recipe 6 — the second
+carries `arguments.orders_preview` instead of `arguments.proposal`. Declining the second still
+completes the task; only the STAGED ORDERS section changes. `execution.stage_orders` never
+routes anywhere — it only ever builds paper orders in an in-memory `StagedOrderBook`.
+
+## 31. Use the research API
+
+```bash
+ceap serve
+curl -s -X POST http://127.0.0.1:8000/research -H "X-API-Key: dev-quant-key" \
+     -H "Content-Type: application/json" \
+     -d '{"question": "Does 12-1 momentum work on R01? Evaluate it out-of-sample with costs."}'
+# {"task_id": "...", "status": "RUNNING", "links": {"report": "/research/TASK-.../report", ...}}
+
+curl -s http://127.0.0.1:8000/research/TASK-.../report -H "X-API-Key: dev-quant-key"
+```
+
+`dev-admin-key` is the only default key with `trading:execute`; pass `"stage_orders": true` in
+the body as admin to also stage paper orders. `GET /research-scenarios?all=true` lists all 21
+concrete research scenarios the way `GET /scenarios?all=true` lists the 50 execution ones.
+
+## 32. Add a new signal
+
+```python
+# src/ceap/analytics/signals.py
+def my_signal(close, volume=None):
+    ...  # (n_days, n_symbols) -> same-shape array; NaN during warm-up
+
+SIGNALS["my_signal"] = SignalSpec(
+    "my_signal", "one-line description", lookback_days=..., default_horizon_days=...,
+    default_rebalance_days=..., fn=my_signal,
+)
+```
+
+`evaluate_signal`, `run_backtest` and `target_portfolio` all resolve signals through this
+registry, so a new entry is immediately usable from `ceap research --signal my_signal` and every
+MCP tool. Add a `ResearchScenarioSpec` template with ground truth
+(`ceap.data.research_scenarios`) if you want it exercised by `ceap evaluate --suite research`.
+
+## 33. Add a research scenario template
+
+Same shape as recipe 13, one level up: add a `ResearchScenarioSpec` to
+`RESEARCH_TEMPLATES` in `ceap/data/research_scenarios.py` with the effect you want embedded
+(`premium_bps`, `oos_premium_multiplier` for a regime break, `spread_multiplier` for cost drag,
+`concentration_names` for a concentrated book) and the `expected_verdict`/`expected_flags` you
+expect `assess_research` to reach. It joins `all_research_scenarios()` (× 3 seeds) automatically,
+so `ceap evaluate --suite research` and `tests/evaluation/test_research_scenarios.py` pick it up.

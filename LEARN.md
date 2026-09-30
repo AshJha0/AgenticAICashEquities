@@ -27,7 +27,8 @@ Contents:
 15. [Observability and operations](#15-observability-and-operations)
 16. [Ten pitfalls this platform is built to avoid](#16-ten-pitfalls-this-platform-is-built-to-avoid)
 17. [Ten interview questions (with answers from this repo)](#17-ten-interview-questions-with-answers-from-this-repo)
-18. [Further reading](#18-further-reading)
+18. [Stage 2: signal research](#18-stage-2-signal-research)
+19. [Further reading](#19-further-reading)
 
 ---
 
@@ -228,15 +229,18 @@ representation cannot drift. Annotations carry `readOnlyHint`, a risk level and 
 capabilities. The same definition is exported to a real `FastMCP` server (`to_fastmcp()`,
 `run_stdio()`), and `python -m ceap.mcp.market_data` starts it over stdio.
 
-Five servers, 26 tools:
+Eight servers, 37 tools — every one read-only except `execution.stage_orders` (Stage 2):
 
 | Server | Tools |
 |---|---|
 | market_data | get_quote, get_quotes, get_order_book, get_order_book_statistics, get_trades, get_market_statistics, get_reference_data, get_coverage |
-| execution | get_parent_orders, get_child_orders, get_executions, get_execution_metrics, get_venue_statistics, get_strategy_configuration |
-| risk | get_position, get_exposure, check_limit, calculate_stress (MEDIUM risk) |
+| execution | get_parent_orders, get_child_orders, get_executions, get_execution_metrics, get_venue_statistics, get_strategy_configuration, **stage_orders** (HIGH risk, `trading:execute`, not read-only — paper orders only), get_staged_orders |
+| risk | get_position, get_exposure, check_limit, calculate_stress (MEDIUM risk), get_portfolio_exposure, check_portfolio_limits, calculate_portfolio_stress (MEDIUM risk) — the last three recompute the target portfolio |
 | engineering | search_logs, get_service_metrics, get_deployments, get_latency_metrics, get_services |
 | knowledge | search_documents, get_document, list_documents |
+| research_data *(Stage 2)* | get_universe, get_daily_bars, get_universe_summary |
+| alpha *(Stage 2)* | list_signals, evaluate_signal |
+| backtest *(Stage 2)* | run_backtest |
 
 `MCPClient` has two implementations: `InProcessMCPClient` (tests, CLI, API) and
 `StdioMCPClient` (official SDK sessions to subprocesses; `tests/mcp` includes a real
@@ -414,6 +418,9 @@ Things to be honest about:
    data through policy or state explicitly that nothing was found.
 10. **An n/a report for an unanswerable request.** Symbol, window, baseline ordering and
     dataset coverage are validated up front and return 422.
+11. **A plan that schedules its own approval, or the tool it's meant to gate.** (Stage 2) The
+    harness strips any planner-supplied `HUMAN_APPROVAL` and appends its own; the planner is
+    shown only read-only tools, so it cannot schedule `stage_orders` even if it tried.
 
 ## 17. Ten interview questions (with answers from this repo)
 
@@ -445,7 +452,71 @@ Things to be honest about:
 10. *What changes for a real model?* — Only plan quality and narrative fidelity; both are
     measured by the same run (`rejected_steps`, `narrative_number_warnings`).
 
-## 18. Further reading
+## 18. Stage 2: signal research
+
+Everything above answers *"why did this execution behave the way it did?"* over a known window.
+Stage 2 (since v0.3.0) answers a different question with the same architecture — *"does this
+trading signal actually work, and should we trust it with money?"*:
+
+> "Does 12-1 momentum work on this universe? Evaluate it out-of-sample with costs and propose
+> whether to promote it."
+
+The reused parts are load-bearing, not cosmetic: the same `AgentHarness` state machine, the same
+policy engine, the same evidence model, the same `HUMAN_APPROVAL` step type. What's new is a
+second set of deterministic analytics and a second agent roster.
+
+**The research pipeline mirrors the TCA one exactly.** Universe/signal/backtest/portfolio tool
+calls run first (their outputs become evidence, same as market data); Research, Alpha, Backtest
+and Portfolio-risk agents interpret them (same pattern as Market/Execution/Quant); the Critic
+computes a deterministic verdict — `assess_research` scores `PROMOTE`/`REJECT` with flags
+(`NO_ALPHA`, `OVERFIT`, `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`) exactly the way
+`attribute_causes` scores execution-quality causes — and caps any agent finding that contradicts
+it; the Reporter writes the proposal and the same number/evidence-id audits run against it.
+
+**What's genuinely new is the governance tail.** An investigation ends at a report. A research
+proposal ends at a decision a human has to make, so the harness appends a `HUMAN_APPROVAL` step
+after the critic — the approver sees the deterministic verdict and the *recomputed* target
+portfolio, never the model's prose. If the caller also asked to stage paper orders (admin only,
+requires `trading:execute`), a *second*, separately-decided approval gates the platform's only
+non-read-only tool, `execution.stage_orders`. Declining the first approval fails the task with no
+report; declining the second still produces the proposal, just without staged orders. Neither
+approval step can be scheduled by the plan — the harness strips any planner-supplied
+`HUMAN_APPROVAL` and appends its own, the same way it owns the critic/validation/finalise tail for
+investigations (§7).
+
+**The maths doesn't trust itself either.** `signal_statistics` uses one-day, non-overlapping ICs
+specifically so the t-statistic isn't inflated by autocorrelated overlapping horizons — a subtle
+enough error that it would have made every no-alpha scenario look significant. `backtest` charges
+a transaction cost (half-spread plus square-root impact on ADV participation) and reports gross
+*and* net Sharpe so cost drag is visible, not absorbed into a single number. `portfolio_risk`
+*recomputes* the target portfolio from the signal at the report date rather than reading the
+backtest's last weights — the same "don't trust a derived number, recompute it" instinct that
+makes venue fill rate use accepted quantity in §5.
+
+**The synthetic data plays the same trick as §13, one level up.** `HistoricalGenerator` embeds a
+scenario's premium by computing the *same signal function* the analytics later measure it with —
+so the generator and the measurement can't silently drift into disagreement — over a seeded
+30-name, four-year daily universe (one year warm-up, two in-sample, one out-of-sample). Seven
+templates × three seeds give 21 scenarios with known verdicts: a real premium (`PROMOTE`), pure
+noise (`REJECT`/`NO_ALPHA`), a premium that reverses out-of-sample (`REJECT`/`OVERFIT`), a real
+premium eaten by 15×-wider spreads (`REJECT`/`COST_DRAG`), and a premium concentrated in four
+illiquid names that breaches participation limits (`REJECT`/`CONCENTRATION` + `LIMIT_BREACH`).
+
+**Evaluated honestly, the same way as §14.** With the mock model: 21/21 verdicts, 21/21 expected
+flags covered. Against a real model for the first time — `claude-haiku-4-5` as both planner and
+reporter — verdict accuracy dropped to 19/21: five scenarios came back `INCOMPLETE_ANALYSIS`
+because the model's plan skipped steps the canonical plan always includes. That's the platform
+working as designed (no crash, a conservative verdict, nothing unresolved) exposing a genuinely
+weak planner, not a platform bug. Giving the planner a stronger model
+(`CEAP_LLM_PLANNING_MODEL=claude-sonnet-5`) while keeping Haiku as the cheap narrator/critic fixed
+it completely: 21/21 again. Running against a real model also caught two bugs the offline mock had
+been silently hiding — a `temperature` parameter the installed SDK no longer accepts (every "live"
+call had been falling back to the mock without raising), and a narrative audit stricter than a
+real model's legitimate arithmetic. See `docs/evaluation/evaluation.md` and `CHANGELOG.md` 0.3.1
+for the numbers; the lesson generalises past this project: *an offline mock proves the control
+plane works, not that the model integration does — check both.*
+
+## 19. Further reading
 
 * Perold, A. (1988). *The Implementation Shortfall: Paper versus Reality.* Journal of
   Portfolio Management.
