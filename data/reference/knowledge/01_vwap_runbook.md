@@ -1,3 +1,9 @@
+---
+version: vwap-3.4.0
+effective_date: 2026-10-01
+classification: internal
+---
+
 # VWAP Execution Algorithm Runbook
 
 ## Purpose

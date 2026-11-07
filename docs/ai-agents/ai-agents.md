@@ -209,6 +209,51 @@ plane* works — the harness, policy, evidence model, governance tail. It does n
 `CHANGELOG.md` (0.3.1) for the exact before/after numbers and cost (well under $2 for the full
 21-scenario research evaluation on Haiku pricing).
 
+## Retrieval over the knowledge corpus (lexical, measured)
+
+The knowledge server (`ceap.mcp.knowledge`, tool `search_documents`) is **keyword retrieval, not
+semantic search**: Okapi BM25 (`ceap.rag.bm25`, stdlib, no new dependency) over chunks of the
+markdown corpus in `data/reference/knowledge/` plus `docs/quant/quant.md` (pulled in by
+`manifest.json`). Dense embeddings are deliberately out of scope for 0.x (decision D6). Every
+document carries `version`, `effective_date` and `classification` (front matter, or the manifest),
+and every hit returns them with the document, section, score and a SHA-256 `corpus_hash` of the
+whole corpus, so a report can say which revision of which policy it cited.
+
+**"No policy found" is a first-class answer.** A hit must clear a support gate,
+`support = BM25 score x coverage`, where coverage is the share of the query's IDF mass the chunk
+contains (unknown words weigh the maximum IDF). An off-topic question that shares one common word
+with a policy ("best picture" vs "best execution") therefore returns nothing, and the caller must
+say no document supports it rather than cite the nearest miss.
+
+**Measured, not assumed.** `data/reference/knowledge/eval.json` holds 40 queries written before any
+tuning: 20 train, 10 held-out, 10 negatives. Chunking and the gate were chosen on train only.
+Regenerate with `python -m ceap.rag.evaluation`:
+
+| Chunking | Train R@3 | Train R@1 | Train MRR | Held-out R@3 | Held-out R@1 | Held-out MRR |
+|---|---|---|---|---|---|---|
+| **section** (default) | 0.95 | 0.90 | 0.933 | 1.00 | 1.00 | 1.000 |
+| sentence | 0.95 | 0.90 | 0.935 | 1.00 | 1.00 | 1.000 |
+| fixed (450 chars, 150 overlap) | 0.95 | 0.85 | 0.902 | 1.00 | 1.00 | 1.000 |
+
+Section and sentence chunking tie on train (MRR within 0.01); section wins the tie because it
+yields half the chunks and whole-section citations. With the gate (`DEFAULT_MIN_SUPPORT = 2.4`):
+held-out recall at 3 is 1.00, MRR 1.000, and 0 of 10 negatives return anything. CI floors
+(`tests/unit/test_rag_eval.py`): held-out recall at 3 at least 0.80 and MRR at least 0.70 (with 10
+held-out queries one miss costs 0.10, so the floor tolerates two misses), train recall at 3 at least
+0.90, every negative empty.
+
+Honest caveats. The corpus is ten documents, so the three chunkings barely separate and the
+held-out score has wide error bars. The gate's margin is thin: the strongest negative scores 2.12
+support against a gate of 2.4. The first calibration rule (half the weakest train positive, 1.22)
+let one negative through; the rule was changed to the weakest train positive after seeing that,
+so the negatives are no longer a pure test of the gate and new negatives should be added with any
+corpus growth. One train query ("How is implementation shortfall calculated?") misses: the quant
+document's overview outranks the TCA benchmarks section.
+
+Public API for the planner and reporter wiring (3C.3, 3C.4): `build_knowledge_base(directory,
+chunking)`, `KnowledgeBase.search(query, k, min_score, classifications, min_support)`,
+`KnowledgeBase.corpus_hash`, `RetrievalHit.to_dict()`; documented in `ceap.rag.retrieval`.
+
 ## What is *not* here
 
 - **No trained ML models.** `scikit-learn` and `xgboost` are listed as an optional `ml` extra in

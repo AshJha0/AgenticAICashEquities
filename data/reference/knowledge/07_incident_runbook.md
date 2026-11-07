@@ -1,3 +1,9 @@
+---
+version: 1.3
+effective_date: 2026-10-01
+classification: internal
+---
+
 # Incident Runbook: Execution Path Latency
 
 ## Symptoms

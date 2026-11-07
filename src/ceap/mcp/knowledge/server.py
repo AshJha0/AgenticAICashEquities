@@ -1,4 +1,4 @@
-"""Knowledge MCP server: RAG over runbooks, policies and configuration documents."""
+"""Knowledge MCP server: lexical BM25 retrieval over versioned runbooks, policies and methodology."""
 
 from __future__ import annotations
 
@@ -11,13 +11,21 @@ from ceap.rag.retrieval import KnowledgeBase
 def build_server(knowledge: KnowledgeBase) -> MCPServerDefinition:
     server = MCPServerDefinition(
         "knowledge",
-        "Enterprise knowledge: execution-algorithm documentation, VWAP runbook, TCA methodology, venue configuration, trading limits, incident runbooks and execution policy.",
+        "Enterprise knowledge: execution-algorithm documentation, VWAP runbook, TCA methodology, attribution threshold tables, quant methodology, venue configuration, trading limits, incident runbooks and execution policy.",
     )
 
-    @server.tool("Semantic search over enterprise documents; returns the best matching sections with scores.")
+    @server.tool(
+        "Keyword (BM25) search over enterprise documents; returns matching sections with document, version, "
+        "effective date and score. An empty result means no document supports the query."
+    )
     async def search_documents(query: str, k: int = 4) -> dict[str, Any]:
         hits = knowledge.search(query, k=k)
-        return {"query": query, "count": len(hits), "items": [h.to_dict() for h in hits]}
+        return {
+            "query": query,
+            "count": len(hits),
+            "corpus_hash": knowledge.corpus_hash,
+            "items": [h.to_dict() for h in hits],
+        }
 
     @server.tool("Return a whole document by id.")
     async def get_document(document_id: str) -> dict[str, Any]:
@@ -35,6 +43,6 @@ def build_server(knowledge: KnowledgeBase) -> MCPServerDefinition:
     @server.tool("List the documents available in the knowledge base.")
     async def list_documents() -> dict[str, Any]:
         items = knowledge.titles()
-        return {"count": len(items), "items": items}
+        return {"count": len(items), "corpus_hash": knowledge.corpus_hash, "items": items}
 
     return server
