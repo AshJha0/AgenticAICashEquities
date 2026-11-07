@@ -6,6 +6,12 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+- R2B (ML, D12): change-point detection on per-minute technology and feed metrics (robust z, CUSUM, PELT; `ml/anomaly.py`) with an alarm threshold fitted to a stated cost and ARL0 >= 20 sessions, consumed by the engineering and market agents as change-point findings that name the deployment lag.
+- R2B: ridge signal combination with purged, embargoed walk-forward CV; every penalty and single signal is a ledger trial; the out-of-sample deflated Sharpe is reported next to each signal (`analytics/ml_signals.py`, MCP tool `alpha.combine_signals`).
+- R2B: dynamic leakage tests (perturbation and shuffled-label) for every signal and feature; a planted look-ahead fails both (`analytics/leakage.py`).
+- R2B: held-out isotonic confidence calibration for the change-point finding: Brier 0.0110 raw vs 0.0094 calibrated on seeds 100-199, so it ships. Added the `BaseAgent.calibrated` hook; the other confidences are now documented as heuristic.
+- R2B: model registry and cards (`ml/registry.py`, `data/models/`, `docs/ml/`): loaded by hash, labelled "fitted to synthetic generator <hash>", PSI drift warning at load, and a nightly reproduction test across thread counts.
+
 ## [0.4.0] - 2026-11-07
 
 Rounds R0, R1 and R2 of the 2026-11-07 plan, shipped as one combined PR (AshJha0/AgenticAICashEquities#1).

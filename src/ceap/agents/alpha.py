@@ -122,10 +122,39 @@ class AlphaAgent(BaseAgent):
                     0.8,
                     (calc.id,),
                 )
+        combination = None
+        if context.task_input.get("combine_signals"):
+            combination, cev = await self.ensure(
+                context, "alpha.combine_signals", {"dataset": tool_args(context)["evaluate_signal"].get("dataset")}
+            )
+            oos = combination["out_of_sample"]
+            ccalc = self.calc_evidence(
+                context,
+                f"Ridge combination of the three signals (alpha {combination['alpha']:g}, {combination['n_trials']} ledger trials)",
+                {"combination": combination, "label": combination["label"]},
+                cev,
+            )
+            singles = ", ".join(
+                f"{k} {v['sharpe_ann']:.2f} (DSR {v['dsr']:.2f})" for k, v in oos.items() if k != "combination"
+            )
+            add(
+                f"Ridge combination out-of-sample: annualised Sharpe {oos['combination']['sharpe_ann']:.2f}, deflated "
+                f"Sharpe probability {oos['combination']['dsr']:.2f} over {combination['n_trials']} ledger trials, "
+                f"against single signals {singles}; gross of costs, {combination['label']}.",
+                0.8,
+                (ccalc.id, *cev),
+                combination_promote=bool(combination["promote"]),
+            )
+
         return AgentResult(
             agent_id=self.id,
             success=True,
             findings=tuple(findings),
-            output={"signal_statistics": data, "signal_evidence_id": calc.id, "predictive": predictive},
+            output={
+                "signal_statistics": data,
+                "signal_evidence_id": calc.id,
+                "predictive": predictive,
+                "combination": combination,
+            },
             summary=f"IC t-stat in-sample {ins.ic_t_stat:.2f}, out-of-sample {oos.ic_t_stat:.2f}",
         )
