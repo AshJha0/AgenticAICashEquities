@@ -1,0 +1,37 @@
+# Pinned model ids and SDK version (PLAN D14). An id that is not listed here is refused at
+# startup. Nothing in CI calls these models (D15): they are exercised only through fake
+# clients, wire-contract tests and cassettes. Change a pin only together with CHANGELOG.
+
+[sdk]
+package = "anthropic"
+version = "1.8.0"   # must match requirements.lock
+
+[models]
+# allowed ids and what they are for
+"claude-opus-5-5" = "planning"
+"claude-sonnet-5-5" = "narrative, critique"
+"claude-haiku-5-5" = "judge paths (reserved)"
+
+[purpose.planning]
+model = "claude-opus-5-5"
+fallback_model = "claude-sonnet-5-5"   # rung 1: used when the primary refuses
+effort = "high"
+max_tokens = 16000
+
+[purpose.narrative]
+model = "claude-sonnet-5-5"
+fallback_model = "claude-opus-5-5"
+effort = "medium"
+max_tokens = 8000
+
+[purpose.critique]
+model = "claude-sonnet-5-5"
+fallback_model = "claude-opus-5-5"
+effort = "medium"
+max_tokens = 8000
+
+[purpose.judge]
+model = "claude-haiku-5-5"
+fallback_model = "claude-sonnet-5-5"
+effort = "low"
+max_tokens = 4000

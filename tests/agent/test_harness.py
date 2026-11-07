@@ -189,7 +189,7 @@ async def test_agent_failure_is_contained(platform):
     harness = await _harness(platform, PlannerAgent(MockLLMClient()), agents=agents)
     result = await harness.execute(task, platform.policy_context(req, task))
     assert result.success
-    assert any("market agent exploded" in w for w in result.warnings)
+    assert any("market agent exploded" in w.message for w in result.warnings)
     assert any(s.get("agent_id") == "market" and s["status"] == "ERROR" for s in result.step_results)
 
 

@@ -40,7 +40,7 @@ from ceap.platform import (
     RequestNotPermitted,
     ResearchRequest,
 )
-from ceap.policy.approvals import QueuedApprovalGateway
+from ceap.policy.approvals import FourEyesViolationError, QueuedApprovalGateway
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ async def health(request: Request) -> HealthOut:
     p = _platform(request)
     registry = await p.registry()
     return HealthOut(
-        status="ok",
+        status="degraded" if p.settings.llm_disabled else "ok",
         version=__version__,
         environment=p.settings.environment,
         llm=p.llm.name,
@@ -223,11 +223,11 @@ def _status(request: Request, task_id: str, kind: str = INVESTIGATION) -> Invest
     if result is not None:
         return InvestigationStatus(
             task_id=task_id,
-            status="COMPLETED" if result.success else "FAILED",
+            status=result.status.value,
             state=result.state.value,
             error=result.error,
             duration_ms=result.duration_ms,
-            warnings=result.warnings,
+            warnings=result.warning_messages(),
         )
     if task_id in request.app.state.ceap.running:
         return InvestigationStatus(task_id=task_id, status="RUNNING")
@@ -330,7 +330,7 @@ def _cancel(request: Request, task_id: str, principal: Principal, kind: str) -> 
     owner = p.owners.get(task_id)
     if owner is None or _task_kind(p, task_id) not in (kind, None):
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown {kind} {task_id}")
-    if owner != principal.name and "approvals:decide" not in principal.capabilities:
+    if owner != principal.name and "tasks:cancel-any" not in principal.capabilities:
         raise HTTPException(status.HTTP_403_FORBIDDEN, f"only the owner or an admin may cancel a {kind}")
     p.cancel(task_id, f"cancelled by {principal.name}")
     return _status(request, task_id, kind)
@@ -489,6 +489,8 @@ async def decide_approval(
         )
     try:
         decision = gateway.decide(approval_id, body.approved, principal.name, body.comment)
+    except FourEyesViolationError as exc:  # four-eyes: requester or earlier-stage approver (T17)
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(exc)) from exc
     except KeyError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     except RuntimeError as exc:

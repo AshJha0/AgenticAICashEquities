@@ -1,0 +1,74 @@
+{
+  "signal": "momentum_12_1",
+  "rebalance_days": 21,
+  "hurdle": 0.65,
+  "oos_ic_t_min": 1.0,
+  "detection": "in-sample IC t >= hurdle and out-of-sample IC t >= oos_ic_t_min (the IC part of the gate)",
+  "hurdle_sweep_hash": "dfdadabefeb7682e71e86d3ca8dfc97e2811a48c3bf118bf75e94f07373fe5c0",
+  "seeds_per_point": 40,
+  "rows": [
+    {
+      "premium_bps": 0.0,
+      "expected_t_is": 0.0,
+      "expected_t_oos": 0.0,
+      "expected_gross_sharpe": 0.0,
+      "predicted_detection": 0.0409,
+      "detection_rate": 0.125,
+      "mean_t_is": 0.0862
+    },
+    {
+      "premium_bps": 600.0,
+      "expected_t_is": 0.5225,
+      "expected_t_oos": 0.3088,
+      "expected_gross_sharpe": 0.131,
+      "predicted_detection": 0.1099,
+      "detection_rate": 0.2,
+      "mean_t_is": 0.6816
+    },
+    {
+      "premium_bps": 900.0,
+      "expected_t_is": 1.1499,
+      "expected_t_oos": 0.6797,
+      "expected_gross_sharpe": 0.2884,
+      "predicted_detection": 0.2589,
+      "detection_rate": 0.35,
+      "mean_t_is": 1.4242
+    },
+    {
+      "premium_bps": 1200.0,
+      "expected_t_is": 1.9848,
+      "expected_t_oos": 1.1732,
+      "expected_gross_sharpe": 0.4978,
+      "predicted_detection": 0.517,
+      "detection_rate": 0.6,
+      "mean_t_is": 2.3787
+    },
+    {
+      "premium_bps": 1500.0,
+      "expected_t_is": 2.9915,
+      "expected_t_oos": 1.7683,
+      "expected_gross_sharpe": 0.7502,
+      "predicted_detection": 0.7714,
+      "detection_rate": 0.8,
+      "mean_t_is": 3.5447
+    },
+    {
+      "premium_bps": 1800.0,
+      "expected_t_is": 4.1333,
+      "expected_t_oos": 2.4432,
+      "expected_gross_sharpe": 1.0365,
+      "predicted_detection": 0.9253,
+      "detection_rate": 0.925,
+      "mean_t_is": 4.8641
+    },
+    {
+      "premium_bps": 2400.0,
+      "expected_t_is": 6.6856,
+      "expected_t_oos": 3.9518,
+      "expected_gross_sharpe": 1.676,
+      "predicted_detection": 0.9984,
+      "detection_rate": 1.0,
+      "mean_t_is": 7.8203
+    }
+  ]
+}

@@ -9,6 +9,33 @@ from ceap.domain.common import new_id
 
 
 @dataclass(frozen=True)
+class EvidenceRef:
+    """A pointer from a claim to the exact value that supports it."""
+
+    id: str
+    path: str
+    value: Any = None
+
+
+@dataclass(frozen=True)
+class HypothesisRow:
+    name: str
+    statistic: float
+    p_value: float | None = None
+    n_obs: int = 0
+    verdict: str = "UNKNOWN"
+
+
+@dataclass(frozen=True)
+class HypothesisTable:
+    """Every hypothesis tested in a run, so the multiple-testing count is explicit."""
+
+    rows: tuple[HypothesisRow, ...] = ()
+    trials_counted: int = 0
+    correction: str = "none"
+
+
+@dataclass(frozen=True)
 class Finding:
     id: str
     statement: str
@@ -18,6 +45,7 @@ class Finding:
     category: str = "GENERAL"
     produced_by: str = "unknown"
     attributes: dict[str, Any] = field(default_factory=dict)
+    evidence_refs: tuple[EvidenceRef, ...] = ()
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.confidence <= 1.0:
@@ -54,4 +82,5 @@ class Finding:
             category=self.category,
             produced_by=self.produced_by,
             attributes={**self.attributes, **attrs},
+            evidence_refs=self.evidence_refs,
         )

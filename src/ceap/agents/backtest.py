@@ -78,7 +78,7 @@ class BacktestAgent(BaseAgent):
                     f"(in-sample {ins.sharpe:.2f}, out-of-sample {oos.sharpe:.2f}).",
                     0.85,
                     (calc.id, *ev),
-                    flag="OVERFIT",
+                    flag="OOS_DECAY",
                     sharpe_ratio=ratio,
                 )
         gross = full.gross_ann_return
@@ -130,9 +130,69 @@ class BacktestAgent(BaseAgent):
                 (calc.id,),
                 pnl_concentration_top3=conc,
             )
+        borrow = bt.cost_breakdown_bps_annual.get("borrow")
+        if bt.cost_breakdown_bps_annual:
+            lines = ", ".join(f"{k} {v:.0f}" for k, v in bt.cost_breakdown_bps_annual.items())
+            add(
+                f"Execution: decision at the close, fill at the {bt.fill} {bt.execution_lag_days} day(s) later; "
+                f"cost lines in bps per year: {lines}"
+                + (f" (borrow alone {borrow:.0f})." if finite(borrow) else "."),
+                0.85,
+                (calc.id,),
+                cost_breakdown=dict(bt.cost_breakdown_bps_annual),
+            )
+        if bt.event_counts:
+            counts = ", ".join(f"{k} {v}" for k, v in sorted(bt.event_counts.items()))
+            add(
+                f"Trades clipped, blocked or adjusted inside the backtest (logged, never silently traded): {counts}.",
+                0.85,
+                (calc.id,),
+                event_counts=dict(bt.event_counts),
+            )
+        if bt.delisting_bounds:
+            b = bt.delisting_bounds
+            add(
+                "Delisting bounds: full-period net Sharpe "
+                + ", ".join(f"{k} {v.get('full_sharpe', float('nan')):.2f}" for k, v in sorted(b.items()))
+                + " (merger: last price; performance: -30% NYSE, -55% Nasdaq).",
+                0.8,
+                (calc.id,),
+                delisting_bounds=b,
+            )
+        prof = bt.profitability or {}
+        cap = prof.get("capacity") or {}
+        if prof:
+            be = prof.get("breakeven_cost_bps_per_unit_turnover")
+            fm = prof.get("factor_model") or {}
+            aum = cap.get("breakeven_aum")
+            half = cap.get("half_sharpe_aum")
+            add(
+                "Profitability: breakeven trading cost "
+                + (f"{be:.1f} bps per unit of turnover" if isinstance(be, float) else "n/a")
+                + f"; maximum drawdown {float(prof.get('max_drawdown') or float('nan')) * 100:.1f}% lasting up to "
+                f"{prof.get('longest_drawdown_days', 0)} days; alpha after the generator's market factor "
+                + (f"{float(fm['alpha_ann']) * 100:.2f}% a year (t {float(fm['alpha_t']):.2f})" if isinstance(fm.get('alpha_ann'), float) and isinstance(fm.get('alpha_t'), float) else 'n/a')
+                + "; capacity: breakeven AUM "
+                + (f"{aum / 1e6:,.0f}M" if isinstance(aum, float) else str(cap.get("breakeven_note") or "n/a"))
+                + (f", net Sharpe halves by {half / 1e6:,.0f}M" if isinstance(half, float) else "")
+                + ".",
+                0.8,
+                (calc.id,),
+                breakeven_cost_bps=be,
+                breakeven_aum=aum,
+            )
+        if bt.trial:
+            add(
+                f"Trial ledger: {bt.trial.get('n_trials', 0)} distinct configuration(s) tested on this dataset; "
+                "the deflated Sharpe uses this count, which the caller cannot set.",
+                0.9,
+                (calc.id,),
+                n_trials=bt.trial.get("n_trials", 0),
+            )
         return AgentResult(
             agent_id=self.id,
             success=True,
+
             findings=tuple(findings),
             output={"backtest": data, "backtest_evidence_id": calc.id},
             summary=f"net Sharpe in-sample {ins.sharpe:.2f}, out-of-sample {oos.sharpe:.2f}",

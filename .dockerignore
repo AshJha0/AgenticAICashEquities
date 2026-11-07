@@ -1,0 +1,17 @@
+# keep secrets, local state and development files out of the build context
+.git
+.github
+.env
+.env.*
+.venv
+venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.claude
+tests
+docs
+Claude outputs
+*.log

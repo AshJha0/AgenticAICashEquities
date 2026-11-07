@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cash-equities-agentic-platform"
-version = "0.3.5"
+version = "0.4.0"
 description = "Enterprise-style Agentic AI platform for investigating cash-equity execution quality (Python + MCP + LLM + multi-agent harness)."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -32,7 +32,7 @@ dependencies = [
 [project.optional-dependencies]
 llm = ["anthropic>=0.40"]
 quant = ["polars>=0.20", "pyarrow>=14", "duckdb>=0.10", "scipy>=1.11"]
-ml = ["scikit-learn>=1.4", "xgboost>=2.0"]
+ml = ["scikit-learn>=1.4"]
 observability = [
     "opentelemetry-api>=1.22",
     "opentelemetry-sdk>=1.22",
@@ -41,6 +41,11 @@ observability = [
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
+    "pytest-xdist>=3.5",
+    "pytest-randomly>=3.15",
+    "hypothesis>=6.100",
+    "pip-audit>=2.7",
     "ruff>=0.3",
     "mypy>=1.8",
 ]
@@ -55,16 +60,20 @@ ceap = "ceap.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-ceap = ["py.typed"]
+ceap = ["py.typed", "llm/*.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
-addopts = "-q"
+addopts = "-q -p no:randomly"
 markers = [
+    "slow: longer tests; run on PR but excluded from the quick local loop (-m 'not slow')",
+    "nightly: run only by nightly.yml (deselected on PR via -m 'not nightly')",
     "evaluation: scenario-based evaluation suite",
     "adversarial: adversarial / safety tests",
+    "slow: slow tests (subprocess, long simulations)",
+    "nightly: nightly tier (500-seed sweeps; run with CEAP_NIGHTLY=1)",
 ]
 
 [tool.ruff]

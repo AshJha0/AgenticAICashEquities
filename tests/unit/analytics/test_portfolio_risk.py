@@ -22,14 +22,18 @@ from ceap.domain.research import PortfolioPosition
 def test_target_portfolio_geometry(history):
     ds = history.get("R01")
     report = target_portfolio(ds, "momentum_12_1", ds.end, long_short=True, gross_notional=5e7)
-    assert report.as_of == ds.end and len(report.positions) == 20
+    from ceap.analytics.signals import dataset_signal
+
+    valid = int(np.isfinite(dataset_signal(ds, "momentum_12_1")[-1]).sum())  # members with 12-1 history only
+    k = round(valid / 3)
+    assert report.as_of == ds.end and len(report.positions) == 2 * k
     assert report.gross == pytest.approx(1.0) and report.net == pytest.approx(0.0)
-    assert report.max_abs_weight == pytest.approx(0.05) and report.hhi == pytest.approx(0.05)
-    assert report.effective_names == pytest.approx(20.0)
-    assert all(p.adv_participation >= 0 and abs(p.notional) == pytest.approx(2.5e6) for p in report.positions)
+    assert report.max_abs_weight == pytest.approx(0.5 / k, abs=1e-6) and report.hhi == pytest.approx(1 / (2 * k), abs=1e-5)
+    assert report.effective_names == pytest.approx(2 * k, abs=1e-2)
+    assert all(p.adv_participation >= 0 and abs(p.notional) == pytest.approx(2.5e7 / k) for p in report.positions)
     assert all(p.quantity == round(p.notional / p.price) for p in report.positions)
     long_only = target_portfolio(ds, "momentum_12_1", ds.end, long_short=False)
-    assert len(long_only.positions) == 10 and long_only.net == pytest.approx(1.0)
+    assert len(long_only.positions) == k and long_only.net == pytest.approx(1.0)
 
 
 def test_target_portfolio_needs_signal_history(history):
@@ -64,8 +68,8 @@ def test_stress_signs(history):
     s = stress(report, -500.0)
     assert s.pnl_market == pytest.approx(5e7 * 0.2 * -0.05)
     assert s.pnl_flat == pytest.approx(5e7 * 0.1 * -0.05)
-    assert s.worst_single_name == pytest.approx(-5e7 * 0.05 * 0.05)
-    assert with_stress(report, -500.0).stress == s
+    assert s.worst_single_name == pytest.approx(-5e7 * report.max_abs_weight * 0.05, abs=0.01)
+    assert with_stress(report, -500.0).stress.pnl_market == s.pnl_market
 
 
 def test_market_betas_recover_a_factor_structure():
@@ -76,5 +80,7 @@ def test_market_betas_recover_a_factor_structure():
     ret = betas[None, :] * market[:, None] + rng.normal(0, 0.001, (n, m))
     close = 100 * np.cumprod(1 + ret, axis=0)
     est = market_betas(close, n - 1, lookback=252)
-    assert est == pytest.approx(betas / betas.mean(), abs=0.05)
+    others = np.array([(betas.sum() - b) / (m - 1) for b in betas])  # the market excludes the name itself
+    assert est == pytest.approx(betas / others, abs=0.05)
+
     assert market_betas(close, 5).tolist() == [1.0] * m

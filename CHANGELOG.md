@@ -1,5 +1,195 @@
 # Changelog
 
+Every pull request adds a line under `## Unreleased` (CI enforces it unless the PR is labelled
+`no-changelog`). At release time the section is renamed `## [X.Y.Z] - date`; the release gate
+refuses a tag whose version has no section.
+
+## Unreleased
+
+## [0.4.0] - 2026-11-07
+
+Rounds R0, R1 and R2 of the 2026-11-07 plan, shipped as one combined PR (AshJha0/AgenticAICashEquities#1).
+CI green on the combined head e915c8a: run 42396076903 (all 9 jobs).
+
+Round R0 of the 2026-11-07 plan (`docs/review/2026-11-07/PLAN.md`): foundations for 0.4.0.
+
+### Breaking / migration
+
+- `requirements.lock` is now a universal, hashed lock produced by `uv pip compile --universal
+  --generate-hashes`. Install it with `pip install --require-hashes -r requirements.lock` (the new
+  `scripts/bootstrap.sh` and `scripts/bootstrap.ps1` do this). The old instructions to hand-edit the
+  lock after regenerating it are gone.
+- The `ml` extra no longer pulls `xgboost` (it was never imported).
+- The `platform` test fixture is function-scoped; tests that relied on state left by an earlier
+  test must create it themselves.
+- `Task.create` redacts emails, API keys, tokens and account-like numbers from the question text.
+
+### Added
+
+- Lock refreshed for pip-audit findings: certifi 2026.10.23 (PYSEC-2026-4320) and
+  opentelemetry-api/sdk 1.45.2 (CVE-2026-114603). `.gitleaks.toml` extends the default rules and
+  allowlists only the documented `dev-*-key` demo keys.
+
+- `src/ceap/util/canonical.py`: canonical bytes for every hash (LF, sorted-key JSON, UTC datetimes
+  in one format, NaN refused). `.gitattributes` makes every text file LF in the repository.
+- `src/ceap/util/redact.py`: redaction for question text and log lines, and a cassette scrubber
+  that removes `x-api-key`, request ids and organisation ids.
+- Domain contracts frozen for later rounds: `TaskStatus` (with `DEGRADED`, `INCOMPLETE_ANALYSIS`,
+  `INTERRUPTED`), `ResultWarning`, `EvidenceRef` and `Finding.evidence_refs`, `HypothesisTable`,
+  `LLMCallRecord`, `schema_version` on `ToolResult` and `InvestigationReport`, and
+  `ApprovalRequest.content_hash`. All additive with defaults.
+- CI: least-privilege permissions, a concurrency group, actions pinned to commit SHAs, pip cache,
+  a Python 3.11 and 3.12 matrix, pytest-xdist, a coverage floor of 80 %, `lock-fresh`, `pip-audit`,
+  gitleaks with a planted-key self-test, a Docker build and `ceap --help` smoke test, a CHANGELOG
+  check and a domain-contracts check (`scripts/check_contracts.py`, label `contracts-change`).
+- `nightly.yml`: every test tier in random order with 1000 hypothesis examples per property.
+- `release.yml` and `scripts/release_check.py`: a tag releases only when every check on the commit
+  is green, the version agrees in `pyproject.toml`, `ceap.__version__` and the tag, the CHANGELOG
+  has the section, `scripts/check_banned_words.py` is clean and every dependency licence is on the
+  allowlist.
+- Test markers `slow` and `nightly`; hypothesis profiles (`pr` 100 examples, `nightly` 1000, both
+  derandomised).
+
+### Changed
+
+- COOKBOOK (recipe 34), the architecture overview and the diagrams page (section 10, CI and the release gate) describe the
+  new workflow.
+
+### R1: fail closed by default (PLAN section 2, items 1.1-1.11)
+
+#### Breaking / migration
+
+- **`CEAP_LLM_PROVIDER=auto` is removed.** It silently used the mock when no key was set. Set
+  `CEAP_LLM_PROVIDER=anthropic` (needs the `llm` extra and `ANTHROPIC_API_KEY`) or
+  `CEAP_LLM_PROVIDER=mock`. `auto` now fails at startup with a message naming both. Outside
+  `CEAP_ENV=dev` the variable must be set explicitly; in dev it defaults to `mock`.
+- `CEAP_LLM_PROVIDER=anthropic` with a client that cannot be built (no SDK, bad key) raises
+  `SettingsError` at startup instead of falling back to the mock.
+- Model ids must be pinned in `src/ceap/llm/model_pins.toml`: `claude-opus-5-5` (planning),
+  `claude-sonnet-5-5` (narrative, critique), `claude-haiku-5-5` (reserved for judge paths). The
+  old default `claude-sonnet-4-5` (retires 2026-11-30) and any unpinned id are refused.
+- `LLMRequest.temperature` is removed; `max_tokens` defaults to the pinned value per purpose
+  (planner 16000, critic 8000, reporter 8000) to leave room for adaptive thinking.
+- Four-eyes approvals: new `approver` role holds `approvals:decide`; `admin` loses it (admins
+  keep cancel-any through the new `tasks:cancel-any` capability). Nobody may decide an approval
+  they requested (403), and the staging approval must come from a different principal than the
+  proposal approval. Dev keys `dev-approver-key` and `dev-approver2-key` were added.
+- `AgentHarness()` without an approval gateway now denies every approval (was: auto-approve).
+  `CEAP_AUTO_APPROVE=true` outside `CEAP_ENV=dev` refuses to serve.
+- `HarnessResult.warnings` is now `list[ResultWarning]` (code, message, source, severity), not
+  `list[str]`; use `result.warning_messages()` for the old shape. The API status field now reports
+  `COMPLETED`, `DEGRADED`, `INCOMPLETE_ANALYSIS`, `FAILED` or `CANCELLED`, and `to_dict()` adds
+  `status`, `banner` and `incomplete_agents`.
+- MCP trust fails closed: a missing `readOnlyHint` means not read-only and a missing or unknown
+  `riskLevel` means HIGH (in-process adapter and stdio client). Tools of a server outside
+  `CEAP_MCP_TRUSTED_SERVERS` (default: the eight built-in servers) cannot write. A tool result
+  whose `schema_version` differs from `SCHEMA_VERSION` is rejected.
+- Standalone stdio MCP servers enforce `required_capabilities` for the principal named by
+  `CEAP_MCP_PRINCIPAL_ROLES`; unset means no capabilities, so `stage_orders` is refused.
+
+#### Added
+
+- Degradation ladder, visible on every result: rung 1 refusal answered by the pinned fallback
+  model, rung 2 one structured-output repair retry, rung 3 canonical plan / deterministic
+  critique / templated narrative, rung 4 `CEAP_LLM_DISABLED=true` kill switch with a banner. Each
+  rung above 0 adds a `ResultWarning` and sets `DEGRADED`; `stop_reason` `max_tokens` and
+  `refusal` are recorded with `stop_details`.
+- Required specialists: the harness appends market, execution, quant, risk or engineering if an
+  investigation plan omits one. A failed required agent yields `INCOMPLETE_ANALYSIS` and a report
+  that says so instead of "no material anomaly"; a timed-out agent returns its checkpointed
+  `PARTIAL` output.
+- Model calls: per-call timeout `CEAP_LLM_TIMEOUT_S` (60 s), raced against cancellation,
+  concurrency cap `CEAP_LLM_MAX_CONCURRENCY` (4) and per-task cap `CEAP_LLM_MAX_CALLS_PER_TASK`
+  (12). The client retries 408/409/429/5xx and transport faults, never other 4xx. Adaptive
+  thinking and the pinned `effort` are sent on the wire.
+- Dockerfile: Python 3.12, digest-pinned base, dependencies (with `[llm]`) only from the hashed
+  lock, non-root user, `HEALTHCHECK`; new `.dockerignore`.
+- README banner (synthetic data, nothing trades, paper orders only, no live model numbers);
+  threat model T17 corrected and T20-T22 added; 39 tests named `test_1_N_*` in
+  `tests/agent/test_r1_fail_closed.py`.
+
+#### Changed
+
+- The job-prep word is gone from every tracked file; LEARN section 17 is now "Knowledge check".
+  `Claude outputs/ci.yml` (a stale copy of the workflow) is deleted.
+- CI run id for this round: 42396076903 (combined head e915c8a).
+
+### Integration (combined 0.4.0 PR: R0 + R1 + R2)
+
+- R2 shipped in 0.4.0 rather than 0.5.0 at the owner's request for one combined PR; version labels
+  in code and docs say 0.4.0.
+- `reporter` and `critic` now test `ResearchFlag.OOS_DECAY` (they still compared the literal
+  `"OVERFIT"`, so those branches had stopped firing after the rename).
+- README and LEARN research sections rewritten for the 30-scenario, t+1 re-baseline and the
+  measured hurdle; 0.3.x live-model numbers labelled as belonging to the old 21-scenario set.
+
+### R2 – signal-research quant correctness (0.4.0)
+
+Implements items 2.1–2.14 of `docs/review/2026-11-07/PLAN.md`, in the binding order
+2.1 → 2.9 → 2.10 → hurdle → 2.11.
+
+- **2.1 Execution at t+1.** `execution_lag_days` (default 1) and `fill` (`close` | `open`) in the
+  backtest, scope and MCP tool. Legacy R03 reversal: net Sharpe 1.73 at lag 0, −0.61 at lag 1
+  (review: 1.80 → −0.67).
+- **2.2 Weight drift** between fills; turnover from drifted to target weights.
+- **2.3 Returns and financing.** Sharpe/Sortino on excess returns; cash = 1 − net earns rf (short
+  rebate), negative cash pays rf + 50 bps; borrow 0.5/2/10 % by tier; 2x Reg T cap; Reg SHO SSR
+  blocks logged; cost breakdown (spread, impact, borrow, financing). The Ken French rf CSV is
+  **not committed** (a file download needs the owner's explicit OK); `scripts/fetch_rf.py` builds
+  it; until then rf = 0, stated in every backtest's `assumptions`.
+- **2.4 NYSE calendar** 2000–2030 (`ceap.data.calendar`, committed `data/reference/nyse_calendar.csv`
+  checked against the rules), early closes, special closures, aware datetimes only.
+- **2.5 Data policy.** ADV lagged one day; merger/performance delisting bounds both reported;
+  explicit NaN policy; per-name weight and ADV caps inside the loop, logged.
+- **2.6 Capacity sweep** 10–500 M with breakeven AUM and half-Sharpe AUM.
+- **2.7 Statistics.** Gate on non-overlapping holding-period IC after the lag; Newey-West t;
+  `ic_ir_annualised`; `turnover` renamed `rank_autocorrelation_turnover`; in-sample tail trimmed.
+  Null |t| > 2 rate 6.0 % (500 seeds × 6 families).
+- **2.8 Trial ledger and multiple testing.** Enumerated 24-configuration search space; append-only
+  server-side ledger; deflated Sharpe from ledger trials; `OVERFIT` → `OOS_DECAY`, new
+  `REGIME_BREAK`; locked `in_sample_end`; `HypothesisTable` on every assessment.
+- **2.9 Generator** `realistic_v1`: 20 years, GARCH + fat tails, latent drift/transient premia,
+  crash, volatility-dependent liquidity, listings/delistings; parameter-derived ground truth
+  (`ceap.data.ground_truth`); power curve `docs/quant_power_curve.json`.
+- **2.10 Null sweep and hurdle.** `ceap evaluate --suite null`. 500 seeds × 24 configurations:
+  hurdle **t = 0.65** (15/500 false PROMOTEs, 3.0 %, band [1.7 %, 4.9 %]), sweep hash
+  `dfdadabefeb7682e71e86d3ca8dfc97e2811a48c3bf118bf75e94f07373fe5c0`, in
+  `data/reference/research_thresholds.json`.
+- **2.12 Risk.** Beta vs market ex-self with Vasicek shrinkage; factor, short-squeeze and
+  liquidation stress; limits over the out-of-sample history with the worst date.
+- **2.13 Membership mask** honoured by signals, IC, backtest and risk.
+- **2.14 Profitability table** (`ceap profitability`), attached to every backtest result.
+
+#### Breaking / migration
+
+- `ResearchFlag.OVERFIT` is an alias of `OOS_DECAY` (value `"OOS_DECAY"`); stored `"OVERFIT"` is
+  mapped on read. `PeriodSignalStats.turnover` is now a read-only alias of
+  `rank_autocorrelation_turnover`.
+- Backtests default to a t+1 close fill, drift, financing and caps; `run_backtest` refuses
+  rebalance/weighting choices outside the search space via the MCP tool.
+- Datasets are 5040 days with NaN prices outside membership; research catalogue is 30 scenarios.
+
+#### 2.11 re-baseline: ground truth before and after (decision D5: flips stay REJECT)
+
+| Scenario | Template | 0.4 truth | 0.5 truth (from parameters, t+1) | Change |
+|---|---|---|---|---|
+| RS01–03 | momentum_premium | PROMOTE | PROMOTE | same |
+| RS04–06 | no_alpha | REJECT · NO_ALPHA | REJECT · NO_ALPHA | same |
+| RS07 | reversal_premium | PROMOTE | REJECT · COST_DRAG | **flip** |
+| RS08 | reversal_premium | PROMOTE | REJECT · COST_DRAG | **flip** |
+| RS09 | reversal_premium | PROMOTE | REJECT · COST_DRAG | **flip** |
+| RS10–12 | regime_break | REJECT · OVERFIT | REJECT · OOS_DECAY | flag renamed; premium now vanishes after the split |
+| RS13–15 | cost_drag | REJECT · COST_DRAG | REJECT · COST_DRAG | same |
+| RS16–18 | concentration | REJECT · CONCENTRATION, LIMIT_BREACH | same | same |
+| RS19 | mixed | PROMOTE | REJECT · COST_DRAG (near) | **flip** |
+| RS20 | mixed | PROMOTE | REJECT · COST_DRAG (near) | **flip** |
+| RS21 | mixed | PROMOTE | REJECT · COST_DRAG (near) | **flip** |
+| RS22–24 | momentum_near_threshold | – | PROMOTE (near) | new |
+| RS25–27 | reversal_weak | – | REJECT · COST_DRAG | new |
+| RS28–30 | momentum_crash | – | PROMOTE | new |
+
+Results (mock model): 29/30 verdicts, clear 23/24, near-threshold 6/6, flags 0.90.
+
 ## 0.3.5 – Two new dedicated pages: AI/agents and quant
 
 0.3.4 folded Stage 2 and the real-model findings into the *existing* docs but added no new

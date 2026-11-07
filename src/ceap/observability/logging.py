@@ -7,6 +7,8 @@ import logging
 import sys
 from datetime import UTC, datetime
 
+from ceap.util.redact import redact
+
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
@@ -14,13 +16,13 @@ class JsonFormatter(logging.Formatter):
             "ts": datetime.fromtimestamp(record.created, tz=UTC).isoformat(),
             "level": record.levelname,
             "logger": record.name,
-            "message": record.getMessage(),
+            "message": redact(record.getMessage()),
         }
         for key in ("task_id", "execution_id", "step_id", "tool_id", "agent_id"):
             if hasattr(record, key):
                 payload[key] = getattr(record, key)
         if record.exc_info:
-            payload["exception"] = self.formatException(record.exc_info)
+            payload["exception"] = redact(self.formatException(record.exc_info))
         return json.dumps(payload)
 
 

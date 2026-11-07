@@ -26,7 +26,7 @@ Contents:
 14. [Evaluation done honestly](#14-evaluation-done-honestly)
 15. [Observability and operations](#15-observability-and-operations)
 16. [Ten pitfalls this platform is built to avoid](#16-ten-pitfalls-this-platform-is-built-to-avoid)
-17. [Ten interview questions (with answers from this repo)](#17-ten-interview-questions-with-answers-from-this-repo)
+17. [Knowledge check (ten questions, answered from this repo)](#17-knowledge-check)
 18. [Stage 2: signal research](#18-stage-2-signal-research)
 19. [Further reading](#19-further-reading)
 
@@ -422,7 +422,7 @@ Things to be honest about:
     harness strips any planner-supplied `HUMAN_APPROVAL` and appends its own; the planner is
     shown only read-only tools, so it cannot schedule `stage_orders` even if it tried.
 
-## 17. Ten interview questions (with answers from this repo)
+## 17. Knowledge check
 
 1. *How do you stop an LLM agent from fabricating TCA numbers?* — Compute them in
    `StandardExecutionAnalytics`, pass them as facts, and audit the narrative
@@ -469,7 +469,7 @@ second set of deterministic analytics and a second agent roster.
 calls run first (their outputs become evidence, same as market data); Research, Alpha, Backtest
 and Portfolio-risk agents interpret them (same pattern as Market/Execution/Quant); the Critic
 computes a deterministic verdict — `assess_research` scores `PROMOTE`/`REJECT` with flags
-(`NO_ALPHA`, `OVERFIT`, `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`) exactly the way
+(`NO_ALPHA`, `OOS_DECAY`, `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`) exactly the way
 `attribute_causes` scores execution-quality causes — and caps any agent finding that contradicts
 it; the Reporter writes the proposal and the same number/evidence-id audits run against it.
 
@@ -496,13 +496,16 @@ makes venue fill rate use accepted quantity in §5.
 **The synthetic data plays the same trick as §13, one level up.** `HistoricalGenerator` embeds a
 scenario's premium by computing the *same signal function* the analytics later measure it with —
 so the generator and the measurement can't silently drift into disagreement — over a seeded
-30-name, four-year daily universe (one year warm-up, two in-sample, one out-of-sample). Seven
-templates × three seeds give 21 scenarios with known verdicts: a real premium (`PROMOTE`), pure
-noise (`REJECT`/`NO_ALPHA`), a premium that reverses out-of-sample (`REJECT`/`OVERFIT`), a real
-premium eaten by 15×-wider spreads (`REJECT`/`COST_DRAG`), and a premium concentrated in four
-illiquid names that breaches participation limits (`REJECT`/`CONCENTRATION` + `LIMIT_BREACH`).
+30-name, 20-year daily universe. *(0.4.0 changed this: ground truth now comes from the generator's
+parameters, never from running the analytics, and fills happen at the next session instead of the
+same close. Under that honest timing the reversal and mixed templates flip from `PROMOTE` to
+`REJECT`/`COST_DRAG`; see the README table and the CHANGELOG.)* Ten templates × three seeds give 30
+scenarios: real premia (`PROMOTE`), pure noise (`REJECT`/`NO_ALPHA`), a premium that vanishes
+out-of-sample (`REJECT`/`OOS_DECAY`, called `OVERFIT` before 0.4.0), premia eaten by costs
+(`REJECT`/`COST_DRAG`), a premium concentrated in four illiquid names (`REJECT`/`CONCENTRATION` +
+`LIMIT_BREACH`), and near-threshold cases that sit right at a gate.
 
-**Evaluated honestly, the same way as §14.** With the mock model: 21/21 verdicts, 21/21 expected
+**Evaluated honestly, the same way as §14.** On the 0.3.x 21-scenario set (before the 0.4.0 re-baseline), with the mock model: 21/21 verdicts, 21/21 expected
 flags covered. Against a real model for the first time — `claude-haiku-4-5` as both planner and
 reporter — verdict accuracy dropped to 19/21: five scenarios came back `INCOMPLETE_ANALYSIS`
 because the model's plan skipped steps the canonical plan always includes. That's the platform

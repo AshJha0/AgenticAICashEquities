@@ -2,7 +2,8 @@
 
 Short, copy-pasteable recipes for the things people actually do with the platform. Every
 recipe runs offline with the deterministic model unless it says otherwise. Paths are relative
-to the repository root; activate your virtual environment first (`pip install -e ".[dev]"`).
+to the repository root; build and activate the virtual environment first (`scripts/bootstrap.sh`,
+or `.\scripts\bootstrap.ps1` on Windows; recipe 34).
 
 Contents:
 
@@ -39,6 +40,10 @@ Contents:
 31. [Use the research API](#31-use-the-research-api)
 32. [Add a new signal](#32-add-a-new-signal)
 33. [Add a research scenario template](#33-add-a-research-scenario-template)
+34. [Day-to-day development: bootstrap, test tiers, lock, release](#34-day-to-day-development-bootstrap-test-tiers-lock-release)
+35. [Measure the PROMOTE hurdle (null sweep)](#35-measure-the-promote-hurdle-null-sweep)
+36. [Profitability table and capacity sweep](#36-profitability-table-and-capacity-sweep)
+37. [Backtest under different execution assumptions](#37-backtest-under-different-execution-assumptions)
 
 ---
 
@@ -542,8 +547,61 @@ MCP tool. Add a `ResearchScenarioSpec` template with ground truth
 ## 33. Add a research scenario template
 
 Same shape as recipe 13, one level up: add a `ResearchScenarioSpec` to
-`RESEARCH_TEMPLATES` in `ceap/data/research_scenarios.py` with the effect you want embedded
-(`premium_bps`, `oos_premium_multiplier` for a regime break, `spread_multiplier` for cost drag,
-`concentration_names` for a concentrated book) and the `expected_verdict`/`expected_flags` you
-expect `assess_research` to reach. It joins `all_research_scenarios()` (× 3 seeds) automatically,
+`RESEARCH_TEMPLATES_RAW` in `ceap/data/research_scenarios.py` with generator parameters only
+(`mechanism="drift"` + `premium_bps`, or `mechanism="transient"` + `transient_share`;
+`oos_premium_multiplier`, `spread_multiplier`, `concentration_names`, `crash`). Do not write a
+verdict: `ceap.data.ground_truth.derive_ground_truth` computes it from the parameters and marks
+near-threshold scenarios (`ceap research-scenarios` prints both). It joins `all_research_scenarios()` (× 3 seeds) automatically,
 so `ceap evaluate --suite research` and `tests/evaluation/test_research_scenarios.py` pick it up.
+
+## 34. Day-to-day development: bootstrap, test tiers, lock, release
+
+```bash
+scripts/bootstrap.sh                                  # .venv from the hashed lock
+pytest -n auto -m "not nightly and not slow"          # quick local loop
+pytest -n auto -m "not nightly" --cov=ceap --cov-fail-under=80   # what PR CI runs
+HYPOTHESIS_PROFILE=nightly pytest -n auto -p randomly # what nightly runs: random order, 1000 examples
+python scripts/check_banned_words.py                  # must print "clean"
+python scripts/check_contracts.py origin/main         # lists any public ceap.domain signature change
+```
+
+Adding a dependency: edit `pyproject.toml`, then run the `uv pip compile ...` command printed in
+the header of `requirements.lock` (uv is free: `pip install uv`). Commit both files; the
+`lock-fresh` CI job checks that they agree. Never edit the lock by hand.
+
+Releasing (maintainer only): bump the version in `pyproject.toml` and `src/ceap/__init__.py`, rename
+`## Unreleased` to `## [X.Y.Z] - date` in `CHANGELOG.md`, merge, wait for CI on `main` to go green,
+then push the tag `vX.Y.Z`. `release.yml` runs `scripts/release_check.py` and builds nothing if any
+check on that commit is red. Local dry run: `python scripts/release_check.py --tag vX.Y.Z --skip-checks`.
+
+## 35. Measure the PROMOTE hurdle (null sweep)
+
+```bash
+ceap evaluate --suite null --seeds 50
+```
+
+Prints the false-PROMOTE rate of the full 24-configuration search on pure-noise data at the
+committed hurdle, with its 95 % binomial band. `--seeds 500 --workers 6 --write-thresholds`
+re-derives the hurdle and writes it with the sweep hash to `data/reference/research_thresholds.json`.
+
+## 36. Profitability table and capacity sweep
+
+```bash
+ceap profitability --dataset R03
+```
+
+Breakeven cost per unit turnover, cost share by AUM (10 M to 500 M), drawdown depth and duration,
+calendar-year returns, worst months and alpha after the market factor.
+
+## 37. Backtest under different execution assumptions
+
+```python
+from ceap.analytics.backtest import run_backtest
+from ceap.data.historical import HistoricalStore
+ds = HistoricalStore().get("R03")
+for lag in (0, 1, 2):
+    print(lag, run_backtest(ds, "reversal_5", rebalance_days=5, execution_lag_days=lag).period("full").sharpe)
+run_backtest(ds, "reversal_5", rebalance_days=5, fill="open")  # next open; lag must be >= 1
+```
+
+`lag=0` is the 0.3.x same-close look-ahead, kept only for comparison.

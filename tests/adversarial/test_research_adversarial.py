@@ -16,6 +16,7 @@ from ceap.harness.engine import AgentHarness
 from ceap.llm.client import MockLLMClient
 from ceap.llm.models import LLMResponse
 from ceap.platform import Platform, ResearchRequest, default_research_request
+from ceap.policy.approvals import AutoApprovalGateway
 
 pytestmark = pytest.mark.adversarial
 
@@ -82,7 +83,8 @@ async def test_rogue_research_plan_is_sanitised(platform: Platform):
     task = platform.build_research_task(req)
     base = await platform.harness()
     harness = AgentHarness(
-        PlannerAgent(RogueResearchPlannerLLM()), base.agents, base.tools, base.policy, ReportAgent(MockLLMClient()), settings=platform.settings
+        PlannerAgent(RogueResearchPlannerLLM()), base.agents, base.tools, base.policy, ReportAgent(MockLLMClient()), settings=platform.settings,
+        approvals=AutoApprovalGateway(),
     )
     result = await harness.execute(task, platform.policy_context(req, task))
     assert result.success, result.error
@@ -112,7 +114,8 @@ async def _run(platform: Platform, req: ResearchRequest, steps):
     task = platform.build_research_task(req)
     base = await platform.harness()
     harness = AgentHarness(
-        HandBuiltPlanner(steps), base.agents, base.tools, base.policy, ReportAgent(MockLLMClient()), settings=platform.settings
+        HandBuiltPlanner(steps), base.agents, base.tools, base.policy, ReportAgent(MockLLMClient()), settings=platform.settings,
+        approvals=AutoApprovalGateway(),
     )
     return await harness.execute(task, platform.policy_context(req, task)), task
 

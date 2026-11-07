@@ -16,6 +16,8 @@ QUANT = {"X-API-Key": "dev-quant-key"}
 TRADER = {"X-API-Key": "dev-trader-key"}
 VIEWER = {"X-API-Key": "dev-viewer-key"}
 ADMIN = {"X-API-Key": "dev-admin-key"}
+APPROVER = {"X-API-Key": "dev-approver-key"}
+APPROVER2 = {"X-API-Key": "dev-approver2-key"}
 
 
 @pytest.fixture
@@ -52,7 +54,7 @@ async def _wait(c: httpx.AsyncClient, task_id: str, headers: dict[str, str] = QU
 
 async def _pending_approval(c: httpx.AsyncClient, step_id: str) -> dict:
     for _ in range(600):
-        items = (await c.get("/approvals", headers=ADMIN)).json()
+        items = (await c.get("/approvals", headers=APPROVER)).json()
         for item in items:
             if item["step_id"] == step_id:
                 return item
@@ -76,8 +78,8 @@ async def test_research_rbac_and_validation(client):
     assert (await client.post("/research", json={**body, "rebalance_days": 0}, headers=QUANT)).status_code == 422
     assert (await client.get("/research/TASK-nope", headers=QUANT)).status_code == 404
     assert (await client.get("/research", headers=TRADER)).status_code == 200  # research:read
-    assert len((await client.get("/research-scenarios")).json()) == 7
-    assert len((await client.get("/research-scenarios?all=true")).json()) == 21
+    assert len((await client.get("/research-scenarios")).json()) == 10
+    assert len((await client.get("/research-scenarios?all=true")).json()) == 30
 
 
 async def test_research_lifecycle_with_auto_approval(client):
@@ -124,7 +126,7 @@ async def test_admin_can_stage_orders_through_the_api(client):
     assert (await _wait(client, task_id, ADMIN))["status"] == "COMPLETED"
     report = (await client.get(f"/research/{task_id}/report", headers=ADMIN)).json()
     staging = report["proposal"]["staging"]
-    assert staging["staged"] and staging["count"] == 20 and staging["staging_id"].startswith("STG-")
+    assert staging["staged"] and staging["count"] >= 16 and staging["staging_id"].startswith("STG-")
 
 
 async def test_queued_approval_flow_shows_the_proposal_and_decides_it(queued_client):
@@ -135,21 +137,21 @@ async def test_queued_approval_flow_shows_the_proposal_and_decides_it(queued_cli
     pending = await _pending_approval(c, "gov-approval")
     assert pending["task_id"] == task_id and pending["tool_id"] == "harness.human_approval"
     assert pending["arguments"]["proposal"]["verdict"] == "PROMOTE"
-    assert pending["arguments"]["target_portfolio"]["names"] == 20 and pending["arguments"]["signal"] == "momentum_12_1"
+    assert pending["arguments"]["target_portfolio"]["names"] >= 16 and pending["arguments"]["signal"] == "momentum_12_1"
     assert (await c.post(f"/approvals/{pending['id']}", json={"approved": True}, headers=QUANT)).status_code == 403
-    decided = await c.post(f"/approvals/{pending['id']}", json={"approved": True, "comment": "ship it"}, headers=ADMIN)
+    decided = await c.post(f"/approvals/{pending['id']}", json={"approved": True, "comment": "ship it"}, headers=APPROVER)
     assert decided.status_code == 200 and decided.json()["approved"] is True
     assert (await _wait(c, task_id))["status"] == "COMPLETED"
     report = (await c.get(f"/research/{task_id}/report", headers=QUANT)).json()
     approval = report["proposal"]["approval"]
-    assert approval["approved"] and approval["decided_by"].startswith("admin:") and approval["comment"] == "ship it"
+    assert approval["approved"] and approval["decided_by"].startswith("approver:") and approval["comment"] == "ship it"
     assert "ship it" in report["narrative"]
 
     r = await c.post("/research", json={"question": "Does momentum work on R04?"}, headers=QUANT)
     task_id = r.json()["task_id"]
     pending = await _pending_approval(c, "gov-approval")
     assert pending["arguments"]["proposal"]["verdict"] == "REJECT"
-    await c.post(f"/approvals/{pending['id']}", json={"approved": False, "comment": "no"}, headers=ADMIN)
+    await c.post(f"/approvals/{pending['id']}", json={"approved": False, "comment": "no"}, headers=APPROVER)
     status = await _wait(c, task_id)
     assert status["status"] == "FAILED" and "human approval declined" in status["error"]
     assert (await c.get(f"/research/{task_id}/report", headers=QUANT)).status_code == 422

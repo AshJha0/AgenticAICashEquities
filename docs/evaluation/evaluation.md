@@ -79,61 +79,59 @@ mean_duration_ms     ~850
 
 ## Research evaluation (Stage 2)
 
-Seven research templates × three seeds → 21 scenarios (`ceap research-scenarios --all`). Each
-`ResearchScenarioSpec` carries `expected_verdict` and `expected_flags`.
+Ten templates x three seeds -> 30 scenarios (`ceap research-scenarios --all`). Since 0.4.0 a
+template states generator parameters only; `expected_verdict` and `expected_flags` are derived in
+closed form by `ceap.data.ground_truth` (see `docs/quant/quant.md`), and each scenario is marked
+clear or near-threshold (a gate's expected margin within one standard error).
 
-| Template | Signal | Embedded effect | Ground truth |
+| Template | Mechanism | Truth (t+1 execution) | Class |
 |---|---|---|---|
-| momentum_premium | momentum_12_1 | 2000 bps/yr per unit z-score | PROMOTE |
-| no_alpha | momentum_12_1 | none | REJECT · NO_ALPHA |
-| reversal_premium | reversal_5 | 5000 bps/yr, rebalance every 5 days | PROMOTE |
-| regime_break | momentum_12_1 | premium ×−0.5 after the in-sample period | REJECT · OVERFIT |
-| cost_drag | reversal_5 | 5000 bps/yr with spreads ×15 | REJECT · COST_DRAG |
-| concentration | momentum_12_1 | 4000 bps/yr in the four least liquid names, at 5 % of their ADV | REJECT · CONCENTRATION, LIMIT_BREACH |
-| mixed | momentum_12_1 | 2000 bps/yr with spreads ×4 and ADV ×0.5 | PROMOTE |
+| momentum_premium | latent drift 2400 bps | PROMOTE | clear |
+| no_alpha | none | REJECT · NO_ALPHA | clear |
+| reversal_premium | transient share 0.45 | REJECT · COST_DRAG | clear |
+| regime_break | drift 2400 bps, vanishes after the locked split | REJECT · OOS_DECAY | clear |
+| cost_drag | transient 0.30, spreads x15 | REJECT · COST_DRAG | clear |
+| concentration | drift in 4 illiquid names | REJECT · CONCENTRATION, LIMIT_BREACH | clear |
+| mixed | decaying drift, spreads x4, ADV x0.5 | REJECT · COST_DRAG | near |
+| momentum_near_threshold | drift 1800 bps (net Sharpe about 0.7) | PROMOTE | near |
+| reversal_weak | transient 0.40 | REJECT · COST_DRAG | clear |
+| momentum_crash | drift 2400 bps + 30 % crash | PROMOTE | clear |
 
-### Historical model
+History: 5040 NYSE sessions (252 warm-up, 3528 in-sample, 1260 out-of-sample), GARCH market with
+Student-t shocks, latent premia the signal code never touches, delistings and late listings.
 
-* 30 names in three liquidity tiers (10 mega, 12 mid, 8 small), 1008 business days ending
-  2026-09-18: 252 warm-up, 504 in-sample, 252 out-of-sample.
-* `r = beta·market + k·z + eps`: market 6 %/yr at 16 % vol, betas U(0.7, 1.3), idiosyncratic vol
-  22/28/35 % by tier, `z` the clipped cross-sectional z-score of the scenario's own signal computed
-  on the path so far by `ceap.analytics.signals` (no generator/analytics drift), `k` the premium.
-* Dollar ADV is stationary per name (volume scales with 1/price); spreads are log-normal around a
-  per-name base with the scenario's multiplier.
+### Gates
 
-### Assessment thresholds (`ceap.analytics.research_assessment.ResearchThresholds`)
-
-| Flag | Rule |
-|---|---|
-| NO_ALPHA | in-sample one-day IC t-stat < 2.0 (or < 60 dates) |
-| OVERFIT | out-of-sample / in-sample net Sharpe < 0.5 (when in-sample > 0), or out-of-sample IC t-stat < 1.0, or out-of-sample net Sharpe < 0.5 not explained by costs |
-| COST_DRAG | gross out-of-sample Sharpe ≥ 0.5 but net < 0.5, or costs ≥ 50 % of gross return |
-| CONCENTRATION | top three names > 50 % of positive P&L |
-| LIMIT_BREACH | any portfolio limit check breached (gross 1.05, net 0.25, single name 15 %, beta 0.5, HHI 0.15, ADV participation 10 %) |
-
-`PROMOTE` iff no flag is raised. The alpha chain stops at the first failure (NO_ALPHA → OVERFIT →
-COST_DRAG); CONCENTRATION and LIMIT_BREACH are independent.
+Full chain in `docs/quant/quant.md`: IC t >= 0.65 (hurdle from the 500-seed null sweep, hash
+`dfdadabe...`), deflated Sharpe >= 0.5 over ledger-counted trials, out-of-sample IC t >= 1
+(REGIME_BREAK at <= -2), out-of-sample net Sharpe >= 0.5, costs < 50 % of gross, concentration,
+and limits over the out-of-sample history.
 
 ### Metrics
 
-`ceap evaluate --suite research` / `tests/evaluation/test_research_scenarios.py` report
-**verdict_accuracy** (target ≥ 0.9), **flags_coverage** (every expected flag raised, ≥ 0.9),
-**false_flag_rate** (reported), **completed**, **approved** (the proposal gate was passed),
-**unresolved_findings** and **number_warnings** (targets 1.0 / 1.0 / 0 / 0).
+`ceap evaluate --suite research` reports verdict accuracy overall, on clear and on near-threshold
+scenarios, flags coverage, false-flag rate, completed, approved, unresolved findings and number
+warnings. Targets: clear verdict accuracy >= 0.85, clear flags coverage >= 0.85, near-threshold
+>= 0.5, completed/approved 1.0, unresolved and warnings 0. `ceap evaluate --suite null` reports
+the false-PROMOTE rate at the committed hurdle (50 seeds on PR, 500 nightly; the 500-seed run gave
+15/500 = 3.0 %, band [1.7 %, 4.9 %]).
 
 ### Current results (mock LLM, this build)
 
 ```
-scenarios            21
-verdict_accuracy     1.00
-flags_coverage       1.00
-false_flag_rate      0.10   (two concentration seeds also raise NO_ALPHA / OVERFIT: the four-name premium is thin)
-completed            1.00
-approved             1.00
-unresolved_findings  0
-number_warnings      0
+scenarios                 30
+verdict_accuracy          0.97   (29/30)
+clear_verdict_accuracy    0.96   (23/24; the miss: a strong premium whose 5-year OOS net Sharpe drew 0.21)
+near_threshold_accuracy   1.00   (6/6)
+flags_coverage            0.90
+completed / approved      1.00 / 1.00
+unresolved_findings       0
+number_warnings           0
 ```
+
+The 0.4 "21/21" was a plumbing result on a circular generator; the 0.5 numbers are against truth
+the pipeline never sees. The real-model results below predate 0.4.0 and were not re-run (no live
+calls).
 
 ### What changed against a real model (honest results, not projected)
 

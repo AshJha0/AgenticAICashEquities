@@ -17,7 +17,7 @@ from ceap.domain.execution import (
     Side,
     VenueStatistics,
 )
-from ceap.domain.findings import Finding
+from ceap.domain.findings import EvidenceRef, Finding, HypothesisRow, HypothesisTable
 from ceap.domain.market import (
     MarketSnapshot,
     MarketStatistics,
@@ -33,9 +33,9 @@ from ceap.domain.policy import (
     PolicyEngine,
     PolicyEvaluation,
 )
-from ceap.domain.reports import InvestigationReport
+from ceap.domain.reports import InvestigationReport, LLMCallRecord
 from ceap.domain.repositories import ExecutionRepository, MarketDataRepository
-from ceap.domain.tasks import Task, TaskPriority
+from ceap.domain.tasks import ResultWarning, Task, TaskPriority, TaskStatus, WarningSeverity
 from ceap.domain.tools import (
     Tool,
     ToolExecutionContext,
@@ -47,6 +47,13 @@ from ceap.domain.tools import (
 )
 
 __all__ = [
+    "EvidenceRef",
+    "HypothesisRow",
+    "HypothesisTable",
+    "LLMCallRecord",
+    "ResultWarning",
+    "TaskStatus",
+    "WarningSeverity",
     "Agent",
     "AgentContext",
     "AgentResult",

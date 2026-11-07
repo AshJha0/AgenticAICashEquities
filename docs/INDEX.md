@@ -6,7 +6,7 @@ see [GITHUB_PAGES.md](GITHUB_PAGES.md)).
 | Document | What it is for |
 |---|---|
 | [../README.md](../README.md) | overview, quick start, layout, configuration |
-| [../LEARN.md](../LEARN.md) | guided tour: concepts, how the repo implements them, real numbers, interview questions |
+| [../LEARN.md](../LEARN.md) | guided tour: concepts, how the repo implements them, real numbers, knowledge check |
 | [../COOKBOOK.md](../COOKBOOK.md) | 27 copy-pasteable recipes |
 | [SPECIFICATION.md](SPECIFICATION.md) | the governing specification with realised / partial / roadmap status per requirement |
 | [architecture/overview.md](architecture/overview.md) | components, data flow, design decisions, extension points |

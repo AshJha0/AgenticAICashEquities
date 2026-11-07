@@ -78,7 +78,7 @@ class StdioServerSpec:
 
     def environment(self) -> dict[str, str]:
         env = dict(self.env or {})
-        for key in ("PYTHONPATH", "VIRTUAL_ENV", "CONDA_PREFIX", "PYTHONUTF8"):
+        for key in ("PYTHONPATH", "VIRTUAL_ENV", "CONDA_PREFIX", "PYTHONUTF8", "CEAP_MCP_PRINCIPAL_ROLES"):
             if key in os.environ and key not in env:
                 env[key] = os.environ[key]
         return env
@@ -130,7 +130,7 @@ class StdioMCPClient(MCPClient):
                     "inputSchema": t.inputSchema,
                     "annotations": {
                         "readOnlyHint": _read_only_hint(ann),
-                        "riskLevel": meta.get("riskLevel", "LOW"),
+                        "riskLevel": meta.get("riskLevel"),  # missing: the adapter treats it as HIGH
                         "requiredCapabilities": meta.get("requiredCapabilities", []),
                     },
                 }
@@ -162,8 +162,7 @@ class StdioMCPClient(MCPClient):
 
 
 def _read_only_hint(annotations: Any) -> bool:
-    """A missing/None hint means "unknown" - treat as read-only only when explicitly true or absent."""
+    """Read-only only when the server says so explicitly; a missing hint means "may write" (fail closed)."""
     if annotations is None:
-        return True
-    hint = getattr(annotations, "readOnlyHint", None)
-    return True if hint is None else bool(hint)
+        return False
+    return getattr(annotations, "readOnlyHint", None) is True

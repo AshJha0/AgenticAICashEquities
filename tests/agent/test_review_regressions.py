@@ -93,7 +93,7 @@ async def test_critic_placed_before_specialists_is_moved_after_them(platform):
     assert all("critic_notes" in f.attributes for f in result.findings), (
         "every reported finding was critiqued"
     )
-    assert any("governance" in w for w in result.warnings)
+    assert any("governance" in w.message for w in result.warnings)
 
 
 # ------------------------------------------------- argument pinning / caching
@@ -326,6 +326,7 @@ def test_decide_twice_is_a_conflict():
 # ------------------------------------------------------------ config safety
 def test_dev_keys_do_not_apply_outside_dev(monkeypatch):
     monkeypatch.setenv("CEAP_ENV", "prod")
+    monkeypatch.setenv("CEAP_LLM_PROVIDER", "mock")
     monkeypatch.delenv("CEAP_API_KEYS", raising=False)
     monkeypatch.delenv("CEAP_AUTO_APPROVE", raising=False)
     s = Settings()
@@ -465,7 +466,7 @@ async def test_router_marks_fallback_and_agents_surface_it(platform):
     assert resp.fallback_reason and router.usage["fallbacks"] == 1
     p = Platform(settings=platform.settings, llm=router, store=platform.store)
     result = await p.investigate(default_request("AAPL", "T01"))
-    assert result.success and any("LLM fallback used" in w for w in result.warnings)
+    assert result.success and any("LLM fallback used" in w.message for w in result.warnings)
 
 
 def test_mock_llm_call_log_is_bounded():

@@ -14,7 +14,7 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-from ceap.domain.common import new_id
+from ceap.domain.common import SCHEMA_VERSION, new_id
 
 if TYPE_CHECKING:  # pragma: no cover
     from ceap.domain.evidence import Evidence
@@ -65,6 +65,7 @@ class ToolResult:
     evidence: tuple[Evidence, ...] = ()
     error: str | None = None
     execution_time_ms: float = 0.0
+    schema_version: int = SCHEMA_VERSION
 
     @property
     def ok(self) -> bool:

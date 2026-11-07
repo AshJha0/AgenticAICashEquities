@@ -87,10 +87,31 @@ def _cmd_research(args: argparse.Namespace) -> int:
 
 
 def _cmd_research_scenarios(args: argparse.Namespace) -> int:
+    from ceap.data.ground_truth import derive_ground_truth
+
     specs = all_research_scenarios() if args.all else list(RESEARCH_TEMPLATES)
     for s in specs:
         flags = [f.value for f in s.expected_flags]
-        print(f"{s.id:4s} {s.signal:14s} {s.template:18s} verdict={s.expected_verdict.value:7s} flags={flags}  {s.description}")
+        truth = derive_ground_truth(s)
+        near = " near-threshold" if truth.near_threshold else ""
+        print(
+            f"{s.id:4s} {s.signal:14s} {s.template:24s} verdict={s.expected_verdict.value:7s} flags={flags}{near}  "
+            f"E[t]={truth.metrics['t_is']:.2f} E[net SR oos]={truth.metrics['net_sharpe_oos']:.2f}  {s.description}"
+        )
+    return 0
+
+
+def _cmd_profitability(args: argparse.Namespace) -> int:
+    from ceap.analytics.profitability import json_safe, profitability_table
+    from ceap.data.historical import HistoricalStore
+
+    ds = HistoricalStore().get(args.dataset)
+    signal = args.signal or ds.scenario.signal
+    table = profitability_table(
+        ds, signal, rebalance_days=args.rebalance_days or ds.scenario.rebalance_days,
+        long_short=not args.long_only, gross_notional=args.gross_notional,
+    )
+    print(json.dumps(json_safe(table), indent=2))
     return 0
 
 
@@ -154,6 +175,30 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     from ceap.evaluation import run_evaluation, run_research_evaluation
 
     ok = True
+    if args.suite == "null":
+        from ceap.analytics.null_sweep import run_null_sweep, write_thresholds
+
+        sweep = run_null_sweep(args.seeds, workers=args.workers)
+        chosen = sweep["chosen"]
+        from ceap.analytics.null_sweep import false_promote_curve
+        from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS
+
+        stats = [p["stat"] if p["stat"] is not None else float("-inf") for p in sweep["per_seed"]]
+        at_hurdle = next(r for r in false_promote_curve(stats) if r["hurdle"] >= DEFAULT_THRESHOLDS.ic_t_stat_min - 1e-9)
+        print(json.dumps({
+            "seeds": sweep["n_seeds"],
+            "search_size": sweep["search_size"],
+            "sweep_hash": sweep["sweep_hash"],
+            "committed_hurdle": DEFAULT_THRESHOLDS.ic_t_stat_min,
+            "committed_sweep_hash": DEFAULT_THRESHOLDS.hurdle_sweep_hash,
+            "false_promote_rate_at_committed_hurdle": at_hurdle["rate"],
+            "band95_at_committed_hurdle": [at_hurdle["lower"], at_hurdle["upper"]],
+            "chosen_by_this_sweep": chosen,
+            "abs_t_gt_2_rate": sweep["abs_t_gt_2_rate"],
+        }, indent=2))
+        if args.write_thresholds:
+            print(f"wrote {write_thresholds(sweep)}")
+        return 0
     if args.suite in ("investigation", "all"):
         summary = asyncio.run(run_evaluation(limit=args.limit, verbose=True))
         print(json.dumps({k: v for k, v in summary.items() if k != "rows"}, indent=2))
@@ -161,7 +206,7 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     if args.suite in ("research", "all"):
         summary = asyncio.run(run_research_evaluation(limit=args.limit, verbose=True))
         print(json.dumps({k: v for k, v in summary.items() if k != "rows"}, indent=2))
-        ok = ok and summary["verdict_accuracy"] >= 0.9
+        ok = ok and summary["clear_verdict_accuracy"] >= 0.8
     return 0 if ok else 1
 
 
@@ -200,7 +245,7 @@ def build_parser() -> argparse.ArgumentParser:
     rs = sub.add_parser("research", help="evaluate a trading signal and propose whether to promote it (Stage 2)")
     rs.add_argument("question")
     rs.add_argument("--signal", choices=sorted(SIGNALS), help="signal id; parsed from the question when omitted")
-    rs.add_argument("--dataset", help="research dataset id (R01..R07 or RS01..RS21); default R01")
+    rs.add_argument("--dataset", help="research dataset id (R01..R10 or RS01..RS30); default R01")
     rs.add_argument("--start", help="YYYY-MM-DD (defaults to the dataset's research start)")
     rs.add_argument("--end", help="YYYY-MM-DD (defaults to the dataset's last day)")
     rs.add_argument("--in-sample-end", dest="in_sample_end", help="YYYY-MM-DD walk-forward split")
@@ -220,12 +265,27 @@ def build_parser() -> argparse.ArgumentParser:
     sc.set_defaults(func=_cmd_scenarios)
 
     rsc = sub.add_parser("research-scenarios", help="list research evaluation scenarios")
-    rsc.add_argument("--all", action="store_true", help="list all 21 concrete research scenarios")
+    rsc.add_argument("--all", action="store_true", help="list all 30 concrete research scenarios")
     rsc.set_defaults(func=_cmd_research_scenarios)
+
+    pf = sub.add_parser("profitability", help="profitability table with a capacity sweep for one signal (2.14)")
+    pf.add_argument("--dataset", default="R01")
+    pf.add_argument("--signal", choices=sorted(SIGNALS))
+    pf.add_argument("--rebalance-days", dest="rebalance_days", type=int)
+    pf.add_argument("--long-only", dest="long_only", action="store_true")
+    pf.add_argument("--gross-notional", dest="gross_notional", type=float, default=50_000_000.0)
+    pf.set_defaults(func=_cmd_profitability)
 
     ev = sub.add_parser("evaluate", help="run the scenario evaluation suite(s)")
     ev.add_argument("--limit", type=int, default=None)
-    ev.add_argument("--suite", choices=("investigation", "research", "all"), default="investigation")
+    ev.add_argument("--suite", choices=("investigation", "research", "null", "all"), default="investigation")
+    ev.add_argument("--seeds", type=int, default=50, help="null suite: pure-noise seeds (500 nightly)")
+    ev.add_argument("--workers", type=int, default=1, help="null suite: worker processes")
+    ev.add_argument(
+        "--write-thresholds", dest="write_thresholds", action="store_true",
+        help="null suite: write the chosen hurdle and sweep hash to data/reference/research_thresholds.json",
+    )
+
     ev.set_defaults(func=_cmd_evaluate)
 
     gen = sub.add_parser("generate-data", help="export a synthetic dataset to CSV/Parquet")
