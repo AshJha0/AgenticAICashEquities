@@ -21,6 +21,10 @@ Round R0 of the 2026-11-07 plan (`docs/review/2026-11-07/PLAN.md`): foundations 
 
 ### Added
 
+- Lock refreshed for pip-audit findings: certifi 2026.10.23 (PYSEC-2026-4320) and
+  opentelemetry-api/sdk 1.45.2 (CVE-2026-114603). `.gitleaks.toml` extends the default rules and
+  allowlists only the documented `dev-*-key` demo keys.
+
 - `src/ceap/util/canonical.py`: canonical bytes for every hash (LF, sorted-key JSON, UTC datetimes
   in one format, NaN refused). `.gitattributes` makes every text file LF in the repository.
 - `src/ceap/util/redact.py`: redaction for question text and log lines, and a cassette scrubber

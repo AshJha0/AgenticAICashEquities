@@ -1,0 +1,11 @@
+# Gitleaks configuration: the default rules plus a narrow allowlist for documented fake values.
+# Every entry says why it is not a secret. Real keys never match these patterns.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented development API keys and test fixtures (not secrets)"
+regexes = [
+  # The fixed demo keys of CEAP_ENV=dev (src/ceap/api/auth.py), shown in README/COOKBOOK curl examples.
+  '''dev-(trader|viewer|admin|quant|approver|risk|engineer)-key''',
+]

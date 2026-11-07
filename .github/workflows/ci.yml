@@ -106,7 +106,13 @@ jobs:
             echo "gitleaks missed a planted key"; exit 1
           fi
       - name: Gitleaks on the repository history
-        run: docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" detect --source /repo --no-banner --redact
+        run: |
+          rc=0
+          docker run --rm -v "$PWD:/repo" "$GITLEAKS_IMAGE" detect --source /repo --no-banner --redact \
+            --report-format json --report-path /repo/gitleaks-report.json || rc=$?
+          # Locations only (rule, file, line, commit); secret values stay redacted.
+          jq -r '.[] | "\(.RuleID)\t\(.File):\(.StartLine)\t\(.Commit[0:10])\t\(.Fingerprint)"' gitleaks-report.json || true
+          exit $rc
 
   docker:
     runs-on: ubuntu-latest
