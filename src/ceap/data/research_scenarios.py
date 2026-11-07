@@ -105,7 +105,7 @@ RESEARCH_TEMPLATES_RAW: tuple[ResearchScenarioSpec, ...] = (
         signal=_MOM, seed=18, mechanism="drift", premium_bps=1800.0, tags=("realistic_premium",),
     ),
     ResearchScenarioSpec(
-        id="R09", template="reversal_near_threshold", name="Reversal near the hurdle",
+        id="R09", template="reversal_weak", name="Weak reversal",
         description="A weaker transient component whose gross edge is real but whose costs take most of it.",
         signal=_REV, seed=19, rebalance_days=5, mechanism="transient", transient_share=0.40, transient_rho=0.6,
         tags=("realistic_premium",),

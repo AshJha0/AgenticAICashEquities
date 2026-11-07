@@ -15,7 +15,7 @@ from the generator's parameters:
 * **t-statistic** of the non-overlapping horizon IC over ``N`` periods with
   ``n`` names: ``E[t] = IC sqrt(n - 1) sqrt(N)``.
 * **Gross Sharpe** of the equal-weight tercile long-short book (``k`` names a
-  side): ``1.09 rho sqrt(2k)`` per holding period (``1.09 = phi(z_2/3) / (1/3) / 2``
+  side): ``1.09 rho sqrt(2k)`` per holding period (``1.09 = phi(z_2/3) / (1/3)``
   for a standard normal), annualised by ``sqrt(252 / h)``.
 * **Costs.** Turnover per rebalance ``2 (1 - p_stay)`` where ``p_stay`` is the
   bivariate-normal probability of staying in the tercile given the signal's
@@ -241,7 +241,7 @@ def expected_statistics(spec: Any, lag: int = 1, gross_notional: float = 50_000_
     net_sr_is = gross_sr_is - (cost_ann + borrow_ann) / vol_ann
     net_sr_oos = gross_sr_oos - (cost_ann + borrow_ann) / vol_ann
     oos_years = (N_DAYS - WARMUP_DAYS - IN_SAMPLE_DAYS) / TRADING_DAYS
-    se_oos = math.sqrt((1.0 + net_sr_oos**2 / 2.0) / oos_years)
+    se_oos = math.sqrt((1.0 + net_sr_oos**2 / (2.0 * TRADING_DAYS)) / oos_years)
     sr0_ann = expected_max_sharpe(len(search_space()), IN_SAMPLE_DAYS) * math.sqrt(TRADING_DAYS)
     max_participation = participation_coef / u["min_adv_concentrated"] if spec.concentration_names else 0.0
     return {
@@ -322,7 +322,7 @@ def gate_z_scores(e: dict[str, float], th: Any) -> dict[str, float]:
     from ceap.data.generator_params import IN_SAMPLE_DAYS
 
     is_years = IN_SAMPLE_DAYS / TRADING_DAYS
-    se_is = math.sqrt((1.0 + e["gross_sharpe_is"] ** 2 / 2.0) / is_years)
+    se_is = math.sqrt((1.0 + e["gross_sharpe_is"] ** 2 / (2.0 * TRADING_DAYS)) / is_years)
     gross_oos = e["gross_sharpe_oos"]
     share = e["cost_share"]
     if gross_oos > 0 and math.isfinite(share):

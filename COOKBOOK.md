@@ -542,8 +542,41 @@ MCP tool. Add a `ResearchScenarioSpec` template with ground truth
 ## 33. Add a research scenario template
 
 Same shape as recipe 13, one level up: add a `ResearchScenarioSpec` to
-`RESEARCH_TEMPLATES` in `ceap/data/research_scenarios.py` with the effect you want embedded
-(`premium_bps`, `oos_premium_multiplier` for a regime break, `spread_multiplier` for cost drag,
-`concentration_names` for a concentrated book) and the `expected_verdict`/`expected_flags` you
-expect `assess_research` to reach. It joins `all_research_scenarios()` (× 3 seeds) automatically,
+`RESEARCH_TEMPLATES_RAW` in `ceap/data/research_scenarios.py` with generator parameters only
+(`mechanism="drift"` + `premium_bps`, or `mechanism="transient"` + `transient_share`;
+`oos_premium_multiplier`, `spread_multiplier`, `concentration_names`, `crash`). Do not write a
+verdict: `ceap.data.ground_truth.derive_ground_truth` computes it from the parameters and marks
+near-threshold scenarios (`ceap research-scenarios` prints both). It joins `all_research_scenarios()` (× 3 seeds) automatically,
 so `ceap evaluate --suite research` and `tests/evaluation/test_research_scenarios.py` pick it up.
+
+## 34. Measure the PROMOTE hurdle (null sweep)
+
+```bash
+ceap evaluate --suite null --seeds 50
+```
+
+Prints the false-PROMOTE rate of the full 24-configuration search on pure-noise data at the
+committed hurdle, with its 95 % binomial band. `--seeds 500 --workers 6 --write-thresholds`
+re-derives the hurdle and writes it with the sweep hash to `data/reference/research_thresholds.json`.
+
+## 35. Profitability table and capacity sweep
+
+```bash
+ceap profitability --dataset R03
+```
+
+Breakeven cost per unit turnover, cost share by AUM (10 M to 500 M), drawdown depth and duration,
+calendar-year returns, worst months and alpha after the market factor.
+
+## 36. Backtest under different execution assumptions
+
+```python
+from ceap.analytics.backtest import run_backtest
+from ceap.data.historical import HistoricalStore
+ds = HistoricalStore().get("R03")
+for lag in (0, 1, 2):
+    print(lag, run_backtest(ds, "reversal_5", rebalance_days=5, execution_lag_days=lag).period("full").sharpe)
+run_backtest(ds, "reversal_5", rebalance_days=5, fill="open")  # next open; lag must be >= 1
+```
+
+`lag=0` is the 0.3.x same-close look-ahead, kept only for comparison.

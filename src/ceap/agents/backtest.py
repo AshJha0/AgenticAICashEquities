@@ -171,7 +171,7 @@ class BacktestAgent(BaseAgent):
                 + (f"{be:.1f} bps per unit of turnover" if isinstance(be, float) else "n/a")
                 + f"; maximum drawdown {float(prof.get('max_drawdown') or float('nan')) * 100:.1f}% lasting up to "
 
-                f"{prof.get('longest_drawdown_days', 0)} days; alpha after the generator's market factor "
+                + (f"{float(fm['alpha_ann']) * 100:.2f}% a year (t {float(fm['alpha_t']):.2f})" if isinstance(fm.get('alpha_ann'), float) and isinstance(fm.get('alpha_t'), float) else 'n/a')
                 + (f"{fm.get('alpha_ann') * 100:.2f}% a year (t {fm.get('alpha_t'):.2f})" if isinstance(fm.get("alpha_ann"), float) and isinstance(fm.get("alpha_t"), float) else "n/a")
                 + "; capacity: breakeven AUM "
                 + (f"{aum / 1e6:,.0f}M" if isinstance(aum, float) else str(cap.get("breakeven_note") or "n/a"))

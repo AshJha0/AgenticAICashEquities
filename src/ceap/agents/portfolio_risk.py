@@ -45,9 +45,11 @@ class PortfolioRiskAgent(BaseAgent):
             add(
                 f"Portfolio limits breached during the out-of-sample history (worst date per limit): {worst}.",
                 0.9,
-                (*l_ev,),
+                (*l_ev, *e_ev),
                 flag="LIMIT_BREACH",
+                breached=[f"{c['limit_name']}@{c['date']}" for c in hist_breached],
                 history_breached=[c["limit_name"] for c in hist_breached],
+
             )
         if breached:
             names = ", ".join(

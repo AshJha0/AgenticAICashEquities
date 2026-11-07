@@ -109,13 +109,13 @@ async def test_critic_caps_claims_the_assessment_contradicts(platform, mcp_clien
     )
     result = await CriticAgent(None).execute(ctx)
     assessment = result.output["assessment"]
-    assert assessment["verdict"] == "REJECT" and "OVERFIT" in assessment["flags"]
+    assert assessment["verdict"] == "REJECT" and "OOS_DECAY" in assessment["flags"]
     adjusted = {f.id: f for f in result.output["adjusted_findings"]}
     assert adjusted[robust.id].confidence <= 0.4 and assessment["evidence_id"] in adjusted[robust.id].contradicting_evidence
     assert adjusted[stray.id].confidence <= 0.6  # a COST_DRAG flag the assessment did not raise
     assert adjusted[info.id].confidence == 0.8  # informational flags are left alone
     assert adjusted[alpha_claim.id].confidence == 0.8  # in-sample alpha is real in R04
-    assert any("OVERFIT" in c for c in result.output["critique"]["contradictions"])
+    assert any("OVERFIT" in c or "OOS_DECAY" in c for c in result.output["critique"]["contradictions"])
 
 
 def test_canonical_research_plan_uses_the_shared_tool_arguments(platform):

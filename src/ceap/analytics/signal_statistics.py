@@ -226,7 +226,12 @@ def period_signal_stats(
         rank_autocorrelation_turnover=_nanmean(turnover[sl]),
         mean_ic_horizon=_nanmean(overlap),
         quantile_spread_bps_annual=_nanmean(spread[sl]) * TRADING_DAYS_PER_YEAR / horizon * 10_000.0,
-        decay={str(h): _nanmean(ics_by_horizon[h][sl]) for h in DECAY_HORIZONS if h in ics_by_horizon},
+        # each horizon trimmed by its own tail so no in-sample forward return reads out-of-sample prices
+        decay={
+            str(h): _nanmean(ics_by_horizon[h][i0 : max(i0, i1 + horizon - h) + 1])
+            for h in DECAY_HORIZONS
+            if h in ics_by_horizon
+        },
         ic_t_stat_nw=newey_west_t(overlap, horizon - 1),
         ic_ir_annualised=float(ic_ir * math.sqrt(TRADING_DAYS_PER_YEAR / horizon)) if math.isfinite(ic_ir) else nan,
         mean_ic_1d=m1,
