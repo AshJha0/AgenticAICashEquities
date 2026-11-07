@@ -302,6 +302,9 @@ def build_parser() -> argparse.ArgumentParser:
     from ceap.persistence.cli import register as register_platform_commands
 
     register_platform_commands(sub)  # ceap db ..., ceap replay ... (R4)
+    from ceap.paper.cli import register as register_paper_commands
+
+    register_paper_commands(sub)  # ceap paper ... (RP)
     return p
 
 

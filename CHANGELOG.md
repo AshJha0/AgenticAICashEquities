@@ -6,6 +6,30 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### RP: paper trading (docs/review/2026-11-07/RP_PLAN.md)
+
+paper, synthetic or free daily data, not trading. No order leaves the process; no model is called.
+
+#### Added
+- **Simulated fill engine** (`ceap.paper.fills`): staged orders fill at the next session's close (the
+  backtest's t+1 convention) with the backtest's own `CostModel`, `FinancingModel` and `PositionCaps`
+  imported, a 10 % ADV participation cap with carry-forward, rejects for missing prices, non-members and
+  SSR, order expiry, and splits applied to positions and open orders.
+- **Append-only ledger** (migration `0003_paper.sql`): hash-chained events, daily snapshots, a forward
+  log and a separate simulated log; UPDATE and DELETE refused by triggers; `ceap paper verify` checks
+  the chains and reconciles positions, cash and equity against the fills.
+- **Daily job**: `ceap paper run-day --date D` (idempotent, one transaction per session, catch-up),
+  `ceap paper backfill --from --to` (simulated log only), `ceap paper report`, `export`, `verify-csv`.
+  Staging goes through the same `QueuedApprovalGateway`; principal `paper-auto` decides only in
+  `CEAP_ENV=dev` or with `--allow-paper-auto`, audited.
+- **Forward record** from `forward_start` in `config/paper.json` (2026-11-09), with Sharpe and a 95 % CI,
+  the minimum days to distinguish it from the in-sample Sharpe, and a CSV export with `schema_version`.
+- `.github/workflows/paper-daily.yml`: scheduled after the US close, appends to branch `forward-log`;
+  disabled until the repository variable `PAPER_DAILY_ENABLED` is `true`.
+
+#### Changed
+- Schema version 3. `tests/unit/test_r4_persistence.py` now asserts `LATEST_VERSION >= 2`.
+
 ### R4: platform and persistence (PLAN section 2, items 4.1-4.9)
 
 #### Breaking / migration

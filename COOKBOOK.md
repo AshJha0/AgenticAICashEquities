@@ -650,3 +650,20 @@ curl -si localhost:8000/health -H "X-Request-ID: my-trace-1"     # echoed back; 
 python -c "from ceap.api.auth import hash_api_key; print(hash_api_key('a-long-random-key'))"
 CEAP_API_KEY_HASHES='sha256$...$...:auditor:2027-01-31' ceap serve   # optional expiry date
 ```
+
+## 42. Paper-trade a signal and keep a forward record
+
+paper, synthetic or free daily data, not trading.
+
+```bash
+ceap paper run-day --date 2026-11-13 --db var/paper/paper.db   # processes 2026-11-09 .. 11-13
+ceap paper run-day --date 2026-11-13 --db var/paper/paper.db   # no-op: each day runs once
+ceap paper verify  --db var/paper/paper.db                      # hash chains + reconciliation
+ceap paper report  --db var/paper/paper.db                      # Sharpe, 95 % CI, minimum days
+ceap paper export  --db var/paper/paper.db --out forward_log.csv
+ceap paper backfill --from 2026-06-01 --to 2026-10-30 --db var/paper/paper.db  # simulated log only
+```
+
+Outside `CEAP_ENV=dev`, add `--allow-paper-auto` to let the `paper-auto` principal approve the
+staging; the decision is written to the audit log either way. Change the signal, capital or costs in
+`config/paper.json`. Never move `forward_start` earlier.

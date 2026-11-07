@@ -1,0 +1,20 @@
+{
+  "_comment": "Paper trading (RP). paper, synthetic or free daily data, not trading. forward_start is fixed: never move it earlier, never backfill into the forward record.",
+  "forward_start": "2026-11-09",
+  "feed": "synthetic",
+  "scenario": "R01",
+  "signal": "momentum_12_1",
+  "rebalance_days": null,
+  "long_short": true,
+  "gross_notional": 10000000.0,
+  "gross_leverage": 1.0,
+  "top_fraction": 0.3333333333333333,
+  "weighting": "equal",
+  "fractional_shares": false,
+  "order_ttl_days": 5,
+  "cost_multiplier": 1.0,
+  "fee_per_share": 0.0,
+  "min_fee": 0.0,
+  "in_sample_sharpe": null,
+  "db_path": "var/paper/paper.db"
+}

@@ -536,6 +536,27 @@ real model's legitimate arithmetic. See `docs/evaluation/evaluation.md` and `CHA
 for the numbers; the lesson generalises past this project: *an offline mock proves the control
 plane works, not that the model integration does — check both.*
 
+## 18a. Paper trading and the forward record
+
+**The plain idea.** A backtest replays the past with rules decided after looking at it. A paper
+record writes each day down on that day, before the next one exists, so it cannot be tuned after
+the fact. It is still not trading: fills are simulated and the data are synthetic or free.
+
+**Formally.** Each session the book runs: splits; financing `cash x (rf + s)`, where `s` is the
+financing spread and applies only when cash is negative; borrow `|short value| x b_tier`; mark to
+the close; then fills of yesterday's orders, at most `0.10 x ADV` shares, at cost
+`|x| p (h + 0.6 sigma sqrt(|x|/ADV)) / 1e4`. Equity changes by exactly
+`mark P&L + financing - borrow - costs`. After `T` days the Sharpe has standard error
+`sqrt((1 + SR_d^2/2)/T)` (daily units). Telling a true Sharpe of 0 apart from an in-sample Sharpe `S`
+(alpha 0.05, power 0.8) needs `T = (1.96 + 0.84 sqrt(1 + s^2/2))^2 / s^2` days, where
+`s = S/sqrt(252)`. For S = 1 that is 1980 sessions, about eight years.
+
+**Worked example** (checked by `test_two_name_three_day_ledger_by_hand`). Start with $1,000,000.
+Buy 1,000 AAA at $100 and short 500 BBB at $50. Both are 1 % of ADV, so the cost is
+5 bps + 0.6 x 100 x 0.1 = 11 bps: $110 + $27.50. Cash is $924,862.50 and equity is $999,862.50.
+Next day, at rf = 1 bp, cash earns $92.49 and the BBB borrow (10 % a year) costs $9.92. AAA rises to
+102 and BBB falls to 49, so the marks gain $2,500. Equity is $1,002,445.07.
+
 ## 19. Further reading
 
 * Perold, A. (1988). *The Implementation Shortfall: Paper versus Reality.* Journal of
