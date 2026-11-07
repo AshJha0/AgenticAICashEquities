@@ -306,20 +306,35 @@ async def test_1_6_failed_agent_yields_incomplete_analysis_not_a_pass(platform):
     assert "incomplete analysis" in text and "no material anomaly identified" not in text
 
 
-class _SlowWithCheckpoint(BaseAgent):
+class _CheckpointThenTimeout(BaseAgent):
+    """Checkpoints, then times out. No wall clock: the timeout is raised, not waited for."""
+
     agent_id = "market"
 
     async def execute(self, context: AgentContext) -> AgentResult:
         self.checkpoint(context, regime="partial: volatility computed")
-        await asyncio.sleep(30)
+        raise TimeoutError  # the same exception asyncio.wait_for raises in the harness
+
+
+class _CheckpointThenBlock(BaseAgent):
+    agent_id = "market"
+
+    def __init__(self) -> None:
+        self.checkpointed = asyncio.Event()
+
+    async def execute(self, context: AgentContext) -> AgentResult:
+        self.checkpoint(context, regime="partial: volatility computed")
+        self.checkpointed.set()
+        await asyncio.Event().wait()  # never set: only the harness timeout ends this
         raise AssertionError("unreachable")
 
 
 async def test_1_6_timed_out_agent_returns_partial_output(platform):
+    # default task timeout: under load the plan's tool batches cannot use up the deadline first
     base = await platform.harness()
-    settings = Settings(llm_provider="mock", task_timeout_seconds=5.0)
     harness = AgentHarness(
-        base.planner, {**base.agents, "market": _SlowWithCheckpoint()}, base.tools, base.policy, base.reporter, settings=settings
+        base.planner, {**base.agents, "market": _CheckpointThenTimeout()}, base.tools, base.policy, base.reporter,
+        settings=platform.settings,
     )
     req = default_request("AAPL", "T01")
     task = platform.build_task(req)
@@ -327,6 +342,28 @@ async def test_1_6_timed_out_agent_returns_partial_output(platform):
     record = next(r for r in result.step_results if r.get("agent_id") == "market")
     assert record["status"] == "PARTIAL"
     assert result.agent_outputs["market"]["regime"] == "partial: volatility computed"
+    assert result.status is TaskStatus.INCOMPLETE_ANALYSIS
+
+
+async def test_1_6_harness_timeout_keeps_checkpoint_taken_before_it(platform):
+    """The real asyncio.wait_for path: the checkpoint precedes the agent's first await, so it is
+    recorded whatever the interleaving; the deadline is already past (timeout floor 1 s)."""
+    from datetime import timedelta
+
+    from ceap.domain.common import utc_now
+    from ceap.harness.executor import RunContext
+    from ceap.harness.memory import InvestigationMemory
+
+    base = await platform.harness()
+    agent = _CheckpointThenBlock()
+    req = default_request("AAPL", "T01")
+    task = platform.build_task(req)
+    memory = InvestigationMemory()
+    run = RunContext(task.id, "RUN-x", utc_now() - timedelta(seconds=1), platform.policy_context(req, task), CancellationToken())
+    result = await base._run_agent(agent, "s1", memory, run, None, task)  # type: ignore[arg-type]
+    assert agent.checkpointed.is_set()
+    assert not result.success and result.error == "agent timed out"
+    assert result.output["partial"] and result.output["regime"] == "partial: volatility computed"
 
 
 # =========================================================== 1.7 MCP trust
