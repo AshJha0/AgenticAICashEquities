@@ -8,8 +8,9 @@
     "assessments": [
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-0000001f",
+        "finding_id": "F-00000025",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -18,8 +19,9 @@
       },
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-00000020",
+        "finding_id": "F-00000026",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -28,8 +30,9 @@
       },
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-00000021",
+        "finding_id": "F-00000027",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -38,8 +41,9 @@
       },
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-00000022",
+        "finding_id": "F-00000028",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -48,24 +52,27 @@
       },
       {
         "adjusted_confidence": 0.834,
-        "finding_id": "F-00000025",
+        "finding_id": "F-0000002b",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.834,
         "notes": [],
         "original_confidence": 0.834,
         "supported": true
       },
       {
         "adjusted_confidence": 0.825,
-        "finding_id": "F-00000026",
+        "finding_id": "F-0000002c",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.825,
         "notes": [],
         "original_confidence": 0.825,
         "supported": true
       },
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-00000027",
+        "finding_id": "F-0000002d",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -74,8 +81,9 @@
       },
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-00000028",
+        "finding_id": "F-0000002e",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -84,92 +92,47 @@
       },
       {
         "adjusted_confidence": 0.731,
-        "finding_id": "F-0000002b",
+        "finding_id": "F-00000031",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.731,
         "notes": [],
         "original_confidence": 0.731,
         "supported": true
       },
       {
         "adjusted_confidence": 0.94,
-        "finding_id": "F-0000002c",
+        "finding_id": "F-00000032",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.94,
         "notes": [],
         "original_confidence": 0.94,
         "supported": true
       },
       {
         "adjusted_confidence": 0.8,
-        "finding_id": "F-0000002d",
+        "finding_id": "F-00000033",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.8,
         "notes": [],
         "original_confidence": 0.8,
         "supported": true
       },
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-0000002e",
+        "finding_id": "F-00000034",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
         "original_confidence": 0.8,
-        "supported": true
-      },
-      {
-        "adjusted_confidence": 0.7,
-        "finding_id": "F-0000002f",
-        "llm_comment": "Cited evidence resolves and metrics are consistent.",
-        "notes": [
-          "single evidence record; confidence capped"
-        ],
-        "original_confidence": 0.85,
-        "supported": true
-      },
-      {
-        "adjusted_confidence": 0.7,
-        "finding_id": "F-00000030",
-        "llm_comment": "Cited evidence resolves and metrics are consistent.",
-        "notes": [
-          "single evidence record; confidence capped"
-        ],
-        "original_confidence": 0.85,
-        "supported": true
-      },
-      {
-        "adjusted_confidence": 0.7,
-        "finding_id": "F-00000031",
-        "llm_comment": "Cited evidence resolves and metrics are consistent.",
-        "notes": [
-          "single evidence record; confidence capped"
-        ],
-        "original_confidence": 0.8,
-        "supported": true
-      },
-      {
-        "adjusted_confidence": 0.7,
-        "finding_id": "F-00000032",
-        "llm_comment": "Cited evidence resolves and metrics are consistent.",
-        "notes": [
-          "single evidence record; confidence capped"
-        ],
-        "original_confidence": 0.8,
-        "supported": true
-      },
-      {
-        "adjusted_confidence": 0.7,
-        "finding_id": "F-00000033",
-        "llm_comment": "Cited evidence resolves and metrics are consistent.",
-        "notes": [
-          "single evidence record; confidence capped"
-        ],
-        "original_confidence": 0.9,
         "supported": true
       },
       {
         "adjusted_confidence": 0.7,
         "finding_id": "F-00000035",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -177,10 +140,13 @@
         "supported": true
       },
       {
-        "adjusted_confidence": 0.85,
+        "adjusted_confidence": 0.7,
         "finding_id": "F-00000036",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
-        "notes": [],
+        "llm_proposed_confidence": 0.7,
+        "notes": [
+          "single evidence record; confidence capped"
+        ],
         "original_confidence": 0.85,
         "supported": true
       },
@@ -188,6 +154,7 @@
         "adjusted_confidence": 0.7,
         "finding_id": "F-00000037",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -198,6 +165,60 @@
         "adjusted_confidence": 0.7,
         "finding_id": "F-00000038",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
+        "notes": [
+          "single evidence record; confidence capped"
+        ],
+        "original_confidence": 0.8,
+        "supported": true
+      },
+      {
+        "adjusted_confidence": 0.7,
+        "finding_id": "F-00000039",
+        "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
+        "notes": [
+          "single evidence record; confidence capped"
+        ],
+        "original_confidence": 0.9,
+        "supported": true
+      },
+      {
+        "adjusted_confidence": 0.7,
+        "finding_id": "F-0000003b",
+        "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
+        "notes": [
+          "single evidence record; confidence capped"
+        ],
+        "original_confidence": 0.85,
+        "supported": true
+      },
+      {
+        "adjusted_confidence": 0.85,
+        "finding_id": "F-0000003c",
+        "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.85,
+        "notes": [],
+        "original_confidence": 0.85,
+        "supported": true
+      },
+      {
+        "adjusted_confidence": 0.7,
+        "finding_id": "F-0000003d",
+        "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
+        "notes": [
+          "single evidence record; confidence capped"
+        ],
+        "original_confidence": 0.8,
+        "supported": true
+      },
+      {
+        "adjusted_confidence": 0.7,
+        "finding_id": "F-0000003e",
+        "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -206,11 +227,14 @@
       }
     ],
     "contradictions": [],
+    "disputes": [],
     "incomplete_analysis": [],
     "llm_model": "mock-deterministic-v1",
+    "llm_overall": "Findings are consistent with the deterministic evidence; confidence adjustments applied where evidence was thin.",
     "narrative_evidence_warnings": [],
     "narrative_number_warnings": [],
-    "overall": "Reviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: PROMOTE (no flags). Findings are consistent with the deterministic evidence; confidence adjustments applied where evidence was thin.",
+    "overall": "Reviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: PROMOTE (no flags).",
+    "unbacked_disputes": [],
     "unsupported": []
   },
   "evidence": [
@@ -225,10 +249,18 @@
         "digest": "eee9d505da860fe3",
         "step_id": "step-01",
         "task_id": "TASK-00000001",
-        "tool_id": "research_data.get_universe_summary"
+        "tool_id": "research_data.get_universe_summary",
+        "values": {
+          "dataset": "R01",
+          "mean_adv_notional": 5904269786.39,
+          "mean_adv_shares": 24720987,
+          "mean_spread_bps": 8.173,
+          "symbols": 30,
+          "template": "momentum_premium"
+        }
       },
       "description": "research_data.get_universe_summary(dataset=R01, start=2007-09-07, end=2026-09-18) -> object with keys: dataset, template, symbols, coverage, mean_adv_shares, mean_adv_notional",
-      "id": "MARKET-00000017",
+      "id": "MARKET-0000001d",
       "source": "research_data.get_universe_summary",
       "timestamp": "2026-01-01T00:00:00.044000+00:00",
       "type": "MARKET_DATA"
@@ -247,10 +279,16 @@
         "digest": "41be9d50cd78863f",
         "step_id": "step-02",
         "task_id": "TASK-00000001",
-        "tool_id": "alpha.evaluate_signal"
+        "tool_id": "alpha.evaluate_signal",
+        "values": {
+          "dataset": "R01",
+          "horizon_days": 21,
+          "signal": "momentum_12_1",
+          "universe_size": 30
+        }
       },
       "description": "alpha.evaluate_signal(signal=momentum_12_1, dataset=R01, start=2007-09-07, end=2026-09-18, in_sample_end=2021-09-10, rebalance_days=21) -> object with keys: signal, dataset, horizon_days, universe_size, periods",
-      "id": "SIG-00000018",
+      "id": "SIG-0000001e",
       "source": "alpha.evaluate_signal",
       "timestamp": "2026-01-01T00:00:00.045000+00:00",
       "type": "SIGNAL"
@@ -273,10 +311,21 @@
         "digest": "8131bd352470c754",
         "step_id": "step-03",
         "task_id": "TASK-00000001",
-        "tool_id": "backtest.run_backtest"
+        "tool_id": "backtest.run_backtest",
+        "values": {
+          "dataset": "R01",
+          "execution_lag_days": 1,
+          "fill": "close",
+          "gross_notional": 50000000.0,
+          "long_short": true,
+          "pnl_concentration_top3": 0.2413461401396471,
+          "rebalance_days": 21,
+          "sharpe_ratio_oos_is": 2.3566254392497097,
+          "signal": "momentum_12_1"
+        }
       },
       "description": "backtest.run_backtest(signal=momentum_12_1, dataset=R01, start=2007-09-07, end=2026-09-18, in_sample_end=2021-09-10, rebalance_days=21, long_short=True, gross_notional=50000000.0, execution_lag_days=1, fill=close) -> object with keys: signal, dataset, rebalance_days, long_short, gross_notional, periods",
-      "id": "BT-00000019",
+      "id": "BT-0000001f",
       "source": "backtest.run_backtest",
       "timestamp": "2026-01-01T00:00:00.046000+00:00",
       "type": "BACKTEST"
@@ -294,10 +343,25 @@
         "digest": "f4ce6fd5aba268f1",
         "step_id": "step-04",
         "task_id": "TASK-00000001",
-        "tool_id": "risk.get_portfolio_exposure"
+        "tool_id": "risk.get_portfolio_exposure",
+        "values": {
+          "as_of": "2026-09-18",
+          "beta": -0.0152,
+          "dataset": "R01",
+          "effective_names": 18.0,
+          "gross": 1.0,
+          "gross_notional": 50000000.0,
+          "hhi": 0.055556,
+          "long_short": true,
+          "max_abs_weight": 0.055556,
+          "max_adv_participation": 0.039175,
+          "net": 0.0,
+          "signal": "momentum_12_1",
+          "stress": null
+        }
       },
       "description": "risk.get_portfolio_exposure(signal=momentum_12_1, dataset=R01, as_of=2026-09-18, long_short=True, gross_notional=50000000.0) -> object with keys: signal, dataset, as_of, long_short, gross_notional, positions",
-      "id": "RISK-0000001a",
+      "id": "RISK-00000020",
       "source": "risk.get_portfolio_exposure",
       "timestamp": "2026-01-01T00:00:00.047000+00:00",
       "type": "RISK"
@@ -315,10 +379,17 @@
         "digest": "6d93b1e821b20e00",
         "step_id": "step-05",
         "task_id": "TASK-00000001",
-        "tool_id": "risk.check_portfolio_limits"
+        "tool_id": "risk.check_portfolio_limits",
+        "values": {
+          "any_breached": false,
+          "as_of": "2026-09-18",
+          "dataset": "R01",
+          "history_breached": false,
+          "signal": "momentum_12_1"
+        }
       },
       "description": "risk.check_portfolio_limits(signal=momentum_12_1, dataset=R01, as_of=2026-09-18, long_short=True, gross_notional=50000000.0) -> object with keys: signal, dataset, as_of, any_breached, breached_symbols, checks",
-      "id": "RISK-0000001b",
+      "id": "RISK-00000021",
       "source": "risk.check_portfolio_limits",
       "timestamp": "2026-01-01T00:00:00.048000+00:00",
       "type": "RISK"
@@ -336,10 +407,27 @@
         "digest": "51db559f0d1a4fff",
         "step_id": "step-06",
         "task_id": "TASK-00000001",
-        "tool_id": "risk.calculate_portfolio_stress"
+        "tool_id": "risk.calculate_portfolio_stress",
+        "values": {
+          "as_of": "2026-09-18",
+          "beta": -0.0152,
+          "dataset": "R01",
+          "gross_notional": 50000000.0,
+          "liquidation_cost": 222203.28,
+          "liquidation_days": 0.392,
+          "max_abs_weight": 0.055556,
+          "net": 0.0,
+          "pnl_factor": -2878749.43,
+          "pnl_flat": -0.0,
+          "pnl_market": 38000.0,
+          "pnl_short_squeeze": -5000040.0,
+          "shock_bps": -500.0,
+          "signal": "momentum_12_1",
+          "worst_single_name": -138890.0
+        }
       },
       "description": "risk.calculate_portfolio_stress(signal=momentum_12_1, dataset=R01, as_of=2026-09-18, long_short=True, gross_notional=50000000.0) -> object with keys: signal, dataset, as_of, gross_notional, beta, net",
-      "id": "RISK-0000001c",
+      "id": "RISK-00000022",
       "source": "risk.calculate_portfolio_stress",
       "timestamp": "2026-01-01T00:00:00.049000+00:00",
       "type": "RISK"
@@ -351,21 +439,26 @@
           "query": "research promotion criteria out-of-sample degradation turnover cost drag approval policy"
         },
         "correlation_id": "CORR-0000000d",
-        "digest": "bb00c96ba4c0a337",
+        "digest": "100d864a6ca3f4e6",
         "step_id": "step-07",
         "task_id": "TASK-00000001",
-        "tool_id": "knowledge.search_documents"
+        "tool_id": "knowledge.search_documents",
+        "values": {
+          "corpus_hash": "484bf03c03bde71eaaf8a91997b868a5c8c32447a3aaff8a456cd4d5961e0d28",
+          "count": 0,
+          "query": "research promotion criteria out-of-sample degradation turnover cost drag approval policy"
+        }
       },
-      "description": "knowledge.search_documents(query=research promotion criteria out-, k=4) -> 3 records",
-      "id": "ENG-0000001d",
+      "description": "knowledge.search_documents(query=research promotion criteria out-, k=4) -> 0 records",
+      "id": "DOC-00000023",
       "source": "knowledge.search_documents",
       "timestamp": "2026-01-01T00:00:00.050000+00:00",
-      "type": "SYSTEM_METRIC"
+      "type": "DOCUMENT"
     },
     {
       "attributes": {
         "derived_from": [
-          "SIG-00000018"
+          "SIG-0000001e"
         ],
         "signal_statistics": {
           "dataset": "R01",
@@ -453,7 +546,7 @@
         "task_id": "TASK-00000001"
       },
       "description": "Signal statistics for momentum_12_1: in-sample IC t-stat 4.37, out-of-sample IC t-stat 4.48",
-      "id": "TCA-00000024",
+      "id": "TCA-0000002a",
       "source": "agent:alpha",
       "timestamp": "2026-01-01T00:00:00.065000+00:00",
       "type": "CALCULATION"
@@ -912,12 +1005,12 @@
           }
         },
         "derived_from": [
-          "BT-00000019"
+          "BT-0000001f"
         ],
         "task_id": "TASK-00000001"
       },
       "description": "Backtest of momentum_12_1: net Sharpe in-sample 0.60, out-of-sample 1.40, cost drag 249 bps per year",
-      "id": "TCA-0000002a",
+      "id": "TCA-00000030",
       "source": "agent:backtest",
       "timestamp": "2026-01-01T00:00:00.070000+00:00",
       "type": "CALCULATION"
@@ -925,8 +1018,8 @@
     {
       "attributes": {
         "derived_from": [
-          "TCA-00000024",
-          "TCA-0000002a"
+          "TCA-0000002a",
+          "TCA-00000030"
         ],
         "flags": [],
         "hypotheses": {
@@ -994,7 +1087,7 @@
         "verdict": "PROMOTE"
       },
       "description": "Research assessment: PROMOTE (no flags)",
-      "id": "TCA-0000003a",
+      "id": "TCA-00000040",
       "source": "agent:critic",
       "timestamp": "2026-01-01T00:00:00.080000+00:00",
       "type": "CALCULATION"
@@ -1004,8 +1097,9 @@
         "assessments": [
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-0000001f",
+            "finding_id": "F-00000025",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1014,8 +1108,9 @@
           },
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-00000020",
+            "finding_id": "F-00000026",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1024,8 +1119,9 @@
           },
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-00000021",
+            "finding_id": "F-00000027",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1034,8 +1130,9 @@
           },
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-00000022",
+            "finding_id": "F-00000028",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1044,24 +1141,27 @@
           },
           {
             "adjusted_confidence": 0.834,
-            "finding_id": "F-00000025",
+            "finding_id": "F-0000002b",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.834,
             "notes": [],
             "original_confidence": 0.834,
             "supported": true
           },
           {
             "adjusted_confidence": 0.825,
-            "finding_id": "F-00000026",
+            "finding_id": "F-0000002c",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.825,
             "notes": [],
             "original_confidence": 0.825,
             "supported": true
           },
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-00000027",
+            "finding_id": "F-0000002d",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1070,8 +1170,9 @@
           },
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-00000028",
+            "finding_id": "F-0000002e",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1080,92 +1181,47 @@
           },
           {
             "adjusted_confidence": 0.731,
-            "finding_id": "F-0000002b",
+            "finding_id": "F-00000031",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.731,
             "notes": [],
             "original_confidence": 0.731,
             "supported": true
           },
           {
             "adjusted_confidence": 0.94,
-            "finding_id": "F-0000002c",
+            "finding_id": "F-00000032",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.94,
             "notes": [],
             "original_confidence": 0.94,
             "supported": true
           },
           {
             "adjusted_confidence": 0.8,
-            "finding_id": "F-0000002d",
+            "finding_id": "F-00000033",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.8,
             "notes": [],
             "original_confidence": 0.8,
             "supported": true
           },
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-0000002e",
+            "finding_id": "F-00000034",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
             "original_confidence": 0.8,
-            "supported": true
-          },
-          {
-            "adjusted_confidence": 0.7,
-            "finding_id": "F-0000002f",
-            "llm_comment": "Cited evidence resolves and metrics are consistent.",
-            "notes": [
-              "single evidence record; confidence capped"
-            ],
-            "original_confidence": 0.85,
-            "supported": true
-          },
-          {
-            "adjusted_confidence": 0.7,
-            "finding_id": "F-00000030",
-            "llm_comment": "Cited evidence resolves and metrics are consistent.",
-            "notes": [
-              "single evidence record; confidence capped"
-            ],
-            "original_confidence": 0.85,
-            "supported": true
-          },
-          {
-            "adjusted_confidence": 0.7,
-            "finding_id": "F-00000031",
-            "llm_comment": "Cited evidence resolves and metrics are consistent.",
-            "notes": [
-              "single evidence record; confidence capped"
-            ],
-            "original_confidence": 0.8,
-            "supported": true
-          },
-          {
-            "adjusted_confidence": 0.7,
-            "finding_id": "F-00000032",
-            "llm_comment": "Cited evidence resolves and metrics are consistent.",
-            "notes": [
-              "single evidence record; confidence capped"
-            ],
-            "original_confidence": 0.8,
-            "supported": true
-          },
-          {
-            "adjusted_confidence": 0.7,
-            "finding_id": "F-00000033",
-            "llm_comment": "Cited evidence resolves and metrics are consistent.",
-            "notes": [
-              "single evidence record; confidence capped"
-            ],
-            "original_confidence": 0.9,
             "supported": true
           },
           {
             "adjusted_confidence": 0.7,
             "finding_id": "F-00000035",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1173,10 +1229,13 @@
             "supported": true
           },
           {
-            "adjusted_confidence": 0.85,
+            "adjusted_confidence": 0.7,
             "finding_id": "F-00000036",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
-            "notes": [],
+            "llm_proposed_confidence": 0.7,
+            "notes": [
+              "single evidence record; confidence capped"
+            ],
             "original_confidence": 0.85,
             "supported": true
           },
@@ -1184,6 +1243,7 @@
             "adjusted_confidence": 0.7,
             "finding_id": "F-00000037",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1194,6 +1254,60 @@
             "adjusted_confidence": 0.7,
             "finding_id": "F-00000038",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
+            "notes": [
+              "single evidence record; confidence capped"
+            ],
+            "original_confidence": 0.8,
+            "supported": true
+          },
+          {
+            "adjusted_confidence": 0.7,
+            "finding_id": "F-00000039",
+            "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
+            "notes": [
+              "single evidence record; confidence capped"
+            ],
+            "original_confidence": 0.9,
+            "supported": true
+          },
+          {
+            "adjusted_confidence": 0.7,
+            "finding_id": "F-0000003b",
+            "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
+            "notes": [
+              "single evidence record; confidence capped"
+            ],
+            "original_confidence": 0.85,
+            "supported": true
+          },
+          {
+            "adjusted_confidence": 0.85,
+            "finding_id": "F-0000003c",
+            "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.85,
+            "notes": [],
+            "original_confidence": 0.85,
+            "supported": true
+          },
+          {
+            "adjusted_confidence": 0.7,
+            "finding_id": "F-0000003d",
+            "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
+            "notes": [
+              "single evidence record; confidence capped"
+            ],
+            "original_confidence": 0.8,
+            "supported": true
+          },
+          {
+            "adjusted_confidence": 0.7,
+            "finding_id": "F-0000003e",
+            "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1206,7 +1320,7 @@
         "task_id": "TASK-00000001"
       },
       "description": "Critic assessment of findings",
-      "id": "TCA-0000003b",
+      "id": "TCA-00000041",
       "source": "agent:critic",
       "timestamp": "2026-01-01T00:00:00.081000+00:00",
       "type": "CALCULATION"
@@ -1225,12 +1339,12 @@
       "confidence": 0.94,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-0000002c",
+      "id": "F-00000032",
       "produced_by": "backtest",
       "statement": "Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.36 (in-sample 0.60, out-of-sample 1.40).",
       "supporting_evidence": [
-        "TCA-0000002a",
-        "BT-00000019"
+        "TCA-00000030",
+        "BT-0000001f"
       ]
     },
     {
@@ -1242,12 +1356,12 @@
       "confidence": 0.85,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000036",
+      "id": "F-0000003c",
       "produced_by": "portfolio_risk",
       "statement": "Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%).",
       "supporting_evidence": [
-        "RISK-0000001b",
-        "RISK-0000001a"
+        "RISK-00000021",
+        "RISK-00000020"
       ]
     },
     {
@@ -1259,13 +1373,19 @@
       "category": "SIGNAL",
       "confidence": 0.834,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000025",
+      "evidence_refs": [
+        {
+          "id": "TCA-0000002a",
+          "path": "signal_statistics.periods.in_sample.ic_t_stat",
+          "value": 4.371584933999521
+        }
+      ],
+      "id": "F-0000002b",
       "produced_by": "alpha",
       "statement": "The momentum_12_1 signal is predictive in-sample: mean 21-day rank IC 0.0636 with t-statistic 4.37 over 167 non-overlapping periods, clearing the 0.65 null-sweep hurdle (Newey-West t on overlapping periods 5.75; hit rate 60.5%).",
       "supporting_evidence": [
-        "TCA-00000024",
-        "SIG-00000018"
+        "TCA-0000002a",
+        "SIG-0000001e"
       ]
     },
     {
@@ -1278,12 +1398,12 @@
       "confidence": 0.825,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000026",
+      "id": "F-0000002c",
       "produced_by": "alpha",
       "statement": "Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates.",
       "supporting_evidence": [
-        "TCA-00000024",
-        "SIG-00000018"
+        "TCA-0000002a",
+        "SIG-0000001e"
       ]
     },
     {
@@ -1295,12 +1415,12 @@
       "confidence": 0.8,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-0000002d",
+      "id": "F-00000033",
       "produced_by": "backtest",
       "statement": "Transaction costs consume 33% of gross return (249 bps per year against gross 7.5%).",
       "supporting_evidence": [
-        "TCA-0000002a",
-        "BT-00000019"
+        "TCA-00000030",
+        "BT-0000001f"
       ]
     },
     {
@@ -1312,13 +1432,19 @@
       "category": "BACKTEST",
       "confidence": 0.731,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-0000002b",
+      "evidence_refs": [
+        {
+          "id": "TCA-00000030",
+          "path": "backtest.delisting_bounds.performance.oos_sharpe",
+          "value": 1.404665224479977
+        }
+      ],
+      "id": "F-00000031",
       "produced_by": "backtest",
       "statement": "The strategy is profitable out-of-sample: net Sharpe 1.40, CAGR 8.8%, maximum drawdown 6.4% over 1260 days.",
       "supporting_evidence": [
-        "TCA-0000002a",
-        "BT-00000019"
+        "TCA-00000030",
+        "BT-0000001f"
       ]
     },
     {
@@ -1333,11 +1459,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-0000001f",
+      "id": "F-00000025",
       "produced_by": "research",
       "statement": "Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.",
       "supporting_evidence": [
-        "MARKET-00000017"
+        "MARKET-0000001d"
       ]
     },
     {
@@ -1351,11 +1477,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000020",
+      "id": "F-00000026",
       "produced_by": "research",
       "statement": "Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10.",
       "supporting_evidence": [
-        "MARKET-00000017"
+        "MARKET-0000001d"
       ]
     },
     {
@@ -1368,11 +1494,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000021",
+      "id": "F-00000027",
       "produced_by": "research",
       "statement": "Regime: the equal-weight market returned 75.621% in-sample and -10.018% out-of-sample, with annualised volatility 15.727% versus 16.168%.",
       "supporting_evidence": [
-        "MARKET-00000017"
+        "MARKET-0000001d"
       ]
     },
     {
@@ -1385,11 +1511,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000022",
+      "id": "F-00000028",
       "produced_by": "research",
       "statement": "Liquidity: mean quoted spread 8.173 bps and mean daily notional 5,904,269,786.39 USD across the universe.",
       "supporting_evidence": [
-        "MARKET-00000017"
+        "MARKET-0000001d"
       ]
     },
     {
@@ -1402,12 +1528,18 @@
       "category": "SIGNAL",
       "confidence": 0.7,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000027",
+      "evidence_refs": [
+        {
+          "id": "TCA-0000002a",
+          "path": "signal_statistics.periods.in_sample.rank_autocorrelation_turnover",
+          "value": 0.0852263757285278
+        }
+      ],
+      "id": "F-0000002d",
       "produced_by": "alpha",
       "statement": "The signal's ranking is moderately stable between rebalances (1 - rank autocorrelation 0.09).",
       "supporting_evidence": [
-        "TCA-00000024"
+        "TCA-0000002a"
       ]
     },
     {
@@ -1420,11 +1552,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000028",
+      "id": "F-0000002e",
       "produced_by": "alpha",
       "statement": "The IC persists across horizons: one-day IC 0.0206, twenty-one-day IC 0.0653.",
       "supporting_evidence": [
-        "TCA-00000024"
+        "TCA-0000002a"
       ]
     },
     {
@@ -1437,12 +1569,18 @@
       "category": "BACKTEST",
       "confidence": 0.7,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-0000002e",
+      "evidence_refs": [
+        {
+          "id": "TCA-00000030",
+          "path": "backtest.pnl_concentration_top3",
+          "value": 0.2413461401396471
+        }
+      ],
+      "id": "F-00000034",
       "produced_by": "backtest",
       "statement": "P&L is diversified: the top three names carry 24% of positive P&L.",
       "supporting_evidence": [
-        "TCA-0000002a"
+        "TCA-00000030"
       ]
     },
     {
@@ -1461,11 +1599,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-0000002f",
+      "id": "F-00000035",
       "produced_by": "backtest",
       "statement": "Execution: decision at the close, fill at the close 1 day(s) later; cost lines in bps per year: spread 19, impact 40, borrow 190, financing 0 (borrow alone 190).",
       "supporting_evidence": [
-        "TCA-0000002a"
+        "TCA-00000030"
       ]
     },
     {
@@ -1483,11 +1621,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000030",
+      "id": "F-00000036",
       "produced_by": "backtest",
       "statement": "Trades clipped, blocked or adjusted inside the backtest (logged, never silently traded): delisting 2, participation_cap 5, ssr_blocked 2.",
       "supporting_evidence": [
-        "TCA-0000002a"
+        "TCA-00000030"
       ]
     },
     {
@@ -1510,11 +1648,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000031",
+      "id": "F-00000037",
       "produced_by": "backtest",
       "statement": "Delisting bounds: full-period net Sharpe merger 0.79, performance 0.81 (merger: last price; performance: -30% NYSE, -55% Nasdaq).",
       "supporting_evidence": [
-        "TCA-0000002a"
+        "TCA-00000030"
       ]
     },
     {
@@ -1529,11 +1667,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000032",
+      "id": "F-00000038",
       "produced_by": "backtest",
       "statement": "Profitability: breakeven trading cost 122.0 bps per unit of turnover; maximum drawdown 12.4% lasting up to 707 days; alpha after the generator's market factor 4.93% a year (t 3.46); capacity: breakeven AUM net excess return positive at every AUM tested.",
       "supporting_evidence": [
-        "TCA-0000002a"
+        "TCA-00000030"
       ]
     },
     {
@@ -1546,12 +1684,18 @@
       "category": "BACKTEST",
       "confidence": 0.7,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000033",
+      "evidence_refs": [
+        {
+          "id": "TCA-00000030",
+          "path": "backtest.trial.n_trials",
+          "value": 1
+        }
+      ],
+      "id": "F-00000039",
       "produced_by": "backtest",
       "statement": "Trial ledger: 1 distinct configuration(s) tested on this dataset; the deflated Sharpe uses this count, which the caller cannot set.",
       "supporting_evidence": [
-        "TCA-0000002a"
+        "TCA-00000030"
       ]
     },
     {
@@ -1565,11 +1709,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000035",
+      "id": "F-0000003b",
       "produced_by": "portfolio_risk",
       "statement": "Target portfolio as of 2026-09-18: 18 names, gross 100%, net 0%, maximum single-name weight 5.6%, beta -0.02, effective names 18.0.",
       "supporting_evidence": [
-        "RISK-0000001a"
+        "RISK-00000020"
       ]
     },
     {
@@ -1583,11 +1727,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000037",
+      "id": "F-0000003d",
       "produced_by": "portfolio_risk",
       "statement": "A -500 bps market shock moves the portfolio by 38,000.00 USD through beta and -0.00 USD through net exposure; the worst single name loses -138,890.00 USD.",
       "supporting_evidence": [
-        "RISK-0000001c"
+        "RISK-00000022"
       ]
     },
     {
@@ -1602,16 +1746,32 @@
       "category": "RISK",
       "confidence": 0.7,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000038",
+      "evidence_refs": [
+        {
+          "id": "RISK-00000022",
+          "path": "values.pnl_factor",
+          "value": -2878749.43
+        },
+        {
+          "id": "RISK-00000022",
+          "path": "values.pnl_short_squeeze",
+          "value": -5000040.0
+        },
+        {
+          "id": "RISK-00000022",
+          "path": "values.liquidation_cost",
+          "value": 222203.28
+        }
+      ],
+      "id": "F-0000003e",
       "produced_by": "portfolio_risk",
       "statement": "Tail scenarios: a reversal of the signal's factor moves the book by -2,878,749.43 USD, a +20% short squeeze by -5,000,040.00 USD; liquidating at 10% of ADV costs 222,203.28 USD over 0.4 day(s).",
       "supporting_evidence": [
-        "RISK-0000001c"
+        "RISK-00000022"
       ]
     }
   ],
-  "generated_at": "2026-01-01T00:00:00.097000+00:00",
+  "generated_at": "2026-01-01T00:00:00.099000+00:00",
   "hypotheses": null,
   "kind": "research",
   "metrics": {
@@ -2446,7 +2606,7 @@
       "universe_size": 30
     }
   },
-  "narrative": "MOMENTUM_12_1 RESEARCH PROPOSAL R01 2007-09-07 to 2026-09-18\n\nEXECUTIVE SUMMARY\n\nVerdict: PROMOTE. In-sample IC t-statistic 4.37, out-of-sample net Sharpe 1.40, costs consume 33% of gross return. No flags were raised; the signal clears every promotion hurdle.\n\nHYPOTHESIS\n\nTwelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.\nUniverse of 30 names, 4788 trading days from 2007-09-07 to 2026-09-18; in-sample period ends 2021-09-10.\n\nSIGNAL STATISTICS\n\nIn-sample: mean IC 0.0636, IC t-stat 4.37, IR 0.34, hit rate 60.5%, turnover n/a over 167 dates\nOut-of-sample: mean IC 0.1168, IC t-stat 4.48, IR 0.58, hit rate 69.5%, turnover n/a over 59 dates\nFull period: mean IC 0.0765, IC t-stat 5.99, IR 0.40, hit rate 62.6%, turnover n/a over 227 dates\n\nBACKTEST\n\nIn-sample: CAGR 3.6%, volatility 6.2%, net Sharpe 0.60 (gross 0.99), max drawdown 12.4%, cost drag 245 bps per year over 168 rebalances\nOut-of-sample: CAGR 8.8%, volatility 6.2%, net Sharpe 1.40 (gross 1.83), max drawdown 6.4%, cost drag 260 bps per year over 60 rebalances\nFull period: CAGR 4.9%, volatility 6.2%, net Sharpe 0.81 (gross 1.21), max drawdown 12.4%, cost drag 249 bps per year over 228 rebalances\nOut-of-sample to in-sample Sharpe ratio 2.36; top three names carry 24% of positive P&L.\n\nRISK\n\nTarget portfolio as of 2026-09-18: gross 100%, net 0%, max single-name weight 5.6%, beta -0.02, max ADV participation 3.9%.\nPortfolio limits respected.\nMarket shock of -500 bps: P&L through beta 38,000 USD, through net exposure -0 USD, worst single name -138,890 USD.\n\nVERDICT\n\nPROMOTE\n- in-sample IC t-stat 4.37 clears 0.65, deflated Sharpe 1.00 over 1 trial(s), out-of-sample net Sharpe 1.40, costs 33% of gross return, limits respected\n\nPRIMARY OBSERVATIONS\n\n1. Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.36 (in-sample 0.60, out-of-sample 1.40). [confidence 0.94]\n2. Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%). [confidence 0.85]\n3. The momentum_12_1 signal is predictive in-sample: mean 21-day rank IC 0.0636 with t-statistic 4.37 over 167 non-overlapping periods, clearing the 0.65 null-sweep hurdle (Newey-West t on overlapping periods 5.75; hit rate 60.5%). [confidence 0.83]\n4. Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates. [confidence 0.82]\n5. Transaction costs consume 33% of gross return (249 bps per year against gross 7.5%). [confidence 0.80]\n6. The strategy is profitable out-of-sample: net Sharpe 1.40, CAGR 8.8%, maximum drawdown 6.4% over 1260 days. [confidence 0.73]\n7. Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample. [confidence 0.70]\n8. Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10. [confidence 0.70]\n\nALTERNATIVE EXPLANATIONS\n\n- Costs consume 33% of gross return; rebalancing less often would reduce the cost drag at the expense of signal freshness.\n\nCRITIC\n\nReviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: PROMOTE (no flags). Findings are consistent with the deterministic evidence; confidence adjustments applied where evidence was thin.\n\nAPPROVAL\n\nApproved by auto-approver: auto-approved (dev mode)\n\nSTAGED ORDERS\n\nOrder staging was not requested.\n\nPOLICY CONTEXT\n\n- Execution Policy / Execution Policy: # Execution Policy\n- Trading Limits Policy / Trading Limits Policy: # Trading Limits Policy\n- Execution Policy / Escalation: ## Escalation\n\nEVIDENCE\n\n- BT-00000019\n- ENG-0000001d\n- MARKET-00000017\n- RISK-0000001a\n- RISK-0000001b\n- RISK-0000001c\n- SIG-00000018\n- TCA-00000024\n- TCA-0000002a\n- TCA-0000003a\n- TCA-0000003b",
+  "narrative": "MOMENTUM_12_1 RESEARCH PROPOSAL R01 2007-09-07 to 2026-09-18\n\nEXECUTIVE SUMMARY\n\nVerdict: PROMOTE. In-sample IC t-statistic 4.37, out-of-sample net Sharpe 1.40, costs consume 33% of gross return. No flags were raised; the signal clears every promotion hurdle.\n\nHYPOTHESIS\n\nTwelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.\nUniverse of 30 names, 4788 trading days from 2007-09-07 to 2026-09-18; in-sample period ends 2021-09-10.\n\nSIGNAL STATISTICS\n\nIn-sample: mean IC 0.0636, IC t-stat 4.37, IR 0.34, hit rate 60.5%, turnover n/a over 167 dates\nOut-of-sample: mean IC 0.1168, IC t-stat 4.48, IR 0.58, hit rate 69.5%, turnover n/a over 59 dates\nFull period: mean IC 0.0765, IC t-stat 5.99, IR 0.40, hit rate 62.6%, turnover n/a over 227 dates\n\nBACKTEST\n\nIn-sample: CAGR 3.6%, volatility 6.2%, net Sharpe 0.60 (gross 0.99), max drawdown 12.4%, cost drag 245 bps per year over 168 rebalances\nOut-of-sample: CAGR 8.8%, volatility 6.2%, net Sharpe 1.40 (gross 1.83), max drawdown 6.4%, cost drag 260 bps per year over 60 rebalances\nFull period: CAGR 4.9%, volatility 6.2%, net Sharpe 0.81 (gross 1.21), max drawdown 12.4%, cost drag 249 bps per year over 228 rebalances\nOut-of-sample to in-sample Sharpe ratio 2.36; top three names carry 24% of positive P&L.\n\nRISK\n\nTarget portfolio as of 2026-09-18: gross 100%, net 0%, max single-name weight 5.6%, beta -0.02, max ADV participation 3.9%.\nPortfolio limits respected.\nMarket shock of -500 bps: P&L through beta 38,000 USD, through net exposure -0 USD, worst single name -138,890 USD.\n\nVERDICT\n\nPROMOTE\n- in-sample IC t-stat 4.37 clears 0.65, deflated Sharpe 1.00 over 1 trial(s), out-of-sample net Sharpe 1.40, costs 33% of gross return, limits respected\n\nPRIMARY OBSERVATIONS\n\n1. Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.36 (in-sample 0.60, out-of-sample 1.40). [confidence 0.94]\n2. Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%). [confidence 0.85]\n3. The momentum_12_1 signal is predictive in-sample: mean 21-day rank IC 0.0636 with t-statistic 4.37 over 167 non-overlapping periods, clearing the 0.65 null-sweep hurdle (Newey-West t on overlapping periods 5.75; hit rate 60.5%). [confidence 0.83]\n4. Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates. [confidence 0.82]\n5. Transaction costs consume 33% of gross return (249 bps per year against gross 7.5%). [confidence 0.80]\n6. The strategy is profitable out-of-sample: net Sharpe 1.40, CAGR 8.8%, maximum drawdown 6.4% over 1260 days. [confidence 0.73]\n7. Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample. [confidence 0.70]\n8. Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10. [confidence 0.70]\n\nALTERNATIVE EXPLANATIONS\n\n- Costs consume 33% of gross return; rebalancing less often would reduce the cost drag at the expense of signal freshness.\n\nCRITIC\n\nReviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: PROMOTE (no flags).\n\nAPPROVAL\n\nApproved by auto-approver: auto-approved (dev mode)\n\nSTAGED ORDERS\n\nOrder staging was not requested.\n\nEVIDENCE\n\n- BT-0000001f\n- DOC-00000023\n- MARKET-0000001d\n- RISK-00000020\n- RISK-00000021\n- RISK-00000022\n- SIG-0000001e\n- TCA-0000002a\n- TCA-00000030\n- TCA-00000040\n- TCA-00000041",
   "primary_observations": [
     "Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.36 (in-sample 0.60, out-of-sample 1.40).",
     "Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%).",
@@ -2457,13 +2617,23 @@
     "Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.",
     "Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10."
   ],
+  "prompts": {
+    "critic": {
+      "sha256": "f471e75077d3b8738b646774811d519d1f706735c8da0711ea78d1d4415d28af",
+      "version": "3"
+    },
+    "research_planner": {
+      "sha256": "be03bc38e8b9dccab2d04248268aeaae3a5b0ba593e07ba2a6ed28f81d35acd7",
+      "version": "2"
+    }
+  },
   "proposal": {
     "approval": {
       "approved": true,
       "comment": "auto-approved (dev mode)",
       "decided_at": "2026-01-01T00:00:00.090000+00:00",
       "decided_by": "auto-approver",
-      "request_id": "APR-0000003c",
+      "request_id": "APR-00000042",
       "step_id": "gov-approval",
       "system_actor": true
     },

@@ -242,7 +242,7 @@ class CaseRecord:
         }
 
 
-AuditHook = Callable[[str, str, str, dict[str, Any]], None]  # (actor, action, subject, payload)
+AuditHook = Callable[[str, str, str, dict[str, Any]], Any]  # (actor, action, subject, payload)
 
 
 class CaseMemory:

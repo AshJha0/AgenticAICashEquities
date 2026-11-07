@@ -410,14 +410,14 @@ class CriticAgent(BaseAgent):
             except (TypeError, ValueError):
                 proposed = f.confidence
             disputes = a.get("supported") is False or (math.isfinite(proposed) and proposed < f.confidence)
-            check = a.get("check")
+            named = a.get("check")
             for rec in assessments:
                 if rec["finding_id"] != f.id:
                     continue
                 rec["llm_comment"] = str(a.get("comment", ""))[:500]  # stored, never forwarded
                 rec["llm_proposed_confidence"] = round(proposed, 3) if math.isfinite(proposed) else None
-                if disputes and check in CRITIC_CHECKS:
-                    rec["dispute"] = {"finding_id": f.id, "check": check}
+                if disputes and named in CRITIC_CHECKS:
+                    rec["dispute"] = {"finding_id": f.id, "check": named}
                 elif disputes:
                     rec["unbacked_dispute"] = True  # recorded; changes nothing
         # the model never sets a confidence: the findings leave unchanged (3B.3)

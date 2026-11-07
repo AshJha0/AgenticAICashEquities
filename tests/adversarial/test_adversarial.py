@@ -93,7 +93,7 @@ async def test_rogue_plan_is_sanitised_by_planner_and_harness(platform: Platform
     )
     result = await harness.execute(task, platform.policy_context(req, task))
     assert result.success
-    tool_ids = [s.tool_request.tool_id for s in result.plan.steps if s.tool_request]
+    tool_ids = [s.tool_request.tool_id for s in result.plan.steps if s.tool_request and not s.id.startswith("gov-data-")]  # R3B: harness data steps excluded
     assert tool_ids == ["execution.get_execution_metrics"]
     assert "__proto__" not in result.plan.steps[0].tool_request.arguments
     assert len(result.agent_outputs) >= 1
