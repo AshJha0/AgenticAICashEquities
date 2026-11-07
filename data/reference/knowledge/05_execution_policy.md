@@ -1,3 +1,9 @@
+---
+version: 1.0
+effective_date: 2026-10-01
+classification: internal
+---
+
 # Execution Policy
 
 ## Best execution

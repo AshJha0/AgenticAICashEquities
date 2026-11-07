@@ -1,3 +1,9 @@
+---
+version: 1.2
+effective_date: 2026-10-01
+classification: internal
+---
+
 # TCA Methodology
 
 ## Benchmarks
