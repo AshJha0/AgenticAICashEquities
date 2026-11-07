@@ -13,6 +13,8 @@ from ceap.platform import Platform
 TRADER = {"X-API-Key": "dev-trader-key"}
 VIEWER = {"X-API-Key": "dev-viewer-key"}
 ADMIN = {"X-API-Key": "dev-admin-key"}
+APPROVER = {"X-API-Key": "dev-approver-key"}
+APPROVER2 = {"X-API-Key": "dev-approver2-key"}
 
 
 @pytest.fixture
@@ -51,7 +53,8 @@ async def test_auth_and_rbac(client):
     ).status_code == 401
     assert (await client.post("/investigations", json=body, headers=VIEWER)).status_code == 403
     assert (await client.get("/approvals", headers=TRADER)).status_code == 403
-    assert (await client.get("/approvals", headers=ADMIN)).status_code == 200
+    assert (await client.get("/approvals", headers=APPROVER)).status_code == 200
+    assert (await client.get("/approvals", headers=ADMIN)).status_code == 403  # D1: admin lost approvals:decide
 
 
 async def test_validation_errors(client):
@@ -103,7 +106,7 @@ async def test_investigation_lifecycle(client):
     assert full["success"] and "trace" in full and full["plan"]["steps"]
     listing = (await client.get("/investigations", headers=VIEWER)).json()
     assert any(i["task_id"] == tid for i in listing)
-    assert (await client.post("/approvals/APR-x", json={"approved": True}, headers=ADMIN)).status_code == 409
+    assert (await client.post("/approvals/APR-x", json={"approved": True}, headers=APPROVER)).status_code == 409
 
 
 async def test_cancel_endpoint(client):
@@ -119,5 +122,6 @@ async def test_cancel_endpoint(client):
     assert status["status"] in (
         "COMPLETED",
         "FAILED",
+        "CANCELLED",
     )  # cancellation raced with a fast run; state is reported either way
     assert (await client.post("/investigations/TASK-nope/cancel", headers=TRADER)).status_code == 404

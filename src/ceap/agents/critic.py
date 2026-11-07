@@ -15,13 +15,14 @@ An optional LLM critique then runs and may only *lower* confidence.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import math
 from dataclasses import replace
 from typing import Any
 
-from ceap.agents.base import BaseAgent, finite
+from ceap.agents.base import BaseAgent, degradation_records, finite, llm_disabled
 from ceap.analytics.attribution import MATERIAL_SCORE
 from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS, assess_research
 from ceap.domain.agents import AgentContext, AgentResult
@@ -33,11 +34,22 @@ from ceap.domain.research import (
     portfolio_risk_report_from_dict,
     signal_statistics_from_dict,
 )
+from ceap.harness.cancellation import TaskCancelled
 from ceap.llm.client import LLMClient, extract_json
-from ceap.llm.models import LLMRequest
+from ceap.llm.models import (
+    RUNG_DETERMINISTIC,
+    RUNG_KILL_SWITCH,
+    RUNG_REPAIR,
+    Degradation,
+    LLMRequest,
+)
 from ceap.llm.prompts import CRITIC_SYSTEM_PROMPT
 
 log = logging.getLogger(__name__)
+CRITIC_REPAIR_INSTRUCTION = (
+    'Your previous reply was not usable. Reply with only one JSON object: {"assessments": '
+    '[{"finding_id": "...", "supported": true, "adjusted_confidence": 0.5, "comment": "..."}], "overall": "..."}'
+)
 
 SINGLE_EVIDENCE_CAP = 0.7
 RESEARCH_KIND = "research"
@@ -134,13 +146,29 @@ class CriticAgent(BaseAgent):
             flags = ", ".join(research_assessment["flags"]) or "no flags"
             overall += f" Research assessment: {research_assessment['verdict']} ({flags})."
         llm_overall = None
-        llm_fallback: str | None = None
-        if self.llm is not None:
+        degradations: list[Degradation] = []
+        if self.llm is not None and llm_disabled(self.llm):
+            degradations.append(
+                Degradation(RUNG_KILL_SWITCH, "LLM_DISABLED", "kill switch on: deterministic critique only")
+            )
+        elif self.llm is not None:
             try:
-                adjusted, llm_overall, llm_fallback = await self._llm_critique(adjusted, memory, assessments)
+                adjusted, llm_overall, llm_degradations = await self._llm_critique(
+                    context, adjusted, memory, assessments
+                )
+                degradations.extend(llm_degradations)
+            except (TaskCancelled, asyncio.CancelledError):
+                raise
             except Exception as exc:  # noqa: BLE001 - the deterministic critique must survive a model failure
                 log.warning("LLM critique failed (%s); keeping deterministic assessment", exc)
                 llm_overall = None
+                degradations.append(
+                    Degradation(
+                        RUNG_DETERMINISTIC,
+                        "LLM_CRITIQUE_FAILED",
+                        f"deterministic critique only ({type(exc).__name__}: {str(exc)[:200]})",
+                    )
+                )
         unsupported = [a["finding_id"] for a in assessments if not a["supported"]]
         critique: dict[str, Any] = {
             "assessments": assessments,
@@ -156,8 +184,8 @@ class CriticAgent(BaseAgent):
         output: dict[str, Any] = {"critique": critique, "adjusted_findings": tuple(adjusted)}
         if research_assessment is not None:
             output["assessment"] = research_assessment
-        if llm_fallback:
-            output["llm_fallback"] = llm_fallback
+        if degradations:
+            output["degradations"] = degradation_records(degradations)
         return AgentResult(
             agent_id=self.id,
             success=True,
@@ -253,8 +281,8 @@ class CriticAgent(BaseAgent):
         return " ".join(parts)
 
     async def _llm_critique(
-        self, findings: list[Finding], memory: Any, assessments: list[dict[str, Any]]
-    ) -> tuple[list[Finding], str | None, str | None]:
+        self, context: AgentContext, findings: list[Finding], memory: Any, assessments: list[dict[str, Any]]
+    ) -> tuple[list[Finding], str | None, list[Degradation]]:
         payload = {
             "findings": [
                 {
@@ -273,15 +301,37 @@ class CriticAgent(BaseAgent):
             ]
         }
         assert self.llm is not None
-        response = await self.llm.complete(
-            LLMRequest(
-                system_prompt=CRITIC_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": json.dumps(payload)}],
-                purpose="critique",
-                max_tokens=2048,
-            )
+        request = LLMRequest(
+            system_prompt=CRITIC_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": json.dumps(payload)}],
+            purpose="critique",  # max_tokens 8000 and effort from model_pins.toml
         )
+        response = await self.call_llm(context, self.llm, request)
+        degradations = list(response.degradations)
         parsed = extract_json(response.content) or {}
+        if findings and not isinstance(parsed.get("assessments"), list):
+            degradations.append(
+                Degradation(RUNG_REPAIR, "LLM_REPAIR_RETRY", "critique output unusable; one repair retry")
+            )
+            repair = LLMRequest(
+                **{
+                    **request.__dict__,
+                    "messages": [
+                        *request.messages,
+                        {"role": "assistant", "content": response.content[:4000] or "(empty)"},
+                        {"role": "user", "content": CRITIC_REPAIR_INSTRUCTION},
+                    ],
+                }
+            )
+            response = await self.call_llm(context, self.llm, repair)
+            degradations.extend(response.degradations)
+            parsed = extract_json(response.content) or {}
+            if not isinstance(parsed.get("assessments"), list):
+                degradations.append(
+                    Degradation(
+                        RUNG_DETERMINISTIC, "LLM_CRITIQUE_UNUSABLE", "deterministic critique only (model output unusable)"
+                    )
+                )
         by_id = {a.get("finding_id"): a for a in (parsed.get("assessments") or []) if isinstance(a, dict)}
         out: list[Finding] = []
         for f in findings:
@@ -301,7 +351,7 @@ class CriticAgent(BaseAgent):
                     rec["llm_comment"] = str(a.get("comment", ""))[:500]
                     rec["adjusted_confidence"] = round(new_conf, 3)
             out.append(replace(f, confidence=round(new_conf, 3)))
-        return out, (str(parsed.get("overall", ""))[:1000] or None), response.fallback_reason
+        return out, (str(parsed.get("overall", ""))[:1000] or None), degradations
 
 
 def _ev_view(e: Any) -> dict[str, Any]:

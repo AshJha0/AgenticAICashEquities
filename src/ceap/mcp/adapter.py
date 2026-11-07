@@ -12,7 +12,7 @@ import json
 import time
 from typing import Any
 
-from ceap.domain.common import to_jsonable, utc_now
+from ceap.domain.common import SCHEMA_VERSION, to_jsonable, utc_now
 from ceap.domain.evidence import Evidence, EvidenceType
 from ceap.domain.tools import (
     RiskLevel,
@@ -65,7 +65,19 @@ def _summarise(data: Any) -> str:
     return type(data).__name__
 
 
+def _risk(value: Any) -> RiskLevel:
+    """Missing or unknown ``riskLevel`` means HIGH (fail closed)."""
+    try:
+        return RiskLevel(value) if value is not None else RiskLevel.HIGH
+    except ValueError:
+        return RiskLevel.HIGH
+
+
 class MCPToolAdapter(Tool):
+    """Fail closed on annotations (PLAN 1.7): a missing ``readOnlyHint`` means *not* read-only and
+    a missing ``riskLevel`` means HIGH. Whether the server is trusted is decided by the policy engine
+    (``trusted_servers``), which denies every write to a tool of an untrusted server."""
+
     def __init__(self, client: MCPClient, server: str, descriptor: dict[str, Any]) -> None:
         self._client = client
         self._server = server
@@ -75,8 +87,8 @@ class MCPToolAdapter(Tool):
             id=f"{server}.{self._name}",
             name=self._name,
             description=descriptor.get("description", ""),
-            read_only=bool(ann.get("readOnlyHint", True)),
-            risk_level=RiskLevel(ann.get("riskLevel", "LOW")),
+            read_only=ann.get("readOnlyHint") is True,
+            risk_level=_risk(ann.get("riskLevel")),
             required_capabilities=frozenset(ann.get("requiredCapabilities", [])),
             input_schema=descriptor.get("inputSchema", {}),
             server=server,
@@ -101,6 +113,13 @@ class MCPToolAdapter(Tool):
         except Exception as exc:  # noqa: BLE001 - surface as tool error, harness decides on retry
             return ToolResult(
                 status=ToolStatus.ERROR, error=f"{type(exc).__name__}: {exc}", execution_time_ms=_ms(started)
+            )
+        version = data.get("schema_version") if isinstance(data, dict) else None
+        if version is not None and version != SCHEMA_VERSION:
+            return ToolResult(
+                status=ToolStatus.ERROR,
+                error=f"{self.id}: schema_version {version!r} drifted from {SCHEMA_VERSION}; result rejected",
+                execution_time_ms=_ms(started),
             )
         evidence = Evidence.create(
             type=_TOOL_EVIDENCE.get(

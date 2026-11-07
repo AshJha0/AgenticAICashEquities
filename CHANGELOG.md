@@ -46,6 +46,65 @@ Round R0 of the 2026-11-07 plan (`docs/review/2026-11-07/PLAN.md`): foundations 
 - COOKBOOK (recipe 34), the architecture overview and the diagrams page (section 10, CI and the release gate) describe the
   new workflow.
 
+### R1: fail closed by default (PLAN section 2, items 1.1-1.11)
+
+#### Breaking / migration
+
+- **`CEAP_LLM_PROVIDER=auto` is removed.** It silently used the mock when no key was set. Set
+  `CEAP_LLM_PROVIDER=anthropic` (needs the `llm` extra and `ANTHROPIC_API_KEY`) or
+  `CEAP_LLM_PROVIDER=mock`. `auto` now fails at startup with a message naming both. Outside
+  `CEAP_ENV=dev` the variable must be set explicitly; in dev it defaults to `mock`.
+- `CEAP_LLM_PROVIDER=anthropic` with a client that cannot be built (no SDK, bad key) raises
+  `SettingsError` at startup instead of falling back to the mock.
+- Model ids must be pinned in `src/ceap/llm/model_pins.toml`: `claude-opus-5-5` (planning),
+  `claude-sonnet-5-5` (narrative, critique), `claude-haiku-5-5` (reserved for judge paths). The
+  old default `claude-sonnet-4-5` (retires 2026-11-30) and any unpinned id are refused.
+- `LLMRequest.temperature` is removed; `max_tokens` defaults to the pinned value per purpose
+  (planner 16000, critic 8000, reporter 8000) to leave room for adaptive thinking.
+- Four-eyes approvals: new `approver` role holds `approvals:decide`; `admin` loses it (admins
+  keep cancel-any through the new `tasks:cancel-any` capability). Nobody may decide an approval
+  they requested (403), and the staging approval must come from a different principal than the
+  proposal approval. Dev keys `dev-approver-key` and `dev-approver2-key` were added.
+- `AgentHarness()` without an approval gateway now denies every approval (was: auto-approve).
+  `CEAP_AUTO_APPROVE=true` outside `CEAP_ENV=dev` refuses to serve.
+- `HarnessResult.warnings` is now `list[ResultWarning]` (code, message, source, severity), not
+  `list[str]`; use `result.warning_messages()` for the old shape. The API status field now reports
+  `COMPLETED`, `DEGRADED`, `INCOMPLETE_ANALYSIS`, `FAILED` or `CANCELLED`, and `to_dict()` adds
+  `status`, `banner` and `incomplete_agents`.
+- MCP trust fails closed: a missing `readOnlyHint` means not read-only and a missing or unknown
+  `riskLevel` means HIGH (in-process adapter and stdio client). Tools of a server outside
+  `CEAP_MCP_TRUSTED_SERVERS` (default: the eight built-in servers) cannot write. A tool result
+  whose `schema_version` differs from `SCHEMA_VERSION` is rejected.
+- Standalone stdio MCP servers enforce `required_capabilities` for the principal named by
+  `CEAP_MCP_PRINCIPAL_ROLES`; unset means no capabilities, so `stage_orders` is refused.
+
+#### Added
+
+- Degradation ladder, visible on every result: rung 1 refusal answered by the pinned fallback
+  model, rung 2 one structured-output repair retry, rung 3 canonical plan / deterministic
+  critique / templated narrative, rung 4 `CEAP_LLM_DISABLED=true` kill switch with a banner. Each
+  rung above 0 adds a `ResultWarning` and sets `DEGRADED`; `stop_reason` `max_tokens` and
+  `refusal` are recorded with `stop_details`.
+- Required specialists: the harness appends market, execution, quant, risk or engineering if an
+  investigation plan omits one. A failed required agent yields `INCOMPLETE_ANALYSIS` and a report
+  that says so instead of "no material anomaly"; a timed-out agent returns its checkpointed
+  `PARTIAL` output.
+- Model calls: per-call timeout `CEAP_LLM_TIMEOUT_S` (60 s), raced against cancellation,
+  concurrency cap `CEAP_LLM_MAX_CONCURRENCY` (4) and per-task cap `CEAP_LLM_MAX_CALLS_PER_TASK`
+  (12). The client retries 408/409/429/5xx and transport faults, never other 4xx. Adaptive
+  thinking and the pinned `effort` are sent on the wire.
+- Dockerfile: Python 3.12, digest-pinned base, dependencies (with `[llm]`) only from the hashed
+  lock, non-root user, `HEALTHCHECK`; new `.dockerignore`.
+- README banner (synthetic data, nothing trades, paper orders only, no live model numbers);
+  threat model T17 corrected and T20-T22 added; 39 tests named `test_1_N_*` in
+  `tests/agent/test_r1_fail_closed.py`.
+
+#### Changed
+
+- The job-prep word is gone from every tracked file; LEARN section 17 is now "Knowledge check".
+  `Claude outputs/ci.yml` (a stale copy of the workflow) is deleted.
+- CI run id for this round: recorded by the coordinator when the combined 0.4.0 PR is green.
+
 ## 0.3.5 – Two new dedicated pages: AI/agents and quant
 
 0.3.4 folded Stage 2 and the real-model findings into the *existing* docs but added no new

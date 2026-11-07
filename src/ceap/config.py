@@ -2,8 +2,13 @@
 
 Defaults are safe by environment: the development API keys and automatic
 approvals apply only when ``CEAP_ENV=dev`` (the default). In any other
-environment the key map must be supplied explicitly and approvals are
-queued for a human unless ``CEAP_AUTO_APPROVE=true`` is set deliberately.
+environment the key map must be supplied explicitly, approvals are queued for
+a human, and ``CEAP_AUTO_APPROVE=true`` makes the server refuse to start.
+
+The LLM layer fails closed: ``CEAP_LLM_PROVIDER`` is ``mock`` or ``anthropic``
+(``auto`` was removed in 0.4.0); outside dev it must be set explicitly; model
+ids must be pinned in ``llm/model_pins.toml``; ``CEAP_LLM_DISABLED=true`` is the
+kill switch that forces the deterministic path everywhere.
 """
 
 from __future__ import annotations
@@ -12,12 +17,16 @@ import logging
 import os
 from dataclasses import dataclass, field
 
+from ceap.policy.engine import trusted_servers_from_env
 from ceap.policy.permissions import Role
 
 logger = logging.getLogger(__name__)
 
-DEV_API_KEYS = "dev-trader-key:trader,dev-quant-key:quant,dev-admin-key:admin,dev-viewer-key:viewer"
-LLM_PROVIDERS = ("auto", "mock", "anthropic")
+DEV_API_KEYS = (
+    "dev-trader-key:trader,dev-quant-key:quant,dev-admin-key:admin,dev-viewer-key:viewer,"
+    "dev-approver-key:approver,dev-approver2-key:approver"
+)
+LLM_PROVIDERS = ("mock", "anthropic")
 
 
 class SettingsError(ValueError):
@@ -68,7 +77,19 @@ def _default_auto_approve() -> bool:
 
 
 def _default_provider() -> str:
-    provider = _env("CEAP_LLM_PROVIDER", "auto").lower()
+    raw = os.getenv("CEAP_LLM_PROVIDER")
+    if raw is None or raw.strip() == "":
+        if _environment() != "dev":
+            raise SettingsError(
+                f"CEAP_LLM_PROVIDER must be set explicitly (mock or anthropic) for CEAP_ENV={_environment()!r}"
+            )
+        return "mock"
+    provider = raw.strip().lower()
+    if provider == "auto":
+        raise SettingsError(
+            "CEAP_LLM_PROVIDER=auto was removed in 0.4.0 (it silently fell back to the mock); "
+            "set CEAP_LLM_PROVIDER=anthropic or CEAP_LLM_PROVIDER=mock"
+        )
     if provider not in LLM_PROVIDERS:
         raise SettingsError(f"CEAP_LLM_PROVIDER must be one of {LLM_PROVIDERS}, got {provider!r}")
     return provider
@@ -77,8 +98,8 @@ def _default_provider() -> str:
 @dataclass(frozen=True)
 class Settings:
     environment: str = field(default_factory=_environment)
-    llm_provider: str = field(default_factory=_default_provider)  # auto | mock | anthropic
-    llm_model: str = field(default_factory=lambda: _env("CEAP_LLM_MODEL", "claude-sonnet-4-5"))
+    llm_provider: str = field(default_factory=_default_provider)  # mock | anthropic
+    llm_model: str = field(default_factory=lambda: _env("CEAP_LLM_MODEL", _pinned_default("narrative")))
     llm_planning_model: str | None = field(
         default_factory=lambda: os.getenv("CEAP_LLM_PLANNING_MODEL") or None
     )
@@ -100,14 +121,33 @@ class Settings:
     max_retained_results: int = field(
         default_factory=lambda: int(_env_number("CEAP_MAX_RETAINED_RESULTS", 200, 1, integer=True))
     )
+    llm_disabled: bool = field(default_factory=lambda: _env_bool("CEAP_LLM_DISABLED", False))
+    llm_timeout_s: float = field(default_factory=lambda: _env_number("CEAP_LLM_TIMEOUT_S", 60.0, 1.0))
+    llm_max_concurrency: int = field(
+        default_factory=lambda: int(_env_number("CEAP_LLM_MAX_CONCURRENCY", 4, 1, integer=True))
+    )
+    llm_max_calls_per_task: int = field(
+        default_factory=lambda: int(_env_number("CEAP_LLM_MAX_CALLS_PER_TASK", 12, 1, integer=True))
+    )
+    mcp_trusted_servers: frozenset[str] = field(default_factory=trusted_servers_from_env)
+
+    def __post_init__(self) -> None:
+        if self.llm_provider not in LLM_PROVIDERS:
+            raise SettingsError(f"llm_provider must be one of {LLM_PROVIDERS}, got {self.llm_provider!r}")
+        from ceap.llm.pins import UnpinnedModelError, load_pins
+
+        pins = load_pins()
+        for name, model in (("CEAP_LLM_MODEL", self.llm_model), ("CEAP_LLM_PLANNING_MODEL", self.llm_planning_model)):
+            if model is None:
+                continue
+            try:
+                pins.require(model)
+            except UnpinnedModelError as exc:
+                raise SettingsError(f"{name}: {exc}") from exc
 
     @property
     def use_anthropic(self) -> bool:
-        if self.llm_provider == "anthropic":
-            return True
-        if self.llm_provider == "mock":
-            return False
-        return bool(self.anthropic_api_key)
+        return self.llm_provider == "anthropic"
 
     @property
     def is_dev(self) -> bool:
@@ -122,12 +162,23 @@ class Settings:
             )
         if not self.is_dev and any(key.startswith("dev-") for key in self.api_keys):
             raise SettingsError("development API keys (dev-*) must not be used outside CEAP_ENV=dev")
+        if not self.is_dev and self.auto_approve:
+            raise SettingsError(
+                f"CEAP_AUTO_APPROVE=true is only allowed with CEAP_ENV=dev (got {self.environment!r}); "
+                "approvals outside dev must come from a human approver"
+            )
         if self.is_dev:
             logger.warning(
                 "CEAP_ENV=dev: serving with dev-* API keys and/or default auto-approve=%s. "
                 "This configuration must never be used outside a local/demo environment.",
                 self.auto_approve,
             )
+
+
+def _pinned_default(purpose: str) -> str:
+    from ceap.llm.pins import load_pins
+
+    return load_pins().for_purpose(purpose).model
 
 
 def _parse_api_keys(raw: str) -> dict[str, str]:

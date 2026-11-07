@@ -34,11 +34,31 @@ of them (`test_fabricated_numbers_and_evidence_ids_are_flagged`).
 | `LLMClient.complete(LLMRequest) -> LLMResponse` | the one interface every caller uses |
 | `MockLLMClient` | deterministic, offline default — a canonical plan for planning requests, a templated narrative rendered from structured facts for report requests, a rule-based critique. This is why the whole platform (tests, CI, demos) runs with no API key and no cost |
 | `AnthropicLLMClient` | adapts the Anthropic SDK for real calls |
-| `LLMRouter` | picks a model per *purpose* (`planning` / `narrative` / `critique`) via `CEAP_LLM_MODEL` / `CEAP_LLM_PLANNING_MODEL`, and **silently falls back to the mock on any failure** |
+| `LLMRouter` | picks a pinned model per *purpose* (`planning` / `narrative` / `critique` / `judge`) from `llm/model_pins.toml`, enforces the call timeout and concurrency cap, and records every fallback |
 
-That silent fallback is a real double-edged design choice: it means the platform never crashes
-because a model call failed, but it also means a broken integration can run for a long time
-looking healthy. It did — see "What running against a real model actually found" below.
+Until 0.3.x the router **silently** fell back to the mock, and a broken integration ran for a long
+time looking healthy (see "What running against a real model actually found" below). Since 0.4.0
+the layer fails closed and degrades visibly:
+
+* **Construction:** the mock is used only when `CEAP_LLM_PROVIDER=mock`. `anthropic` without a
+  working client is a startup error; `auto` is gone; model ids outside `model_pins.toml` are refused.
+* **Degradation ladder** (each rung above 0 adds a `ResultWarning` and sets `DEGRADED`):
+
+  | Rung | When | What happens |
+  |---|---|---|
+  | 0 | the model answers usably | nothing recorded |
+  | 1 | the model refuses (`stop_reason=refusal`) | the pinned fallback model answers; refusal category recorded |
+  | 2 | the structured output is unparsable or truncated (`max_tokens`) | one repair retry |
+  | 3 | the client fails or the repair fails | canonical plan, deterministic critique or templated narrative |
+  | 4 | `CEAP_LLM_DISABLED=true` | no model call anywhere; rung 3 everywhere; banner on every result |
+
+* **Wire:** adaptive thinking with the pinned `effort`, `max_tokens` with thinking headroom
+  (planner 16000, critic and reporter 8000), no sampling parameters, 60 s timeout, retries only on
+  408/409/429/5xx and transport faults, every call raced against cancellation and counted against
+  a per-investigation cap.
+* **Nothing here is measured live** (D15): these paths are proven with fake clients and
+  wire-shape tests in `tests/agent/test_r1_fail_closed.py`; real-model quality is UNKNOWN / NOT RUN
+  LIVE for the 5.5 pins.
 
 Three purposes, three call sites:
 

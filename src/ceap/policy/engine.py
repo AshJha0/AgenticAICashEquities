@@ -7,8 +7,9 @@ are explainable in the audit trail.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from ceap.domain.policy import PolicyContext, PolicyDecision, PolicyEngine, PolicyEvaluation
@@ -17,6 +18,24 @@ from ceap.domain.tools import RiskLevel, ToolMetadata, ToolRequest
 Rule = Callable[[ToolRequest, ToolMetadata, PolicyContext], PolicyEvaluation | None]
 
 MAX_PAGE_LIMIT = 5000
+#: built-in MCP servers; overridden by CEAP_MCP_TRUSTED_SERVERS (comma-separated)
+DEFAULT_TRUSTED_SERVERS = (
+    "market_data",
+    "execution",
+    "risk",
+    "engineering",
+    "knowledge",
+    "research_data",
+    "alpha",
+    "backtest",
+)
+
+
+def trusted_servers_from_env() -> frozenset[str]:
+    raw = os.getenv("CEAP_MCP_TRUSTED_SERVERS")
+    if raw is None or raw.strip() == "":
+        return frozenset(DEFAULT_TRUSTED_SERVERS)
+    return frozenset(s.strip() for s in raw.split(",") if s.strip())
 
 
 @dataclass
@@ -24,10 +43,12 @@ class RulePolicyEngine(PolicyEngine):
     allowed_symbols: frozenset[str] | None = None
     denied_tools: frozenset[str] = frozenset()
     max_page_limit: int = MAX_PAGE_LIMIT
+    trusted_servers: frozenset[str] = field(default_factory=trusted_servers_from_env)
 
     def __post_init__(self) -> None:
         self._rules: list[Rule] = [
             self._rule_denied_tools,
+            self._rule_untrusted_server,
             self._rule_read_only,
             self._rule_capabilities,
             self._rule_argument_guards,
@@ -58,6 +79,21 @@ class RulePolicyEngine(PolicyEngine):
         if meta.id in self.denied_tools:
             return PolicyEvaluation(
                 PolicyDecision.DENY, f"tool {meta.id} is on the deny list", "denied-tools", meta.id
+            )
+        return None
+
+    def _rule_untrusted_server(
+        self, req: ToolRequest, meta: ToolMetadata, ctx: PolicyContext
+    ) -> PolicyEvaluation | None:
+        """Tools of an MCP server outside the allowlist are read-only whatever they declare (T20)."""
+        if meta.server is None or meta.server in self.trusted_servers:
+            return None
+        if not meta.read_only:
+            return PolicyEvaluation(
+                PolicyDecision.DENY,
+                f"server {meta.server} is not in trusted_servers; its tools are read-only",
+                "untrusted-server",
+                meta.id,
             )
         return None
 

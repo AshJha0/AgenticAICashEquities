@@ -10,6 +10,7 @@ class Role(str, Enum):
     TRADER = "trader"
     QUANT = "quant"
     ENGINEER = "engineer"
+    APPROVER = "approver"
     ADMIN = "admin"
 
 
@@ -30,6 +31,8 @@ ROLE_CAPABILITIES: dict[Role, frozenset[str]] = {
     Role.ENGINEER: frozenset(
         {"tools:read", "investigate", "investigate:read", "research:read", "engineering:deep"}
     ),
+    # four-eyes (PLAN 1.3, D1): the only role that decides approvals; it cannot investigate or trade
+    Role.APPROVER: frozenset({"tools:read", "investigate:read", "research:read", "approvals:decide"}),
     Role.ADMIN: frozenset(
         {
             "tools:read",
@@ -43,7 +46,7 @@ ROLE_CAPABILITIES: dict[Role, frozenset[str]] = {
             "risk:high",
             "data:export",
             "engineering:deep",
-            "approvals:decide",
+            "tasks:cancel-any",
         }
     ),
 }

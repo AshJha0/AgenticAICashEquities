@@ -54,6 +54,30 @@ class ApprovalDecision:
     decided_at: datetime = field(default_factory=utc_now)
 
 
+#: non-human deciders; exempt from the four-eyes check and always recorded in the audit trail
+SYSTEM_ACTORS = frozenset({"timeout", "policy", "auto-approver"})
+#: key in ``ApprovalRequest.arguments`` naming principals who may not decide this request
+DISTINCT_FROM_KEY = "four_eyes_distinct_from"
+
+
+class FourEyesViolationError(PermissionError):
+    """The decider requested the action, or already approved an earlier stage of it."""
+
+
+def check_four_eyes(request: ApprovalRequest, decided_by: str) -> None:
+    """Four-eyes rule (PLAN 1.3, threat T17): nobody approves their own request, and the staging
+    approval comes from a different principal than the proposal approval."""
+    if decided_by in SYSTEM_ACTORS:
+        return
+    if decided_by == request.requested_by:
+        raise FourEyesViolationError(f"{decided_by} requested {request.id} and cannot also decide it")
+    excluded = request.arguments.get(DISTINCT_FROM_KEY) or ()
+    if decided_by in excluded:
+        raise FourEyesViolationError(
+            f"{decided_by} approved an earlier stage of this task; {request.id} needs a different approver"
+        )
+
+
 class ApprovalGateway(ABC):
     @abstractmethod
     async def request(self, approval: ApprovalRequest) -> ApprovalDecision: ...
@@ -113,6 +137,7 @@ class QueuedApprovalGateway(ApprovalGateway):
             raise KeyError(f"no pending approval {request_id}")
         if fut.done():
             raise RuntimeError(f"approval {request_id} was already decided")
+        check_four_eyes(self._pending[request_id], decided_by)
         decision = ApprovalDecision(request_id, approved, decided_by, comment)
         fut.set_result(decision)
         return decision

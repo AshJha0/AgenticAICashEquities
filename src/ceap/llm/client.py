@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from abc import ABC, abstractmethod
@@ -17,6 +18,7 @@ from typing import Any
 
 from ceap.domain.research import research_tool_arguments
 from ceap.llm.models import LLMRequest, LLMResponse
+from ceap.llm.pins import load_pins
 
 RESEARCH_KIND = "research"
 
@@ -470,7 +472,7 @@ def _mock_narrative(f: dict[str, Any]) -> str:
     title = f.get("title", "EXECUTION INVESTIGATION")
     ranked = att.get("ranked", [])
     material = [r for r in ranked if r.get("score", 0) >= 0.35]
-    primary = att.get("primary", "NORMAL")
+    primary = att.get("primary") or "UNKNOWN"
 
     lines = [title, ""]
     lines += ["EXECUTIVE SUMMARY", ""]
@@ -478,7 +480,12 @@ def _mock_narrative(f: dict[str, Any]) -> str:
     vw_delta = att.get("vwap_slippage_delta_bps")
     deteriorated = bool(att.get("deteriorated"))
     contributing = ", ".join(r["cause"].replace("_", " ").lower() for r in material[1:])
-    if primary == "NORMAL":
+    if primary == "UNKNOWN":
+        lines.append(
+            "INCOMPLETE ANALYSIS: the cause attribution is missing, so no conclusion about execution quality "
+            "is drawn. This report must not be read as 'no material anomaly'."
+        )
+    elif primary == "NORMAL":
         lines.append(
             f"Execution quality in the window was consistent with the baseline: implementation shortfall moved by "
             f"{_fmt(is_delta, 1, ' bps')} and slippage versus interval VWAP by {_fmt(vw_delta, 1, ' bps')}. "
@@ -532,7 +539,9 @@ def _mock_narrative(f: dict[str, Any]) -> str:
         f"Deployments in scope: {eng.get('deployments', 0)}; error logs: {eng.get('error_logs', 0)}",
     ]
     lines += ["", "CONCLUSION", ""]
-    if primary == "NORMAL":
+    if primary == "UNKNOWN":
+        lines.append("No conclusion: the analysis is incomplete (cause attribution missing).")
+    elif primary == "NORMAL":
         lines.append(
             "The evidence does not indicate a material deterioration attributable to market conditions, venue behaviour or technology."
         )
@@ -597,31 +606,82 @@ def _mock_critique(facts: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+RETRYABLE_STATUS = frozenset({408, 409, 429})
+
+
+def is_retryable(exc: BaseException) -> bool:
+    """429, 408, 409 and 5xx and transport faults are retried; 400-class errors are not."""
+    status = getattr(exc, "status_code", None)
+    if isinstance(status, int):
+        return status in RETRYABLE_STATUS or status >= 500
+    name = type(exc).__name__
+    return name in {"APIConnectionError", "APITimeoutError"} or isinstance(exc, (ConnectionError, TimeoutError))
+
+
 class AnthropicLLMClient(LLMClient):
-    """Adapter over the official Anthropic SDK (``pip install .[llm]``)."""
+    """Adapter over the official Anthropic SDK (``pip install .[llm]``).
+
+    * the model id must be pinned in ``model_pins.toml`` (refused otherwise);
+    * adaptive thinking with the pinned ``effort`` per purpose, ``max_tokens`` with thinking headroom;
+    * the SDK's own retries are off (``max_retries=0``) so the retry rule is ours and testable:
+      400-class errors are not retried, 408/409/429/5xx and transport faults are;
+    * ``stop_reason`` and ``stop_details`` are returned so callers can record refusals and truncation.
+    """
 
     def __init__(
-        self, api_key: str | None = None, model: str = "claude-sonnet-4-5", max_retries: int = 2
+        self,
+        api_key: str | None = None,
+        model: str | None = None,
+        max_retries: int = 2,
+        timeout_s: float = 60.0,
+        client: Any = None,
+        retry_base_delay_s: float = 0.5,
     ) -> None:
+        self.pins = load_pins()
+        self.model = self.pins.require(model or self.pins.for_purpose("narrative").model)
+        self.max_retries = max_retries
+        self.timeout_s = timeout_s
+        self.retry_base_delay_s = retry_base_delay_s
+        if client is not None:
+            self._client = client
+            return
         try:
             import anthropic
-        except ImportError as exc:  # pragma: no cover
+        except ImportError as exc:
             raise RuntimeError(
                 "anthropic package not installed; pip install 'cash-equities-agentic-platform[llm]'"
             ) from exc
-        self._client = anthropic.AsyncAnthropic(api_key=api_key, max_retries=max_retries)
-        self.model = model
+        self._client = anthropic.AsyncAnthropic(api_key=api_key, max_retries=0, timeout=timeout_s)
 
-    async def complete(self, request: LLMRequest) -> LLMResponse:
+    def request_kwargs(self, request: LLMRequest) -> dict[str, Any]:
+        """The exact wire shape sent to ``messages.create`` (used by the wire-contract tests)."""
+        pin = self.pins.for_purpose(request.purpose)
+        model = self.pins.require(request.model or self.model)
         kwargs: dict[str, Any] = {
-            "model": request.model or self.model,
+            "model": model,
             "system": request.system_prompt,
             "messages": request.messages,
-            "max_tokens": request.max_tokens,
+            "max_tokens": request.max_tokens or pin.max_tokens,
+            "thinking": {"type": "adaptive"},
+            "output_config": {"effort": request.effort or pin.effort},
+            "timeout": self.timeout_s,
         }
         if request.tools:
             kwargs["tools"] = request.tools
-        response = await self._client.messages.create(**kwargs)
+        return kwargs
+
+    async def complete(self, request: LLMRequest) -> LLMResponse:
+        kwargs = self.request_kwargs(request)
+        attempt = 0
+        while True:
+            try:
+                response = await self._client.messages.create(**kwargs)
+                break
+            except Exception as exc:
+                if attempt >= self.max_retries or not is_retryable(exc):
+                    raise
+                attempt += 1
+                await asyncio.sleep(self.retry_base_delay_s * (2 ** (attempt - 1)))
         text_parts: list[str] = []
         tool_calls: list[dict[str, Any]] = []
         for block in response.content:
@@ -629,6 +689,9 @@ class AnthropicLLMClient(LLMClient):
                 text_parts.append(block.text)
             elif getattr(block, "type", "") == "tool_use":
                 tool_calls.append({"id": block.id, "name": block.name, "arguments": block.input})
+        details = getattr(response, "stop_details", None)
+        if details is not None and not isinstance(details, dict):
+            details = {k: getattr(details, k, None) for k in ("type", "category", "explanation")}
         return LLMResponse(
             content="\n".join(text_parts),
             tool_calls=tool_calls,
@@ -636,4 +699,5 @@ class AnthropicLLMClient(LLMClient):
             output_tokens=response.usage.output_tokens,
             model=response.model,
             stop_reason=response.stop_reason,
+            stop_details=details,
         )

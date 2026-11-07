@@ -26,7 +26,7 @@ Contents:
 14. [Evaluation done honestly](#14-evaluation-done-honestly)
 15. [Observability and operations](#15-observability-and-operations)
 16. [Ten pitfalls this platform is built to avoid](#16-ten-pitfalls-this-platform-is-built-to-avoid)
-17. [Ten interview questions (with answers from this repo)](#17-ten-interview-questions-with-answers-from-this-repo)
+17. [Knowledge check (ten questions, answered from this repo)](#17-knowledge-check)
 18. [Stage 2: signal research](#18-stage-2-signal-research)
 19. [Further reading](#19-further-reading)
 
@@ -422,7 +422,7 @@ Things to be honest about:
     harness strips any planner-supplied `HUMAN_APPROVAL` and appends its own; the planner is
     shown only read-only tools, so it cannot schedule `stage_orders` even if it tried.
 
-## 17. Ten interview questions (with answers from this repo)
+## 17. Knowledge check
 
 1. *How do you stop an LLM agent from fabricating TCA numbers?* — Compute them in
    `StandardExecutionAnalytics`, pass them as facts, and audit the narrative

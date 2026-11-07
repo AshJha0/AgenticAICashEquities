@@ -8,20 +8,34 @@ warnings so reviewers can see exactly where the prose drifted.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import math
 import re
 from typing import Any
 
-from ceap.agents.base import BaseAgent, finite
+from ceap.agents.base import (
+    REQUIRED_INVESTIGATION_AGENTS,
+    BaseAgent,
+    degradation_records,
+    finite,
+    llm_disabled,
+)
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.common import utc_now
 from ceap.domain.findings import Finding
 from ceap.domain.reports import InvestigationReport
 from ceap.domain.research import ResearchScope
+from ceap.harness.cancellation import TaskCancelled
 from ceap.harness.memory import InvestigationMemory
-from ceap.llm.client import LLMClient
-from ceap.llm.models import LLMRequest
+from ceap.llm.client import LLMClient, _mock_narrative
+from ceap.llm.models import (
+    RUNG_DETERMINISTIC,
+    RUNG_KILL_SWITCH,
+    Degradation,
+    LLMRequest,
+    LLMResponse,
+)
 from ceap.llm.prompts import REPORT_SYSTEM_PROMPT, RESEARCH_REPORT_SYSTEM_PROMPT
 
 SECTION_NAMES = (
@@ -45,6 +59,10 @@ SECTION_NAMES = (
     "STAGED ORDERS",
 )
 RESEARCH_KIND = "research"
+KILL_SWITCH_BANNER = (
+    "LLM DISABLED (CEAP_LLM_DISABLED=true): plan, critique and narrative are deterministic templates; "
+    "no model was called."
+)
 STAGE_TOOL_ID = "execution.stage_orders"
 
 
@@ -70,20 +88,57 @@ class ReportAgent(BaseAgent):
             facts = self._investigation_facts(context, memory, outputs, findings, critique)
             system_prompt = REPORT_SYSTEM_PROMPT
         title = str(facts["title"])
-        response = await self.llm.complete(
-            LLMRequest(
-                system_prompt=system_prompt,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": "Write the report from these facts:\n\n" + json.dumps(facts, default=str),
-                    }
-                ],
-                purpose="narrative",
-                max_tokens=3000,
+        degradations: list[Degradation] = []
+        response: LLMResponse | None = None
+        narrative = ""
+        if llm_disabled(self.llm):
+            degradations.append(
+                Degradation(RUNG_KILL_SWITCH, "LLM_DISABLED", "kill switch on: templated narrative used")
             )
-        )
-        narrative = response.content.strip()
+        else:
+            try:
+                response = await self.call_llm(
+                    context,
+                    self.llm,
+                    LLMRequest(
+                        system_prompt=system_prompt,
+                        messages=[
+                            {
+                                "role": "user",
+                                "content": "Write the report from these facts:\n\n" + json.dumps(facts, default=str),
+                            }
+                        ],
+                        purpose="narrative",  # max_tokens 8000 and effort from model_pins.toml
+                    ),
+                )
+                degradations.extend(response.degradations)
+                if response.stop_reason in ("max_tokens", "refusal") or not response.content.strip():
+                    degradations.append(
+                        Degradation(
+                            RUNG_DETERMINISTIC,
+                            "LLM_TEMPLATE_NARRATIVE",
+                            f"templated narrative used (stop_reason={response.stop_reason})",
+                        )
+                    )
+                else:
+                    narrative = response.content.strip()
+            except (TaskCancelled, asyncio.CancelledError):
+                raise
+            except Exception as exc:  # noqa: BLE001 - rung 3: the template always produces a report
+                degradations.append(
+                    Degradation(
+                        RUNG_DETERMINISTIC,
+                        "LLM_TEMPLATE_NARRATIVE",
+                        f"templated narrative used ({type(exc).__name__}: {str(exc)[:200]})",
+                    )
+                )
+        if not narrative:
+            narrative = _mock_narrative(facts)
+        incomplete = _failed_required_agents(outputs) if not research else []
+        if incomplete:
+            narrative = f"{incomplete_banner(incomplete)}\n\n{narrative}"
+        if any(d.rung == RUNG_KILL_SWITCH for d in degradations):
+            narrative = f"{KILL_SWITCH_BANNER}\n\n{narrative}"
         sections = _split_sections(narrative)
         number_warnings = audit_numbers(narrative, facts)
         id_warnings = audit_evidence_ids(narrative, set(memory.evidence))
@@ -91,7 +146,8 @@ class ReportAgent(BaseAgent):
             **critique,
             "narrative_number_warnings": number_warnings,
             "narrative_evidence_warnings": id_warnings,
-            "llm_model": response.model,
+            "llm_model": response.model if response else None,
+            "incomplete_analysis": incomplete,
         }
         alternatives = list(facts.get("alternatives") or [])
         if research:
@@ -123,11 +179,19 @@ class ReportAgent(BaseAgent):
                 task_id=context.task_id,
                 execution_id=context.execution_id,
                 title=title,
-                executive_summary=sections.get("EXECUTIVE SUMMARY") or _default_summary(attribution),
+                executive_summary=(
+                    incomplete_banner(incomplete)
+                    if incomplete
+                    else sections.get("EXECUTIVE SUMMARY") or _default_summary(attribution)
+                ),
                 primary_observations=tuple(
                     f.statement for f in findings if f.attributes.get("role") != "rejected"
                 )[:8],
-                conclusion=sections.get("CONCLUSION") or _default_conclusion(attribution),
+                conclusion=(
+                    incomplete_banner(incomplete)
+                    if incomplete
+                    else sections.get("CONCLUSION") or _default_conclusion(attribution)
+                ),
                 alternative_explanations=tuple(alternatives),
                 findings=tuple(findings),
                 evidence=memory.evidence_list(),
@@ -143,11 +207,13 @@ class ReportAgent(BaseAgent):
             )
         output: dict[str, Any] = {
             "report": report,
-            "llm_model": response.model,
-            "tokens": {"input": response.input_tokens, "output": response.output_tokens},
+            "llm_model": response.model if response else None,
+            "tokens": {"input": response.input_tokens, "output": response.output_tokens} if response else {},
         }
-        if response.fallback_reason:
-            output["llm_fallback"] = response.fallback_reason
+        if degradations:
+            output["degradations"] = degradation_records(degradations)
+        if incomplete:
+            output["incomplete_analysis"] = incomplete
         return AgentResult(
             agent_id=self.id,
             success=True,
@@ -393,8 +459,22 @@ def _split_sections(text: str) -> dict[str, str]:
     return sections
 
 
+def _failed_required_agents(outputs: dict[str, Any]) -> list[str]:
+    """Required specialists that did not succeed; their absence must never read as a pass (PLAN 1.6)."""
+    return [a for a in REQUIRED_INVESTIGATION_AGENTS if not (outputs.get(a) or {}).get("success", False)]
+
+
+def incomplete_banner(failed: list[str]) -> str:
+    return (
+        f"INCOMPLETE ANALYSIS: required agents did not complete ({', '.join(failed)}). "
+        "No conclusion is drawn; this report must not be read as 'no material anomaly'."
+    )
+
+
 def _default_summary(attribution: dict[str, Any]) -> str:
-    primary = attribution.get("primary", "NORMAL")
+    primary = attribution.get("primary")  # no default: a missing attribution is not "NORMAL"
+    if not primary:
+        return "No cause attribution is available; no conclusion about execution quality is drawn."
     if primary == "NORMAL":
         return "Execution quality was consistent with the baseline; no material anomaly identified."
     return f"Execution quality changed materially; the evidence attributes it primarily to {primary.replace('_', ' ').lower()}."

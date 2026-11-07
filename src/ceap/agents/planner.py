@@ -16,17 +16,26 @@ every tool call and hard caps on plan size) before executing anything.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Any
 
-from ceap.agents.base import BaseAgent
+from ceap.agents.base import BaseAgent, degradation_records, llm_disabled
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.common import new_id
 from ceap.domain.plans import Plan, PlanStep, StepType
 from ceap.domain.tools import ToolRequest
+from ceap.harness.cancellation import TaskCancelled
 from ceap.llm.client import LLMClient, canonical_plan, extract_json
-from ceap.llm.models import LLMRequest
+from ceap.llm.models import (
+    RUNG_DETERMINISTIC,
+    RUNG_KILL_SWITCH,
+    RUNG_REPAIR,
+    Degradation,
+    LLMRequest,
+    LLMResponse,
+)
 from ceap.llm.prompts import PLANNER_SYSTEM_PROMPT, RESEARCH_PLANNER_SYSTEM_PROMPT
 
 log = logging.getLogger(__name__)
@@ -48,6 +57,16 @@ _RESEARCH_FACT_KEYS = (
     "gross_notional",
     "universe",
 )
+
+REPAIR_INSTRUCTION = (
+    "Your previous reply was not a usable plan. Reply with only one JSON object of the form "
+    '{"rationale": "...", "steps": [...]} using the tool catalogue and agents given above.'
+)
+
+
+def _usable(raw: dict[str, Any] | None) -> bool:
+    return raw is not None and isinstance(raw.get("steps"), list) and bool(raw["steps"])
+
 
 _JSON_TYPES: dict[str, tuple[type, ...]] = {
     "string": (str,),
@@ -88,21 +107,63 @@ class PlannerAgent(BaseAgent):
             f"TOOL CATALOGUE: {json.dumps(catalogue)}\n\n"
             f"AVAILABLE AGENTS: {list(agents)}"
         )
-        response = await self.llm.complete(
-            LLMRequest(
-                system_prompt=RESEARCH_PLANNER_SYSTEM_PROMPT if research else PLANNER_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": user_message}],
-                purpose="planning",
-                max_tokens=4096,
-                metadata={"parameters": facts},  # structured parameters travel out-of-band from the prose
-            )
+        request = LLMRequest(
+            system_prompt=RESEARCH_PLANNER_SYSTEM_PROMPT if research else PLANNER_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": user_message}],
+            purpose="planning",  # max_tokens and effort come from model_pins.toml (16000 with thinking)
+            metadata={"parameters": facts},  # structured parameters travel out-of-band from the prose
         )
-        raw = extract_json(response.content)
-        source = f"llm:{response.model}"
-        if not raw or not isinstance(raw.get("steps"), list) or not raw["steps"]:
+        degradations: list[Degradation] = []
+        raw: dict[str, Any] | None = None
+        response: LLMResponse | None = None
+        if llm_disabled(self.llm):
+            degradations.append(
+                Degradation(RUNG_KILL_SWITCH, "LLM_DISABLED", "kill switch on: canonical plan used")
+            )
+        else:
+            try:
+                response = await self.call_llm(context, self.llm, request)
+                degradations.extend(response.degradations)
+                raw = extract_json(response.content)
+                if not _usable(raw):
+                    # rung 2: one structured-output repair retry
+                    degradations.append(
+                        Degradation(
+                            RUNG_REPAIR,
+                            "LLM_REPAIR_RETRY",
+                            f"planner output unusable (stop_reason={response.stop_reason}); one repair retry",
+                        )
+                    )
+                    repair = LLMRequest(
+                        **{
+                            **request.__dict__,
+                            "messages": [
+                                *request.messages,
+                                {"role": "assistant", "content": response.content[:4000] or "(empty)"},
+                                {"role": "user", "content": REPAIR_INSTRUCTION},
+                            ],
+                        }
+                    )
+                    response = await self.call_llm(context, self.llm, repair)
+                    degradations.extend(response.degradations)
+                    raw = extract_json(response.content)
+            except (TaskCancelled, asyncio.CancelledError):
+                raise
+            except Exception as exc:  # noqa: BLE001 - rung 3 below records the failure
+                log.warning("planner: model call failed (%s); using canonical plan", exc)
+                degradations.append(
+                    Degradation(RUNG_DETERMINISTIC, "LLM_CALL_FAILED", f"{type(exc).__name__}: {str(exc)[:200]}")
+                )
+        source = f"llm:{response.model}" if response is not None else "canonical-fallback"
+        if not _usable(raw):
+            if not any(d.rung >= RUNG_DETERMINISTIC for d in degradations):
+                degradations.append(
+                    Degradation(RUNG_DETERMINISTIC, "LLM_CANONICAL_PLAN", "unusable model output: canonical plan used")
+                )
             log.warning("planner: unusable model output; using canonical plan")
             raw = canonical_plan(facts)
             source = "canonical-fallback"
+        assert raw is not None
 
         schemas = {m.id: (m.input_schema or {}) for m in read_only_tools}
         steps, rejected = self._to_steps(raw["steps"][:MAX_STEPS_FROM_MODEL], schemas, facts, agents)
@@ -118,6 +179,9 @@ class PlannerAgent(BaseAgent):
             steps, rejected2 = self._to_steps(raw["steps"], schemas, facts, agents)
             rejected.extend(rejected2)
             source = "canonical-fallback"
+            degradations.append(
+                Degradation(RUNG_DETERMINISTIC, "LLM_CANONICAL_PLAN", "model plan had no valid tool call: canonical plan used")
+            )
         plan = Plan(
             id=new_id("PLAN"),
             task_id=task.id,
@@ -128,11 +192,10 @@ class PlannerAgent(BaseAgent):
         output: dict[str, Any] = {
             "plan": plan,
             "rejected_steps": rejected,
-            "llm_model": response.model,
-            "tokens": {"input": response.input_tokens, "output": response.output_tokens},
+            "llm_model": response.model if response else None,
+            "tokens": {"input": response.input_tokens, "output": response.output_tokens} if response else {},
+            "degradations": degradation_records(degradations),
         }
-        if response.fallback_reason:
-            output["llm_fallback"] = response.fallback_reason
         return AgentResult(
             agent_id=self.id,
             success=True,

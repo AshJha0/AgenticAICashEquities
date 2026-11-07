@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import functools
 import inspect
+import os
 import typing
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
@@ -25,6 +26,20 @@ from ceap.domain.common import to_jsonable
 from ceap.domain.tools import RiskLevel
 
 ToolFn = Callable[..., Awaitable[Any]]
+#: roles of the principal a standalone server acts for (comma-separated); unset means no capabilities
+PRINCIPAL_ROLES_ENV = "CEAP_MCP_PRINCIPAL_ROLES"
+
+
+class MCPPolicyError(PermissionError):
+    """A standalone server refused a tool call: the principal lacks a required capability."""
+
+
+def principal_capabilities_from_env() -> frozenset[str]:
+    """Capabilities of the env-provided principal (PLAN 1.8). Fail closed: unset means none."""
+    from ceap.policy.permissions import capabilities_for
+
+    raw = os.getenv(PRINCIPAL_ROLES_ENV) or ""
+    return capabilities_for([r.strip() for r in raw.split(",") if r.strip()])
 
 _JSON_TYPES: dict[Any, dict[str, Any]] = {
     str: {"type": "string"},
@@ -152,15 +167,21 @@ class MCPServerDefinition:
         return to_jsonable(result)
 
     # ---------------------------------------------------------------- FastMCP
-    def to_fastmcp(self) -> Any:
-        """Export as a real ``FastMCP`` server (requires the ``mcp`` package)."""
+    def to_fastmcp(self, capabilities: frozenset[str] | None = None) -> Any:
+        """Export as a real ``FastMCP`` server (requires the ``mcp`` package).
+
+        Every tool enforces its ``required_capabilities`` against ``capabilities`` (default: the
+        principal from ``CEAP_MCP_PRINCIPAL_ROLES``), so a standalone server is not an open door
+        around the harness policy engine.
+        """
         from mcp.server.fastmcp import FastMCP
         from mcp.types import ToolAnnotations
 
+        caps = principal_capabilities_from_env() if capabilities is None else capabilities
         server = FastMCP(self.name, instructions=self.description)
         for spec in self._tools.values():
             server.add_tool(
-                _jsonable_wrapper(spec.fn),
+                _jsonable_wrapper(spec.fn, spec.required_capabilities, caps, f"{self.name}.{spec.name}"),
                 name=spec.name,
                 description=spec.description,
                 annotations=ToolAnnotations(readOnlyHint=spec.read_only, destructiveHint=not spec.read_only),
@@ -175,11 +196,19 @@ class MCPServerDefinition:
         self.to_fastmcp().run(transport="stdio")
 
 
-def _jsonable_wrapper(fn: ToolFn) -> ToolFn:
-    """FastMCP serialises return values; make sure dataclasses/NaN become JSON first."""
+def _jsonable_wrapper(
+    fn: ToolFn,
+    required: frozenset[str] = frozenset(),
+    capabilities: frozenset[str] = frozenset(),
+    tool_id: str = "",
+) -> ToolFn:
+    """Enforce capabilities, then make sure dataclasses/NaN become JSON before FastMCP serialises."""
 
     @functools.wraps(fn)
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        missing = required - capabilities
+        if missing:
+            raise MCPPolicyError(f"policy: {tool_id} requires capabilities {sorted(missing)}")
         return to_jsonable(await fn(*args, **kwargs))
 
     # resolve string annotations (PEP 563) so FastMCP does not look them up in this module

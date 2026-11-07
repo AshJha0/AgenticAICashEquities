@@ -17,7 +17,13 @@ from ceap.harness.engine import AgentHarness
 from ceap.harness.state_machine import HarnessState
 from ceap.llm.client import MockLLMClient
 from ceap.platform import Platform, RequestNotPermitted, ResearchRequest, default_research_request
-from ceap.policy.approvals import ApprovalDecision, ApprovalGateway, ApprovalRequest, DenyApprovalGateway
+from ceap.policy.approvals import (
+    ApprovalDecision,
+    ApprovalGateway,
+    ApprovalRequest,
+    AutoApprovalGateway,
+    DenyApprovalGateway,
+)
 
 RESEARCH_STATES = [
     "PLANNING",
@@ -124,7 +130,7 @@ async def test_declined_proposal_fails_cleanly(platform, store, settings):
     result = await p.research(default_research_request("R01"))
     assert result.state is HarnessState.FAILED and result.report is None
     assert "human approval declined at step gov-approval" in (result.error or "")
-    assert any("declined" in w for w in result.warnings)
+    assert any("declined" in w.message for w in result.warnings)
 
 
 class DeclineStagingGateway(ApprovalGateway):
@@ -150,7 +156,7 @@ async def test_declined_staging_completes_without_orders_and_shows_the_proposal(
     staging = result.report.proposal["staging"]
     assert staging["requested"] and not staging["staged"] and staging["status"] == "SKIPPED"
     assert "Orders were not staged" in result.report.narrative
-    assert any("declined" in w for w in result.warnings)
+    assert any("declined" in w.message for w in result.warnings)
     # what the approver saw
     by_step = {r.step_id: r for r in gateway.requests}
     proposal = by_step["gov-approval"].arguments
@@ -181,11 +187,12 @@ async def test_plan_supplied_approval_steps_are_stripped(platform):
     task = platform.build_research_task(req)
     base = await platform.harness()
     harness = AgentHarness(
-        ApprovalFirstPlanner(), base.agents, base.tools, base.policy, ReportAgent(MockLLMClient()), settings=platform.settings
+        ApprovalFirstPlanner(), base.agents, base.tools, base.policy, ReportAgent(MockLLMClient()), settings=platform.settings,
+        approvals=AutoApprovalGateway(),
     )
     result = await harness.execute(task, platform.policy_context(req, task))
     assert result.success
     approvals = [s for s in result.plan.ordered_steps() if s.type is StepType.HUMAN_APPROVAL]
     assert [s.id for s in approvals] == ["gov-approval"]
-    assert any("p1 (HUMAN_APPROVAL)" in w and "governance" in w for w in result.warnings)
+    assert any("p1 (HUMAN_APPROVAL)" in w.message and "governance" in w.message for w in result.warnings)
     assert result.report.proposal["approval"]["approved"]

@@ -28,7 +28,7 @@ from ceap.domain.plans import Plan, PlanStep, PlanValidationError, StepType
 from ceap.domain.policy import PolicyContext, PolicyDecision, PolicyEngine
 from ceap.domain.reports import InvestigationReport
 from ceap.domain.research import research_tool_arguments
-from ceap.domain.tasks import Task
+from ceap.domain.tasks import ResultWarning, Task, TaskStatus, WarningSeverity
 from ceap.domain.tools import ToolRegistry, ToolRequest, ToolResult, ToolStatus
 from ceap.harness.cancellation import CancellationToken, TaskCancelled
 from ceap.harness.executor import HarnessToolInvoker, RunContext, StepExecutor, race_cancellation
@@ -37,11 +37,22 @@ from ceap.harness.retry import RetryPolicy
 from ceap.harness.state_machine import HarnessState, StateMachine
 from ceap.observability.metrics import metrics
 from ceap.observability.tracing import ExecutionTracer, InMemoryTracer
-from ceap.policy.approvals import ApprovalGateway, ApprovalRequest, AutoApprovalGateway
+from ceap.policy.approvals import (
+    DISTINCT_FROM_KEY,
+    SYSTEM_ACTORS,
+    ApprovalGateway,
+    ApprovalRequest,
+    DenyApprovalGateway,
+    FourEyesViolationError,
+    check_four_eyes,
+)
 
 log = logging.getLogger(__name__)
 
 CRITIC_AGENT_ID = "critic"
+#: specialists every execution investigation runs, appended by the harness if the plan omits them
+REQUIRED_INVESTIGATION_AGENTS = ("market", "execution", "quant", "risk", "engineering")
+KILL_SWITCH_CODE = "LLM_DISABLED"
 PORTFOLIO_RISK_AGENT_ID = "portfolio_risk"
 MAX_PARALLEL_TOOL_CALLS = 8
 MAX_PLAN_STEPS = 64
@@ -93,20 +104,46 @@ class HarnessResult:
     duration_ms: float
     started_at: str
     finished_at: str
-    warnings: list[str] = field(default_factory=list)
+    warnings: list[ResultWarning] = field(default_factory=list)
+    incomplete_agents: list[str] = field(default_factory=list)
 
     @property
     def success(self) -> bool:
         return self.state is HarnessState.COMPLETED and self.report is not None
+
+    @property
+    def status(self) -> TaskStatus:
+        """Outcome as the API reports it: a fallback never reads as a clean ``COMPLETED``."""
+        if self.state is HarnessState.CANCELLED:
+            return TaskStatus.CANCELLED
+        if not self.success:
+            return TaskStatus.FAILED
+        if self.incomplete_agents:
+            return TaskStatus.INCOMPLETE_ANALYSIS
+        if any(w.severity is not WarningSeverity.INFO for w in self.warnings):
+            return TaskStatus.DEGRADED
+        return TaskStatus.COMPLETED
+
+    @property
+    def banner(self) -> str | None:
+        if any(w.code == KILL_SWITCH_CODE for w in self.warnings):
+            return "LLM DISABLED: every model step ran its deterministic fallback (CEAP_LLM_DISABLED=true)"
+        return None
+
+    def warning_messages(self) -> list[str]:
+        return [w.message for w in self.warnings]
 
     def to_dict(self, include_trace: bool = False) -> dict[str, Any]:
         out = {
             "task_id": self.task_id,
             "execution_id": self.execution_id,
             "state": self.state.value,
+            "status": self.status.value,
             "success": self.success,
             "error": self.error,
-            "warnings": self.warnings,
+            "banner": self.banner,
+            "incomplete_agents": self.incomplete_agents,
+            "warnings": [to_jsonable(w) for w in self.warnings],
             "duration_ms": self.duration_ms,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
@@ -166,7 +203,8 @@ class AgentHarness:
         self.policy = policy
         self.reporter = reporter
         self.tracer = tracer or InMemoryTracer()
-        self.approvals = approvals or AutoApprovalGateway()
+        # fail closed: no gateway means every approval is denied (PLAN 1.4); auto-approval is opt-in
+        self.approvals = approvals or DenyApprovalGateway()
         self.settings = settings or load_settings()
         self.retry_policy = retry_policy or RetryPolicy(max_attempts=self.settings.max_retries + 1)
 
@@ -213,7 +251,7 @@ class AgentHarness:
         plan: Plan | None = None
         report: InvestigationReport | None = None
         error: str | None = None
-        warnings: list[str] = []
+        warnings: list[ResultWarning] = []
         step_results: list[dict[str, Any]] = []
         metrics.inc("ceap_investigations_total")
 
@@ -234,7 +272,7 @@ class AgentHarness:
                 async with self.tracer.span("harness.validate_plan", steps=len(plan.steps)):
                     plan, dropped_steps = self._enforce_governance_steps(plan, task)
                     for d in dropped_steps:
-                        warnings.append(f"plan step dropped by governance: {d}")
+                        warnings.append(_w("PLAN_STEP_DROPPED", f"plan step dropped by governance: {d}", info=True))
                     await self._validate_plan(plan, policy_context, task)
 
                 # ---- execution -------------------------------------------------
@@ -270,7 +308,9 @@ class AgentHarness:
                         for step, result in zip(batch, results, strict=True):
                             step_results.append(_step_record(step, result))
                             if not result.ok:
-                                warnings.append(f"step {step.id} ({step.description}) failed: {result.error}")
+                                warnings.append(
+                                    _w("TOOL_STEP_FAILED", f"step {step.id} ({step.description}) failed: {result.error}")
+                                )
                             if step.id == STAGE_STEP_ID:
                                 memory.scratch["staging"] = {
                                     "step_id": step.id,
@@ -283,7 +323,7 @@ class AgentHarness:
                         agent_id = step.agent_id or ""
                         agent = self.agents.get(agent_id)
                         if agent is None:
-                            warnings.append(f"step {step.id}: unknown agent {agent_id}")
+                            warnings.append(_w("UNKNOWN_AGENT", f"step {step.id}: unknown agent {agent_id}"))
                             step_results.append(
                                 {
                                     "step_id": step.id,
@@ -299,7 +339,15 @@ class AgentHarness:
                         self._absorb(agent_id, agent_result, memory, warnings)
                         step_results.append(_agent_record(step.id, agent_id, agent_result))
                         if not agent_result.success:
-                            warnings.append(f"agent {agent_id} failed: {agent_result.error}")
+                            required = agent_id in REQUIRED_INVESTIGATION_AGENTS and task_kind(task) != RESEARCH_KIND
+                            warnings.append(
+                                _w(
+                                    "REQUIRED_AGENT_FAILED" if required else "AGENT_FAILED",
+                                    f"agent {agent_id} failed: {agent_result.error}",
+                                    source=agent_id,
+                                    severity=WarningSeverity.ERROR,
+                                )
+                            )
                         if agent_id == CRITIC_AGENT_ID:
                             critic_ran, agents_since_critic = True, 0
                             sm.transition(HarnessState.EXECUTING, "critique complete")
@@ -404,9 +452,19 @@ class AgentHarness:
             started_at=started_at.isoformat(),
             finished_at=utc_now().isoformat(),
             warnings=warnings,
+            incomplete_agents=self._incomplete_agents(task, memory),
         )
 
     # --------------------------------------------------------------- internals
+    def _incomplete_agents(self, task: Task, memory: InvestigationMemory) -> list[str]:
+        if task_kind(task) == RESEARCH_KIND:
+            return []
+        return [
+            a
+            for a in REQUIRED_INVESTIGATION_AGENTS
+            if a in self.agents and not (memory.agent_outputs.get(a) or {}).get("success", False)
+        ]
+
     async def _validate_plan(self, plan: Plan, policy_context: PolicyContext, task: Task) -> None:
         if not plan.steps:
             raise PlanValidationError("plan has no steps")
@@ -504,6 +562,19 @@ class AgentHarness:
                 dropped_steps.append(s)
             else:
                 kept.append(s)
+        if task_kind(task) != RESEARCH_KIND:
+            present = {s.agent_id for s in kept if s.type is StepType.AGENT_CALL}
+            for agent_id in REQUIRED_INVESTIGATION_AGENTS:
+                if agent_id in self.agents and agent_id not in present:
+                    kept.append(
+                        PlanStep(
+                            id=f"gov-required-{agent_id}",
+                            sequence=0,
+                            type=StepType.AGENT_CALL,
+                            description=f"Governance: required specialist {agent_id} (omitted by the plan)",
+                            agent_id=agent_id,
+                        )
+                    )
         tail = self._governance_tail(task)
         merged = kept + tail
         resequenced = tuple(replace(s, sequence=i + 1) for i, s in enumerate(merged))
@@ -666,7 +737,16 @@ class AgentHarness:
             except TaskCancelled:
                 raise
             except TimeoutError:
-                result = AgentResult(agent_id=agent.id, success=False, error="agent timed out")
+                partial = dict((memory.scratch.get("partial") or {}).get(agent.id) or {})
+                findings = tuple(partial.pop("findings", ()) or ())
+                result = AgentResult(
+                    agent_id=agent.id,
+                    success=False,
+                    error="agent timed out",
+                    output={**partial, "partial": bool(partial or findings)},
+                    findings=findings,
+                    summary="PARTIAL: agent timed out" if (partial or findings) else "agent timed out",
+                )
             except Exception as exc:  # noqa: BLE001 - agent failures are contained
                 leaf = _leaf_exception(exc)
                 if isinstance(leaf, TaskCancelled):
@@ -689,7 +769,9 @@ class AgentHarness:
             return result
 
     @staticmethod
-    def _absorb(agent_id: str, result: AgentResult, memory: InvestigationMemory, warnings: list[str]) -> None:
+    def _absorb(
+        agent_id: str, result: AgentResult, memory: InvestigationMemory, warnings: list[ResultWarning]
+    ) -> None:
         memory.add_evidence(*result.evidence)
         if agent_id == CRITIC_AGENT_ID and "adjusted_findings" in result.output:
             memory.replace_findings(list(result.output["adjusted_findings"]))
@@ -697,9 +779,11 @@ class AgentHarness:
             memory.add_findings(*result.findings)
         if agent_id == "planner" and "plan" in result.output:
             memory.scratch["plan"] = result.output["plan"]
-        fallback = result.output.get("llm_fallback")
-        if fallback:
-            warnings.append(f"{agent_id}: LLM fallback used ({fallback})")
+        for d in result.output.get("degradations") or ():
+            # every rung above 0 of the degradation ladder is visible and marks the result DEGRADED
+            warnings.append(
+                _w(str(d.get("code")), f"{agent_id}: rung {d.get('rung')}: {d.get('message')}", source=agent_id)
+            )
         memory.agent_outputs[agent_id] = {
             k: v for k, v in result.output.items() if k not in ("adjusted_findings", "plan", "report")
         } | {"summary": result.summary, "success": result.success, "error": result.error}
@@ -711,11 +795,11 @@ class AgentHarness:
         executor: StepExecutor,
         task: Task,
         step_results: list[dict[str, Any]],
-        warnings: list[str],
+        warnings: list[ResultWarning],
     ) -> AgentResult | None:
         critic = self.agents.get(CRITIC_AGENT_ID)
         if critic is None:
-            warnings.append("no critic agent registered; findings are un-critiqued")
+            warnings.append(_w("NO_CRITIC", "no critic agent registered; findings are un-critiqued"))
             return None
         result = await self._run_agent(critic, "gov-critic-forced", memory, run, executor, task)
         self._absorb(CRITIC_AGENT_ID, result, memory, warnings)
@@ -727,14 +811,20 @@ class AgentHarness:
         step: PlanStep,
         run: RunContext,
         sm: StateMachine,
-        warnings: list[str],
+        warnings: list[ResultWarning],
         memory: InvestigationMemory,
     ) -> bool:
+        payload = _approval_payload(step, memory)
+        if step.id == STAGE_APPROVAL_STEP_ID:
+            # four-eyes: whoever approved the proposal may not also approve staging (T17)
+            prior = (memory.scratch.get("approvals") or {}).get(APPROVAL_STEP_ID) or {}
+            if prior.get("decided_by") and prior["decided_by"] not in SYSTEM_ACTORS:
+                payload[DISTINCT_FROM_KEY] = [prior["decided_by"]]
         request = ApprovalRequest.create(
             run.task_id,
             step.id,
             HUMAN_APPROVAL_TOOL_ID,
-            _approval_payload(step, memory),
+            payload,
             step.description,
             run.policy_context.principal,
         )
@@ -745,8 +835,15 @@ class AgentHarness:
         finally:
             if sm.state is HarnessState.AWAITING_APPROVAL:
                 sm.transition(HarnessState.EXECUTING, "human approval decided")
+        if decision.approved:
+            try:  # defence in depth: enforce four-eyes whatever gateway implementation decided
+                check_four_eyes(request, decision.decided_by)
+            except FourEyesViolationError as exc:
+                warnings.append(_w("FOUR_EYES_VIOLATION", str(exc), severity=WarningSeverity.ERROR))
+                decision = replace(decision, approved=False, comment=f"rejected by harness: {exc}")
         self.tracer.event(
             "approval.decision",
+            system_actor=decision.decided_by in SYSTEM_ACTORS,
             request_id=request.id,
             approved=decision.approved,
             decided_by=decision.decided_by,
@@ -756,11 +853,14 @@ class AgentHarness:
             "step_id": step.id,
             "approved": decision.approved,
             "decided_by": decision.decided_by,
+            "system_actor": decision.decided_by in SYSTEM_ACTORS,
             "comment": decision.comment,
             "decided_at": decision.decided_at.isoformat(),
         }
         if not decision.approved:
-            warnings.append(f"human approval declined at {step.id}: {decision.comment}")
+            warnings.append(
+                _w("APPROVAL_DECLINED", f"human approval declined at {step.id}: {decision.comment}", info=True)
+            )
         return decision.approved
 
     @staticmethod
@@ -778,6 +878,19 @@ class AgentHarness:
             kept.append(f)
         memory.replace_findings(kept)
         return dropped
+
+
+def _w(
+    code: str,
+    message: str,
+    *,
+    source: str = "harness",
+    severity: WarningSeverity = WarningSeverity.DEGRADED,
+    info: bool = False,
+) -> ResultWarning:
+    return ResultWarning(
+        code=code, message=message, source=source, severity=WarningSeverity.INFO if info else severity
+    )
 
 
 def _signature(step: PlanStep) -> tuple[str, str | None]:
@@ -862,7 +975,7 @@ def _agent_record(step_id: str, agent_id: str, result: AgentResult) -> dict[str,
         "step_id": step_id,
         "type": StepType.AGENT_CALL.value,
         "agent_id": agent_id,
-        "status": "SUCCESS" if result.success else "ERROR",
+        "status": "SUCCESS" if result.success else ("PARTIAL" if result.output.get("partial") else "ERROR"),
         "error": result.error,
         "findings": len(result.findings),
         "summary": result.summary,
