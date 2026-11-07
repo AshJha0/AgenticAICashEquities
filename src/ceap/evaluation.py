@@ -1,4 +1,4 @@
-"""Scenario evaluation: run the full platform over the 50-scenario catalogue.
+"""Scenario evaluation: the 50 investigation scenarios, the 30 research scenarios and the null sweep.
 
 Each scenario's structured ground truth is compared with the platform's
 output at three levels:
@@ -91,7 +91,13 @@ async def evaluate_research_scenario(platform: Platform, spec: ResearchScenarioS
     evidence_ids = {e.id for e in result.evidence}
     unresolved = [f.id for f in result.findings if any(e not in evidence_ids for e in f.supporting_evidence)]
     approval = next((s["status"] for s in result.step_results if s.get("step_id") == "gov-approval"), None)
+    from ceap.data.ground_truth import derive_ground_truth
+
+    truth = derive_ground_truth(spec)
     return {
+        "near_threshold": truth.near_threshold,
+        "expected_t_is": round(truth.metrics.get("t_is", float("nan")), 3),
+        "expected_net_sharpe_oos": round(truth.metrics.get("net_sharpe_oos", float("nan")), 3),
         "scenario": spec.id,
         "template": spec.template,
         "signal": spec.signal,
@@ -129,9 +135,16 @@ async def run_research_evaluation(
                 f"got={str(row['verdict']):7s}{row['flags']} {row['duration_ms']:.0f}ms"
             )
     n = len(rows)
+    clear = [r for r in rows if not r["near_threshold"]]
+    near = [r for r in rows if r["near_threshold"]]
     return {
         "scenarios": n,
         "verdict_accuracy": sum(r["verdict_hit"] for r in rows) / n if n else 0.0,
+        "clear_scenarios": len(clear),
+        "clear_verdict_accuracy": sum(r["verdict_hit"] for r in clear) / len(clear) if clear else 0.0,
+        "near_threshold_scenarios": len(near),
+        "near_threshold_accuracy": sum(r["verdict_hit"] for r in near) / len(near) if near else float("nan"),
+
         "flags_coverage": sum(r["flags_coverage"] for r in rows) / n if n else 0.0,
         "false_flag_rate": sum(bool(r["false_flags"]) for r in rows) / n if n else 0.0,
         "completed": sum(r["completed"] for r in rows) / n if n else 0.0,
@@ -140,4 +153,26 @@ async def run_research_evaluation(
         "number_warnings": sum(r["number_warnings"] for r in rows),
         "mean_duration_ms": sum(r["duration_ms"] for r in rows) / n if n else 0.0,
         "rows": rows,
+    }
+
+
+# ---------------------------------------------------------------------- null
+def run_null_evaluation(n_seeds: int = 50, workers: int = 1) -> dict[str, Any]:
+    """False-PROMOTE rate of the full search on the pure-noise set at the committed hurdle (2.10)."""
+    from ceap.analytics.null_sweep import false_promote_curve, run_null_sweep
+    from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS
+
+    sweep = run_null_sweep(n_seeds, workers=workers)
+    stats = [p["stat"] if p["stat"] is not None else float("-inf") for p in sweep["per_seed"]]
+    row = next(r for r in false_promote_curve(stats) if r["hurdle"] >= DEFAULT_THRESHOLDS.ic_t_stat_min - 1e-9)
+    return {
+        "seeds": n_seeds,
+        "hurdle": DEFAULT_THRESHOLDS.ic_t_stat_min,
+        "hurdle_sweep_hash": DEFAULT_THRESHOLDS.hurdle_sweep_hash,
+        "false_promotes": row["false_promotes"],
+        "false_promote_rate": row["rate"],
+        "band95": (row["lower"], row["upper"]),
+        "abs_t_gt_2_rate": sweep["abs_t_gt_2_rate"],
+        "sweep_hash": sweep["sweep_hash"],
+        "chosen_by_this_sweep": sweep["chosen"],
     }

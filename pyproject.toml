@@ -72,6 +72,8 @@ markers = [
     "nightly: run only by nightly.yml (deselected on PR via -m 'not nightly')",
     "evaluation: scenario-based evaluation suite",
     "adversarial: adversarial / safety tests",
+    "slow: slow tests (subprocess, long simulations)",
+    "nightly: nightly tier (500-seed sweeps; run with CEAP_NIGHTLY=1)",
 ]
 
 [tool.ruff]

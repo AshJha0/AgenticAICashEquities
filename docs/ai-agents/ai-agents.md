@@ -104,7 +104,7 @@ Execution / Engineering / Risk / Quant → Critic → Reporter.
 | Engineering | did technology behave normally? | latency/deployment/log findings |
 | Research | what's the hypothesis, does the data cover it? | hypothesis/coverage/regime findings |
 | Alpha | is the signal predictive out-of-sample? | `ALPHA`/`NO_ALPHA`/`ROBUST` findings |
-| Backtest | does it survive costs out-of-sample? | `PROFITABLE`/`OVERFIT`/`COST_DRAG` findings |
+| Backtest | does it survive costs out-of-sample? | `PROFITABLE`/`OOS_DECAY`/`COST_DRAG` findings |
 | Portfolio risk | is the target portfolio within limits? | limit/stress findings on the *recomputed* book |
 | Critic | are the conclusions actually supported? | adjusted findings + a critique (+ the deterministic `assess_research` verdict, for research) |
 | Reporter | write it up | an `InvestigationReport` (narrative + proposal), audited |
@@ -164,7 +164,7 @@ Every number above was first proven against the offline mock. Running Stage 2 ag
   (`INCOMPLETE_ANALYSIS`) — handled safely by the harness (no crash, a conservative verdict, no
   unresolved evidence), but coverage suffered. Pairing a cheap narrator/critic model
   (`CEAP_LLM_MODEL=claude-haiku-4-5`) with a stronger planner
-  (`CEAP_LLM_PLANNING_MODEL=claude-sonnet-5`) took verdict accuracy from 19/21 back to 21/21.
+  (`CEAP_LLM_PLANNING_MODEL=claude-sonnet-5`) took verdict accuracy from 19/21 back to 21/21 (0.3.x scenario set; 0.4.0 re-baselined to 30 scenarios and has not been run live).
 - The audit false positives described above.
 
 The lesson generalises past this project: an offline deterministic mock proves the *control

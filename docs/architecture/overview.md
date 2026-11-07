@@ -57,11 +57,16 @@ Thresholds live in `Thresholds` and are documented in the evaluation guide.
 
 **Stage 2** adds a parallel, equally deterministic set for signal research: `signals` (a small
 fixed library — momentum, reversal, low-vol), `signal_statistics` (rank IC via Spearman, t-stat,
-information ratio, turnover, decay, quantile spread — one-day non-overlapping ICs so t-stats are
-honest), `backtest` (event-driven daily loop, half-spread + square-root-impact cost model,
-walk-forward in-sample/out-of-sample split), `portfolio_risk` (target portfolio *recomputed* from
+information ratio, rank-autocorrelation turnover, decay, quantile spread — the gate is the
+non-overlapping holding-period IC after the execution lag, with a Newey-West t alongside),
+`backtest` (decision at the close, fill at t+1; weight drift; spread + square-root impact, tier
+borrow, rf financing, Sharpe on excess returns; Reg SHO, weight and ADV caps logged; delisting
+bounds; locked in-sample split), `trial_ledger` (append-only, server-side trial count),
+`null_sweep` (the PROMOTE hurdle measured on 500 noise datasets x 24 configurations),
+`profitability` (capacity sweep and profitability table), `portfolio_risk` (target portfolio *recomputed* from
 the signal at the report date — never trusts the backtest's own weights — gross/net/HHI/beta/ADV
-participation, limit checks, stress) and `research_assessment` (`assess_research`: a deterministic
+participation, limit checks over the out-of-sample history, beta ex-self with Vasicek shrinkage,
+factor / squeeze / liquidation stress) and `research_assessment` (`assess_research`: a deterministic
 `PROMOTE`/`REJECT` verdict plus flags — the Stage 2 analogue of `attribute_causes`).
 
 ### 3.3 Data (`ceap.data`)
@@ -76,11 +81,13 @@ investigation window so the preceding hour is always a clean baseline.
 interfaces. `ceap.data.export` writes CSV/Parquet under `data/` for external tooling (DuckDB,
 Polars).
 
-**Stage 2**: `HistoricalGenerator` produces a seeded 30-name, four-year daily universe (`ceap.data
-.historical`) — a factor model whose embedded premium is computed through the *same* signal code
-that later measures it, so the generator and the analytics can never silently drift apart.
-`HistoricalStore` mirrors `DatasetStore`. `ceap.data.research_scenarios` carries the 7-template
-(× 3 seeds = 21-scenario) ground truth: expected verdict and flags per scenario.
+**Stage 2**: `HistoricalGenerator` (`ceap.data.historical`, `realistic_v1`) produces a seeded
+30-name, 20-year daily universe on the NYSE calendar (`ceap.data.calendar`): GARCH market with
+fat tails, latent drift and transient premium components the signal code never touches,
+volatility-dependent spreads and volume, late listings, delistings and a membership mask.
+`ceap.data.research_scenarios` carries 10 templates x 3 seeds = 30 scenarios whose verdict and
+flags are derived in closed form from generator parameters by `ceap.data.ground_truth`, never from
+a run. The 0.3.x generator survives as `legacy_v03` for regression tests only.
 
 ### 3.4 MCP (`ceap.mcp`)
 
@@ -135,7 +142,7 @@ Consecutive independent `TOOL_CALL` steps are batched and executed concurrently 
 | Engineering | did technology behave normally? | TECHNOLOGY findings (latency ratio, SLO, deployments, error logs, feed gaps) |
 | Research *(Stage 2)* | what is the hypothesis, and does the data cover it? | RESEARCH findings (hypothesis, coverage, regime) |
 | Alpha *(Stage 2)* | is the signal predictive, does it persist out-of-sample? | SIGNAL findings (`ALPHA`/`NO_ALPHA`/`ROBUST`, turnover, decay) |
-| Backtest *(Stage 2)* | does it survive costs out-of-sample? | BACKTEST findings (`PROFITABLE`/`OVERFIT`/`COST_DRAG`) |
+| Backtest *(Stage 2)* | does it survive costs out-of-sample? | BACKTEST findings (`PROFITABLE`/`OOS_DECAY`/`COST_DRAG`, cost lines, capacity, trial count) |
 | Portfolio risk *(Stage 2)* | is the target portfolio within limits? | RISK findings from the recomputed target portfolio |
 | Critic | are the conclusions supported? | adjusted findings + critique (+ `assess_research` verdict for research tasks) |
 | Reporter | write it up | `InvestigationReport` (investigation narrative, or a Stage 2 proposal with narrative audits) |

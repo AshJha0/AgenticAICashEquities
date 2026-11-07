@@ -29,11 +29,17 @@ def _period(ds: HistoricalDataset, market: np.ndarray, name: str, a: int, b: int
     }
 
 
+def _first_finite(x: np.ndarray) -> float:
+    v = x[np.isfinite(x)]
+    return float(v[0]) if v.size else float("nan")
+
+
 def build_server(history: HistoricalStore) -> MCPServerDefinition:
+
     server = MCPServerDefinition(
         "research_data",
         "Daily OHLCV history, liquidity and universe reference data for a research dataset "
-        "(30-name synthetic universe, four years, walk-forward split).",
+        "(30-name synthetic universe, twenty years, locked walk-forward split, membership mask).",
     )
 
     @server.tool("Describe the research universe of a dataset: symbols, liquidity tiers, prices and average liquidity.")
@@ -54,11 +60,14 @@ def build_server(history: HistoricalStore) -> MCPServerDefinition:
                 {
                     "symbol": sym,
                     "tier": ds.tiers[j],
-                    "base_price": round(float(ds.close[0, j]), 2),
-                    "last_close": round(float(ds.close[-1, j]), 2),
-                    "mean_adv_shares": int(ds.adv_20[i0:, j].mean()),
-                    "mean_adv_notional": round(float(adv_notional[i0:, j].mean()), 2),
-                    "mean_spread_bps": round(float(ds.spread_bps[i0:, j].mean()), 3),
+                    # 0.4.0: names list late and delist (membership, R2 2.13) - prices are NaN outside membership
+                    "base_price": round(_first_finite(ds.close[:, j]), 2),
+                    "last_close": round(_first_finite(ds.close[::-1, j]), 2),
+                    "listed": str(ds.dates[int(np.argmax(ds.member_mask[:, j]))]),
+                    "delisted": bool(not ds.member_mask[-1, j]),
+                    "mean_adv_shares": int(np.nan_to_num(np.nanmean(ds.adv_20[i0:, j]))),
+                    "mean_adv_notional": round(float(np.nan_to_num(np.nanmean(adv_notional[i0:, j]))), 2),
+                    "mean_spread_bps": round(float(np.nan_to_num(np.nanmean(ds.spread_bps[i0:, j]))), 3),
                 }
                 for j, sym in enumerate(ds.symbols)
             ],
@@ -111,11 +120,12 @@ def build_server(history: HistoricalStore) -> MCPServerDefinition:
                 "end": str(ds.dates[i1]),
                 "in_sample_end": str(ds.dates[split]),
                 "trading_days": int(i1 - i0 + 1),
-                "complete": bool(np.isfinite(ds.close[i0 : i1 + 1]).all()),
+                # complete = every member has a price on every day of its membership
+                "complete": bool(np.isfinite(ds.close[i0 : i1 + 1][ds.member_mask[i0 : i1 + 1]]).all()),
             },
-            "mean_adv_shares": int(ds.adv_20[i0 : i1 + 1].mean()),
-            "mean_adv_notional": round(float(adv_notional[i0 : i1 + 1].mean()), 2),
-            "mean_spread_bps": round(float(ds.spread_bps[i0 : i1 + 1].mean()), 3),
+            "mean_adv_shares": int(np.nanmean(ds.adv_20[i0 : i1 + 1])),
+            "mean_adv_notional": round(float(np.nanmean(adv_notional[i0 : i1 + 1])), 2),
+            "mean_spread_bps": round(float(np.nanmean(ds.spread_bps[i0 : i1 + 1])), 3),
             "tiers": tiers,
             "periods": {
                 "in_sample": _period(ds, market, "in_sample", i0, split),

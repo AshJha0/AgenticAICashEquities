@@ -231,12 +231,12 @@ class CriticAgent(BaseAgent):
             note = ""
             if claim == "ALPHA" and (not finite(is_t) or float(is_t) < DEFAULT_THRESHOLDS.ic_t_stat_min):
                 cap, note = 0.4, "claims alpha but the in-sample IC t-stat is below the promotion threshold"
-            elif claim == "ROBUST" and ResearchFlag.OVERFIT.value in flags:
-                cap, note = 0.4, "claims robustness but the assessment flags OVERFIT"
+            elif claim == "ROBUST" and ResearchFlag.OOS_DECAY.value in flags:
+                cap, note = 0.4, "claims robustness but the assessment flags OOS_DECAY"
             elif (
                 claim == "PROFITABLE"
                 and assessment.verdict is ResearchVerdict.REJECT
-                and flags & {ResearchFlag.OVERFIT.value, ResearchFlag.COST_DRAG.value}
+                and flags & {ResearchFlag.OOS_DECAY.value, ResearchFlag.COST_DRAG.value}
             ):
                 cap, note = 0.5, "claims profitability but the assessment rejects the strategy"
             elif f.attributes.get("coverage") == "COMPLETE" and ResearchFlag.INCOMPLETE_ANALYSIS.value in flags:

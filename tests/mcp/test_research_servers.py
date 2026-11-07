@@ -32,7 +32,7 @@ async def test_discovery(mcp_client):
     research = {t["name"] for t in await mcp_client.discover_tools("research_data")}
     assert research == {"get_universe", "get_daily_bars", "get_universe_summary"}
     assert {t["name"] for t in await mcp_client.discover_tools("alpha")} == {"list_signals", "evaluate_signal"}
-    assert {t["name"] for t in await mcp_client.discover_tools("backtest")} == {"run_backtest"}
+    assert {t["name"] for t in await mcp_client.discover_tools("backtest")} == {"run_backtest", "trial_count"}
     risk = {t["name"] for t in await mcp_client.discover_tools("risk")}
     assert {"get_portfolio_exposure", "check_portfolio_limits", "calculate_portfolio_stress"} <= risk
     execution = {t["name"]: t for t in await mcp_client.discover_tools("execution")}
@@ -53,9 +53,9 @@ async def test_research_data_tools(mcp_client, history):
         "get_daily_bars",
         {"symbol": "AAPL", "start": ds.start, "end": ds.end, "dataset": "R01", "max_points": 50},
     )
-    assert bars["count"] == 756 and bars["returned"] <= 50 and bars["items"][0]["date"] == ds.start
+    assert bars["count"] == 4788 and bars["returned"] <= 50 and bars["items"][0]["date"] == ds.start
     summary = await mcp_client.invoke("research_data", "get_universe_summary", {"dataset": "R01"})
-    assert summary["coverage"]["complete"] and summary["coverage"]["trading_days"] == 756
+    assert summary["coverage"]["complete"] and summary["coverage"]["trading_days"] == 4788
     assert set(summary["periods"]) == {"in_sample", "out_of_sample", "full"}
     assert summary["periods"]["in_sample"]["end"] == ds.in_sample_end
     assert summary["tiers"] == {"A": 10, "B": 12, "C": 8} and _no_nan(summary)
@@ -77,6 +77,10 @@ async def test_alpha_and_backtest_tools(mcp_client, history):
     assert set(bt["periods"]) == {"in_sample", "out_of_sample", "full"}
     assert 2 <= len(bt["equity_curve"]) <= 24 and len(bt["top_contributors"]) == 5 and _no_nan(bt)
     assert bt["periods"]["out_of_sample"]["sharpe"] > 0.5
+    assert bt["execution_lag_days"] == 1 and bt["trial"]["n_trials"] >= 1
+    assert bt["profitability"]["capacity"]["rows"][0]["gross_notional"] == 10e6
+    with pytest.raises((MCPError, ValueError)):  # outside the enumerated search space (2.8)
+        await mcp_client.invoke("backtest", "run_backtest", {**R01, "rebalance_days": 10})
     with pytest.raises(MCPError):
         await mcp_client.invoke("alpha", "evaluate_signal", {"signal": "nope"})
 
@@ -85,12 +89,14 @@ async def test_portfolio_risk_tools(mcp_client, history):
     ds = history.get("R01")
     args = {**R01, "as_of": ds.end}
     exposure = await mcp_client.invoke("risk", "get_portfolio_exposure", args)
-    assert len(exposure["positions"]) == 20 and exposure["gross"] == pytest.approx(1.0)
-    assert exposure["as_of"] == ds.end and _no_nan(exposure)
+    assert len(exposure["positions"]) % 2 == 0 and len(exposure["positions"]) >= 16
+    assert exposure["gross"] == pytest.approx(1.0) and exposure["as_of"] == ds.end and _no_nan(exposure)
     limits = await mcp_client.invoke("risk", "check_portfolio_limits", args)
     assert limits["any_breached"] is False and len(limits["checks"]) == 6
+    assert limits["history_breached"] is False and {c["limit_name"] for c in limits["history_checks"]} >= {"max_gross"}
     stress = await mcp_client.invoke("risk", "calculate_portfolio_stress", {**args, "shock_bps": -500.0})
     assert stress["shock_bps"] == -500.0 and stress["worst_single_name"] < 0
+    assert stress["pnl_short_squeeze"] < 0 and stress["liquidation_cost"] > 0 and stress["liquidation_days"] > 0
     concentrated = await mcp_client.invoke(
         "risk", "check_portfolio_limits", {"signal": "momentum_12_1", "dataset": "R06", "as_of": history.get("R06").end}
     )
@@ -104,11 +110,14 @@ async def test_stage_orders_is_idempotent_and_recorded_as_order_evidence(mcp_cli
     second = await mcp_client.invoke("execution", "stage_orders", args)
     assert first["staging_id"].startswith("STG-") and first["already_staged"] is False
     assert second["staging_id"] == first["staging_id"] and second["already_staged"] is True
-    assert first["count"] == 20 and {o["side"] for o in first["orders"]} == {"BUY", "SELL"}
+    assert first["count"] == len(
+        (await mcp_client.invoke("risk", "get_portfolio_exposure", {**R01, "as_of": ds.end}))["positions"]
+    ) and {o["side"] for o in first["orders"]} == {"BUY", "SELL"}
     assert all(o["account"] == "PAPER_RESEARCH" and o["strategy"] == "VWAP" for o in first["orders"])
     assert first["buy_notional"] > 0 and first["sell_notional"] > 0
     listed = await mcp_client.invoke("execution", "get_staged_orders", {"staging_id": first["staging_id"]})
-    assert listed["found"] and listed["count"] == 20
+    assert listed["found"] and listed["count"] == first["count"]
+
     assert (await mcp_client.invoke("execution", "get_staged_orders", {"staging_id": "STG-nope"}))["found"] is False
     assert (await mcp_client.invoke("execution", "get_staged_orders", {}))["count"] >= 1
 

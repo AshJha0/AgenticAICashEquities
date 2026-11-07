@@ -109,6 +109,82 @@ Round R0 of the 2026-11-07 plan (`docs/review/2026-11-07/PLAN.md`): foundations 
   `Claude outputs/ci.yml` (a stale copy of the workflow) is deleted.
 - CI run id for this round: recorded by the coordinator when the combined 0.4.0 PR is green.
 
+### Integration (combined 0.4.0 PR: R0 + R1 + R2)
+
+- R2 shipped in 0.4.0 rather than 0.5.0 at the owner's request for one combined PR; version labels
+  in code and docs say 0.4.0.
+- `reporter` and `critic` now test `ResearchFlag.OOS_DECAY` (they still compared the literal
+  `"OVERFIT"`, so those branches had stopped firing after the rename).
+- README and LEARN research sections rewritten for the 30-scenario, t+1 re-baseline and the
+  measured hurdle; 0.3.x live-model numbers labelled as belonging to the old 21-scenario set.
+
+### R2 – signal-research quant correctness (0.4.0)
+
+Implements items 2.1–2.14 of `docs/review/2026-11-07/PLAN.md`, in the binding order
+2.1 → 2.9 → 2.10 → hurdle → 2.11.
+
+- **2.1 Execution at t+1.** `execution_lag_days` (default 1) and `fill` (`close` | `open`) in the
+  backtest, scope and MCP tool. Legacy R03 reversal: net Sharpe 1.73 at lag 0, −0.61 at lag 1
+  (review: 1.80 → −0.67).
+- **2.2 Weight drift** between fills; turnover from drifted to target weights.
+- **2.3 Returns and financing.** Sharpe/Sortino on excess returns; cash = 1 − net earns rf (short
+  rebate), negative cash pays rf + 50 bps; borrow 0.5/2/10 % by tier; 2x Reg T cap; Reg SHO SSR
+  blocks logged; cost breakdown (spread, impact, borrow, financing). The Ken French rf CSV is
+  **not committed** (a file download needs the owner's explicit OK); `scripts/fetch_rf.py` builds
+  it; until then rf = 0, stated in every backtest's `assumptions`.
+- **2.4 NYSE calendar** 2000–2030 (`ceap.data.calendar`, committed `data/reference/nyse_calendar.csv`
+  checked against the rules), early closes, special closures, aware datetimes only.
+- **2.5 Data policy.** ADV lagged one day; merger/performance delisting bounds both reported;
+  explicit NaN policy; per-name weight and ADV caps inside the loop, logged.
+- **2.6 Capacity sweep** 10–500 M with breakeven AUM and half-Sharpe AUM.
+- **2.7 Statistics.** Gate on non-overlapping holding-period IC after the lag; Newey-West t;
+  `ic_ir_annualised`; `turnover` renamed `rank_autocorrelation_turnover`; in-sample tail trimmed.
+  Null |t| > 2 rate 6.0 % (500 seeds × 6 families).
+- **2.8 Trial ledger and multiple testing.** Enumerated 24-configuration search space; append-only
+  server-side ledger; deflated Sharpe from ledger trials; `OVERFIT` → `OOS_DECAY`, new
+  `REGIME_BREAK`; locked `in_sample_end`; `HypothesisTable` on every assessment.
+- **2.9 Generator** `realistic_v1`: 20 years, GARCH + fat tails, latent drift/transient premia,
+  crash, volatility-dependent liquidity, listings/delistings; parameter-derived ground truth
+  (`ceap.data.ground_truth`); power curve `docs/quant_power_curve.json`.
+- **2.10 Null sweep and hurdle.** `ceap evaluate --suite null`. 500 seeds × 24 configurations:
+  hurdle **t = 0.65** (15/500 false PROMOTEs, 3.0 %, band [1.7 %, 4.9 %]), sweep hash
+  `dfdadabefeb7682e71e86d3ca8dfc97e2811a48c3bf118bf75e94f07373fe5c0`, in
+  `data/reference/research_thresholds.json`.
+- **2.12 Risk.** Beta vs market ex-self with Vasicek shrinkage; factor, short-squeeze and
+  liquidation stress; limits over the out-of-sample history with the worst date.
+- **2.13 Membership mask** honoured by signals, IC, backtest and risk.
+- **2.14 Profitability table** (`ceap profitability`), attached to every backtest result.
+
+#### Breaking / migration
+
+- `ResearchFlag.OVERFIT` is an alias of `OOS_DECAY` (value `"OOS_DECAY"`); stored `"OVERFIT"` is
+  mapped on read. `PeriodSignalStats.turnover` is now a read-only alias of
+  `rank_autocorrelation_turnover`.
+- Backtests default to a t+1 close fill, drift, financing and caps; `run_backtest` refuses
+  rebalance/weighting choices outside the search space via the MCP tool.
+- Datasets are 5040 days with NaN prices outside membership; research catalogue is 30 scenarios.
+
+#### 2.11 re-baseline: ground truth before and after (decision D5: flips stay REJECT)
+
+| Scenario | Template | 0.4 truth | 0.5 truth (from parameters, t+1) | Change |
+|---|---|---|---|---|
+| RS01–03 | momentum_premium | PROMOTE | PROMOTE | same |
+| RS04–06 | no_alpha | REJECT · NO_ALPHA | REJECT · NO_ALPHA | same |
+| RS07 | reversal_premium | PROMOTE | REJECT · COST_DRAG | **flip** |
+| RS08 | reversal_premium | PROMOTE | REJECT · COST_DRAG | **flip** |
+| RS09 | reversal_premium | PROMOTE | REJECT · COST_DRAG | **flip** |
+| RS10–12 | regime_break | REJECT · OVERFIT | REJECT · OOS_DECAY | flag renamed; premium now vanishes after the split |
+| RS13–15 | cost_drag | REJECT · COST_DRAG | REJECT · COST_DRAG | same |
+| RS16–18 | concentration | REJECT · CONCENTRATION, LIMIT_BREACH | same | same |
+| RS19 | mixed | PROMOTE | REJECT · COST_DRAG (near) | **flip** |
+| RS20 | mixed | PROMOTE | REJECT · COST_DRAG (near) | **flip** |
+| RS21 | mixed | PROMOTE | REJECT · COST_DRAG (near) | **flip** |
+| RS22–24 | momentum_near_threshold | – | PROMOTE (near) | new |
+| RS25–27 | reversal_weak | – | REJECT · COST_DRAG | new |
+| RS28–30 | momentum_crash | – | PROMOTE | new |
+
+Results (mock model): 29/30 verdicts, clear 23/24, near-threshold 6/6, flags 0.90.
+
 ## 0.3.5 – Two new dedicated pages: AI/agents and quant
 
 0.3.4 folded Stage 2 and the real-model findings into the *existing* docs but added no new

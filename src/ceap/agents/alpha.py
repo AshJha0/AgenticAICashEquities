@@ -8,6 +8,7 @@ from ceap.agents.research_base import (
     MAX_TURNOVER,
     MIN_IC_T_STAT,
     MIN_OOS_IC_T_STAT,
+    REGIME_BREAK_T,
     scope,
     tool_args,
 )
@@ -44,14 +45,25 @@ class AlphaAgent(BaseAgent):
         predictive = finite(ins.ic_t_stat) and ins.ic_t_stat >= MIN_IC_T_STAT
         if predictive:
             add(
-                f"The {s.signal} signal is predictive in-sample: mean rank IC {ins.mean_ic:.4f} with t-statistic "
-                f"{ins.ic_t_stat:.2f} over {ins.n_dates} dates (hit rate {ins.hit_rate * 100:.1f}%).",
+                f"The {s.signal} signal is predictive in-sample: mean {ins.horizon_days}-day rank IC {ins.mean_ic:.4f} "
+                f"with t-statistic {ins.ic_t_stat:.2f} over {ins.n_dates} non-overlapping periods, clearing the "
+                f"{MIN_IC_T_STAT:.2f} null-sweep hurdle (Newey-West t on overlapping periods {ins.ic_t_stat_nw:.2f}; "
+                f"hit rate {ins.hit_rate * 100:.1f}%).",
                 confidence_from_excess(ins.ic_t_stat - MIN_IC_T_STAT, 3.0),
                 (calc.id, *ev),
                 claim="ALPHA",
                 ic_t_stat=ins.ic_t_stat,
             )
-            if finite(oos.ic_t_stat) and oos.ic_t_stat >= MIN_OOS_IC_T_STAT:
+            if finite(oos.ic_t_stat) and oos.ic_t_stat <= -REGIME_BREAK_T:
+                add(
+                    f"The premium reverses out-of-sample: IC t-statistic {oos.ic_t_stat:.2f} over {oos.n_dates} "
+                    "non-overlapping periods.",
+                    0.85,
+                    (calc.id, *ev),
+                    flag="REGIME_BREAK",
+                    oos_ic_t_stat=oos.ic_t_stat,
+                )
+            elif finite(oos.ic_t_stat) and oos.ic_t_stat >= MIN_OOS_IC_T_STAT:
                 add(
                     f"Predictive power persists out-of-sample: IC t-statistic {oos.ic_t_stat:.2f} over {oos.n_dates} dates.",
                     confidence_from_excess(oos.ic_t_stat - MIN_OOS_IC_T_STAT, 3.0),
@@ -65,28 +77,36 @@ class AlphaAgent(BaseAgent):
                     f"(below {MIN_OOS_IC_T_STAT:.1f}); the in-sample fit may not persist.",
                     0.85,
                     (calc.id, *ev),
-                    flag="OVERFIT",
+                    flag="OOS_DECAY",
                     oos_ic_t_stat=oos.ic_t_stat,
                 )
         else:
             add(
-                f"The {s.signal} signal is not predictive in-sample: mean rank IC {ins.mean_ic:.4f} with t-statistic "
-                f"{ins.ic_t_stat:.2f} over {ins.n_dates} dates (threshold {MIN_IC_T_STAT:.1f}).",
+                f"The {s.signal} signal is not predictive in-sample: mean {ins.horizon_days}-day rank IC "
+                f"{ins.mean_ic:.4f} with t-statistic {ins.ic_t_stat:.2f} over {ins.n_dates} non-overlapping periods "
+                f"(null-sweep hurdle {MIN_IC_T_STAT:.2f}).",
                 0.85,
                 (calc.id, *ev),
                 claim="NO_ALPHA",
                 ic_t_stat=ins.ic_t_stat,
             )
-        if finite(ins.turnover) and ins.turnover > MAX_TURNOVER:
+        rat = ins.rank_autocorrelation_turnover
+        if finite(rat) and rat > MAX_TURNOVER:
             add(
-                f"Rank turnover per rebalance is high ({ins.turnover:.2f}); the signal will be costly to trade.",
+                f"The signal's ranking changes a lot between rebalances (1 - rank autocorrelation {rat:.2f}); "
+                "it will be costly to trade.",
                 0.8,
                 (calc.id,),
                 flag="HIGH_TURNOVER",
-                turnover=ins.turnover,
+                rank_autocorrelation_turnover=rat,
             )
-        elif finite(ins.turnover):
-            add(f"Rank turnover per rebalance is moderate ({ins.turnover:.2f}).", 0.8, (calc.id,), turnover=ins.turnover)
+        elif finite(rat):
+            add(
+                f"The signal's ranking is moderately stable between rebalances (1 - rank autocorrelation {rat:.2f}).",
+                0.8,
+                (calc.id,),
+                rank_autocorrelation_turnover=rat,
+            )
         d1, d21 = ins.decay.get("1", float("nan")), ins.decay.get("21", float("nan"))
         if finite(d1) and finite(d21) and d1 > 0:
             if d21 < FAST_DECAY_RATIO * d1:

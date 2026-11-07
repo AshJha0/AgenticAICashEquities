@@ -25,7 +25,7 @@ from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.common import utc_now
 from ceap.domain.findings import Finding
 from ceap.domain.reports import InvestigationReport
-from ceap.domain.research import ResearchScope
+from ceap.domain.research import ResearchFlag, ResearchScope
 from ceap.harness.cancellation import TaskCancelled
 from ceap.harness.memory import InvestigationMemory
 from ceap.llm.client import LLMClient, _mock_narrative
@@ -372,7 +372,7 @@ class ReportAgent(BaseAgent):
             return float(value) if isinstance(value, (int, float)) and finite(value) else float("nan")
 
         cost_share, ratio, concentration = number("cost_share"), number("sharpe_ratio_oos_is"), number("pnl_concentration_top3")
-        if "OVERFIT" in flags:
+        if ResearchFlag.OOS_DECAY.value in flags:
             alts.append(
                 "The signal may be regime-specific: the in-sample premium did not persist out-of-sample, "
                 "so a longer out-of-sample period would be needed to distinguish decay from a temporary regime."
@@ -382,7 +382,7 @@ class ReportAgent(BaseAgent):
                 "A weak cross-sectional effect may fail to reach significance in a universe of this size; "
                 "a broader universe would tighten the IC estimate."
             )
-        if "OVERFIT" not in flags and finite(ratio) and ratio < 0.8:
+        if ResearchFlag.OOS_DECAY.value not in flags and finite(ratio) and ratio < 0.8:
             alts.append(
                 f"Out-of-sample Sharpe is {ratio:.2f} of in-sample; part of the in-sample fit may not persist."
             )
