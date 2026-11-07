@@ -312,10 +312,11 @@ next session (`execution_lag_days=1`); 0.3.x filled at the same close, which was
 The PROMOTE hurdle is measured, not chosen: a null sweep over 500 pure-noise datasets x 24
 configurations picks the lowest in-sample IC t whose false-PROMOTE rate stays under 5 % with the
 other gates in place (deflated Sharpe over ledger-counted trials, out-of-sample IC t >= 1, net
-Sharpe >= 0.5, costs below half of gross). Result: t >= 0.65, false-PROMOTE 15/500 = 3.0 %
+Sharpe >= 0.5, costs below half of gross). Result: t >= 0.40, false-PROMOTE 15/500 = 3.0 %
 (95 % band 1.7 % to 4.9 %), stored with the sweep hash in `data/reference/research_thresholds.json`.
-The risk-free series is not yet committed, so Sharpe uses rf = 0 (stated in every backtest); this
-can only overstate false PROMOTEs.
+Sharpe is on excess returns over the Ken French daily risk-free rate (`data/reference/rf.csv`,
+with attribution); the hurdle was 0.65 with rf = 0 and fell to 0.40 once rf lowered long-only
+Sharpe ratios.
 
 `ceap evaluate --suite research` reports verdict accuracy, flag coverage, false-flag rate,
 completion and number-audit warnings. With the mock model the current build scores 29/30 verdicts

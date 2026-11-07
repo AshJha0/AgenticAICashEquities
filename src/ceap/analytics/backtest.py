@@ -472,19 +472,29 @@ def simulate_backtest(
     sim.nav[i0] = 1.0
     cap = caps if caps is not None else PositionCaps()
 
-    def trade(book: _Book, e: int, decision: int, price: np.ndarray, down: np.ndarray) -> _Book:
+    # a fill that the participation cap clips leaves a working order: the residual is worked on every
+    # following session at the cap, against the same target, until it is done or the next decision fills
+    working: dict[str, Any] = {"target": None}
+
+    def trade(
+        book: _Book, e: int, decision: int, price: np.ndarray, down: np.ndarray, fixed: np.ndarray | None = None
+    ) -> _Book:
         nav = book.nav
         if nav <= 0:
             return book
-        row = sig[decision]
-        if np.isfinite(row).sum() < MIN_NAMES:
-            return book
-        tgt = target_weights(cross_sectional_zscore(row), long_short, top_fraction, weighting) * gross_leverage
+        if fixed is None:
+            row = sig[decision]
+            if np.isfinite(row).sum() < MIN_NAMES:
+                working["target"] = None
+                return book
+            tgt = target_weights(cross_sectional_zscore(row), long_short, top_fraction, weighting) * gross_leverage
+            over = np.abs(tgt) > cap.max_weight * gross_leverage + 1e-12
+            for j in np.flatnonzero(over):
+                sim.log("weight_cap", e, int(j), target=float(tgt[j]), cap=cap.max_weight)
+            tgt = np.clip(tgt, -cap.max_weight * gross_leverage, cap.max_weight * gross_leverage)
+        else:
+            tgt = fixed.copy()
         tgt[~members[e]] = 0.0
-        over = np.abs(tgt) > cap.max_weight * gross_leverage + 1e-12
-        for j in np.flatnonzero(over):
-            sim.log("weight_cap", e, int(j), target=float(tgt[j]), cap=cap.max_weight)
-        tgt = np.clip(tgt, -cap.max_weight * gross_leverage, cap.max_weight * gross_leverage)
         w_d = book.P / nav
         if fin_model.enabled and fin_model.ssr:
             blocked = down & (tgt < np.minimum(w_d, 0.0) - 1e-12)
@@ -496,9 +506,13 @@ def simulate_backtest(
         with np.errstate(divide="ignore", invalid="ignore"):
             capacity = cap.max_participation * ds.adv_20[e] * price / dollars_per_unit
         capacity = np.where(np.isfinite(capacity), capacity, 0.0)
-        clipped = np.abs(dw) > capacity + 1e-12
-        for j in np.flatnonzero(clipped & (np.abs(dw) > 1e-12)):
-            sim.log("participation_cap", e, int(j), wanted=float(dw[j]), allowed=float(capacity[j]))
+        clipped = (np.abs(dw) > capacity + 1e-12) & (np.abs(dw) > 1e-12)
+        for j in np.flatnonzero(clipped):
+            if fixed is None:
+                sim.log("participation_cap", e, int(j), wanted=float(dw[j]), allowed=float(capacity[j]))
+            else:
+                sim.log("working_order", e, int(j), remaining=float(dw[j]), allowed=float(capacity[j]))
+        working["target"] = tgt if clipped.any() else None
         dw = np.sign(dw) * np.minimum(np.abs(dw), capacity)
         with np.errstate(divide="ignore", invalid="ignore"):
             participation = np.abs(dw) * dollars_per_unit / (ds.adv_20[e] * price)
@@ -510,7 +524,8 @@ def simulate_backtest(
         sim.costs["spread"][e] += spread_cost
         sim.costs["impact"][e] += impact_cost
         turnover[e] += float(np.abs(dw).sum())
-        rebalances.append(e)
+        if fixed is None:
+            rebalances.append(e)
         P_new = (w_d + dw) * nav
         cash = book.cash - float((dw * nav).sum()) - spread_cost - impact_cost
         fill_weights[e] = w_d + dw
@@ -521,10 +536,15 @@ def simulate_backtest(
         down0 = np.zeros(m, dtype=bool)
         book = trade(book, i0, fills[i0], ds.close[i0], down0)
         sim.nav[i0] = book.nav
-    event_days = sorted(set(fills) | set(delist_days))
-    for e in event_days:
+    import heapq
+
+    queue = sorted(set(fills) | set(delist_days))
+    heapq.heapify(queue)
+    while queue:
+        e = heapq.heappop(queue)
         if e <= t_cur:
             continue
+        work_day = e not in fills and working["target"] is not None
         open_fill = fill == "open" and e in fills
         last_close = e - 1 if open_fill else e
         # delistings strictly before e are handled at their own event day, so only e itself can delist here
@@ -560,6 +580,13 @@ def simulate_backtest(
                 down = np.nan_to_num(ds.low[e] / ds.close[e - 1] - 1.0, nan=0.0) <= SSR_TRIGGER
             book = trade(book, e, fills[e], ds.close[e], down)
             sim.nav[e] = book.nav
+        elif work_day:
+            with np.errstate(divide="ignore", invalid="ignore"):
+                down = np.nan_to_num(ds.low[e] / ds.close[e - 1] - 1.0, nan=0.0) <= SSR_TRIGGER
+            book = trade(book, e, e, ds.close[e], down, fixed=working["target"])
+            sim.nav[e] = book.nav
+        if working["target"] is not None and e + 1 <= i1 and (e + 1) not in fills:
+            heapq.heappush(queue, e + 1)
     if i1 > t_cur:
         days = list(range(t_cur + 1, i1 + 1))
         book = sim.hold(book, ret[t_cur + 1 : i1 + 1], days, rf[t_cur + 1 : i1 + 1])

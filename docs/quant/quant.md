@@ -128,23 +128,24 @@ signal/horizon families (momentum at 21 days: 5.6 %), inside the [3.0 %, 7.5 %] 
 | Sweep (committed in `data/reference/research_thresholds.json`) | Value |
 |---|---|
 | Seeds x configurations | 500 x 24 |
-| Chosen in-sample IC t hurdle | **0.65** |
+| Chosen in-sample IC t hurdle | **0.40** (0.65 before rf was committed) |
 | False PROMOTEs at the hurdle | 15 / 500 = 3.0 %, 95 % band [1.7 %, 4.9 %] |
-| False PROMOTEs with no IC hurdle at all | 27 / 500 = 5.4 % (upper bound 7.8 %) |
-| Sweep hash | `dfdadabefeb7682e71e86d3ca8dfc97e2811a48c3bf118bf75e94f07373fe5c0` |
+| False PROMOTEs with no IC hurdle at all | 17 / 500 = 3.4 % (upper bound 5.4 %) |
+| Sweep hash | `ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4` |
 
 What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,
 out-of-sample IC t >= 1, out-of-sample net Sharpe >= 0.5, costs below half of gross) already hold
 the false-PROMOTE rate near 5 %, so the in-sample IC hurdle only has to remove the last few. A
 fixed `t >= 3` would have been chosen before measuring and would have rejected the realistic
-premia below. The rf series is not yet committed (rf = 0); for the long-only half of the search
-that can only *overstate* false PROMOTEs, so the hurdle is conservative.
+premia below. With the Ken French rf series committed, long-only books pay rf in their excess
+return, fewer noise configurations clear the Sharpe gates, and the hurdle fell from 0.65 (rf = 0)
+to 0.40 - the sweep was re-run, not the number edited.
 
 ### The assessment (`assess_research`)
 
 | Flag | Condition |
 |---|---|
-| `NO_ALPHA` | in-sample non-overlapping IC t < 0.65 (null-sweep hurdle), fewer than 30 periods, or deflated Sharpe < 0.5 |
+| `NO_ALPHA` | in-sample non-overlapping IC t < 0.40 (null-sweep hurdle), fewer than 30 periods, or deflated Sharpe < 0.5 |
 | `REGIME_BREAK` | out-of-sample IC t <= -2: the premium reversed |
 | `OOS_DECAY` | out-of-sample IC t < 1, or net out-of-sample Sharpe < 0.5 without a cost explanation (0.4 name `OVERFIT`: nothing is fitted) |
 | `COST_DRAG` | gross out-of-sample Sharpe >= 0.5 but net below it, or costs >= 50 % of gross |
@@ -255,9 +256,10 @@ recalibration and version control like any other code; R5 runs one preregistered
   solver.
 - **No commercial risk model.** No Barra-style factor risk model, no vendor covariance matrix —
   beta is an OLS regression against the equal-weight universe excluding the name, shrunk toward 1.
-- **No committed risk-free series yet.** `scripts/fetch_rf.py` builds `data/reference/rf.csv`
-  from the Ken French library (free, no sign-up); until it is committed rf = 0 and every
-  backtest says so in `assumptions["risk_free"]`.
+- **Risk-free series from the Ken French library** (`data/reference/rf.csv`, built by
+  `scripts/fetch_rf.py`, attribution in its header). An installed wheel does not ship `data/`:
+  there rf falls back to 0 and every backtest says so in `assumptions["risk_free"]`; the calendar
+  regenerates from its rules and the hurdle falls back to the committed value shipped in code.
 - **No live market data, no OMS, no venue connectivity.** Every number above is computed on
   synthetic data. `execution.stage_orders` (the one non-read-only tool in the whole platform)
   builds *paper* orders from the recomputed target portfolio into an in-memory store; nothing

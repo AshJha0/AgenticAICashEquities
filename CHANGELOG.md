@@ -120,6 +120,21 @@ Round R0 of the 2026-11-07 plan (`docs/review/2026-11-07/PLAN.md`): foundations 
 
 ### R1: fail closed by default (PLAN section 2, items 1.1-1.11)
 
+- **Risk-free series committed** (`data/reference/rf.csv`, Ken French daily RF, 2000-01-03 to
+  2026-09-30, attribution header). The null sweep was re-run with it: the hurdle moved from
+  t = 0.65 (rf = 0, hash `dfdadabe...`) to **t = 0.40** (hash `ef474869...`), because long-only noise
+  configurations now pay rf and clear the Sharpe gates less often.
+- **Working orders.** A fill clipped by the 10 %-of-ADV cap now leaves a working order that is
+  traded on every following session at the cap until it completes or the next decision replaces
+  it (`working_order` events). Before, the residual waited for the next rebalance, so at 250-500 M
+  the book silently under-traded and its Sharpe flattened: with rf the 250 M and 500 M Sharpe
+  ratios tied within 0.002 (Spearman -0.943 against the plan's -1). The acceptance was not
+  changed; with the fix R03 is strictly monotone again (0.63 at 10 M to -0.84 at 500 M, gap 1.46
+  against two standard errors of 0.46), as are R01, R08 and R09.
+- **Installed wheel.** `data/` is not shipped: rf falls back to 0 (stated), the NYSE calendar is
+  regenerated from its rules, and the hurdle falls back to the committed value in code (a test
+  keeps it equal to the thresholds file).
+
 #### Breaking / migration
 
 - **`CEAP_LLM_PROVIDER=auto` is removed.** It silently used the mock when no key was set. Set
@@ -215,8 +230,8 @@ Implements items 2.1–2.14 of `docs/review/2026-11-07/PLAN.md`, in the binding 
   crash, volatility-dependent liquidity, listings/delistings; parameter-derived ground truth
   (`ceap.data.ground_truth`); power curve `docs/quant_power_curve.json`.
 - **2.10 Null sweep and hurdle.** `ceap evaluate --suite null`. 500 seeds × 24 configurations:
-  hurdle **t = 0.65** (15/500 false PROMOTEs, 3.0 %, band [1.7 %, 4.9 %]), sweep hash
-  `dfdadabefeb7682e71e86d3ca8dfc97e2811a48c3bf118bf75e94f07373fe5c0`, in
+  hurdle **t = 0.40** (15/500 false PROMOTEs, 3.0 %, band [1.7 %, 4.9 %]), sweep hash
+  `ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4`, in
   `data/reference/research_thresholds.json`.
 - **2.12 Risk.** Beta vs market ex-self with Vasicek shrinkage; factor, short-squeeze and
   liquidation stress; limits over the out-of-sample history with the worst date.

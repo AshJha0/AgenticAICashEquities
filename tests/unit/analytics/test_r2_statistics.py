@@ -202,3 +202,24 @@ def test_committed_thresholds_record_the_sweep():
     assert doc["ic_t_stat_min"] == DEFAULT_THRESHOLDS.ic_t_stat_min
     assert doc["sweep_hash"] == DEFAULT_THRESHOLDS.hurdle_sweep_hash and len(doc["sweep_hash"]) == 64
     assert doc["n_seeds"] == 500 and doc["band95"][1] <= 0.05
+
+
+def test_wheel_fallbacks_match_the_committed_files(monkeypatch, tmp_path):
+    import ceap.analytics.research_assessment as ra
+    import ceap.data.calendar as cal
+
+    assert (ra.COMMITTED_HURDLE, ra.COMMITTED_SWEEP_HASH) == (DEFAULT_THRESHOLDS.ic_t_stat_min,
+                                                            DEFAULT_THRESHOLDS.hurdle_sweep_hash)
+    monkeypatch.setattr(ra, "THRESHOLDS_PATH", tmp_path / "missing.json")
+    assert ra._load_hurdle() == (ra.COMMITTED_HURDLE, ra.COMMITTED_SWEEP_HASH)
+    on_disk = cal._load()
+    cal._load.cache_clear()
+    monkeypatch.setattr(cal, "CALENDAR_PATH", tmp_path / "missing.csv")
+    assert cal._load() == on_disk  # rules regenerate the committed list
+    cal._load.cache_clear()
+    import numpy as np
+
+    from ceap.analytics.backtest import risk_free_daily
+    rf, source = risk_free_daily(np.array(["2020-01-02"], dtype="datetime64[D]"), tmp_path / "none.csv")
+    assert rf.tolist() == [0.0] and source.startswith("unavailable")
+
