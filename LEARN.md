@@ -255,8 +255,17 @@ shipping 14,400 quotes and 22,000 prints into model context.
 ## 9. The agents
 
 Each specialist agent answers one question, reads the plan's tool outputs from
-`InvestigationMemory`, fetches anything missing through `ensure()` (which goes through
-policy), and returns findings that cite evidence.
+`InvestigationMemory` through `fetched()`, and returns findings that cite evidence, down to the
+attribute (`evidence_refs`). An agent never fetches for itself: the plan chooses the agents, and
+the harness adds the data each chosen agent declares in `ceap/agents/requirements.py`, so every
+fetch passes plan validation and policy. If a fetch fails the agent fails loudly and the harness
+re-plans once.
+
+The model decides scope, within enumerated choices (which agents and optional tools, which of
+three baselines, how to rank the pre-registered hypotheses); deterministic code decides truth (the
+hypothesis verdicts, and whether a critic dispute holds). Ask yourself why the critic model is not
+allowed to lower a confidence even though lowering looks "safe": an injected critic could erase a
+real finding, so a dispute must name a check the platform can run.
 
 | Agent | Question | Produces |
 |---|---|---|

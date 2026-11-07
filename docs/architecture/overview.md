@@ -125,7 +125,11 @@ deadline, metrics and tracing, then `InvestigationMemory.record_tool`. Agents re
 
 Governance is enforced by the harness regardless of the plan: a critic step, an evidence
 validation step and a finalise step are appended if absent; the critic is forced before
-validation/finalisation; findings whose evidence does not resolve are dropped.
+validation/finalisation; findings whose evidence does not resolve, or whose cited value does not
+match the value at its path, are dropped. Since R3B the harness also adds the data steps of every
+chosen agent (`agents/requirements.py`), applies the plan's enumerated scope (baseline, ranked
+hypotheses), runs critic disputes as deterministic checks, re-plans once on a failure, builds the
+hypothesis table, and reads and writes the bounded case memory (`harness/memory.py`, D10).
 
 Consecutive independent `TOOL_CALL` steps are batched and executed concurrently with
 `asyncio.TaskGroup` under a semaphore.
