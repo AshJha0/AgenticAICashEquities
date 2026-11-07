@@ -35,6 +35,7 @@ from ceap.harness.executor import HarnessToolInvoker, RunContext, StepExecutor, 
 from ceap.harness.memory import InvestigationMemory
 from ceap.harness.retry import RetryPolicy
 from ceap.harness.state_machine import HarnessState, StateMachine
+from ceap.llm.router import task_cost, task_scope
 from ceap.observability.metrics import metrics
 from ceap.observability.tracing import ExecutionTracer, InMemoryTracer
 from ceap.policy.approvals import (
@@ -254,6 +255,10 @@ class AgentHarness:
         warnings: list[ResultWarning] = []
         step_results: list[dict[str, Any]] = []
         metrics.inc("ceap_investigations_total")
+        # R3A 3A.6: every model call made by this run is attributed to this task (context variable,
+        # so concurrent tasks on one router never share a cost meter)
+        llm_scope = task_scope(task.id)
+        llm_scope.__enter__()
 
         try:
             async with self.tracer.span("harness.execute", task_id=task.id, execution_id=execution_id):
@@ -397,7 +402,7 @@ class AgentHarness:
                         self._absorb("reporter", rep_result, memory, warnings)
                         if not rep_result.success or "report" not in rep_result.output:
                             raise RuntimeError(rep_result.error or "reporter produced no report")
-                        report = rep_result.output["report"]
+                        report = replace(rep_result.output["report"], prompts=_prompt_refs(memory))
                         step_results.append(
                             {"step_id": step.id, "type": step.type.value, "status": "SUCCESS"}
                         )
@@ -433,6 +438,17 @@ class AgentHarness:
                 sm.fail(error)
                 metrics.inc("ceap_investigations_failed_total")
 
+        llm_scope.__exit__(None, None, None)
+        cost = task_cost(task.id)  # R3A 3A.6: per-task cost span (local estimate, labelled)
+        if cost.calls:
+            metrics.observe("ceap_llm_task_cost_usd_estimate", cost.usd)
+            metrics.inc("ceap_llm_calls_total", float(cost.calls))
+            memory.agent_outputs["llm"] = {
+                "usd_estimate": round(cost.usd, 6),
+                "usd_is_estimate": True,
+                "calls": cost.calls,
+                "records": [to_jsonable(r) for r in cost.records],
+            }
         duration_ms = round((time.perf_counter() - started) * 1000.0, 3)
         metrics.observe("ceap_investigation_duration_ms", duration_ms)
         return HarnessResult(
@@ -785,6 +801,21 @@ class AgentHarness:
             warnings.append(
                 _w(str(d.get("code")), f"{agent_id}: rung {d.get('rung')}: {d.get('message')}", source=agent_id)
             )
+        report = result.output.get("report")
+        if isinstance(report, InvestigationReport):
+            # R3A 3A.4: a narrative number or evidence id that does not trace to facts is blocking
+            untraceable = [
+                *(report.critique.get("narrative_number_warnings") or []),
+                *(report.critique.get("narrative_evidence_warnings") or []),
+            ]
+            if untraceable:
+                warnings.append(
+                    _w(
+                        "NARRATIVE_UNTRACEABLE",
+                        f"{agent_id}: {len(untraceable)} narrative value(s) do not trace to facts, e.g. {untraceable[0]}",
+                        source=agent_id,
+                    )
+                )
         memory.agent_outputs[agent_id] = {
             k: v for k, v in result.output.items() if k not in ("adjusted_findings", "plan", "report")
         } | {"summary": result.summary, "success": result.success, "error": result.error}
@@ -1002,3 +1033,13 @@ def _agent_record(step_id: str, agent_id: str, result: AgentResult) -> dict[str,
         "findings": len(result.findings),
         "summary": result.summary,
     }
+
+
+def _prompt_refs(memory: InvestigationMemory) -> dict[str, dict[str, str]]:
+    """R3A 3A.7: prompt id -> {version, sha256} of every prompt used by this run."""
+    refs: dict[str, dict[str, str]] = {}
+    for out in memory.agent_outputs.values():
+        ref = out.get("prompt") if isinstance(out, dict) else None
+        if isinstance(ref, dict) and "id" in ref:
+            refs[str(ref["id"])] = {"version": str(ref.get("version")), "sha256": str(ref.get("sha256"))}
+    return refs

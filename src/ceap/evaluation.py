@@ -20,6 +20,7 @@ from typing import Any
 
 from ceap.data.research_scenarios import ResearchScenarioSpec, all_research_scenarios
 from ceap.data.scenarios import ScenarioSpec, all_scenarios
+from ceap.llm.recording import llm_provenance, model_metrics_label
 from ceap.platform import Platform, default_request, default_research_request
 
 
@@ -66,8 +67,11 @@ async def run_evaluation(
                 f"{flag} {row['scenario']} {row['symbol']:5s} {row['template']:24s} primary={str(row['primary'] or '-'):20s} fp={row['false_positives']} {row['duration_ms']:.0f}ms"
             )
     n = len(rows)
+    provenance = llm_provenance(platform.llm)  # R3A 3A.5: never publish model behaviour from a non-recorded run
     return {
         "scenarios": n,
+        "llm_provenance": provenance,
+        "model_behaviour_metrics": model_metrics_label(provenance),
         "primary_accuracy": sum(r["primary_hit"] for r in rows) / n if n else 0.0,
         "coverage": sum(r["coverage"] for r in rows) / n if n else 0.0,
         "false_positive_rate": sum(bool(r["false_positives"]) for r in rows) / n if n else 0.0,
