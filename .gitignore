@@ -24,6 +24,9 @@ data/orders/*.parquet
 data/executions/*.csv
 data/executions/*.parquet
 data/reference/*.csv
+# committed reference data (R2): NYSE calendar list and the Ken French risk-free series
+!data/reference/nyse_calendar.csv
+!data/reference/rf.csv
 data/reference/*.parquet
 
 # IDE / OS

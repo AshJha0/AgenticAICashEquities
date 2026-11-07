@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -134,3 +135,10 @@ def cross_sectional_zscore(row: np.ndarray, clip: float = 3.0) -> np.ndarray:
 def zscore_matrix(signal: np.ndarray, clip: float = 3.0) -> np.ndarray:
     s = np.asarray(signal, dtype=float)
     return np.vstack([cross_sectional_zscore(row, clip) for row in s]) if s.size else s.copy()
+
+
+def dataset_signal(ds: Any, name: str) -> np.ndarray:
+    """The signal on a research dataset with the membership mask applied (2.13): non-members are NaN."""
+    sig = compute_signal(name, ds.close, ds.volume)
+    sig[~ds.member_mask] = np.nan
+    return sig

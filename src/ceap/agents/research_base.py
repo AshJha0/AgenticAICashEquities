@@ -14,6 +14,7 @@ from ceap.domain.research import ResearchScope, research_tool_arguments
 
 MIN_IC_T_STAT = DEFAULT_THRESHOLDS.ic_t_stat_min
 MIN_OOS_IC_T_STAT = DEFAULT_THRESHOLDS.oos_ic_t_min
+REGIME_BREAK_T = DEFAULT_THRESHOLDS.regime_break_t
 MIN_SHARPE = DEFAULT_THRESHOLDS.sharpe_min
 MIN_OOS_IS_SHARPE_RATIO = DEFAULT_THRESHOLDS.oos_is_sharpe_ratio_min
 MAX_COST_SHARE = DEFAULT_THRESHOLDS.cost_share_max

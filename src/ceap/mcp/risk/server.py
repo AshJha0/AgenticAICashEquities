@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ceap.analytics.execution_metrics import QuoteIndex
-from ceap.analytics.portfolio_risk import check_limits, stress, target_portfolio
+from ceap.analytics.portfolio_risk import check_limits, history_limit_checks, stress, target_portfolio
 from ceap.data.historical import HistoricalStore
 from ceap.data.repositories import DatasetStore
 from ceap.domain.common import to_jsonable
@@ -148,7 +148,8 @@ def build_server(store: DatasetStore, history: HistoricalStore | None = None) ->
 
     @server.tool(
         "Check the recomputed target portfolio against portfolio limits: gross, net, single-name weight, beta, "
-        "concentration and per-name ADV participation."
+        "concentration and per-name ADV participation - as of the date and over every out-of-sample "
+        "rebalance date, reporting the worst date per limit."
     )
     async def check_portfolio_limits(
         signal: str,
@@ -156,10 +157,13 @@ def build_server(store: DatasetStore, history: HistoricalStore | None = None) ->
         as_of: str | None = None,
         long_short: bool = True,
         gross_notional: float = DEFAULT_GROSS_NOTIONAL,
+        rebalance_days: int = 21,
     ) -> dict[str, Any]:
         ds = select_history(history, dataset)
         report = target_portfolio(ds, signal, as_of, long_short, gross_notional)
         checks = check_limits(report)
+        end = ds.index_at_or_before(report.as_of)
+        hist = history_limit_checks(ds, signal, long_short, gross_notional, rebalance_days, end_index=end)
         return {
             "signal": signal,
             "dataset": ds.scenario.id,
@@ -167,11 +171,14 @@ def build_server(store: DatasetStore, history: HistoricalStore | None = None) ->
             "any_breached": any(c.breached for c in checks),
             "breached_symbols": sorted({c.symbol for c in checks if c.breached}),
             "checks": [to_jsonable(c) for c in checks],
+            "history_checks": list(hist),
+            "history_breached": any(c["breached"] for c in hist),
         }
 
     @server.tool(
         "P&L impact of an instantaneous market shock (bps) on the recomputed target portfolio: through its "
-        "beta, through its net exposure, and for the largest single name.",
+        "beta, through its net exposure and for the largest single name; plus a reversal of the signal's "
+        "factor, a +20% short squeeze and the cost and days of liquidating at 10% of ADV.",
         risk_level=RiskLevel.MEDIUM,
     )
     async def calculate_portfolio_stress(
@@ -192,7 +199,8 @@ def build_server(store: DatasetStore, history: HistoricalStore | None = None) ->
             "beta": report.beta,
             "net": report.net,
             "max_abs_weight": report.max_abs_weight,
-            **to_jsonable(stress(report, shock_bps)),
+            **to_jsonable(stress(report, shock_bps, ds)),
+
         }
 
     return server
