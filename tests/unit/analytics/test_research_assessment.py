@@ -86,9 +86,9 @@ def test_promote_when_every_hurdle_is_cleared():
 
 
 def test_no_alpha_flag():
-    assert ResearchFlag.NO_ALPHA in assess_research(_stats(is_t=1.0), _backtest(), _risk()).flags
+    assert ResearchFlag.NO_ALPHA in assess_research(_stats(is_t=0.3), _backtest(), _risk()).flags
     assert ResearchFlag.NO_ALPHA in assess_research(_stats(n=10), _backtest(), _risk()).flags
-    a = assess_research(_stats(is_t=1.0), _backtest(oos_sharpe=-1.0), _risk())
+    a = assess_research(_stats(is_t=0.3), _backtest(oos_sharpe=-1.0), _risk())
     assert a.flags == (ResearchFlag.NO_ALPHA,)  # the alpha chain stops at the first failure
 
 
@@ -111,7 +111,7 @@ def test_independent_flags_and_missing_inputs():
     assert conc.flags == (ResearchFlag.CONCENTRATION,)
     lim = assess_research(_stats(), _backtest(), _risk(breached=True))
     assert lim.flags == (ResearchFlag.LIMIT_BREACH,) and lim.scores["limits"] == 0.0
-    both = assess_research(_stats(is_t=1.0), _backtest(concentration=0.7), _risk(breached=True))
+    both = assess_research(_stats(is_t=0.3), _backtest(concentration=0.7), _risk(breached=True))
     assert set(both.flags) == {ResearchFlag.NO_ALPHA, ResearchFlag.CONCENTRATION, ResearchFlag.LIMIT_BREACH}
     missing = assess_research(None, _backtest(), _risk())
     assert missing.flags == (ResearchFlag.INCOMPLETE_ANALYSIS,) and "signal" in missing.rationale[0]

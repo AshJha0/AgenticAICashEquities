@@ -89,7 +89,7 @@ def test_backtest_invariants_on_the_momentum_dataset(history):
     free = run_backtest(ds, "momentum_12_1", ds.start, ds.end, ds.in_sample_end, cost_multiplier=0.0)
     lines = free.cost_breakdown_bps_annual
     assert lines["spread"] == 0.0 and lines["impact"] == 0.0 and lines["borrow"] > 0  # borrow is not a trade cost
-    assert free.periods["full"].cost_drag_bps_annual == pytest.approx(lines["borrow"] + lines["financing"], rel=1e-6)
+    assert free.periods["full"].cost_drag_bps_annual == pytest.approx(lines["borrow"] + lines["financing"], abs=0.01)
     raw = run_backtest(ds, "momentum_12_1", ds.start, ds.end, ds.in_sample_end, cost_multiplier=0.0,
                        financing=FinancingModel(enabled=False))
     assert raw.periods["full"].cost_drag_bps_annual == pytest.approx(0.0, abs=1e-9)

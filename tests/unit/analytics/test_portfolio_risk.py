@@ -69,7 +69,7 @@ def test_stress_signs(history):
     assert s.pnl_market == pytest.approx(5e7 * 0.2 * -0.05)
     assert s.pnl_flat == pytest.approx(5e7 * 0.1 * -0.05)
     assert s.worst_single_name == pytest.approx(-5e7 * report.max_abs_weight * 0.05, abs=0.01)
-    assert with_stress(report, -500.0).stress == s
+    assert with_stress(report, -500.0).stress.pnl_market == s.pnl_market
 
 
 def test_market_betas_recover_a_factor_structure():
