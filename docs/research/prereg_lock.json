@@ -11,5 +11,17 @@
     "eval_end": "2023-12-31",
     "holdout_start": "2024-01-01",
     "holdout_end": "2025-12-31"
+  },
+  "status": {
+    "outcome": "VOID",
+    "decided_on": "2026-11-07",
+    "reason": "coverage 75.1 % < 95 % (gate 1); Stooq cross-check not run (gate 2)",
+    "test_statistic_computed": false,
+    "items_not_run": [
+      "5.6",
+      "5.7"
+    ],
+    "pseudo_holdout": "UNSPENT",
+    "result": "docs/research/result_momentum_2026-11.md"
   }
 }

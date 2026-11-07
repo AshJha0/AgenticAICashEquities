@@ -410,6 +410,16 @@ curl -s -X POST http://127.0.0.1:8000/approvals/<id> -H "X-API-Key: dev-approver
 curl -s http://127.0.0.1:8000/research/<task_id>/report -H "X-API-Key: dev-quant-key"   # kind=research, proposal.verdict
 ```
 
+## Real-data study (R5): VOID
+
+One preregistered test of 12-1 momentum on an approximately point-in-time S&P 500, on free data
+only. The preregistration was hashed and committed before any data was read. The study is **VOID**:
+point-in-time coverage was 75.1 % against a required 95 %, because yfinance lacks history for most
+delisted names, and the Stooq cross-check could not run without bypassing a bot check, which the
+project does not do. No test statistic was computed, no verdict is issued, and the pseudo-holdout is
+unspent. The pipeline itself replicated Ken French UMD at a correlation of 0.87. Details are in
+[`docs/research/`](docs/research/README.md).
+
 ## License
 
 MIT

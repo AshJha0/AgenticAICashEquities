@@ -248,6 +248,12 @@ only and says so.
 
 R5: 58 h, about 7 plan-days, 3 wall-clock days plus download time. Tag 0.8.0.
 
+Status (2026-11-07): items 5.1 to 5.5 are done on branch `r5-real-data`. The study is **VOID** by owner
+decision. Free point-in-time coverage was 75.1 % against a required 95 %, and the Stooq cross-check
+was not run because Stooq serves a bot check to scripts (D2). Items 5.6 and 5.7 were not run, no test
+statistic was computed, and the pseudo-holdout is unspent. A future attempt needs delisting-aware
+prices and a new preregistration. See `docs/research/result_momentum_2026-11.md`.
+
 ### R6: documentation pass per release (owner rule), not one pass at the end
 
 Every round PR includes its docs pass (README, LEARN, COOKBOOK, ARCHITECTURE, DIAGRAMS, threat model,

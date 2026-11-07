@@ -1,4 +1,9 @@
-# Real-data study (round R5): status after items 5.1 to 5.5
+# Real-data study (round R5)
+
+**Outcome: VOID** (owner decision, 2026-11-07). Coverage failed its gate and the cross-check could
+not run, so no test statistic was computed and no verdict is issued. Items 5.6 and 5.7 were not
+run, and the pseudo-holdout is unspent. See [`result_momentum_2026-11.md`](result_momentum_2026-11.md).
+The sections below record the preparation (items 5.1 to 5.5) as it was done.
 
 One preregistered test of 12-1 momentum on an approximately point-in-time S&P 500, using free data
 only (D2). This page covers the preparation: items 5.1 to 5.5. The primary test (5.6) and the one
@@ -38,9 +43,7 @@ look at the pseudo-holdout (5.7) run after 0.6.0. **No hypothesis-test statistic
 **Gate 1 (coverage at least 95 %) fails on current free data.** yfinance drops the history of
 delisted and acquired companies, for example LEH, CELG, ESRX, and EA after it was taken private.
 That is exactly the survivorship gap point-in-time membership is meant to expose. Under the
-preregistration the study is **VOID** unless delisted-name prices come from another free source. One
-option is Stooq files downloaded by a person in a browser. Stooq keeps more delisted US names, and
-the loaders already read them.
+preregistration the study is **VOID**. The owner decided against a manual Stooq download.
 
 - Survivor-only universe (today's members used throughout), descriptive only: correlation with the
   point-in-time gross book 0.93; annualised gross difference -0.75 %.
@@ -65,8 +68,7 @@ the loaders already read them.
 | Known splits AAPL 2014-06-09 and 2020-08-31 absorbed | pass, pass |
 | Stooq vs yfinance returns within 10 bps on at least 99.5 % of name-days | **NOT RUN** (no Stooq files) |
 
-**Gate 2 can't be evaluated without Stooq files.** Under the preregistration it counts as failed
-(VOID) until they exist.
+**Gate 2 can't be evaluated without Stooq files.** Under the preregistration it counts as failed.
 
 ## 5.4 Cost schedule
 

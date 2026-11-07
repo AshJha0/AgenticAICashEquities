@@ -318,3 +318,13 @@ def test_committed_ff_factors_stop_before_holdout() -> None:
     ff = fc.load_ff()
     assert max(ff) == "2023-12" and min(ff) <= "2004-12"
     assert all(math.isfinite(v["umd"]) for v in ff.values())
+
+
+def test_study_recorded_void_and_holdout_unspent() -> None:
+    lock = json.loads(prereg.LOCK_PATH.read_text(encoding="utf-8"))
+    assert lock["status"]["outcome"] == "VOID" and lock["status"]["pseudo_holdout"] == "UNSPENT"
+    assert lock["status"]["test_statistic_computed"] is False
+    doc = (prereg.REPO_ROOT / "docs" / "research" / "result_momentum_2026-11.md").read_text(encoding="utf-8")
+    assert lock["sha256"] in doc and "fb9858e" in doc and "UNSPENT" in doc
+    with pytest.raises(prereg.PreregistrationError):
+        prereg.check_in_sample(date(2024, 1, 2), prereg.require_prereg_lock())
