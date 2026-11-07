@@ -6,6 +6,11 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+## [0.4.0] - 2026-11-07
+
+Rounds R0, R1 and R2 of the 2026-11-07 plan, shipped as one combined PR (AshJha0/AgenticAICashEquities#1).
+CI green on the combined head e915c8a: run 42396076903 (all 9 jobs).
+
 Round R0 of the 2026-11-07 plan (`docs/review/2026-11-07/PLAN.md`): foundations for 0.4.0.
 
 ### Breaking / migration
@@ -107,7 +112,7 @@ Round R0 of the 2026-11-07 plan (`docs/review/2026-11-07/PLAN.md`): foundations 
 
 - The job-prep word is gone from every tracked file; LEARN section 17 is now "Knowledge check".
   `Claude outputs/ci.yml` (a stale copy of the workflow) is deleted.
-- CI run id for this round: recorded by the coordinator when the combined 0.4.0 PR is green.
+- CI run id for this round: 42396076903 (combined head e915c8a).
 
 ### Integration (combined 0.4.0 PR: R0 + R1 + R2)
 
