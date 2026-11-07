@@ -1,4 +1,4 @@
-"""Power curve (2.9): detection rate of the in-sample IC gate against the planted premium.
+"""Power curve (2.9): detection rate of the IC part of the PROMOTE gate against the planted premium.
 
 For each premium on a grid the momentum drift scenario is generated on
 ``seeds`` seeds and the share of seeds whose in-sample non-overlapping IC t
@@ -16,11 +16,11 @@ from pathlib import Path
 from statistics import NormalDist
 from typing import Any
 
-PREMIUMS_BPS: tuple[float, ...] = (0.0, 1000.0, 1400.0, 1800.0, 2200.0, 2600.0, 3000.0, 3400.0)
+PREMIUMS_BPS: tuple[float, ...] = (0.0, 600.0, 900.0, 1200.0, 1500.0, 1800.0, 2400.0)
 OUT = Path(__file__).resolve().parents[3] / "docs" / "quant_power_curve.json"
 
 
-def _one(args: tuple[float, int]) -> float:
+def _one(args: tuple[float, int]) -> tuple[float, float]:
     from ceap.analytics.signal_statistics import evaluate_signal
     from ceap.data.historical import HistoricalGenerator
     from ceap.data.research_scenarios import RESEARCH_TEMPLATES_RAW
@@ -30,9 +30,10 @@ def _one(args: tuple[float, int]) -> float:
     spec = replace(base, id=f"P{int(premium)}_{seed}", seed=50_000 + seed, premium_bps=premium,
                    decay_half_life_years=0.0, mechanism="drift" if premium > 0 else "none")
     ds = HistoricalGenerator().generate(spec)
-    period = evaluate_signal(ds, "momentum_12_1", rebalance_days=21).period("in_sample")
-    assert period is not None
-    return float(period.ic_t_stat)
+    stats = evaluate_signal(ds, "momentum_12_1", rebalance_days=21)
+    ins, oos = stats.period("in_sample"), stats.period("out_of_sample")
+    assert ins is not None and oos is not None
+    return float(ins.ic_t_stat), float(oos.ic_t_stat)
 
 
 
@@ -42,6 +43,7 @@ def power_curve(seeds: int = 40, workers: int = 1) -> dict[str, Any]:
     from ceap.data.research_scenarios import RESEARCH_TEMPLATES_RAW
 
     hurdle = DEFAULT_THRESHOLDS.ic_t_stat_min
+    oos_min = DEFAULT_THRESHOLDS.oos_ic_t_min
     jobs = [(p, s) for p in PREMIUMS_BPS for s in range(seeds)]
     if workers > 1:
         from concurrent.futures import ProcessPoolExecutor
@@ -56,15 +58,19 @@ def power_curve(seeds: int = 40, workers: int = 1) -> dict[str, Any]:
         sample = ts[i * seeds : (i + 1) * seeds]
         spec = replace(base, premium_bps=p, decay_half_life_years=0.0, mechanism="drift" if p > 0 else "none")
         e = expected_statistics(spec)
+        nd = NormalDist()
         rows.append({
             "premium_bps": p,
-            "expected_t": round(e["t_is"], 4),
+            "expected_t_is": round(e["t_is"], 4),
+            "expected_t_oos": round(e["t_oos"], 4),
             "expected_gross_sharpe": round(e["gross_sharpe_is"], 4),
-            "predicted_detection": round(NormalDist().cdf(e["t_is"] - hurdle), 4),
-            "detection_rate": sum(t >= hurdle for t in sample) / seeds,
-            "mean_t": round(sum(sample) / seeds, 4),
+            "predicted_detection": round(nd.cdf(e["t_is"] - hurdle) * nd.cdf(e["t_oos"] - oos_min), 4),
+            "detection_rate": sum(a >= hurdle and b >= oos_min for a, b in sample) / seeds,
+            "mean_t_is": round(sum(a for a, _ in sample) / seeds, 4),
         })
-    return {"signal": "momentum_12_1", "rebalance_days": 21, "hurdle": hurdle,
+    return {"signal": "momentum_12_1", "rebalance_days": 21, "hurdle": hurdle, "oos_ic_t_min": oos_min,
+            "detection": "in-sample IC t >= hurdle and out-of-sample IC t >= oos_ic_t_min (the IC part of the gate)",
+
             "hurdle_sweep_hash": DEFAULT_THRESHOLDS.hurdle_sweep_hash, "seeds_per_point": seeds, "rows": rows}
 
 

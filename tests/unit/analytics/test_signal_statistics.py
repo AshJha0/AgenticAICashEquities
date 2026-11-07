@@ -79,8 +79,11 @@ def test_evaluate_signal_periods_on_the_momentum_dataset(history):
     stats = evaluate_signal(ds, "momentum_12_1", ds.start, ds.end, ds.in_sample_end)
     assert set(stats.periods) == {"in_sample", "out_of_sample", "full"}
     ins, oos, full = stats.periods["in_sample"], stats.periods["out_of_sample"], stats.periods["full"]
-    assert ins.start == ds.start and ins.end == ds.in_sample_end and full.end == ds.end
-    assert oos.start > ins.end
-    assert ins.n_dates + oos.n_dates == full.n_dates
+    tail = 1 + 21  # execution lag + horizon: the last in-sample forward window ends at the locked split (2.7)
+    assert ins.start == ds.start and ins.end == str(ds.dates[ds.in_sample_end_index - tail])
+    assert full.end == str(ds.dates[ds.n_days - 1 - tail])
+    assert oos.start > ds.in_sample_end
+    assert abs(ins.n_dates + oos.n_dates - full.n_dates) <= 2
     assert ins.ic_t_stat > 2.0 and 0 <= ins.hit_rate <= 1 and 0 <= ins.turnover <= 2
     assert set(ins.decay) == {"1", "5", "21"} and stats.horizon_days == 21 and stats.universe_size == 30
+

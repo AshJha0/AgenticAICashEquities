@@ -132,25 +132,6 @@ def signal_correlations(
     return float(rho_sf), float(rho_ss)
 
 
-def regime_break_correlation(spec: Any, signal: str, horizon: int, lag: int, sigma2: float) -> float:
-    """Correlation of the momentum signal with the out-of-sample return when the drift mean-reverts
-    (``oos_premium_multiplier < 0``): ``F`` drift = mult * s * mean(mu over the 12-1 window) / sd."""
-    lo, hi, sign = SIGNAL_WINDOWS[signal]
-    s2 = (spec.premium_bps / 10_000.0 / TRADING_DAYS) ** 2
-    phi = 0.5 ** (1.0 / spec.half_life_days)
-    A = np.arange(lo, hi + 1)
-    W = np.arange(-251, -20)
-    acf = lambda k: s2 * phi ** np.abs(k)  # noqa: E731
-    var_m = float(acf(W[:, None] - W[None, :]).mean())
-    scale = math.sqrt(s2 / var_m)
-    cov = 0.0
-    for b in range(lag + 1, lag + horizon + 1):
-        cov += spec.oos_premium_multiplier * scale * float(acf(A[:, None] - (b + W)[None, :]).mean(axis=1).sum())
-    var_s = sigma2 * A.size + _kernel_sum(A, A, acf)
-    var_f = horizon * sigma2 + (spec.oos_premium_multiplier**2) * s2 * horizon**2  # drift variance, upper bound
-    return float(sign * cov / math.sqrt(var_s * var_f))
-
-
 def p_stay_tercile(rho: float, n_grid: int = 4001) -> float:
     """P(stay in the top tercile) for a bivariate normal pair with correlation ``rho``."""
     c = _N.inv_cdf(2.0 / 3.0)
@@ -229,11 +210,11 @@ def expected_statistics(spec: Any, lag: int = 1, gross_notional: float = 50_000_
     dilution = n_prem / n_eff
     rho_is, rho_ss = signal_correlations(spec, spec.signal, h, lag, h, sigma2, is_years_decay)
     mult = spec.oos_premium_multiplier
-    if spec.mechanism == "drift" and mult < 0:
-        rho_oos = regime_break_correlation(spec, spec.signal, h, lag, sigma2)
-    else:
-        scale = oos_decay * (mult**2 if spec.mechanism == "drift" else max(mult, 0.0) ** 2)
-        rho_oos, _ = signal_correlations(spec, spec.signal, h, lag, h, sigma2, scale)
+    # drift: S and F both lie in the new regime (the one-year transition is ignored), so the latent variance
+    # scales by mult^2 whatever its sign; transient: a negative multiplier switches the component off
+    scale = oos_decay * (mult**2 if spec.mechanism == "drift" else max(mult, 0.0) ** 2)
+    rho_oos, _ = signal_correlations(spec, spec.signal, h, lag, h, sigma2, scale)
+
     rho_is *= dilution
     rho_oos *= dilution
     rank = lambda r: 6.0 / math.pi * math.asin(r / 2.0)  # noqa: E731
@@ -322,8 +303,37 @@ def derive_ground_truth(spec: Any, thresholds: Any = None, lag: int = 1) -> Grou
     if e["max_participation_concentrated"] > 0.10:
         flags.append(ResearchFlag.LIMIT_BREACH)
         why.append(f"expected participation {e['max_participation_concentrated']:.0%} of ADV in the thinnest name")
-    near = abs(e["t_is"] - th.ic_t_stat_min) < 1.0 or (
-        detectable and abs(e["net_sharpe_oos"] - th.sharpe_min) < e["se_sharpe_oos"]
-    )
+    # distance of each gate's expectation from its threshold, in standard errors (positive = passes)
+    z = gate_z_scores(e, th)
+    e = {**e, **{f"z_{k}": v for k, v in z.items()}}
     verdict = ResearchVerdict.PROMOTE if not flags else ResearchVerdict.REJECT
+    if verdict is ResearchVerdict.PROMOTE:
+        near = min(z.values()) < 1.0  # clear only if every gate passes by at least one standard error
+    else:
+        structural = spec.concentration_names > 0  # parameter-defined flags are not statistical
+        near = not structural and min(z.values()) > -1.0  # clear only if some gate fails by one standard error
     return GroundTruth(verdict, tuple(flags), near, e, tuple(why))
+
+
+def gate_z_scores(e: dict[str, float], th: Any) -> dict[str, float]:
+    """Expected margin of every PROMOTE gate in standard errors: IC t (SE 1), deflated Sharpe bar (SE of the
+    in-sample Sharpe), out-of-sample IC t (SE 1), out-of-sample net Sharpe (SE of the OOS Sharpe), cost share
+    (delta method: ``share * SE_oos / gross_oos``)."""
+    from ceap.data.generator_params import IN_SAMPLE_DAYS
+
+    is_years = IN_SAMPLE_DAYS / TRADING_DAYS
+    se_is = math.sqrt((1.0 + e["gross_sharpe_is"] ** 2 / 2.0) / is_years)
+    gross_oos = e["gross_sharpe_oos"]
+    share = e["cost_share"]
+    if gross_oos > 0 and math.isfinite(share):
+        z_cost = (th.cost_share_max - share) / max(share * e["se_sharpe_oos"] / gross_oos, 1e-9)
+    else:
+        z_cost = -10.0
+    return {
+        "ic_t": e["t_is"] - th.ic_t_stat_min,
+        "deflated_sharpe": (e["gross_sharpe_is"] - e["sr0_ann"]) / se_is,
+        "oos_ic_t": e["t_oos"] - th.oos_ic_t_min,
+        "oos_net_sharpe": (e["net_sharpe_oos"] - th.sharpe_min) / e["se_sharpe_oos"],
+        "cost_share": z_cost,
+    }
+

@@ -1,5 +1,5 @@
 # ruff: noqa: N803, N806  (mathematical notation: R, P, T, A, B as in the formulas)
-"""Synthetic daily history for research: a 40-name universe over twenty years.
+"""Synthetic daily history for research: a 30-name universe over twenty years.
 
 Two generators share one :class:`HistoricalDataset` shape.
 
@@ -411,19 +411,12 @@ class HistoricalGenerator:
             years = np.arange(n) / TRADING_DAYS_PER_YEAR
             decay = 0.5 ** (years / spec.decay_half_life_years) if spec.decay_half_life_years > 0 else np.ones(n)
             mu = mu * decay[:, None]
-            mult = spec.oos_premium_multiplier
-            if mult >= 0:
-                mu[split + 1 :] *= mult
-            else:
-                # regime break: after the locked in-sample end the latent drift *mean-reverts* - expected return
-                # loads negatively on the latent drift of the 12-1 window, so past winners now lag (momentum
-                # reverses for the whole out-of-sample period, not only while the window straddles the split)
-                csum = np.vstack([np.zeros((1, m)), np.cumsum(mu, axis=0)])
-                window_mean = np.zeros((n, m))
-                window_mean[252:] = (csum[232 : n - 20] - csum[1 : n - 251]) / 231.0
-                scale = s / max(float(window_mean[252 : split + 1].std()), 1e-18)
-                mu[split + 1 :] = mult * scale * window_mean[split + 1 :]
+            # after the locked in-sample end the drift is multiplied. A *negative* multiplier does not make
+            # 12-1 momentum fail for long: once the window lies in the new regime, past winners (now names
+            # with low mu) keep winning. A lasting momentum failure needs the premium to vanish (multiplier 0).
+            mu[split + 1 :] *= spec.oos_premium_multiplier
             mu = mu * crash_mult[:, None] * premium_mask[None, :]
+
 
 
         # ---- latent transient component T: AR(1); Var(dT) = share * idio variance

@@ -9,6 +9,7 @@ import pytest
 
 from ceap.analytics.backtest import (
     CostModel,
+    FinancingModel,
     daily_returns,
     period_stats,
     rolling_vol_bps,
@@ -75,15 +76,25 @@ def test_backtest_invariants_on_the_momentum_dataset(history):
     ins, oos, full = bt.periods["in_sample"], bt.periods["out_of_sample"], bt.periods["full"]
     assert ins.end == ds.in_sample_end and oos.start > ins.end and full.end == ds.end
     assert ins.n_days + oos.n_days == full.n_days
-    assert ins.n_rebalances + oos.n_rebalances == full.n_rebalances == len(range(0, full.n_days, 21))
+    # decisions every 21 days, each filled one day later (2.1); a last decision without a fill day is dropped
+    assert ins.n_rebalances + oos.n_rebalances == full.n_rebalances == len(range(0, full.n_days - 1, 21))
     assert full.cost_drag_bps_annual > 0 and full.sharpe < full.gross_sharpe
     assert 0.0 <= full.max_drawdown <= 1.0 and 0.0 <= full.hit_rate <= 1.0
     assert 2 <= len(bt.equity_curve) <= 24 and bt.equity_curve[0][0] == ds.start
     assert len(bt.top_contributors) == 5 and 0.0 < bt.pnl_concentration_top3 < 1.0
-    assert bt.sharpe_ratio_oos_is == pytest.approx(oos.sharpe / ins.sharpe)
+    if ins.sharpe > 0:
+        assert bt.sharpe_ratio_oos_is == pytest.approx(oos.sharpe / ins.sharpe)
+    else:
+        assert math.isnan(bt.sharpe_ratio_oos_is)
     free = run_backtest(ds, "momentum_12_1", ds.start, ds.end, ds.in_sample_end, cost_multiplier=0.0)
-    assert free.periods["full"].cost_drag_bps_annual == pytest.approx(0.0)
-    assert free.periods["full"].sharpe == pytest.approx(free.periods["full"].gross_sharpe)
+    lines = free.cost_breakdown_bps_annual
+    assert lines["spread"] == 0.0 and lines["impact"] == 0.0 and lines["borrow"] > 0  # borrow is not a trade cost
+    assert free.periods["full"].cost_drag_bps_annual == pytest.approx(lines["borrow"] + lines["financing"], rel=1e-6)
+    raw = run_backtest(ds, "momentum_12_1", ds.start, ds.end, ds.in_sample_end, cost_multiplier=0.0,
+                       financing=FinancingModel(enabled=False))
+    assert raw.periods["full"].cost_drag_bps_annual == pytest.approx(0.0, abs=1e-9)
+    assert raw.periods["full"].sharpe == pytest.approx(raw.periods["full"].gross_sharpe)
+
     dear = run_backtest(ds, "momentum_12_1", ds.start, ds.end, ds.in_sample_end, cost_multiplier=5.0)
     assert dear.periods["full"].sharpe < bt.periods["full"].sharpe
 

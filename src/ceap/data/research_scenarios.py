@@ -78,8 +78,8 @@ RESEARCH_TEMPLATES_RAW: tuple[ResearchScenarioSpec, ...] = (
     ),
     ResearchScenarioSpec(
         id="R04", template="regime_break", name="Regime break",
-        description="The momentum premium works in-sample and reverses after the locked in-sample end.",
-        signal=_MOM, seed=14, mechanism="drift", premium_bps=2400.0, oos_premium_multiplier=-0.5,
+        description="The momentum premium works in-sample and vanishes after the locked in-sample end.",
+        signal=_MOM, seed=14, mechanism="drift", premium_bps=2400.0, oos_premium_multiplier=0.0,
     ),
     ResearchScenarioSpec(
         id="R05", template="cost_drag", name="Cost drag",
@@ -101,12 +101,12 @@ RESEARCH_TEMPLATES_RAW: tuple[ResearchScenarioSpec, ...] = (
     ),
     ResearchScenarioSpec(
         id="R08", template="momentum_near_threshold", name="Momentum near the hurdle",
-        description="A smaller momentum premium whose expected t-statistic sits within one standard error of the hurdle.",
+        description="A realistic momentum premium (net Sharpe about 0.7) whose out-of-sample Sharpe gate is a coin toss.",
         signal=_MOM, seed=18, mechanism="drift", premium_bps=1800.0, tags=("realistic_premium",),
     ),
     ResearchScenarioSpec(
         id="R09", template="reversal_near_threshold", name="Reversal near the hurdle",
-        description="A weaker transient component; net Sharpe expected within one standard error of the hurdle.",
+        description="A weaker transient component whose gross edge is real but whose costs take most of it.",
         signal=_REV, seed=19, rebalance_days=5, mechanism="transient", transient_share=0.40, transient_rho=0.6,
         tags=("realistic_premium",),
     ),
