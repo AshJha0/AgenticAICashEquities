@@ -6,8 +6,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from ceap.domain.common import SCHEMA_VERSION
 from ceap.domain.evidence import Evidence
-from ceap.domain.findings import Finding
+from ceap.domain.findings import Finding, HypothesisTable
 
 
 @dataclass(frozen=True)
@@ -29,3 +30,22 @@ class InvestigationReport:
     trace_id: str | None = None
     kind: str = "investigation"
     proposal: dict[str, Any] = field(default_factory=dict)
+    hypotheses: HypothesisTable | None = None
+    schema_version: int = SCHEMA_VERSION
+
+
+@dataclass(frozen=True)
+class LLMCallRecord:
+    """Provenance of one model call, recorded by the harness (never by the model)."""
+
+    model: str
+    sdk: str
+    prompt_sha: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
+    usd: float = 0.0
+    latency_ms: float = 0.0
+    request_id: str | None = None
+    schema_version: int = SCHEMA_VERSION

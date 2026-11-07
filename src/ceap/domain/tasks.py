@@ -8,6 +8,7 @@ from enum import Enum
 from typing import Any
 
 from ceap.domain.common import new_id, utc_now
+from ceap.util.redact import redact
 
 
 class TaskPriority(str, Enum):
@@ -15,6 +16,43 @@ class TaskPriority(str, Enum):
     NORMAL = "NORMAL"
     HIGH = "HIGH"
     URGENT = "URGENT"
+
+
+class TaskStatus(str, Enum):
+    """Terminal and in-flight states a task can report.
+
+    ``DEGRADED``: finished, but at least one fallback ran (recorded in ``warnings``).
+    ``INCOMPLETE_ANALYSIS``: finished without every required analysis; must not read as a pass.
+    ``INTERRUPTED``: stopped by restart or cancellation; resumable or abandoned, never "done".
+    """
+
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    DEGRADED = "DEGRADED"
+    INCOMPLETE_ANALYSIS = "INCOMPLETE_ANALYSIS"
+    INTERRUPTED = "INTERRUPTED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
+class WarningSeverity(str, Enum):
+    INFO = "INFO"
+    DEGRADED = "DEGRADED"
+    ERROR = "ERROR"
+
+
+@dataclass(frozen=True)
+class ResultWarning:
+    """A structured warning attached to a result (``Result.warnings`` in the plan).
+
+    Named ``ResultWarning`` so it does not shadow the built-in ``Warning`` class.
+    """
+
+    code: str
+    message: str
+    source: str = "harness"
+    severity: WarningSeverity = WarningSeverity.DEGRADED
 
 
 @dataclass(frozen=True)
@@ -35,4 +73,5 @@ class Task:
 
     @staticmethod
     def create(description: str, input: dict[str, Any] | None = None, **kwargs: Any) -> Task:
-        return Task(id=new_id("TASK"), description=description, input=dict(input or {}), **kwargs)
+        # Question text is redacted at the boundary so no log, store or prompt sees secrets or PII.
+        return Task(id=new_id("TASK"), description=redact(description), input=dict(input or {}), **kwargs)

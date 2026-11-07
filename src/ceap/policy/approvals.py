@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from abc import ABC, abstractmethod
 from collections import deque
 from dataclasses import dataclass, field
@@ -10,6 +11,7 @@ from datetime import datetime
 from typing import Any
 
 from ceap.domain.common import new_id, utc_now
+from ceap.util.canonical import content_hash
 
 
 @dataclass(frozen=True)
@@ -22,6 +24,17 @@ class ApprovalRequest:
     reason: str
     requested_by: str
     requested_at: datetime = field(default_factory=utc_now)
+    content_hash: str = ""
+
+    def __post_init__(self) -> None:
+        # The approver signs off on exactly these bytes; any later change to the payload is detectable.
+        if not self.content_hash:
+            payload = {"tool_id": self.tool_id, "arguments": self.arguments}
+            try:
+                digest = content_hash(payload)
+            except (TypeError, ValueError):  # non-canonical argument types: hash a stable text form
+                digest = content_hash(json.dumps(payload, sort_keys=True, default=str))
+            object.__setattr__(self, "content_hash", digest)
 
     @staticmethod
     def create(

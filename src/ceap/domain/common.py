@@ -7,6 +7,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
+#: Version stamped as ``schema_version`` on every persisted JSON document. Bump on any breaking
+#: change to a persisted shape and add a forward migration (R4 item 4.1).
+SCHEMA_VERSION = 1
+
 
 def new_id(prefix: str = "") -> str:
     """Return a short, globally unique identifier with an optional prefix.
