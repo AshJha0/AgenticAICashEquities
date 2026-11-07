@@ -44,6 +44,10 @@ Contents:
 35. [Measure the PROMOTE hurdle (null sweep)](#35-measure-the-promote-hurdle-null-sweep)
 36. [Profitability table and capacity sweep](#36-profitability-table-and-capacity-sweep)
 37. [Backtest under different execution assumptions](#37-backtest-under-different-execution-assumptions)
+38. [Keep state across restarts (SQLite)](#38-keep-state-across-restarts-sqlite)
+39. [Replay a task byte for byte](#39-replay-a-task-byte-for-byte)
+40. [Scrape metrics and correlate logs](#40-scrape-metrics-and-correlate-logs)
+41. [Hold API keys as hashes only](#41-hold-api-keys-as-hashes-only)
 
 ---
 
@@ -127,14 +131,16 @@ curl -s -X POST localhost:8000/investigations -H "X-API-Key: dev-trader-key" \
   -d '{"question":"Why did AAPL execution deteriorate between 14:00 and 15:00?","dataset":"T05"}'
 
 # poll, then read
-curl -s localhost:8000/investigations/TASK-xxxx           -H "X-API-Key: dev-viewer-key"
-curl -s localhost:8000/investigations/TASK-xxxx/report    -H "X-API-Key: dev-viewer-key"
-curl -s "localhost:8000/investigations/TASK-xxxx/result?include_trace=true" -H "X-API-Key: dev-viewer-key"
-curl -s localhost:8000/investigations/TASK-xxxx/trace     -H "X-API-Key: dev-viewer-key"
+curl -s localhost:8000/investigations/TASK-xxxx           -H "X-API-Key: dev-trader-key"
+curl -s localhost:8000/investigations/TASK-xxxx/report    -H "X-API-Key: dev-trader-key"
+curl -s "localhost:8000/investigations/TASK-xxxx/result?include_trace=true" -H "X-API-Key: dev-trader-key"
+curl -s localhost:8000/investigations/TASK-xxxx/trace     -H "X-API-Key: dev-auditor-key"
 ```
 
-Keys → roles come from `CEAP_API_KEYS=key:role,...`. Viewer can read; trader/quant/engineer
-can investigate; admin can decide approvals.
+Keys → roles come from `CEAP_API_KEYS=key:role,...`. Reads are scoped to the owner (another
+principal's task is a 404); `auditor`, `approver` and `admin` read everything. Trader, quant and
+engineer can investigate; only `approver` decides approvals. Retry a POST safely with
+`-H "Idempotency-Key: <your id>"` (same body: same `task_id`; different body: 422).
 
 ## 6. Turn on human approvals
 
@@ -151,8 +157,10 @@ curl -s -X POST localhost:8000/approvals/APR-xxxx -H "X-API-Key: dev-admin-key" 
   -H "Content-Type: application/json" -d '{"approved": true, "comment": "ok for TCA review"}'
 ```
 
-Unanswered approvals time out (120 s by default in `QueuedApprovalGateway`) and the step is
-marked DENIED; the investigation continues without it.
+Unanswered approvals expire after `CEAP_APPROVAL_TIMEOUT_S` (120 s) and the step is marked DENIED;
+the investigation continues without it. A decision posted after expiry, after a restart, or after
+another approver already decided gets 409 and an audit row. While a task waits, its concurrency
+slot is free for other work.
 
 ## 7. Use a real model
 
@@ -605,3 +613,40 @@ run_backtest(ds, "reversal_5", rebalance_days=5, fill="open")  # next open; lag 
 ```
 
 `lag=0` is the 0.3.x same-close look-ahead, kept only for comparison.
+
+## 38. Keep state across restarts (SQLite)
+
+```bash
+CEAP_DB_PATH=var/ceap.db ceap serve       # outside dev this is the default path
+ceap db status                             # schema version, size, audit-chain check
+ceap db backup var/ceap-2026-11-07.db      # online backup, then verifies the copy
+ceap db verify-chain                       # exit 1 if any audit row was edited or deleted
+ceap db prune                              # apply CEAP_RETENTION_* and CEAP_DB_MAX_BYTES
+```
+
+After a crash or `kill -9`, the next start marks in-flight tasks `INTERRUPTED` and pending approvals
+`EXPIRED`; their status and stored result stay readable (`GET /investigations/{id}`, `/result`).
+
+## 39. Replay a task byte for byte
+
+```bash
+ceap replay bundle.json --record --dataset T01   # run offline, write the bundle
+ceap replay bundle.json                          # exit 0 when the replay equals the stored result
+```
+
+The bundle holds the request, every tool output, redacted model I/O, prompt hashes, approval
+decisions and the clock seed. A mismatch prints the first differing JSON path.
+
+## 40. Scrape metrics and correlate logs
+
+```bash
+curl -s localhost:8000/metrics -H "X-API-Key: dev-auditor-key"   # needs metrics:read
+curl -si localhost:8000/health -H "X-Request-ID: my-trace-1"     # echoed back; on every log line
+```
+
+## 41. Hold API keys as hashes only
+
+```bash
+python -c "from ceap.api.auth import hash_api_key; print(hash_api_key('a-long-random-key'))"
+CEAP_API_KEY_HASHES='sha256$...$...:auditor:2027-01-31' ceap serve   # optional expiry date
+```

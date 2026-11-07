@@ -35,14 +35,19 @@ async def _wait(c: httpx.AsyncClient, task_id: str) -> dict:
 
 
 async def test_health_and_system_endpoints(client):
-    h = (await client.get("/health")).json()
-    assert h["status"] == "ok" and h["tools"] >= 20 and "knowledge" in h["servers"]
+    h = (await client.get("/health")).json()  # R4 4.6: liveness only, no topology
+    assert h["status"] == "ok" and set(h) == {"status", "version"}
+    assert (await client.get("/status")).status_code == 401
+    s = (await client.get("/status", headers=VIEWER)).json()
+    assert s["status"] == "ok" and s["tools"] >= 20 and "knowledge" in s["servers"]
     assert (await client.get("/tools")).status_code == 401
     tools = (await client.get("/tools", headers=VIEWER)).json()
     assert all(t["read_only"] or t["id"] == "execution.stage_orders" for t in tools)
     assert len((await client.get("/scenarios")).json()) == 10
     assert len((await client.get("/scenarios?all=true")).json()) == 50
-    assert "ceap_" in (await client.get("/metrics")).text or (await client.get("/metrics")).text == ""
+    assert (await client.get("/metrics")).status_code == 401  # R4 4.6: metrics behind a key
+    assert (await client.get("/metrics", headers=VIEWER)).status_code == 403
+    assert "ceap_" in (await client.get("/metrics", headers={"X-API-Key": "dev-admin-key"})).text
 
 
 async def test_auth_and_rbac(client):
@@ -96,15 +101,15 @@ async def test_investigation_lifecycle(client):
     tid = accepted["task_id"]
     status = await _wait(client, tid)
     assert status["status"] == "COMPLETED" and status["state"] == "COMPLETED"
-    report = (await client.get(f"/investigations/{tid}/report", headers=VIEWER)).json()
+    report = (await client.get(f"/investigations/{tid}/report", headers=TRADER)).json()
     assert report["attribution"]["primary"] == "VENUE_DEGRADATION"
     assert report["title"].startswith("AAPL EXECUTION INVESTIGATION")
     assert report["findings"] and report["evidence"] and "narrative" in report
-    trace = (await client.get(f"/investigations/{tid}/trace", headers=VIEWER)).json()
+    trace = (await client.get(f"/investigations/{tid}/trace", headers=TRADER)).json()
     assert trace["trace"]["spans"] and trace["state_history"][-1]["to"] == "COMPLETED"
-    full = (await client.get(f"/investigations/{tid}/result?include_trace=true", headers=VIEWER)).json()
+    full = (await client.get(f"/investigations/{tid}/result?include_trace=true", headers=TRADER)).json()
     assert full["success"] and "trace" in full and full["plan"]["steps"]
-    listing = (await client.get("/investigations", headers=VIEWER)).json()
+    listing = (await client.get("/investigations", headers=TRADER)).json()
     assert any(i["task_id"] == tid for i in listing)
     assert (await client.post("/approvals/APR-x", json={"approved": True}, headers=APPROVER)).status_code == 409
 

@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import contextvars
 import json
+import threading
 from abc import ABC, abstractmethod
-from collections import deque
+from collections import OrderedDict, deque
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, Protocol
 
 from ceap.domain.common import new_id, utc_now
 from ceap.util.canonical import content_hash
@@ -102,29 +106,165 @@ class DenyApprovalGateway(ApprovalGateway):
         return ApprovalDecision(approval.id, False, "policy", "approvals disabled in this environment")
 
 
-class QueuedApprovalGateway(ApprovalGateway):
-    """Parks the step until a human decides through the API (or the timeout elapses)."""
+PENDING, APPROVED, REJECTED, EXPIRED = "PENDING", "APPROVED", "REJECTED", "EXPIRED"
 
-    def __init__(self, timeout_seconds: float = 120.0) -> None:
+
+class ApprovalConflictError(RuntimeError):
+    """The approval is no longer PENDING (decided, expired or interrupted): HTTP 409, and audited."""
+
+
+#: an audit sink ``audit(actor, action, subject, payload)``; the platform wires the hash-chained log
+AuditSink = Callable[[str, str, str, dict[str, Any]], Any]
+
+
+class ApprovalStore(Protocol):
+    def insert(self, request: ApprovalRequest) -> None: ...
+
+    def transition(self, approval_id: str, status: str, decided_by: str, comment: str, at: datetime) -> bool: ...
+
+    def status(self, approval_id: str) -> str | None: ...
+
+    def expire_pending(self, reason: str) -> list[str]: ...
+
+
+class InMemoryApprovalStore:
+    """Process-local approval rows with the same one-winner semantics as the SQL store."""
+
+    def __init__(self, keep: int = 5000) -> None:
+        self._lock = threading.Lock()
+        self._status: OrderedDict[str, str] = OrderedDict()
+        self._keep = keep
+
+    def insert(self, request: ApprovalRequest) -> None:
+        with self._lock:
+            self._status[request.id] = PENDING
+            while len(self._status) > self._keep:
+                oldest = next(iter(self._status))
+                if self._status[oldest] == PENDING:
+                    break
+                self._status.pop(oldest)
+
+    def transition(self, approval_id: str, status: str, decided_by: str, comment: str, at: datetime) -> bool:
+        with self._lock:
+            if self._status.get(approval_id) != PENDING:
+                return False
+            self._status[approval_id] = status
+            return True
+
+    def status(self, approval_id: str) -> str | None:
+        with self._lock:
+            return self._status.get(approval_id)
+
+    def expire_pending(self, reason: str) -> list[str]:
+        with self._lock:
+            ids = [k for k, v in self._status.items() if v == PENDING]
+            for k in ids:
+                self._status[k] = EXPIRED
+            return ids
+
+
+class ConcurrencySlot:
+    """One unit of the API's task concurrency bound, given back while its task waits for a human (4.4).
+
+    A task parked on an approval uses no CPU and must not starve new work: with
+    ``CEAP_MAX_CONCURRENT_INVESTIGATIONS=4``, four tasks awaiting approval leave room for a fifth.
+    """
+
+    def __init__(self, semaphore: asyncio.Semaphore) -> None:
+        self.semaphore = semaphore
+        self.held = False
+        self._token: contextvars.Token[ConcurrencySlot | None] | None = None
+
+    async def __aenter__(self) -> ConcurrencySlot:
+        await self.semaphore.acquire()
+        self.held = True
+        self._token = _CURRENT_SLOT.set(self)
+        return self
+
+    async def __aexit__(self, *exc: object) -> None:
+        if self._token is not None:
+            _CURRENT_SLOT.reset(self._token)
+        if self.held:
+            self.held = False
+            self.semaphore.release()
+
+
+_CURRENT_SLOT: contextvars.ContextVar[ConcurrencySlot | None] = contextvars.ContextVar(
+    "ceap_concurrency_slot", default=None
+)
+
+
+@contextlib.asynccontextmanager
+async def released_slot() -> AsyncIterator[None]:
+    """Give the current task's concurrency slot back while the body awaits; take it again after."""
+    slot = _CURRENT_SLOT.get()
+    if slot is None or not slot.held:
+        yield
+        return
+    slot.held = False
+    slot.semaphore.release()
+    try:
+        yield
+    finally:
+        await slot.semaphore.acquire()
+        slot.held = True
+
+
+class QueuedApprovalGateway(ApprovalGateway):
+    """Parks the step until a human decides through the API (or the timeout elapses).
+
+    Every request is a row in an :class:`ApprovalStore` (SQLite in the platform, in memory otherwise).
+    A decision is a conditional PENDING -> APPROVED/REJECTED transition, so of two concurrent decides
+    exactly one wins; the loser, and any decide after a timeout or a restart, gets
+    :class:`ApprovalConflictError` (HTTP 409) and an audit entry (R4 item 4.2). The waiting task's
+    concurrency slot is released while it waits (R4 item 4.4). Public API unchanged since 0.4.0:
+    ``request``, ``pending``, ``decide``; the constructor only gained keyword-only arguments.
+    """
+
+    def __init__(
+        self,
+        timeout_seconds: float = 120.0,
+        *,
+        store: ApprovalStore | None = None,
+        audit: AuditSink | None = None,
+    ) -> None:
         self.timeout_seconds = timeout_seconds
+        self.store: ApprovalStore = store or InMemoryApprovalStore()
+        self.audit = audit
         self._pending: dict[str, ApprovalRequest] = {}
-        self._futures: dict[str, asyncio.Future[ApprovalDecision]] = {}
+        self._futures: dict[str, tuple[asyncio.Future[ApprovalDecision], asyncio.AbstractEventLoop]] = {}
         self.history: deque[ApprovalDecision] = deque(maxlen=500)
 
     def pending(self) -> list[ApprovalRequest]:
         return list(self._pending.values())
 
+    def _audit(self, actor: str, action: str, subject: str, payload: dict[str, Any]) -> None:
+        if self.audit is not None:
+            self.audit(actor, action, subject, payload)
+
     async def request(self, approval: ApprovalRequest) -> ApprovalDecision:
         loop = asyncio.get_running_loop()
         fut: asyncio.Future[ApprovalDecision] = loop.create_future()
+        self.store.insert(approval)
         self._pending[approval.id] = approval
-        self._futures[approval.id] = fut
+        self._futures[approval.id] = (fut, loop)
+        self._audit(
+            approval.requested_by,
+            "approval.requested",
+            approval.id,
+            {"task_id": approval.task_id, "step_id": approval.step_id, "content_hash": approval.content_hash},
+        )
         try:
-            decision = await asyncio.wait_for(fut, timeout=self.timeout_seconds)
-        except TimeoutError:
-            decision = ApprovalDecision(
-                approval.id, False, "timeout", f"no decision within {self.timeout_seconds}s"
-            )
+            async with released_slot():
+                try:
+                    decision = await asyncio.wait_for(asyncio.shield(fut), timeout=self.timeout_seconds)
+                except TimeoutError:
+                    reason = f"no decision within {self.timeout_seconds}s"
+                    if self.store.transition(approval.id, EXPIRED, "timeout", reason, utc_now()):
+                        decision = ApprovalDecision(approval.id, False, "timeout", reason)
+                        self._audit("timeout", "approval.expired", approval.id, {"reason": reason})
+                    else:  # a human decided in the same instant: that decision stands
+                        decision = await fut
         finally:
             self._pending.pop(approval.id, None)
             self._futures.pop(approval.id, None)
@@ -132,12 +272,41 @@ class QueuedApprovalGateway(ApprovalGateway):
         return decision
 
     def decide(self, request_id: str, approved: bool, decided_by: str, comment: str = "") -> ApprovalDecision:
-        fut = self._futures.get(request_id)
-        if fut is None:
-            raise KeyError(f"no pending approval {request_id}")
-        if fut.done():
-            raise RuntimeError(f"approval {request_id} was already decided")
+        entry = self._futures.get(request_id)
+        if entry is None:
+            status = self.store.status(request_id)
+            if status is None:
+                raise KeyError(f"no pending approval {request_id}")
+            self._audit(decided_by, "approval.late_decide", request_id, {"status": status, "approved": approved})
+            raise ApprovalConflictError(f"approval {request_id} is {status}; the decision was refused")
         check_four_eyes(self._pending[request_id], decided_by)
         decision = ApprovalDecision(request_id, approved, decided_by, comment)
-        fut.set_result(decision)
+        if not self.store.transition(
+            request_id, APPROVED if approved else REJECTED, decided_by, comment, decision.decided_at
+        ):
+            current = self.store.status(request_id)
+            self._audit(decided_by, "approval.late_decide", request_id, {"status": current, "approved": approved})
+            raise ApprovalConflictError(f"approval {request_id} was already decided ({current})")
+        self._audit(decided_by, "approval.decided", request_id, {"approved": approved, "comment": comment})
+        fut, loop = entry
+
+        def resolve() -> None:
+            if not fut.done():
+                fut.set_result(decision)
+
+        try:
+            running: asyncio.AbstractEventLoop | None = asyncio.get_running_loop()
+        except RuntimeError:
+            running = None
+        if running is loop:
+            resolve()
+        else:  # decided from another thread (or no loop): hand the result to the waiting loop
+            loop.call_soon_threadsafe(resolve)
         return decision
+
+    def expire_all(self, reason: str) -> list[str]:
+        """Expire every PENDING row (startup recovery after a crash or SIGKILL)."""
+        ids = self.store.expire_pending(reason)
+        for approval_id in ids:
+            self._audit("timeout", "approval.expired", approval_id, {"reason": reason})
+        return ids
