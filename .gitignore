@@ -34,3 +34,8 @@ data/reference/*.parquet
 .vscode/
 .DS_Store
 Thumbs.db
+
+# R4: local SQLite state (CEAP_DB_PATH default outside dev) and its backups
+var/
+*.db-wal
+*.db-shm

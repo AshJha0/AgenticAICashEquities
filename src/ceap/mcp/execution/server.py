@@ -13,7 +13,7 @@ from ceap.domain.common import to_jsonable
 from ceap.domain.research import DEFAULT_GROSS_NOTIONAL
 from ceap.domain.tools import RiskLevel
 from ceap.mcp.common import DEFAULT_RESEARCH_DATASET, paginate, select_dataset, select_history, window_of
-from ceap.mcp.execution.staging import StagedOrderBook, StagedOrders
+from ceap.mcp.execution.staging import StagedOrderBook, StagedOrders, StagingRefusedError, report_hash
 from ceap.mcp.server import MCPServerDefinition
 
 TRADING_EXECUTE = "trading:execute"
@@ -197,9 +197,15 @@ def build_server(
         as_of: str | None = None,
         long_short: bool = True,
         gross_notional: float = DEFAULT_GROSS_NOTIONAL,
+        approved_portfolio_hash: str | None = None,
     ) -> dict[str, Any]:
         ds = select_history(history, dataset)
         report = target_portfolio(ds, signal, as_of, long_short, gross_notional)
+        if approved_portfolio_hash is not None and report_hash(report) != approved_portfolio_hash:
+            raise StagingRefusedError(
+                "staging refused: the recomputed target portfolio differs from the approved one "
+                "(the data changed between approval and staging); request a new approval"
+            )
         staged_set, already = book.stage(report)
         return _staged_view(staged_set, already)
 

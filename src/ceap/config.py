@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 DEV_API_KEYS = (
     "dev-trader-key:trader,dev-quant-key:quant,dev-admin-key:admin,dev-viewer-key:viewer,"
-    "dev-approver-key:approver,dev-approver2-key:approver"
+    "dev-approver-key:approver,dev-approver2-key:approver,dev-auditor-key:auditor"
 )
 LLM_PROVIDERS = ("mock", "anthropic")
 
@@ -103,7 +103,9 @@ class Settings:
     llm_planning_model: str | None = field(
         default_factory=lambda: os.getenv("CEAP_LLM_PLANNING_MODEL") or None
     )
-    anthropic_api_key: str | None = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY") or None)
+    anthropic_api_key: str | None = field(
+        default_factory=lambda: os.getenv("ANTHROPIC_API_KEY") or None, repr=False
+    )
     default_dataset: str = field(default_factory=lambda: _env("CEAP_DEFAULT_DATASET", "T01"))
     step_timeout_seconds: float = field(
         default_factory=lambda: _env_number("CEAP_STEP_TIMEOUT_SECONDS", 30.0, 1.0)
@@ -113,7 +115,10 @@ class Settings:
     )
     max_retries: int = field(default_factory=lambda: int(_env_number("CEAP_MAX_RETRIES", 2, 0, integer=True)))
     auto_approve: bool = field(default_factory=_default_auto_approve)
-    api_keys: dict[str, str] = field(default_factory=_default_api_keys)
+    # raw keys never appear in repr, logs or errors (R4 item 4.6); auth compares salted hashes
+    api_keys: dict[str, str] = field(default_factory=_default_api_keys, repr=False)
+    #: pre-hashed keys ``sha256$<salt hex>$<digest hex>:<role>[:<expires YYYY-MM-DD>]``, comma-separated
+    api_key_hashes: str = field(default_factory=lambda: os.getenv("CEAP_API_KEY_HASHES") or "", repr=False)
     knowledge_dir: str | None = field(default_factory=lambda: os.getenv("CEAP_KNOWLEDGE_DIR") or None)
     max_concurrent_investigations: int = field(
         default_factory=lambda: int(_env_number("CEAP_MAX_CONCURRENT_INVESTIGATIONS", 4, 1, integer=True))
@@ -130,6 +135,24 @@ class Settings:
         default_factory=lambda: int(_env_number("CEAP_LLM_MAX_CALLS_PER_TASK", 12, 1, integer=True))
     )
     mcp_trusted_servers: frozenset[str] = field(default_factory=trusted_servers_from_env)
+    # ---- persistence and platform limits (R4)
+    db_path: str = field(default_factory=lambda: _env("CEAP_DB_PATH", _default_db_path()))
+    approval_timeout_s: float = field(default_factory=lambda: _env_number("CEAP_APPROVAL_TIMEOUT_S", 120.0, 1.0))
+    max_body_bytes: int = field(
+        default_factory=lambda: int(_env_number("CEAP_MAX_BODY_BYTES", 65_536, 1024, integer=True))
+    )
+    retention_results_days: float = field(
+        default_factory=lambda: _env_number("CEAP_RETENTION_RESULTS_DAYS", 90.0, 0.0)
+    )
+    retention_traces_days: float = field(
+        default_factory=lambda: _env_number("CEAP_RETENTION_TRACES_DAYS", 30.0, 0.0)
+    )
+    retention_llm_io_days: float = field(
+        default_factory=lambda: _env_number("CEAP_RETENTION_LLM_IO_DAYS", 7.0, 0.0)
+    )
+    db_max_bytes: int = field(
+        default_factory=lambda: int(_env_number("CEAP_DB_MAX_BYTES", 1 << 30, 1 << 20, integer=True))
+    )
 
     def __post_init__(self) -> None:
         if self.llm_provider not in LLM_PROVIDERS:
@@ -175,6 +198,11 @@ class Settings:
             )
 
 
+def _default_db_path() -> str:
+    """In-memory in dev (tests and demos leave no file behind); a file everywhere else."""
+    return ":memory:" if _environment() == "dev" else "var/ceap.db"
+
+
 def _pinned_default(purpose: str) -> str:
     from ceap.llm.pins import load_pins
 
@@ -196,7 +224,7 @@ def _parse_api_keys(raw: str) -> dict[str, str]:
         if role not in valid_roles:
             raise SettingsError(f"unknown role {role!r} for API key; valid roles: {sorted(valid_roles)}")
         if key in out:
-            raise SettingsError(f"duplicate API key entry {key!r} in CEAP_API_KEYS")
+            raise SettingsError("duplicate API key entry in CEAP_API_KEYS (key not shown)")
         out[key] = role
     return out
 

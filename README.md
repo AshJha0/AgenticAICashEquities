@@ -368,8 +368,14 @@ subprocesses with the official `mcp` SDK; the test suite includes a real stdio r
 | `CEAP_TASK_TIMEOUT_SECONDS` | `300` | per investigation |
 | `CEAP_MAX_RETRIES` | `2` | transient tool failures |
 | `CEAP_AUTO_APPROVE` | `true` in dev, else `false` | `false` queues approvals for `/approvals`; `true` outside dev refuses to start. A harness built without a gateway denies every approval |
-| `CEAP_API_KEYS` | dev keys (dev only) | `key:role,...` (roles: viewer, trader, quant, engineer, approver, admin; only `approver` decides approvals, and never one it requested or an earlier stage it approved); keys must be ≥ 8 characters. Research needs the `research` capability (quant, admin); order staging needs `trading:execute` (admin) |
-| `CEAP_MAX_CONCURRENT_INVESTIGATIONS` | `4` | background investigations run under a semaphore |
+| `CEAP_API_KEYS` | dev keys (dev only) | `key:role,...` (roles: viewer, trader, quant, engineer, approver, admin; only `approver` decides approvals, and never one it requested or an earlier stage it approved); keys must be ≥ 8 characters; held only as salted digests in memory, never logged. `auditor` reads every principal's tasks and `/metrics` but acts on nothing; every other reader sees only its own tasks. Research needs the `research` capability (quant, admin); order staging needs `trading:execute` (admin) |
+| `CEAP_MAX_CONCURRENT_INVESTIGATIONS` | `4` | background tasks run under a semaphore; a task waiting for a human approval gives its slot back |
+| `CEAP_DB_PATH` | `:memory:` in dev, else `var/ceap.db` | SQLite file for tasks, results, approvals, staged orders, idempotency keys and the audit log; migrated forward on start (backup first); see `ceap db --help` |
+| `CEAP_APPROVAL_TIMEOUT_S` | `120` | an unanswered approval expires (decided by `timeout`) |
+| `CEAP_RETENTION_RESULTS_DAYS` / `_TRACES_DAYS` / `_LLM_IO_DAYS` | `90` / `30` / `7` | retention applied on start and by `ceap db prune` (`0` keeps forever); the audit log is never pruned |
+| `CEAP_DB_MAX_BYTES` | 1 GiB | size bound: oldest results are pruned first |
+| `CEAP_MAX_BODY_BYTES` | `65536` | larger request bodies get 413 |
+| `CEAP_API_KEY_HASHES` | – | pre-hashed keys `sha256$salt$digest:role[:YYYY-MM-DD]` (expiry optional); generate with `ceap.api.auth.hash_api_key` |
 | `CEAP_MAX_RETAINED_RESULTS` | `200` | oldest investigation results are evicted beyond this |
 | `CEAP_KNOWLEDGE_DIR` | `data/reference/knowledge` | RAG corpus |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | – | mirrors harness spans to OpenTelemetry |
