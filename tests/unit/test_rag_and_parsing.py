@@ -7,14 +7,15 @@ from datetime import date
 from ceap.api.parsing import parse_question
 from ceap.llm.client import MockLLMClient, extract_json
 from ceap.llm.models import LLMRequest
-from ceap.rag.embeddings import HashingEmbedder, tokenize
+from ceap.rag.bm25 import BM25
 from ceap.rag.ingestion import Document, chunk_document
 from ceap.rag.retrieval import KnowledgeBase, build_knowledge_base
+from ceap.rag.text import tokenize
 
 
 def test_knowledge_base_loads_documents_and_finds_runbook():
     kb = build_knowledge_base()
-    assert len(kb.documents) == 8 and len(kb) > 8
+    assert len(kb.documents) == 10 and len(kb) > 10
     hits = kb.search("VWAP participation ceiling maximum participation rate", k=3)
     assert hits and "VWAP" in hits[0].chunk.title
     assert kb.search("", k=3) == []
@@ -35,12 +36,13 @@ def test_chunking_splits_on_headings_and_size():
     assert len(chunks) >= 3 and chunks[-1].section == "B"
 
 
-def test_hashing_embedder_is_deterministic_and_normalised():
-    e = HashingEmbedder(256)
-    e.fit(["alpha beta", "beta gamma"])
-    v1, v2 = e.embed(["alpha beta"]), e.embed(["alpha beta"])
-    assert (v1 == v2).all() and abs(float((v1**2).sum()) - 1.0) < 1e-5
+def test_bm25_is_deterministic_and_prefers_the_matching_document():
+    idx = BM25([["alpha", "beta"], ["beta", "gamma"], ["delta"]])
+    s1, s2 = idx.scores(["alpha", "beta"]), idx.scores(["alpha", "beta"])
+    assert s1 == s2 and s1[0] > s1[1] > 0 == s1[2]
+    assert idx.coverage(["alpha", "unknown"], 0) < 1.0 and idx.coverage(["alpha"], 0) == 1.0
     assert tokenize("The VWAP-algo is at 14:00") == ["vwap-algo", "14", "00"]
+    assert tokenize("venues limits") == ["venue", "limit"]
 
 
 def test_empty_knowledge_base_is_safe():

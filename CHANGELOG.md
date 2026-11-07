@@ -6,6 +6,23 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Round R3C (retrieval half: 3C.1, 3C.2, 3C.5)
+
+- **Breaking:** knowledge retrieval is Okapi BM25 (stdlib) instead of hashed TF-IDF;
+  `ceap.rag.embeddings` (`Embedder`, `HashingEmbedder`) is removed and `tokenize` moved to
+  `ceap.rag.text`. The knowledge tool no longer calls itself "semantic search". `KnowledgeBase`
+  takes `chunking` and `min_support` instead of an embedder; `search` gains `classifications` and
+  `min_support` and returns nothing when no chunk clears the support gate ("no policy found").
+- Chunks and hits carry document, section, version, effective date and classification; the
+  knowledge tool returns a SHA-256 `corpus_hash`.
+- Three chunking strategies (`section`, `sentence`, `fixed` with overlap) compared by a retrieval
+  eval (`data/reference/knowledge/eval.json`, 20 train / 10 held-out / 10 negative queries written
+  before tuning; `python -m ceap.rag.evaluation`). Held-out recall at 3 is 1.00 and MRR 1.000;
+  CI floor 0.80 / 0.70; all negatives empty.
+- Corpus growth: front-matter versioning on every knowledge document, a new
+  `09_attribution_thresholds.md` (kept equal to `Thresholds` defaults by a test) and
+  `docs/quant/quant.md` via `manifest.json`.
+
 ## [0.4.0] - 2026-11-07
 
 Rounds R0, R1 and R2 of the 2026-11-07 plan, shipped as one combined PR (AshJha0/AgenticAICashEquities#1).

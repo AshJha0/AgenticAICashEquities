@@ -145,7 +145,7 @@ async def test_risk_and_engineering_tools(mcp_client):
 
 async def test_knowledge_tools(mcp_client):
     docs = await mcp_client.invoke("knowledge", "list_documents", {})
-    assert docs["count"] == 8
+    assert docs["count"] == 10 and len(docs["corpus_hash"]) == 64
     hits = await mcp_client.invoke(
         "knowledge", "search_documents", {"query": "maximum participation rate VWAP", "k": 2}
     )
