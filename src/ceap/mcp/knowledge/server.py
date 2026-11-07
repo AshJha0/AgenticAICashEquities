@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ceap.mcp.server import MCPServerDefinition
+from ceap.rag.query import DEFAULT_CLASSIFICATIONS, parse_classifications
 from ceap.rag.retrieval import KnowledgeBase
 
 
@@ -16,10 +17,12 @@ def build_server(knowledge: KnowledgeBase) -> MCPServerDefinition:
 
     @server.tool(
         "Keyword (BM25) search over enterprise documents; returns matching sections with document, version, "
-        "effective date and score. An empty result means no document supports the query."
+        "effective date and score. An empty result means no document supports the query. "
+        "classifications is comma-separated and defaults to public,internal; the policy engine decides who may ask for more."
     )
-    async def search_documents(query: str, k: int = 4) -> dict[str, Any]:
-        hits = knowledge.search(query, k=k)
+    async def search_documents(query: str, k: int = 4, classifications: str = "") -> dict[str, Any]:
+        readable = parse_classifications(classifications) or DEFAULT_CLASSIFICATIONS
+        hits = knowledge.search(query, k=k, classifications=readable)
         return {
             "query": query,
             "count": len(hits),
@@ -27,10 +30,11 @@ def build_server(knowledge: KnowledgeBase) -> MCPServerDefinition:
             "items": [h.to_dict() for h in hits],
         }
 
-    @server.tool("Return a whole document by id.")
-    async def get_document(document_id: str) -> dict[str, Any]:
+    @server.tool("Return a whole document by id (same classification rule as search_documents).")
+    async def get_document(document_id: str, classifications: str = "") -> dict[str, Any]:
+        readable = parse_classifications(classifications) or DEFAULT_CLASSIFICATIONS
         doc = knowledge.get(document_id)
-        if doc is None:
+        if doc is None or doc.classification not in readable:
             return {"document_id": document_id, "found": False}
         return {
             "document_id": doc.id,

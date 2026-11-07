@@ -23,6 +23,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from dataclasses import replace
 from typing import Any
 
 from ceap.agents.base import BaseAgent, degradation_records, llm_disabled
@@ -38,6 +39,7 @@ from ceap.domain.common import new_id
 from ceap.domain.plans import Plan, PlanStep, StepType
 from ceap.domain.tools import ToolRequest
 from ceap.harness.cancellation import TaskCancelled
+from ceap.rag.query import allowed_classifications, retrieval_query
 from ceap.llm.client import LLMClient, canonical_plan
 from ceap.llm.models import (
     RUNG_DETERMINISTIC,
@@ -251,6 +253,11 @@ class PlannerAgent(BaseAgent):
                     "model plan had no valid tool call: canonical plan used",
                 )
             )
+        # R3C 3C.3: the knowledge query and classifications are built here, never taken from the model
+        hypotheses, _ = rank_proposal(raw.get("hypotheses") if isinstance(raw.get("hypotheses"), list) else [])
+        knowledge_query = retrieval_query(task.description, facts, hypotheses)
+        readable = ",".join(allowed_classifications(context.policy_context.roles))
+        steps = _ground_knowledge_steps(steps, knowledge_query, readable)
         plan = Plan(
             id=new_id("PLAN"),
             task_id=task.id,
@@ -484,6 +491,29 @@ def _facts(task_input: dict[str, Any], kind: str) -> dict[str, Any]:
         "dataset": task_input.get("dataset"),
         "baseline_windows": _baseline_windows(task_input),
     }
+
+
+KNOWLEDGE_SEARCH = "knowledge.search_documents"
+
+
+def _ground_knowledge_steps(steps: list[PlanStep], query: str, readable: str) -> list[PlanStep]:
+    """Replace the model's knowledge query with the deterministic one and pin the readable classes.
+
+    ``k`` is kept if the model chose one (bounded by the tool's schema already); the description
+    is rewritten so the audit trail shows the query that actually ran.
+    """
+    out: list[PlanStep] = []
+    for step in steps:
+        req = step.tool_request
+        if req is not None and req.tool_id == KNOWLEDGE_SEARCH:
+            args = {"query": query, "k": req.arguments.get("k", 4), "classifications": readable}
+            step = replace(
+                step,
+                tool_request=ToolRequest(KNOWLEDGE_SEARCH, args, req.correlation_id),
+                description="Retrieve runbook and policy knowledge for this question (query built by the harness)",
+            )
+        out.append(step)
+    return out
 
 
 def _preview(item: Any) -> Any:

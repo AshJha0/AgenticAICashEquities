@@ -104,16 +104,42 @@ class KnowledgeBase:
         A chunk is returned only if its score is positive and at least ``min_score`` and its
         support is at least ``min_support`` (default: the knowledge base's). Pass
         ``min_support=0.0`` for the raw ranking.
+
+        A query made of ``"; "``-separated segments (``ceap.rag.query.retrieval_query``) is scored
+        segment by segment, so one focused segment is not diluted by the others; results are taken
+        round-robin across segments (best first), without duplicates, up to ``k``.
         """
         if not self.chunks or not query.strip() or k <= 0:
             return []
+        k = min(int(k), MAX_K)
+        segments = [s for s in (part.strip() for part in query.split(";")) if s]
+        ranked = [self._search_segment(s, k, min_score, classifications, min_support) for s in segments]
+        if len(ranked) == 1:
+            return ranked[0]
+        hits: list[RetrievalHit] = []
+        seen: set[str] = set()
+        for depth in range(k):
+            for seg in ranked:
+                if depth < len(seg) and seg[depth].chunk.id not in seen and len(hits) < k:
+                    seen.add(seg[depth].chunk.id)
+                    hits.append(seg[depth])
+        return hits
+
+    def _search_segment(
+        self,
+        query: str,
+        k: int,
+        min_score: float,
+        classifications: Collection[str] | None,
+        min_support: float | None,
+    ) -> list[RetrievalHit]:
         gate = self.min_support if min_support is None else min_support
         tokens = tokenize(query)
         scores = self._index.scores(tokens)
         order = sorted(range(len(scores)), key=lambda i: (-scores[i], i))
         hits: list[RetrievalHit] = []
         for i in order:
-            if scores[i] < min_score or scores[i] <= 0.0 or len(hits) >= min(int(k), MAX_K):
+            if scores[i] < min_score or scores[i] <= 0.0 or len(hits) >= k:
                 break
             if classifications is not None and self.chunks[i].classification not in classifications:
                 continue
