@@ -247,29 +247,54 @@ async def test_four_pending_approvals_do_not_block_a_fifth_task():
     while len(gateway.pending()) < 4:
         await asyncio.sleep(0.01)
 
+    # all four parked tasks have handed their slots back: deterministic, no clock involved
+    assert semaphore._value == 4 and not semaphore.locked()
+
     async def fifth() -> str:
         async with ConcurrencySlot(semaphore):
             return "ran"
 
-    assert await asyncio.wait_for(fifth(), 2) == "ran"  # would deadlock with the 0.4.0 semaphore
+    assert await fifth() == "ran"  # acquires without waiting (would hang with the 0.4.0 semaphore)
     for a in gateway.pending():
         gateway.decide(a.id, True, "approver:1")
     assert await asyncio.gather(*waiting) == [True] * 4
     assert semaphore._value == 4  # every slot was given back exactly once
 
 
+class _CountingGateway(QueuedApprovalGateway):
+    """Signals an event once ``n`` requests are parked; no polling, no deadline."""
+
+    def __init__(self, n: int) -> None:
+        super().__init__(3600)
+        self.n = n
+        self.all_parked = asyncio.Event()
+
+    async def request(self, approval):
+        waiting = super().request(approval)  # registers the approval synchronously on first step
+        task = asyncio.ensure_future(waiting)
+        await asyncio.sleep(0)  # let it register and release its slot
+        if len(self.pending()) >= self.n:
+            self.all_parked.set()
+        return await task
+
+
 @pytest.mark.slow
 async def test_four_research_tasks_awaiting_approval_leave_room_for_a_fifth_over_http(api):
-    client, p = await api(auto_approve=False, max_concurrent_investigations=4, approval_timeout_s=120)
+    client, p = await api(auto_approve=False, max_concurrent_investigations=4)
+    gateway = _CountingGateway(4)
+    p.approvals = gateway
+    state = client._transport.app.state.ceap  # type: ignore[attr-defined]
     body = {"question": "Does momentum work on R01?", "dataset": "R01"}
     for _ in range(4):
         assert (await client.post("/research", json=body, headers=QUANT)).status_code == 202
-    deadline = time.monotonic() + 60
-    while len(p.approvals.pending()) < 4 and time.monotonic() < deadline:
-        await asyncio.sleep(0.05)
-    assert len(p.approvals.pending()) == 4
+    await gateway.all_parked.wait()  # event, not a wall-clock deadline
+    assert len(gateway.pending()) == 4
+    assert state.semaphore._value == 4  # every parked task released its slot
     tid = (await client.post("/investigations", json=INV_BODY, headers=TRADER)).json()["task_id"]
-    assert (await _wait_done(client, f"/investigations/{tid}", TRADER, 60))["status"] == "COMPLETED"
+    await state.running[tid]  # the fifth task runs to completion while four wait for a human
+    assert p.results[tid].status.value == "COMPLETED"
+    for a in gateway.pending():
+        gateway.decide(a.id, True, "approver:1")
 
 
 async def test_idempotency_key_same_body_same_id_different_body_422(api):
