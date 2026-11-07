@@ -10,13 +10,17 @@ Deterministic checks run first (they cannot be talked out of by a model):
    "latency normal") are flagged;
 4. thinly evidenced findings are capped.
 
-An optional LLM critique then runs and may only *lower* confidence.
+An optional LLM critique then runs. Since R3B (3B.3) it cannot change a confidence itself: an
+assessment that disputes a finding is a *dispute*, which counts only when it names an alternative
+deterministic check (``alternative_baseline``, ``different_horizon``, ``peer_set``). The harness runs
+that check through the policy path and lowers the confidence only if the check's result contradicts
+the finding's cited value. ``supported=False`` without a named check is recorded and changes nothing.
+The model's comments are stored, never forwarded to another model.
 """
 
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import math
 from dataclasses import replace
@@ -43,8 +47,14 @@ from ceap.llm.models import (
     Degradation,
     LLMRequest,
 )
-from ceap.llm.prompts import get_prompt
-from ceap.llm.schemas import CritiqueOutput, critique_semantic_errors, parse_json_object, validate_model
+from ceap.llm.prompts import DATA_BLOCK_NOTE, data_block, fit_context, get_prompt
+from ceap.llm.schemas import (
+    CRITIC_CHECKS,
+    CritiqueOutput,
+    critique_semantic_errors,
+    parse_json_object,
+    validate_model,
+)
 
 log = logging.getLogger(__name__)
 CRITIC_REPAIR_INSTRUCTION = (
@@ -177,8 +187,13 @@ class CriticAgent(BaseAgent):
             "assessments": assessments,
             "contradictions": contradictions,
             "unsupported": unsupported,
-            "overall": overall if llm_overall is None else f"{overall} {llm_overall}",
+            "overall": overall,
+            # R3B 3B.3: disputes with a named check go to the harness; the rest are only recorded
+            "disputes": [a["dispute"] for a in assessments if a.get("dispute")],
+            "unbacked_disputes": [a["finding_id"] for a in assessments if a.get("unbacked_dispute")],
         }
+        if llm_overall is not None:
+            critique["llm_overall"] = llm_overall  # model text: stored, never forwarded
         calc = self.calc_evidence(
             context,
             "Critic assessment of findings",
@@ -299,7 +314,7 @@ class CriticAgent(BaseAgent):
     async def _llm_critique(
         self, context: AgentContext, findings: list[Finding], memory: Any, assessments: list[dict[str, Any]]
     ) -> tuple[list[Finding], str | None, list[Degradation]]:
-        payload = {
+        raw_payload = {
             "findings": [
                 {
                     "id": f.id,
@@ -316,11 +331,17 @@ class CriticAgent(BaseAgent):
                 for f in findings
             ]
         }
+        # R3B 3B.6: context budget with the documented truncation order; R3B 3B.5: evidence is data
+        payload, truncation = fit_context(raw_payload)
         assert self.llm is not None
         prompt = get_prompt("critic")
+        content = (
+            f"{DATA_BLOCK_NOTE}\nAssess these findings. To dispute one, name an alternative check.\n"
+            + data_block("evidence", "findings", payload)
+        )
         request = LLMRequest(
             system_prompt=prompt.text,
-            messages=[{"role": "user", "content": json.dumps(payload)}],
+            messages=[{"role": "user", "content": content}],
             purpose="critique",  # max_tokens 8000 and effort from model_pins.toml
             metadata={"task_id": context.task_id, "prompt": prompt.ref()},
             output_model=CritiqueOutput,
@@ -341,6 +362,10 @@ class CriticAgent(BaseAgent):
 
         response = await self.call_llm(context, self.llm, request)
         degradations = list(response.degradations)
+        if truncation:
+            degradations.append(
+                Degradation(RUNG_REPAIR, "CONTEXT_TRUNCATED", "critic payload truncated: " + "; ".join(truncation))
+            )
         parsed, errors = check(response)
         if findings and errors:
             degradations.append(
@@ -376,25 +401,27 @@ class CriticAgent(BaseAgent):
                 )
                 parsed = {}
         by_id = {a.get("finding_id"): a for a in (parsed.get("assessments") or []) if isinstance(a, dict)}
-        out: list[Finding] = []
         for f in findings:
             a = by_id.get(f.id)
             if a is None:
-                out.append(f)
                 continue
             try:
                 proposed = float(a.get("adjusted_confidence", f.confidence))
             except (TypeError, ValueError):
                 proposed = f.confidence
-            if not math.isfinite(proposed):
-                proposed = f.confidence
-            new_conf = min(f.confidence, max(0.0, proposed))  # model may only lower confidence
+            disputes = a.get("supported") is False or (math.isfinite(proposed) and proposed < f.confidence)
+            check = a.get("check")
             for rec in assessments:
-                if rec["finding_id"] == f.id:
-                    rec["llm_comment"] = str(a.get("comment", ""))[:500]
-                    rec["adjusted_confidence"] = round(new_conf, 3)
-            out.append(replace(f, confidence=round(new_conf, 3)))
-        return out, (str(parsed.get("overall", ""))[:1000] or None), degradations
+                if rec["finding_id"] != f.id:
+                    continue
+                rec["llm_comment"] = str(a.get("comment", ""))[:500]  # stored, never forwarded
+                rec["llm_proposed_confidence"] = round(proposed, 3) if math.isfinite(proposed) else None
+                if disputes and check in CRITIC_CHECKS:
+                    rec["dispute"] = {"finding_id": f.id, "check": check}
+                elif disputes:
+                    rec["unbacked_dispute"] = True  # recorded; changes nothing
+        # the model never sets a confidence: the findings leave unchanged (3B.3)
+        return findings, (str(parsed.get("overall", ""))[:1000] or None), degradations
 
 
 def _ev_view(e: Any) -> dict[str, Any]:

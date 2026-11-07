@@ -6,6 +6,69 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### R3B: agents and agentic AI, within the boundary (PLAN section 2, items 3B.1-3B.9)
+
+No live model call anywhere (D15); no code-writing agent (D13); case memory per D10.
+
+#### Breaking / migration
+
+- **Agents no longer fetch their own data.** `BaseAgent.fetched()` reads what the plan fetched and
+  never invokes a tool; `ensure` remains only where arguments depend on fetched data (the risk
+  agent's limit check). The harness appends, before the first agent step, every tool call a chosen
+  agent declares in `ceap.agents.requirements` (`gov-data-NN` steps, validated and policy-checked
+  like the plan). An agent whose data step failed fails with `PlanDataMissingError`.
+  Mechanical signature change in `agents/quant.py`, `agents/execution.py` (R2T lane) and
+  `agents/alpha.py`, `agents/market.py`, `agents/engineering.py` (R2B lane): `self.ensure(` ->
+  `self.fetched(`, no logic change.
+- **The critic model can no longer change a confidence.** A dispute counts only when it names an
+  alternative deterministic check (`check`: `alternative_baseline`, `different_horizon`, `peer_set`)
+  whose result contradicts the finding's cited value; the harness runs the check through the policy
+  path (at most 3 per task) and caps an overturned finding at 0.3. `supported=False` without a check
+  is recorded (`unbacked_disputes`) and changes nothing. `critique.overall` no longer includes model
+  text; it is stored separately as `critique.llm_overall`.
+- Prompt changes: **planner@3** (scope within enumerated choices: agents, baseline, ranked
+  hypotheses, prior cases; data blocks) and **critic@3** (disputes need a named check).
+  `report@1`, `research_planner@2` and `research_report@1` are unchanged.
+- contracts change (additive): `HypothesisRow` gains `test`, `evidence_ids`, `rank`, `reason`;
+  `domain/agents.py` gains `AgentMessage` (envelope version 1) and `parse_message`;
+  `CritiqueAssessment` gains `check`; the plan output schema gains optional `baseline` and
+  `hypotheses`; `ApprovalDecision` gains `action`; `QueuedApprovalGateway.decide` gains keyword-only
+  `action`.
+- Tool evidence records carry `values` (top-level scalar fields of the result) so findings can cite
+  `values.<field>`; knowledge results are `DOCUMENT` evidence.
+- `POST /approvals/{id}`: a reject or modify decision needs a reason in `comment` (422 otherwise);
+  `action: modify` means not approved, changes requested.
+
+#### Added
+
+- 3B.1 planner owns scope within enumerated choices: which agents run, which optional tools, which
+  baseline (`task_baseline`, `prior_equal_length`, `prior_double_length`; each distinct choice is
+  a trial recorded in `agent_outputs.scope.trials`), which pre-registered hypotheses to rank. A
+  baseline outside the set is rejected by the schema, semantic validation and the sanitiser.
+  `ensure` call sites fall from 28 to 1.
+- 3B.2 `analytics/hypotheses.py`: each hypothesis maps to a pre-registered deterministic test; the
+  model only ranks; the harness builds `InvestigationReport.hypotheses` and the report shows
+  supported, refuted and untested hypotheses, each with its own evidence.
+- 3B.3 critic disputes through alternative deterministic checks (above).
+- 3B.4 evidence binding: findings carry `evidence_refs {id, path, value}` (bound by the harness from
+  the attribute the agent cited); validation drops a finding whose cited value does not match the
+  value at its path (`EVIDENCE_VALUE_MISMATCH`) or whose calculation derives from unknown evidence.
+- 3B.5 injection hygiene: the question, tool descriptions, prior cases, evidence (logs, deployment
+  text) and retrieved policy text reach a model only inside `<data surface=... id=...>` blocks that
+  cannot be closed from inside; threat model section per surface; `tests/adversarial/test_surfaces.py`.
+- 3B.6 typed agent messages (`AgentMessage`, drifted versions rejected), one bounded re-plan on a
+  tool or required-agent failure with the failure reason, and a per-call context budget with a
+  documented truncation order (`ceap.llm.prompts.TRUNCATION_ORDER`).
+- 3B.7 case memory (D10): after a human decision the harness appends a compact case record; the
+  planner receives the three nearest cases of the same dataset as read-only context; append-only,
+  audited, partitioned by dataset, no memory tool; OFF in evaluation (`evaluation_platform()`,
+  `case_memory.reads == 0` reported). Investigations accept `signoff: true` (optional human sign-off).
+- 3B.8 approval review payload: hypothesis table, evidence links, diff against the pre-trade
+  estimate (the baseline window until a pre-trade cost model lands) and the critic's disputes;
+  `GET /approvals/{id}`; the reject / modify reason is in the hash-chained audit entry and the case record.
+- 3B.9 stdio MCP lifecycle: each connection's `AsyncExitStack` is owned by a dedicated task; one
+  reconnect when the child exits (test marked `slow`).
+
 ### R3A: LLM layer (PLAN section 2, items 3A.1-3A.8)
 
 Round R3A of the 2026-11-07 plan (LLM layer, offline-provable). No live model call anywhere (D15).

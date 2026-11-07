@@ -72,11 +72,16 @@ class StrictModel(BaseModel):
 # ---------------------------------------------------------------- critic
 
 
+#: alternative deterministic checks a critic may name to dispute a finding (R3B 3B.3)
+CRITIC_CHECKS = ("alternative_baseline", "different_horizon", "peer_set")
+
+
 class CritiqueAssessment(StrictModel):
     finding_id: str
     supported: bool
-    adjusted_confidence: float
-    comment: str
+    adjusted_confidence: float  # recorded; a confidence changes only through a named check
+    comment: str  # stored, never forwarded
+    check: Literal["alternative_baseline", "different_horizon", "peer_set"] | None = None
 
 
 class CritiqueOutput(StrictModel):
@@ -142,7 +147,13 @@ def tool_step_model(tool_id: str, input_schema: Mapping[str, Any]) -> type[Stric
     )
 
 
-def plan_model(catalogue: Mapping[str, Mapping[str, Any]], agents: Sequence[str]) -> type[StrictModel]:
+def plan_model(
+    catalogue: Mapping[str, Mapping[str, Any]],
+    agents: Sequence[str],
+    *,
+    baselines: Sequence[str] = (),
+    hypotheses: Sequence[str] = (),
+) -> type[StrictModel]:
     """The ``Plan`` output model for one task: steps are a union over ``catalogue`` and ``agents``.
 
     ``catalogue`` maps read-only tool id -> MCP ``inputSchema``. The union is a plain ``anyOf``
@@ -154,11 +165,17 @@ def plan_model(catalogue: Mapping[str, Mapping[str, Any]], agents: Sequence[str]
     agent_step = create_model("AgentStep", __base__=AgentStep, agent_id=(agent_lit, ...))
     members = (*tool_steps, agent_step, ValidationStep, FinaliseStep)
     step_union = Union[members]  # type: ignore[valid-type]  # noqa: UP007 - runtime tuple
+    scope: dict[str, Any] = {}
+    if baselines:  # R3B 3B.1: the planner picks one baseline from an enumerated set
+        scope["baseline"] = (Literal[tuple(baselines)] | None, None)  # type: ignore[valid-type]
+    if hypotheses:  # R3B 3B.2: the planner proposes and ranks pre-registered hypotheses
+        scope["hypotheses"] = (list[Literal[tuple(hypotheses)]] | None, None)  # type: ignore[valid-type,misc]
     return create_model(  # type: ignore[call-overload,no-any-return]
         "PlanOutput",
         __base__=StrictModel,
         rationale=(str, ...),
         steps=(list[step_union], ...),  # type: ignore[valid-type]
+        **scope,
     )
 
 
@@ -254,6 +271,10 @@ def plan_semantic_errors(
     for stype, n in gov_counts.items():
         if n > 1:
             errors.append(f"plan has {n} {stype} steps; the governance tail allows one")
+    choices = facts.get("baseline_windows") or {}
+    baseline = raw.get("baseline")
+    if baseline is not None and choices and str(baseline) not in choices:
+        errors.append(f"baseline {baseline!r} is not one of {sorted(choices)}")
     return errors
 
 
@@ -267,6 +288,10 @@ def allowed_windows(facts: Mapping[str, Any], research: bool) -> set[tuple[str, 
             (facts.get("baseline_start"), facts.get("window_end")),  # deployments look-back
             (facts.get("baseline_start"), facts.get("baseline_end")),
         ]
+        # R3B 3B.1: the enumerated alternative baselines (and their deployments look-back)
+        for window in (facts.get("baseline_windows") or {}).values():
+            if isinstance(window, (list, tuple)) and len(window) == 2:
+                pairs += [(window[0], window[1]), (window[0], facts.get("window_end"))]
     return {(str(a), str(b)) for a, b in pairs if a is not None and b is not None}
 
 

@@ -833,7 +833,7 @@
       "requiredCapabilities": [],
       "riskLevel": "LOW"
     },
-    "description": "Semantic search over enterprise documents; returns the best matching sections with scores.",
+    "description": "Keyword (BM25) search over enterprise documents; returns matching sections with document, version, effective date and score. An empty result means no document supports the query.",
     "inputSchema": {
       "properties": {
         "k": {

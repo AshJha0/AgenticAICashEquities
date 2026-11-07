@@ -79,7 +79,7 @@ def golden_responder(body: dict[str, Any]) -> dict[str, Any]:
     if purpose in ("planner", "research_planner"):
         return _message(json.dumps(canonical_plan(_payload_after(user, "PARAMETERS:"))), model)
     if purpose == "critic":
-        findings = json.loads(user).get("findings", [])
+        findings = _payload_after(user, '<data surface="evidence"').get("findings", [])  # R3B 3B.5 data block
         assessments = []
         for f in findings:
             supported = bool(f.get("supporting_evidence")) and f.get("evidence_resolved", True)

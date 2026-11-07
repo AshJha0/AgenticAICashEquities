@@ -9,7 +9,7 @@ import json
 import threading
 from abc import ABC, abstractmethod
 from collections import OrderedDict, deque
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Protocol
@@ -56,6 +56,7 @@ class ApprovalDecision:
     decided_by: str
     comment: str = ""
     decided_at: datetime = field(default_factory=utc_now)
+    action: str = ""  # R3B 3B.8: approve | reject | modify ("" = derived from ``approved``)
 
 
 #: non-human deciders; exempt from the four-eyes check and always recorded in the audit trail
@@ -120,7 +121,9 @@ AuditSink = Callable[[str, str, str, dict[str, Any]], Any]
 class ApprovalStore(Protocol):
     def insert(self, request: ApprovalRequest) -> None: ...
 
-    def transition(self, approval_id: str, status: str, decided_by: str, comment: str, at: datetime) -> bool: ...
+    def transition(
+        self, approval_id: str, status: str, decided_by: str, comment: str, at: datetime
+    ) -> bool: ...
 
     def status(self, approval_id: str) -> str | None: ...
 
@@ -271,23 +274,44 @@ class QueuedApprovalGateway(ApprovalGateway):
         self.history.append(decision)
         return decision
 
-    def decide(self, request_id: str, approved: bool, decided_by: str, comment: str = "") -> ApprovalDecision:
+    def decide(
+        self,
+        request_id: str,
+        approved: bool,
+        decided_by: str,
+        comment: str = "",
+        *,
+        action: str = "",
+    ) -> ApprovalDecision:
         entry = self._futures.get(request_id)
         if entry is None:
             status = self.store.status(request_id)
             if status is None:
                 raise KeyError(f"no pending approval {request_id}")
-            self._audit(decided_by, "approval.late_decide", request_id, {"status": status, "approved": approved})
+            self._audit(
+                decided_by, "approval.late_decide", request_id, {"status": status, "approved": approved}
+            )
             raise ApprovalConflictError(f"approval {request_id} is {status}; the decision was refused")
         check_four_eyes(self._pending[request_id], decided_by)
-        decision = ApprovalDecision(request_id, approved, decided_by, comment)
+        action = action or ("approve" if approved else "reject")
+        if action not in DECISION_ACTIONS or (action == "approve") != approved:
+            raise ValueError(f"action {action!r} does not match approved={approved}")
+        decision = ApprovalDecision(request_id, approved, decided_by, comment, action=action)
         if not self.store.transition(
             request_id, APPROVED if approved else REJECTED, decided_by, comment, decision.decided_at
         ):
             current = self.store.status(request_id)
-            self._audit(decided_by, "approval.late_decide", request_id, {"status": current, "approved": approved})
+            self._audit(
+                decided_by, "approval.late_decide", request_id, {"status": current, "approved": approved}
+            )
             raise ApprovalConflictError(f"approval {request_id} was already decided ({current})")
-        self._audit(decided_by, "approval.decided", request_id, {"approved": approved, "comment": comment})
+        # R3B 3B.8: the reject / modify reason is part of the hash-chained audit entry
+        self._audit(
+            decided_by,
+            "approval.decided",
+            request_id,
+            {"approved": approved, "action": action, "reason": comment, "comment": comment},
+        )
         fut, loop = entry
 
         def resolve() -> None:
@@ -310,3 +334,76 @@ class QueuedApprovalGateway(ApprovalGateway):
         for approval_id in ids:
             self._audit("timeout", "approval.expired", approval_id, {"reason": reason})
         return ids
+
+
+# ------------------------------------------------------------------ review payload (R3B 3B.8)
+
+#: what a human may do with an approval request
+DECISION_ACTIONS = ("approve", "reject", "modify")
+REVIEW_PAYLOAD_VERSION = 1
+MAX_REVIEW_FINDINGS = 20
+
+
+def _num(value: Any) -> float | None:
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return None
+    return f if f == f and f not in (float("inf"), float("-inf")) else None
+
+
+def review_payload(
+    *,
+    hypotheses: Mapping[str, Any] | None,
+    findings: Sequence[Any],
+    evidence: Mapping[str, Any],
+    execution: Mapping[str, Any] | None,
+    critique: Mapping[str, Any] | None,
+    disputes: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """What the approver sees (PLAN 3B.8): the hypothesis table, the evidence behind each finding,
+    the diff against the pre-trade estimate and the critic's disputes. Built from harness state
+    only; model text is limited to the critic's stored comments, labelled as such."""
+    rows = list((hypotheses or {}).get("rows") or [])
+    links = []
+    for f in list(findings)[:MAX_REVIEW_FINDINGS]:
+        links.append(
+            {
+                "finding_id": f.id,
+                "statement": str(f.statement)[:300],
+                "confidence": f.confidence,
+                "evidence": [
+                    {"id": e, "type": getattr(getattr(evidence.get(e), "type", None), "value", None)}
+                    for e in f.supporting_evidence
+                ],
+                "evidence_refs": [{"id": r.id, "path": r.path, "value": r.value} for r in f.evidence_refs],
+            }
+        )
+    window = (execution or {}).get("window") or {}
+    baseline = (execution or {}).get("baseline") or {}
+    realised, estimate = (
+        _num(window.get("implementation_shortfall_bps")),
+        _num(baseline.get("implementation_shortfall_bps")),
+    )
+    pre_trade = {
+        "metric": "implementation_shortfall_bps",
+        "estimate_bps": estimate,
+        "estimate_source": "baseline window (no pre-trade cost model in this release)",
+        "realised_bps": realised,
+        "diff_bps": None if realised is None or estimate is None else round(realised - estimate, 4),
+    }
+    return {
+        "version": REVIEW_PAYLOAD_VERSION,
+        "hypotheses": {
+            group: [r for r in rows if r.get("verdict") == group]
+            for group in ("SUPPORTED", "REFUTED", "UNTESTED")
+        },
+        "evidence_links": links,
+        "pre_trade_diff": pre_trade if execution else None,
+        "disputes": {
+            "checks": list((disputes or {}).get("checks") or []),
+            "recorded_without_check": list((disputes or {}).get("recorded_without_check") or []),
+            "contradictions": list((critique or {}).get("contradictions") or []),
+            "critic_comments_are_model_text": True,
+        },
+    }

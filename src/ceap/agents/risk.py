@@ -12,7 +12,7 @@ class RiskAgent(BaseAgent):
 
     async def execute(self, context: AgentContext) -> AgentResult:
         w = self.window(context)
-        metrics, m_ev = await self.ensure(context, "execution.get_execution_metrics", w.window_args)
+        metrics, m_ev = await self.fetched(context, "execution.get_execution_metrics", w.window_args)
         qty = int(metrics.get("target_quantity") or 0)
         part = metrics.get("participation_rate")
         limits, l_ev = await self.ensure(
@@ -25,7 +25,7 @@ class RiskAgent(BaseAgent):
                 "dataset": w.dataset,
             },
         )
-        exposure, e_ev = await self.ensure(
+        exposure, e_ev = await self.fetched(
             context, "risk.get_exposure", {"symbol": w.symbol, "as_of": w.end, "dataset": w.dataset}
         )
 

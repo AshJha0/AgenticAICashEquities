@@ -19,10 +19,17 @@ from dataclasses import dataclass, field, replace
 from datetime import timedelta
 from typing import Any
 
+from ceap.agents.requirements import requirements_for
+from ceap.analytics.hypotheses import (
+    check_plan,
+    evaluate_hypotheses,
+    hypothesis_table_dict,
+    judge_alternative,
+)
 from ceap.config import Settings, load_settings
-from ceap.domain.agents import Agent, AgentContext, AgentResult
+from ceap.domain.agents import Agent, AgentContext, AgentMessage, AgentResult
 from ceap.domain.common import new_id, to_jsonable, utc_now
-from ceap.domain.evidence import Evidence
+from ceap.domain.evidence import Evidence, EvidenceType
 from ceap.domain.findings import Finding
 from ceap.domain.plans import Plan, PlanStep, PlanValidationError, StepType
 from ceap.domain.policy import PolicyContext, PolicyDecision, PolicyEngine
@@ -32,7 +39,13 @@ from ceap.domain.tasks import ResultWarning, Task, TaskStatus, WarningSeverity
 from ceap.domain.tools import ToolRegistry, ToolRequest, ToolResult, ToolStatus
 from ceap.harness.cancellation import CancellationToken, TaskCancelled
 from ceap.harness.executor import HarnessToolInvoker, RunContext, StepExecutor, race_cancellation
-from ceap.harness.memory import InvestigationMemory
+from ceap.harness.memory import (
+    CaseMemory,
+    CaseRecord,
+    InvestigationMemory,
+    bind_evidence_refs,
+    evidence_problems,
+)
 from ceap.harness.retry import RetryPolicy
 from ceap.harness.state_machine import HarnessState, StateMachine
 from ceap.llm.router import task_cost, task_scope
@@ -46,6 +59,7 @@ from ceap.policy.approvals import (
     DenyApprovalGateway,
     FourEyesViolationError,
     check_four_eyes,
+    review_payload,
 )
 
 log = logging.getLogger(__name__)
@@ -66,6 +80,11 @@ APPROVAL_STEP_ID = "gov-approval"
 STAGE_APPROVAL_STEP_ID = "gov-stage-approval"
 STAGE_STEP_ID = "gov-stage-orders"
 STAGE_TOOL_ID = "execution.stage_orders"
+SIGNOFF_STEP_ID = "gov-signoff"  # R3B 3B.7: optional human sign-off of an investigation
+DATA_STEP_PREFIX = "gov-data-"  # R3B 3B.1: data steps the harness adds for the chosen agents
+MAX_REPLANS = 1  # R3B 3B.6: one bounded re-plan on a tool or required-agent failure
+MAX_DISPUTE_CHECKS = 3  # R3B 3B.3: alternative checks run per task (one tool call each)
+DISPUTE_CAP = 0.3  # confidence of a finding overturned by a contradicting deterministic check
 HUMAN_APPROVAL_TOOL_ID = "harness.human_approval"
 # task-input keys whose values a plan may use for the corresponding tool arguments
 # (a list-valued task input, e.g. the research universe, admits any of its elements)
@@ -197,8 +216,11 @@ class AgentHarness:
         approvals: ApprovalGateway | None = None,
         settings: Settings | None = None,
         retry_policy: RetryPolicy | None = None,
+        case_memory: CaseMemory | None = None,
     ) -> None:
         self.planner = planner
+        # R3B 3B.7 (D10): None or disabled in evaluation; written only here, after a human decision
+        self.case_memory = case_memory
         self.agents = agents
         self.tools = tools
         self.policy = policy
@@ -264,6 +286,7 @@ class AgentHarness:
             async with self.tracer.span("harness.execute", task_id=task.id, execution_id=execution_id):
                 # ---- planning ---------------------------------------------------
                 sm.transition(HarnessState.PLANNING, "task accepted")
+                memory.scratch["cases"] = self._recall_cases(task, memory)
                 async with self.tracer.span("harness.plan"):
                     planner_result = await self._run_agent(self.planner, "plan", memory, run, executor, task)
                     if not planner_result.success or "plan" not in planner_result.output:
@@ -271,19 +294,25 @@ class AgentHarness:
                     plan = planner_result.output["plan"]
                     self._absorb("planner", planner_result, memory, warnings)
                     step_results.append(_agent_record("plan", "planner", planner_result))
+                    run_task = self._apply_scope(
+                        task, planner_result.output.get("scope") or {}, memory, warnings
+                    )
 
                 # ---- plan validation -------------------------------------------
                 sm.transition(HarnessState.VALIDATING_PLAN, "plan produced")
                 async with self.tracer.span("harness.validate_plan", steps=len(plan.steps)):
-                    plan, dropped_steps = self._enforce_governance_steps(plan, task)
+                    plan, dropped_steps = self._enforce_governance_steps(plan, run_task)
                     for d in dropped_steps:
-                        warnings.append(_w("PLAN_STEP_DROPPED", f"plan step dropped by governance: {d}", info=True))
-                    await self._validate_plan(plan, policy_context, task)
+                        warnings.append(
+                            _w("PLAN_STEP_DROPPED", f"plan step dropped by governance: {d}", info=True)
+                        )
+                    await self._validate_plan(plan, policy_context, run_task, original=task)
 
                 # ---- execution -------------------------------------------------
                 sm.transition(HarnessState.EXECUTING, "plan validated")
                 agents_since_critic = 0
                 critic_ran = False
+                replans = 0
                 declined: set[str] = set()  # optional approval steps a human declined
                 for batch in _batches(plan.ordered_steps()):
                     cancellation.raise_if_cancelled()
@@ -311,11 +340,18 @@ class AgentHarness:
                     if kind is StepType.TOOL_CALL:
                         batch = [_bind_approved_portfolio(s, memory) for s in batch]
                         results = await self._run_tool_batch(batch, executor, run)
+                        failed: list[str] = []
                         for step, result in zip(batch, results, strict=True):
                             step_results.append(_step_record(step, result))
                             if not result.ok:
+                                failed.append(
+                                    f"{step.id} {step.tool_request.tool_id if step.tool_request else ''}: {result.error}"
+                                )
                                 warnings.append(
-                                    _w("TOOL_STEP_FAILED", f"step {step.id} ({step.description}) failed: {result.error}")
+                                    _w(
+                                        "TOOL_STEP_FAILED",
+                                        f"step {step.id} ({step.description}) failed: {result.error}",
+                                    )
                                 )
                             if step.id == STAGE_STEP_ID:
                                 memory.scratch["staging"] = {
@@ -323,6 +359,18 @@ class AgentHarness:
                                     "status": result.status.value,
                                     "error": result.error,
                                 }
+                        if failed and replans < MAX_REPLANS and not any(s.id == STAGE_STEP_ID for s in batch):
+                            replans += 1
+                            await self._replan(
+                                "tool step(s) failed: " + "; ".join(failed)[:800],
+                                memory,
+                                run,
+                                executor,
+                                run_task,
+                                policy_context,
+                                step_results,
+                                warnings,
+                            )
                         continue
                     step = batch[0]
                     if step.type is StepType.AGENT_CALL:
@@ -341,11 +389,35 @@ class AgentHarness:
                             continue
                         if agent_id == CRITIC_AGENT_ID:
                             sm.transition(HarnessState.CRITIQUING, "critic step")
-                        agent_result = await self._run_agent(agent, step.id, memory, run, executor, task)
+                        agent_result = await self._run_agent(agent, step.id, memory, run, executor, run_task)
+                        required_failure = (
+                            not agent_result.success
+                            and agent_id in REQUIRED_INVESTIGATION_AGENTS
+                            and task_kind(task) != RESEARCH_KIND
+                        )
+                        if required_failure and replans < MAX_REPLANS:
+                            # R3B 3B.6: one bounded re-plan with the failure reason, then one re-run
+                            replans += 1
+                            step_results.append(_agent_record(step.id, agent_id, agent_result))
+                            await self._replan(
+                                f"agent {agent_id} failed: {agent_result.error}",
+                                memory,
+                                run,
+                                executor,
+                                run_task,
+                                policy_context,
+                                step_results,
+                                warnings,
+                            )
+                            agent_result = await self._run_agent(
+                                agent, f"{step.id}-replanned", memory, run, executor, run_task
+                            )
                         self._absorb(agent_id, agent_result, memory, warnings)
                         step_results.append(_agent_record(step.id, agent_id, agent_result))
                         if not agent_result.success:
-                            required = agent_id in REQUIRED_INVESTIGATION_AGENTS and task_kind(task) != RESEARCH_KIND
+                            required = (
+                                agent_id in REQUIRED_INVESTIGATION_AGENTS and task_kind(task) != RESEARCH_KIND
+                            )
                             warnings.append(
                                 _w(
                                     "REQUIRED_AGENT_FAILED" if required else "AGENT_FAILED",
@@ -355,12 +427,16 @@ class AgentHarness:
                                 )
                             )
                         if agent_id == CRITIC_AGENT_ID:
+                            await self._resolve_disputes(
+                                memory, run, executor, run_task, step_results, warnings
+                            )
                             critic_ran, agents_since_critic = True, 0
                             sm.transition(HarnessState.EXECUTING, "critique complete")
                         else:
                             agents_since_critic += 1
                     elif step.type is StepType.HUMAN_APPROVAL:
-                        approved = await self._human_gate(step, run, sm, warnings, memory)
+                        self._hypotheses(memory)
+                        approved = await self._human_gate(step, run, sm, warnings, memory, task)
                         step_results.append(
                             {
                                 "step_id": step.id,
@@ -377,10 +453,10 @@ class AgentHarness:
                                 )
                     elif step.type is StepType.VALIDATION:
                         if not critic_ran or agents_since_critic:  # governance: critique what was added
-                            await self._force_critic(memory, run, executor, task, step_results, warnings)
+                            await self._force_critic(memory, run, executor, run_task, step_results, warnings)
                             critic_ran, agents_since_critic = True, 0
                         sm.transition(HarnessState.VALIDATING_EVIDENCE, "validation step")
-                        dropped = self._validate_evidence(memory)
+                        dropped = self._validate_evidence(memory, warnings)
                         step_results.append(
                             {
                                 "step_id": step.id,
@@ -392,17 +468,20 @@ class AgentHarness:
                         sm.transition(HarnessState.EXECUTING, "evidence validated")
                     elif step.type is StepType.FINALISE:
                         if not critic_ran or agents_since_critic:
-                            await self._force_critic(memory, run, executor, task, step_results, warnings)
+                            await self._force_critic(memory, run, executor, run_task, step_results, warnings)
                             critic_ran, agents_since_critic = True, 0
-                            self._validate_evidence(memory)
+                            self._validate_evidence(memory, warnings)
                         sm.transition(HarnessState.FINALISING, "finalise step")
+                        table = self._hypotheses(memory)
                         rep_result = await self._run_agent(
-                            self.reporter, step.id, memory, run, executor, task
+                            self.reporter, step.id, memory, run, executor, run_task
                         )
                         self._absorb("reporter", rep_result, memory, warnings)
                         if not rep_result.success or "report" not in rep_result.output:
                             raise RuntimeError(rep_result.error or "reporter produced no report")
                         report = replace(rep_result.output["report"], prompts=_prompt_refs(memory))
+                        if report.hypotheses is None and task_kind(task) != RESEARCH_KIND:
+                            report = replace(report, hypotheses=table)
                         step_results.append(
                             {"step_id": step.id, "type": step.type.value, "status": "SUCCESS"}
                         )
@@ -482,12 +561,17 @@ class AgentHarness:
             if a in self.agents and not (memory.agent_outputs.get(a) or {}).get("success", False)
         ]
 
-    async def _validate_plan(self, plan: Plan, policy_context: PolicyContext, task: Task) -> None:
+    async def _validate_plan(
+        self, plan: Plan, policy_context: PolicyContext, task: Task, original: Task | None = None
+    ) -> None:
         if not plan.steps:
             raise PlanValidationError("plan has no steps")
         if len(plan.steps) > MAX_PLAN_STEPS:
             raise PlanValidationError(f"plan has {len(plan.steps)} steps; maximum is {MAX_PLAN_STEPS}")
-        tool_steps = [s for s in plan.steps if s.type is StepType.TOOL_CALL]
+        # the cap bounds what the model asked for; harness data steps (3B.1) are bounded by the agents
+        tool_steps = [
+            s for s in plan.steps if s.type is StepType.TOOL_CALL and not s.id.startswith(DATA_STEP_PREFIX)
+        ]
         if len(tool_steps) > MAX_TOOL_CALLS_PER_PLAN:
             raise PlanValidationError(
                 f"plan has {len(tool_steps)} tool calls; maximum is {MAX_TOOL_CALLS_PER_PLAN}"
@@ -499,7 +583,10 @@ class AgentHarness:
         if len(set(ids)) != len(ids):
             raise PlanValidationError("plan step ids are not unique")
         allowed_window_values = {
-            str(task.input.get(k)) for k in _WINDOW_SOURCE_KEYS if task.input.get(k) is not None
+            str(t.input.get(k))
+            for t in (task, original or task)
+            for k in _WINDOW_SOURCE_KEYS
+            if t.input.get(k) is not None
         }
         for step in plan.steps:
             if step.type is StepType.TOOL_CALL:
@@ -592,6 +679,7 @@ class AgentHarness:
                             agent_id=agent_id,
                         )
                     )
+        kept = self._with_data_steps(kept, task)
         tail = self._governance_tail(task)
         merged = kept + tail
         resequenced = tuple(replace(s, sequence=i + 1) for i, s in enumerate(merged))
@@ -657,7 +745,12 @@ class AgentHarness:
                         sequence=0,
                         type=StepType.HUMAN_APPROVAL,
                         description="Governance: human approval to stage paper orders",
-                        metadata={**scope, "optional": True, "tool_id": STAGE_TOOL_ID, "arguments": arguments},
+                        metadata={
+                            **scope,
+                            "optional": True,
+                            "tool_id": STAGE_TOOL_ID,
+                            "arguments": arguments,
+                        },
                         depends_on=(APPROVAL_STEP_ID,),
                     )
                 )
@@ -671,6 +764,22 @@ class AgentHarness:
                         depends_on=(STAGE_APPROVAL_STEP_ID,),
                     )
                 )
+        if task_kind(task) != RESEARCH_KIND and task.input.get("signoff"):
+            tail.append(
+                PlanStep(
+                    id=SIGNOFF_STEP_ID,
+                    sequence=0,
+                    type=StepType.HUMAN_APPROVAL,
+                    description="Governance: human sign-off of the investigation findings",
+                    metadata={
+                        "optional": True,
+                        **{
+                            k: task.input.get(k)
+                            for k in ("kind", "symbol", "dataset", "window_start", "window_end")
+                        },
+                    },
+                )
+            )
         tail.append(
             PlanStep(
                 id="gov-finalise",
@@ -680,6 +789,32 @@ class AgentHarness:
             )
         )
         return tail
+
+    @staticmethod
+    def _with_data_steps(kept: list[PlanStep], task: Task) -> list[PlanStep]:
+        """R3B 3B.1: insert, before the first agent step, every tool call a chosen agent reads that
+        the plan did not schedule with exactly those arguments. Agents never fetch for themselves."""
+        chosen = [s.agent_id for s in kept if s.type is StepType.AGENT_CALL and s.agent_id]
+        scheduled = [s.tool_request for s in kept if s.tool_request is not None]
+        added: list[PlanStep] = []
+        for agent_id in dict.fromkeys(chosen):
+            for request in requirements_for(agent_id, task.input):
+                if any(_same_request(request, r) for r in scheduled):
+                    continue
+                scheduled.append(request)
+                added.append(
+                    PlanStep(
+                        id=f"{DATA_STEP_PREFIX}{len(added) + 1:02d}",
+                        sequence=0,
+                        type=StepType.TOOL_CALL,
+                        description=f"Governance: data read by the {agent_id} agent ({request.tool_id})",
+                        tool_request=request,
+                    )
+                )
+        if not added:
+            return kept
+        first_agent = next((i for i, s in enumerate(kept) if s.type is StepType.AGENT_CALL), len(kept))
+        return kept[:first_agent] + added + kept[first_agent:]
 
     async def _run_tool_batch(
         self, batch: list[PlanStep], executor: StepExecutor, run: RunContext
@@ -739,6 +874,8 @@ class AgentHarness:
                     "scratch": memory.scratch,
                     "task": task,
                     "tool_catalogue": self.tools.list(),
+                    "messages": tuple(memory.messages),  # R3B 3B.6: typed, read-only
+                    "cases": memory.scratch.get("cases") or (),  # R3B 3B.7: read-only views
                 },
                 tool_registry=self.tools,
                 policy_context=run.policy_context,
@@ -793,13 +930,19 @@ class AgentHarness:
         if agent_id == CRITIC_AGENT_ID and "adjusted_findings" in result.output:
             memory.replace_findings(list(result.output["adjusted_findings"]))
         else:
-            memory.add_findings(*result.findings)
+            # R3B 3B.4: each finding cites the exact attribute values it used
+            memory.add_findings(*(bind_evidence_refs(f, memory.evidence) for f in result.findings))
+        memory.messages.append(_message(agent_id, result))
         if agent_id == "planner" and "plan" in result.output:
             memory.scratch["plan"] = result.output["plan"]
         for d in result.output.get("degradations") or ():
             # every rung above 0 of the degradation ladder is visible and marks the result DEGRADED
             warnings.append(
-                _w(str(d.get("code")), f"{agent_id}: rung {d.get('rung')}: {d.get('message')}", source=agent_id)
+                _w(
+                    str(d.get("code")),
+                    f"{agent_id}: rung {d.get('rung')}: {d.get('message')}",
+                    source=agent_id,
+                )
             )
         report = result.output.get("report")
         if isinstance(report, InvestigationReport):
@@ -845,6 +988,7 @@ class AgentHarness:
         sm: StateMachine,
         warnings: list[ResultWarning],
         memory: InvestigationMemory,
+        task: Task | None = None,
     ) -> bool:
         payload = _approval_payload(step, memory)
         if step.id == STAGE_APPROVAL_STEP_ID:
@@ -889,9 +1033,15 @@ class AgentHarness:
             "comment": decision.comment,
             "decided_at": decision.decided_at.isoformat(),
         }
+        if task is not None and step.id in (APPROVAL_STEP_ID, SIGNOFF_STEP_ID):
+            self._record_case(task, step, decision, memory)
         if not decision.approved:
             warnings.append(
-                _w("APPROVAL_DECLINED", f"human approval declined at {step.id}: {decision.comment}", info=True)
+                _w(
+                    "APPROVAL_DECLINED",
+                    f"human approval declined at {step.id}: {decision.comment}",
+                    info=True,
+                )
             )
         elif step.id == STAGE_APPROVAL_STEP_ID and request.arguments.get(PORTFOLIO_HASH_KEY):
             # R4 4.5: staging must stage exactly the portfolio this approver saw
@@ -899,20 +1049,303 @@ class AgentHarness:
         return decision.approved
 
     @staticmethod
-    def _validate_evidence(memory: InvestigationMemory) -> list[str]:
+    def _validate_evidence(
+        memory: InvestigationMemory, warnings: list[ResultWarning] | None = None
+    ) -> list[str]:
+        """Drop findings whose evidence does not resolve, whose cited values do not match the value
+        at their path (3B.4), or whose calculations derive from evidence this run never recorded."""
         kept: list[Finding] = []
         dropped: list[str] = []
         for f in memory.findings:
             missing = memory.unresolved_evidence(f)
-            if missing or not f.supporting_evidence:
+            problems = evidence_problems(f, memory.evidence)
+            if missing or not f.supporting_evidence or problems:
                 dropped.append(f.id)
                 memory.scratch.setdefault("validation", {}).setdefault("dropped", []).append(
-                    {"finding_id": f.id, "statement": f.statement, "missing_evidence": missing}
+                    {
+                        "finding_id": f.id,
+                        "statement": f.statement,
+                        "missing_evidence": missing,
+                        "binding_problems": problems,
+                    }
                 )
+                if problems and warnings is not None:
+                    warnings.append(
+                        _w(
+                            "EVIDENCE_VALUE_MISMATCH",
+                            f"finding {f.id} dropped: {problems[0]}",
+                            source=f.produced_by,
+                        )
+                    )
                 continue
             kept.append(f)
         memory.replace_findings(kept)
         return dropped
+
+    # ------------------------------------------------------------ R3B helpers
+    def _recall_cases(self, task: Task, memory: InvestigationMemory) -> tuple[dict[str, Any], ...]:
+        """R3B 3B.7: the three nearest human-decided cases in this task's dataset (read-only)."""
+        cm = self.case_memory
+        if cm is None or not cm.enabled:
+            memory.agent_outputs["case_memory"] = {"enabled": False, "reads": 0, "retrieved": []}
+            return ()
+        query = (
+            f"{task.input.get('kind') or 'investigation'} {task.input.get('symbol') or ''} {task.description}"
+        )
+        cases = cm.nearest(_partition(task), query, k=3)
+        memory.agent_outputs["case_memory"] = {
+            "enabled": True,
+            "reads": 1,
+            "retrieved": [c["case_id"] for c in cases],
+        }
+        return cases
+
+    def _apply_scope(
+        self, task: Task, scope: dict[str, Any], memory: InvestigationMemory, warnings: list[ResultWarning]
+    ) -> Task:
+        """R3B 3B.1: apply the plan's enumerated choices. The baseline choice replaces the baseline
+        window every agent reads; each distinct choice is recorded as a trial."""
+        record = dict(scope)
+        for problem in scope.get("rejected") or ():
+            warnings.append(_w("PLAN_SCOPE_REJECTED", f"planner: {problem}", source="planner", info=True))
+        cited = list(scope.get("context_cases") or [])
+        if "case_memory" in memory.agent_outputs:
+            memory.agent_outputs["case_memory"]["cited"] = cited
+        window = scope.get("baseline_window") or []
+        effective = task
+        if task_kind(task) != RESEARCH_KIND and len(window) == 2 and scope.get("baseline") != "task_baseline":
+            effective = replace(
+                task, input={**task.input, "baseline_start": window[0], "baseline_end": window[1]}
+            )
+        trials = memory.scratch.setdefault("trials", [])
+        choice = {"baseline": scope.get("baseline"), "hypotheses": list(scope.get("hypotheses") or [])}
+        if choice not in [t["choice"] for t in trials]:
+            trials.append({"trial": len(trials) + 1, "choice": choice})
+        record["trials"] = list(trials)
+        memory.agent_outputs["scope"] = record
+        return effective
+
+    async def _replan(
+        self,
+        reason: str,
+        memory: InvestigationMemory,
+        run: RunContext,
+        executor: StepExecutor,
+        task: Task,
+        policy_context: PolicyContext,
+        step_results: list[dict[str, Any]],
+        warnings: list[ResultWarning],
+    ) -> None:
+        """R3B 3B.6: ask the planner once more, with the failure reason, then run the tool steps of the
+        new plan that are not satisfied yet (validated and policy-checked like the first plan)."""
+        warnings.append(_w("REPLANNED", f"one re-plan attempt: {reason[:300]}", info=True))
+        memory.scratch["replan"] = {"reason": reason[:2000]}
+        result = await self._run_agent(self.planner, "replan", memory, run, executor, task)
+        memory.scratch.pop("replan", None)
+        step_results.append(_agent_record("replan", "planner", result))
+        new_plan = result.output.get("plan") if result.success else None
+        if not isinstance(new_plan, Plan):
+            warnings.append(_w("REPLAN_FAILED", f"re-plan produced no plan: {result.error}"))
+            return
+        new_plan, _ = self._enforce_governance_steps(new_plan, task)
+        pending = [
+            replace(s, id=f"replan-{s.id}")
+            for s in new_plan.ordered_steps()
+            if s.tool_request is not None
+            and s.tool_request.tool_id != STAGE_TOOL_ID
+            and memory.find_exact(s.tool_request.tool_id, dict(s.tool_request.arguments)) is None
+        ]
+        if not pending:
+            return
+        try:
+            await self._validate_plan(replace(new_plan, steps=tuple(pending)), policy_context, task)
+        except PlanValidationError as exc:
+            warnings.append(_w("REPLAN_REJECTED", f"re-plan rejected by validation: {exc}"))
+            return
+        results = await self._run_tool_batch(pending, executor, run)
+        for step, res in zip(pending, results, strict=True):
+            step_results.append(_step_record(step, res))
+            if not res.ok:
+                warnings.append(_w("TOOL_STEP_FAILED", f"re-planned step {step.id} failed: {res.error}"))
+
+    async def _resolve_disputes(
+        self,
+        memory: InvestigationMemory,
+        run: RunContext,
+        executor: StepExecutor,
+        task: Task,
+        step_results: list[dict[str, Any]],
+        warnings: list[ResultWarning],
+    ) -> None:
+        """R3B 3B.3: a critic dispute changes a confidence only through a named alternative check whose
+        deterministic result contradicts the finding's cited value. At most ``MAX_DISPUTE_CHECKS``
+        checks run, each one tool call through the policy path. Free text is stored, never forwarded."""
+        critique = (memory.agent_outputs.get(CRITIC_AGENT_ID) or {}).get("critique") or {}
+        disputes = list(critique.get("disputes") or [])
+        outcomes: list[dict[str, Any]] = []
+        by_id = {f.id: f for f in memory.findings}
+        checks_run = 0
+        for d in disputes:
+            finding = by_id.get(str(d.get("finding_id")))
+            check = str(d.get("check") or "")
+            if finding is None:
+                continue
+            if checks_run >= MAX_DISPUTE_CHECKS:
+                outcomes.append(
+                    {
+                        "finding_id": finding.id,
+                        "check": check,
+                        "status": "SKIPPED",
+                        "reason": "check cap reached",
+                    }
+                )
+                continue
+            planned = check_plan(finding, check, task.input)
+            if isinstance(planned, str):
+                outcomes.append(
+                    {"finding_id": finding.id, "check": check, "status": "UNAVAILABLE", "reason": planned}
+                )
+                continue
+            spec, path, (b_start, b_end) = planned
+            symbol, dataset = task.input.get("symbol"), task.input.get("dataset")
+            win = memory.find_exact(
+                spec.tool_id,
+                {
+                    "symbol": symbol,
+                    "start": task.input.get("window_start"),
+                    "end": task.input.get("window_end"),
+                    "dataset": dataset,
+                },
+            )
+            if win is None or not isinstance(win.data, dict):
+                outcomes.append(
+                    {
+                        "finding_id": finding.id,
+                        "check": check,
+                        "status": "UNAVAILABLE",
+                        "reason": "window data not fetched",
+                    }
+                )
+                continue
+            checks_run += 1
+            request = ToolRequest(
+                tool_id=spec.tool_id,
+                arguments={"symbol": symbol, "start": b_start, "end": b_end, "dataset": dataset},
+            )
+            step_id = f"gov-dispute-{checks_run:02d}"
+            result = await executor.execute_tool(request, step_id, run)
+            step_results.append(
+                _step_record(
+                    PlanStep(
+                        id=step_id,
+                        sequence=0,
+                        type=StepType.TOOL_CALL,
+                        description=f"dispute check {check}",
+                        tool_request=request,
+                    ),
+                    result,
+                )
+            )
+            if not result.ok or not isinstance(result.data, dict):
+                outcomes.append(
+                    {
+                        "finding_id": finding.id,
+                        "check": check,
+                        "status": "UNAVAILABLE",
+                        "reason": f"check data unavailable: {result.error}",
+                    }
+                )
+                continue
+            outcome = judge_alternative(
+                finding,
+                check,
+                spec,
+                path,
+                win.data.get(spec.field),
+                result.data.get(spec.field),
+                (b_start, b_end),
+            )
+            record = outcome.to_dict()
+            if outcome.contradicts:
+                calc = Evidence.create(
+                    type=EvidenceType.CALCULATION,
+                    source="harness:dispute",
+                    description=f"Alternative check {check} contradicts {finding.id}: {outcome.reason}",
+                    timestamp=utc_now(),
+                    attributes={
+                        **record,
+                        "derived_from": [*win.evidence_ids, *(e.id for e in result.evidence)],
+                        "task_id": run.task_id,
+                    },
+                )
+                memory.add_evidence(calc)
+                lowered = replace(
+                    finding,
+                    confidence=round(min(finding.confidence, DISPUTE_CAP), 3),
+                    contradicting_evidence=(*finding.contradicting_evidence, calc.id),
+                    attributes={**finding.attributes, "disputed_by": check},
+                )
+                memory.replace_findings([lowered if f.id == finding.id else f for f in memory.findings])
+                record["evidence_id"] = calc.id
+                warnings.append(
+                    _w(
+                        "FINDING_DISPUTED",
+                        f"{finding.id} lowered to {DISPUTE_CAP}: {outcome.reason}",
+                        source=CRITIC_AGENT_ID,
+                        info=True,
+                    )
+                )
+            outcomes.append(record)
+        unbacked = list(critique.get("unbacked_disputes") or [])
+        if outcomes or unbacked:
+            memory.agent_outputs["disputes"] = {"checks": outcomes, "recorded_without_check": unbacked}
+
+    @staticmethod
+    def _hypotheses(memory: InvestigationMemory) -> Any:
+        """R3B 3B.2: the deterministic hypothesis table (verdicts never come from model text)."""
+        quant = memory.agent_outputs.get("quant") or {}
+        if "quant" not in memory.agent_outputs:
+            return None
+        scope = memory.agent_outputs.get("scope") or {}
+        table = evaluate_hypotheses(
+            list(scope.get("hypotheses") or []),
+            quant.get("attribution"),
+            memory.findings,
+            quant.get("attribution_evidence_id"),
+        )
+        memory.scratch["hypotheses"] = table
+        memory.agent_outputs["hypotheses"] = hypothesis_table_dict(table) or {}
+        return table
+
+    def _record_case(self, task: Task, step: PlanStep, decision: Any, memory: InvestigationMemory) -> None:
+        """R3B 3B.7 / 3B.8: after a human decision, the harness appends one compact case record."""
+        cm = self.case_memory
+        if cm is None or not cm.enabled:
+            return
+        table = memory.scratch.get("hypotheses")
+        rows = tuple(
+            (r.name, r.verdict)
+            for r in (table.rows if table else ())
+            if r.verdict in ("SUPPORTED", "REFUTED")
+        )
+        action = getattr(decision, "action", "") or ("approve" if decision.approved else "reject")
+        record = CaseRecord(
+            case_id=new_id("CASE"),
+            task_id=task.id,
+            dataset=_partition(task),
+            kind=task_kind(task),
+            symbol=task.input.get("symbol"),
+            question=str(task.description)[:500],
+            outcome="APPROVED"
+            if decision.approved
+            else ("MODIFY_REQUESTED" if action == "modify" else "REJECTED"),
+            decided_by=decision.decided_by,
+            reason=str(decision.comment or "")[:500],
+            hypotheses=rows,
+            recorded_at=utc_now().isoformat(),
+        )
+        if cm.append(record):
+            memory.agent_outputs.setdefault("case_memory", {})["written"] = record.case_id
 
 
 def _w(
@@ -925,6 +1358,30 @@ def _w(
 ) -> ResultWarning:
     return ResultWarning(
         code=code, message=message, source=source, severity=WarningSeverity.INFO if info else severity
+    )
+
+
+def _same_request(a: ToolRequest, b: ToolRequest) -> bool:
+    drop = lambda d: {k: v for k, v in d.items() if v is not None}  # noqa: E731
+    return a.tool_id == b.tool_id and drop(dict(a.arguments)) == drop(dict(b.arguments))
+
+
+def _partition(task: Task) -> str:
+    """Case memory partition: the task's dataset (D10: a lookup never crosses datasets)."""
+    return str(task.input.get("dataset") or "default")
+
+
+def _message(agent_id: str, result: AgentResult) -> AgentMessage:
+    """R3B 3B.6: the typed message the harness builds from an agent's result."""
+    data = {k: v for k, v in result.output.items() if k not in ("adjusted_findings", "plan", "report")}
+    return AgentMessage(
+        sender=agent_id,
+        success=result.success,
+        summary=result.summary[:1000],
+        error=result.error,
+        finding_ids=tuple(f.id for f in result.findings),
+        evidence_ids=tuple(e.id for e in result.evidence),
+        data=to_jsonable(data),
     )
 
 
@@ -947,7 +1404,9 @@ def _bind_approved_portfolio(step: PlanStep, memory: InvestigationMemory) -> Pla
     approved = memory.scratch.get(APPROVED_PORTFOLIO_HASH)
     if step.id != STAGE_STEP_ID or not approved or step.tool_request is None:
         return step
-    request = replace(step.tool_request, arguments={**step.tool_request.arguments, APPROVED_PORTFOLIO_HASH: approved})
+    request = replace(
+        step.tool_request, arguments={**step.tool_request.arguments, APPROVED_PORTFOLIO_HASH: approved}
+    )
     return replace(step, tool_request=request)
 
 
@@ -955,6 +1414,14 @@ def _approval_payload(step: PlanStep, memory: InvestigationMemory) -> dict[str, 
     """What the approver sees: the critic's assessment and the recomputed target portfolio."""
     payload: dict[str, Any] = dict(step.metadata)
     outputs = memory.agent_outputs
+    payload["review"] = review_payload(
+        hypotheses=outputs.get("hypotheses"),
+        findings=memory.findings,
+        evidence=memory.evidence,
+        execution=outputs.get("execution"),
+        critique=(outputs.get(CRITIC_AGENT_ID) or {}).get("critique"),
+        disputes=outputs.get("disputes"),
+    )
     assessment = (outputs.get(CRITIC_AGENT_ID) or {}).get("assessment") or {}
     exposure = (outputs.get(PORTFOLIO_RISK_AGENT_ID) or {}).get("exposure") or {}
     positions = exposure.get("positions") or []

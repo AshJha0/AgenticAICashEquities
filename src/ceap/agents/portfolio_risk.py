@@ -14,9 +14,9 @@ class PortfolioRiskAgent(BaseAgent):
 
     async def execute(self, context: AgentContext) -> AgentResult:
         args = tool_args(context)["portfolio"]
-        exposure, e_ev = await self.ensure(context, "risk.get_portfolio_exposure", args)
-        limits, l_ev = await self.ensure(context, "risk.check_portfolio_limits", args)
-        stress, s_ev = await self.ensure(context, "risk.calculate_portfolio_stress", args)
+        exposure, e_ev = await self.fetched(context, "risk.get_portfolio_exposure", args)
+        limits, l_ev = await self.fetched(context, "risk.check_portfolio_limits", args)
+        stress, s_ev = await self.fetched(context, "risk.calculate_portfolio_stress", args)
         report = portfolio_risk_report_from_dict({"exposure": exposure, "limits": limits, "stress": stress})
         findings: list[Finding] = []
 

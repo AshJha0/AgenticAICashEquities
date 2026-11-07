@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class InvestigationCreate(BaseModel):
@@ -27,6 +27,10 @@ class InvestigationCreate(BaseModel):
     dataset: str | None = Field(default=None, description="Scenario dataset id (e.g. T01..T10, S01..S50)")
     session_date: str | None = Field(
         default=None, description="YYYY-MM-DD used when the question says 14:00 without a date"
+    )
+    signoff: bool = Field(
+        default=False,
+        description="Ask a human approver to sign off the findings; the decision is written to case memory",
     )
 
 
@@ -126,7 +130,32 @@ class ApprovalOut(BaseModel):
 
 class ApprovalDecisionIn(BaseModel):
     approved: bool
-    comment: str = ""
+    comment: str = Field(default="", max_length=2000, description="The reason; required for reject and modify")
+    action: Literal["approve", "reject", "modify"] | None = Field(
+        default=None, description="modify = not approved, changes requested (R3B 3B.8)"
+    )
+
+    @model_validator(mode="after")
+    def _reason_required(self) -> ApprovalDecisionIn:
+        action = self.action or ("approve" if self.approved else "reject")
+        if (action == "approve") != self.approved:
+            raise ValueError(f"action {action!r} does not match approved={self.approved}")
+        if action in ("reject", "modify") and not self.comment.strip():
+            raise ValueError(f"a {action} decision needs a reason in 'comment'")
+        return self
+
+
+class ApprovalReviewOut(BaseModel):
+    """What the approver sees (R3B 3B.8): the request plus the review payload."""
+
+    id: str
+    task_id: str
+    step_id: str
+    reason: str
+    requested_by: str
+    requested_at: datetime
+    content_hash: str
+    review: dict[str, Any]
 
 
 class ScenarioOut(BaseModel):

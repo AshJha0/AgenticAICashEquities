@@ -18,6 +18,7 @@ from ceap.api.auth import Principal, current_principal, require_capability
 from ceap.api.models import (
     ApprovalDecisionIn,
     ApprovalOut,
+    ApprovalReviewOut,
     HealthOut,
     InvestigationAccepted,
     InvestigationCreate,
@@ -209,6 +210,7 @@ async def create_investigation(
         dataset=body.dataset,
         principal=principal.name,
         roles=principal.roles,
+        attributes={"signoff": True} if body.signoff else {},
     )
     try:
         p.validate_request(req)
@@ -569,6 +571,28 @@ async def list_approvals(
     return [ApprovalOut(**to_jsonable(a)) for a in gateway.pending()]
 
 
+@router.get("/approvals/{approval_id}", response_model=ApprovalReviewOut, tags=["approvals"])
+async def get_approval(
+    approval_id: str, request: Request, principal: Principal = Depends(require_capability("approvals:decide"))
+) -> ApprovalReviewOut:
+    """R3B 3B.8: one pending request with its review payload (hypotheses, evidence, pre-trade diff, disputes)."""
+    gateway = _platform(request).approvals
+    pending = {a.id: a for a in gateway.pending()}
+    approval = pending.get(approval_id)
+    if approval is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"no pending approval {approval_id}")
+    return ApprovalReviewOut(
+        id=approval.id,
+        task_id=approval.task_id,
+        step_id=approval.step_id,
+        reason=approval.reason,
+        requested_by=approval.requested_by,
+        requested_at=approval.requested_at,
+        content_hash=approval.content_hash,
+        review=to_jsonable(approval.arguments.get("review") or {}),
+    )
+
+
 @router.post("/approvals/{approval_id}", tags=["approvals"])
 async def decide_approval(
     approval_id: str,
@@ -582,7 +606,9 @@ async def decide_approval(
             status.HTTP_409_CONFLICT, "approvals are automatic in this environment (CEAP_AUTO_APPROVE=true)"
         )
     try:
-        decision = gateway.decide(approval_id, body.approved, principal.name, body.comment)
+        decision = gateway.decide(
+            approval_id, body.approved, principal.name, body.comment, action=body.action or ""
+        )
     except FourEyesViolationError as exc:  # four-eyes: requester or earlier-stage approver (T17)
         raise HTTPException(status.HTTP_403_FORBIDDEN, str(exc)) from exc
     except KeyError as exc:

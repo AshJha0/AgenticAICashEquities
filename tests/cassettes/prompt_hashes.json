@@ -1,11 +1,11 @@
 {
   "critic": {
-    "sha256": "bd3df2e774395d8c0b3ba3ea8075a9e8ffa66c21260434b3ed34b3628e352da6",
-    "version": "2"
+    "sha256": "f471e75077d3b8738b646774811d519d1f706735c8da0711ea78d1d4415d28af",
+    "version": "3"
   },
   "planner": {
-    "sha256": "8327e5ca33aa0558f974973c4914227410180d02cb2d108e61dcc311c3158595",
-    "version": "2"
+    "sha256": "8a5034b96237fd747815dd2fdd20e6e806bb4a5b6506eb6c0567b0cf2507fd44",
+    "version": "3"
   },
   "report": {
     "sha256": "ebfaac4ca69da17afd6106c4ff7d4d345cfdc3bbfd6a2ce3108cc87eb079489a",

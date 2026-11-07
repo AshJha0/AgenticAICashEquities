@@ -6,7 +6,7 @@ import math
 from dataclasses import dataclass
 from typing import Any
 
-from ceap.domain.agents import Agent, AgentContext
+from ceap.domain.agents import Agent, AgentContext, AgentMessage
 from ceap.domain.common import utc_now
 from ceap.domain.evidence import Evidence, EvidenceType
 from ceap.harness.executor import race_cancellation
@@ -121,6 +121,29 @@ class BaseAgent(Agent):
         fresh = self.memory(ctx).find_exact(tool_id, arguments)
         return data, (fresh.evidence_ids if fresh else ())
 
+    async def fetched(
+        self, ctx: AgentContext, tool_id: str, arguments: dict[str, Any]
+    ) -> tuple[Any, tuple[str, ...]]:
+        """R3B 3B.1: the data the plan fetched for ``tool_id`` with exactly these arguments.
+
+        Never invokes a tool. The harness schedules every call an agent declares in
+        ``ceap.agents.requirements``; if that call failed, the agent fails with a clear reason
+        (and the harness may re-plan once, 3B.6) instead of quietly fetching the data itself.
+        """
+        cached = self.memory(ctx).find_exact(tool_id, arguments)
+        if cached is None:
+            raise PlanDataMissingError(
+                f"{self.id}: the plan did not fetch {tool_id}({_args_text(arguments)})"
+            )
+        return cached.data, cached.evidence_ids
+
+    def message(self, ctx: AgentContext, agent_id: str) -> AgentMessage | None:
+        """R3B 3B.6: the latest typed message another agent sent in this run (``None`` if none)."""
+        for msg in reversed(list((ctx.state or {}).get("messages") or ())):
+            if isinstance(msg, AgentMessage) and msg.sender == agent_id:
+                return msg
+        return None
+
     def calc_evidence(
         self,
         ctx: AgentContext,
@@ -137,6 +160,14 @@ class BaseAgent(Agent):
         )
         self.memory(ctx).add_evidence(ev)
         return ev
+
+
+class PlanDataMissingError(RuntimeError):
+    """An agent asked for data the plan did not fetch (or whose fetch failed)."""
+
+
+def _args_text(arguments: dict[str, Any]) -> str:
+    return ", ".join(f"{k}={v}" for k, v in sorted(arguments.items()) if v is not None)[:200]
 
 
 def ratio(a: float | None, b: float | None) -> float:

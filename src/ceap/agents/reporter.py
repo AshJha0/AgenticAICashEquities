@@ -21,6 +21,7 @@ from ceap.agents.base import (
     finite,
     llm_disabled,
 )
+from ceap.analytics.hypotheses import table_groups
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.common import utc_now
 from ceap.domain.findings import Finding
@@ -36,7 +37,12 @@ from ceap.llm.models import (
     LLMRequest,
     LLMResponse,
 )
-from ceap.llm.prompts import REPORT_SYSTEM_PROMPT, RESEARCH_REPORT_SYSTEM_PROMPT
+from ceap.llm.prompts import (
+    DATA_BLOCK_NOTE,
+    REPORT_SYSTEM_PROMPT,
+    RESEARCH_REPORT_SYSTEM_PROMPT,
+    data_block,
+)
 
 SECTION_NAMES = (
     "EXECUTIVE SUMMARY",
@@ -102,12 +108,7 @@ class ReportAgent(BaseAgent):
                     self.llm,
                     LLMRequest(
                         system_prompt=system_prompt,
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": "Write the report from these facts:\n\n" + json.dumps(facts, default=str),
-                            }
-                        ],
+                        messages=[{"role": "user", "content": report_request_content(facts)}],
                         purpose="narrative",  # max_tokens 8000 and effort from model_pins.toml
                     ),
                 )
@@ -134,6 +135,8 @@ class ReportAgent(BaseAgent):
                 )
         if not narrative:
             narrative = _mock_narrative(facts)
+        if facts.get("hypotheses"):
+            narrative = f"{narrative}\n\n{hypotheses_section(facts['hypotheses'])}"
         incomplete = _failed_required_agents(outputs) if not research else []
         if incomplete:
             narrative = f"{incomplete_banner(incomplete)}\n\n{narrative}"
@@ -149,6 +152,10 @@ class ReportAgent(BaseAgent):
             "llm_model": response.model if response else None,
             "incomplete_analysis": incomplete,
         }
+        if facts.get("hypotheses"):
+            critique_out["hypotheses"] = facts["hypotheses"]  # R3B 3B.2: verdicts from code only
+        if facts.get("prior_cases"):
+            critique_out["prior_cases"] = facts["prior_cases"]  # R3B 3B.7: cited, read-only
         alternatives = list(facts.get("alternatives") or [])
         if research:
             assessment = facts.get("assessment") or {}
@@ -268,6 +275,8 @@ class ReportAgent(BaseAgent):
             "alternatives": self._alternatives(attribution, quant),
             "policy_context": self._policy_context(memory),
             "evidence_ids": sorted(memory.evidence),
+            "hypotheses": table_groups(memory.scratch.get("hypotheses")) if memory.scratch.get("hypotheses") else {},
+            "prior_cases": list(((outputs.get("scope") or {}).get("context_cases")) or []),
         }
 
     def _research_facts(
@@ -563,3 +572,40 @@ def audit_numbers(narrative: str, facts: dict[str, Any]) -> list[str]:
 
 def audit_evidence_ids(narrative: str, known: set[str]) -> list[str]:
     return [f"evidence id {m} not found" for m in sorted(set(_ID.findall(narrative))) if m not in known]
+
+
+# ------------------------------------------------------------------ R3B helpers
+
+
+def report_request_content(facts: dict[str, Any]) -> str:
+    """R3B 3B.5: the facts travel in a data block; retrieved policy text gets one block per chunk."""
+    policy = facts.get("policy_context") or []
+    head = {k: v for k, v in facts.items() if k != "policy_context"}
+    parts = [
+        DATA_BLOCK_NOTE,
+        "Write the report from these facts:",
+        data_block("evidence", "facts", json.dumps({**head, "policy_context": policy}, default=str)),
+    ]
+    for i, hit in enumerate(policy):
+        if isinstance(hit, dict):
+            parts.append(data_block("rag", f"policy-{i + 1}", hit))
+    return "\n\n".join(parts)
+
+
+def hypotheses_section(groups: dict[str, list[dict[str, Any]]]) -> str:
+    """R3B 3B.2: the hypothesis table as text, written by code from the deterministic verdicts."""
+    titles = (
+        ("SUPPORTED", "Supported hypotheses"),
+        ("REFUTED", "Refuted hypotheses"),
+        ("UNTESTED", "Untested hypotheses"),
+    )
+    lines = ["HYPOTHESES", ""]
+    for key, title in titles:
+        rows = groups.get(key) or []
+        lines.append(f"{title}: {len(rows)}")
+        for r in rows:
+            evidence = ", ".join(r.get("evidence_ids") or []) or "none"
+            # numbers in this section are the facts' own statistics, so the number audit holds
+            detail = f"score {r['statistic']}" if r.get("statistic") is not None else r.get("reason", "")
+            lines.append(f"- {r['name']}: {detail} (evidence: {evidence})")
+    return "\n".join(lines)
