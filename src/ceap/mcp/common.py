@@ -47,7 +47,14 @@ def window_of(
     return s, e
 
 
+#: hard ceiling on one page, whatever the caller asks for (R4 item 4.4)
+MAX_PAGE = 1000
+
+
 def paginate(items: list[Any], limit: int, offset: int = 0) -> dict[str, Any]:
+    """One page; ``limit`` is clamped to [1, MAX_PAGE] and ``offset`` to [0, len(items)]."""
+    limit = max(1, min(int(limit), MAX_PAGE))
+    offset = max(0, min(int(offset), len(items)))
     page = items[offset : offset + limit]
     return {"count": len(items), "offset": offset, "limit": limit, "returned": len(page), "items": page}
 

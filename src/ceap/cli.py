@@ -298,6 +298,10 @@ def build_parser() -> argparse.ArgumentParser:
     sv.add_argument("--host", default="127.0.0.1")
     sv.add_argument("--port", type=int, default=8000)
     sv.set_defaults(func=_cmd_serve)
+
+    from ceap.persistence.cli import register as register_platform_commands
+
+    register_platform_commands(sub)  # ceap db ..., ceap replay ... (R4)
     return p
 
 

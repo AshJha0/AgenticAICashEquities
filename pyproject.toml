@@ -60,7 +60,7 @@ ceap = "ceap.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-ceap = ["py.typed", "llm/*.toml", "llm/prompts/*.md"]
+ceap = ["py.typed", "llm/*.toml", "llm/prompts/*.md", "persistence/migrations/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import contextvars
 import math
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -12,19 +14,28 @@ from typing import Any
 SCHEMA_VERSION = 1
 
 
+#: injected clock and id source (R4 item 4.7, task replay). ``None`` means the real clock / uuid4.
+#: Context variables, so an injected clock reaches every asyncio task started inside the replay
+#: and nothing outside it; set them only through ``ceap.harness.replay.injected_clock``.
+CLOCK: contextvars.ContextVar[Callable[[], datetime] | None] = contextvars.ContextVar("ceap_clock", default=None)
+ID_SOURCE: contextvars.ContextVar[Callable[[], str] | None] = contextvars.ContextVar("ceap_id_source", default=None)
+
+
 def new_id(prefix: str = "") -> str:
     """Return a short, globally unique identifier with an optional prefix.
 
     Prefixes make evidence and finding ids readable in reports
     (e.g. ``EXEC-3f2a9c``, ``MARKET-8b11d0``).
     """
-    token = uuid.uuid4().hex[:8]
+    source = ID_SOURCE.get()
+    token = source() if source is not None else uuid.uuid4().hex[:8]
     return f"{prefix}-{token}" if prefix else token
 
 
 def utc_now() -> datetime:
-    """Timezone-aware UTC ``now``."""
-    return datetime.now(tz=UTC)
+    """Timezone-aware UTC ``now`` (the injected clock during a replay)."""
+    clock = CLOCK.get()
+    return clock() if clock is not None else datetime.now(tz=UTC)
 
 
 def ensure_utc(ts: datetime) -> datetime:

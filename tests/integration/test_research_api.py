@@ -96,7 +96,7 @@ async def test_research_lifecycle_with_auto_approval(client):
     assert report["kind"] == "research" and report["proposal"]["verdict"] == "PROMOTE"
     assert report["proposal"]["approval"]["approved"] and "VERDICT" in report["narrative"]
     assert report["critique"]["narrative_number_warnings"] == []
-    result = (await client.get(f"/research/{task_id}/result", headers=VIEWER)).json()
+    result = (await client.get(f"/research/{task_id}/result", headers=QUANT)).json()
     assert result["success"] and result["report"]["kind"] == "research"
     trace = (await client.get(f"/research/{task_id}/trace", headers=QUANT)).json()
     assert any(s["step_id"] == "gov-approval" and s["status"] == "APPROVED" for s in trace["step_results"])

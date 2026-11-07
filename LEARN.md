@@ -322,6 +322,15 @@ transitions the harness to `AWAITING_APPROVAL`, resolved via `POST /approvals/{i
 timeout) and `DenyApprovalGateway`. A denied approval marks the step DENIED and the
 investigation continues without it.
 
+Since 0.5.0 every approval is a row in SQLite and a decision is one conditional statement,
+`UPDATE approvals SET status=? WHERE id=? AND status='PENDING'`. Whoever's update matches the row
+wins; the other approver, or anyone deciding after a timeout or a restart, matches nothing and gets
+409. That is the standard way to make "exactly one winner" hold across threads and processes
+without a lock. The staging approval also carries a hash of the portfolio the approver saw, and
+staging recomputes it and refuses on a mismatch: a time-of-check / time-of-use gap closed by
+binding the approval to content, not to a step name. Reads are owner-scoped; the `auditor` role
+reads everything and changes nothing.
+
 ## 12. RAG and enterprise knowledge
 
 Eight Markdown documents under `data/reference/knowledge/` — VWAP runbook, TCA methodology,
@@ -392,10 +401,18 @@ Things to be honest about:
   under `/investigations/{id}/trace`. Set `OTEL_EXPORTER_OTLP_ENDPOINT` and the same spans
   mirror to OpenTelemetry.
 * `MetricsRegistry` exposes counters and histograms in Prometheus text format at `/metrics`
-  (`ceap_tool_calls_total{tool,status}`, `ceap_agent_duration_ms`, …).
+  (`ceap_tool_calls_total{tool,status}`, `ceap_agent_duration_seconds`, …; durations are exported in seconds).
 * Logging is JSON lines with task/execution/step/tool/agent ids.
 * `HarnessResult` carries the state history, policy log, step results and warnings, so a
   failed or degraded investigation explains itself.
+* Durable state is SQLite behind one writer thread (WAL, forward-only migrations, backup before
+  migrate). The audit log is a hash chain: each row's hash covers the previous hash and the row's
+  canonical bytes, so editing or deleting any row breaks `ceap db verify-chain` from that row on.
+* Every request gets an `X-Request-ID` that appears on every log line it causes. `/metrics`
+  follows Prometheus conventions (`_total` counters, seconds, HELP on every family) and needs a key.
+* A replay bundle captures everything a task consumed; `ceap replay` re-runs it with an injected
+  clock and id source and must reproduce the stored result byte for byte, which turns "it gave a
+  different answer yesterday" into a diff.
 
 ## 16. Ten pitfalls this platform is built to avoid
 

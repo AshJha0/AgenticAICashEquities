@@ -4,19 +4,30 @@ Principals are identified by a stable, non-secret label derived from the
 key (a truncated SHA-256), never by any part of the key itself, because
 the principal name is written into approval requests, traces and the
 cancel reason - places other principals can read.
+
+Keys are held as salted HMAC-SHA256 digests (R4 item 4.6). Raw keys from
+``CEAP_API_KEYS`` are hashed at start-up with a per-process random salt;
+``CEAP_API_KEY_HASHES`` carries pre-hashed keys
+(``sha256$<salt hex>$<digest hex>:<role>[:<expires YYYY-MM-DD>]``) so a
+deployment need not hold raw keys at all. Produce an entry with
+``python -c "from ceap.api.auth import hash_api_key; print(hash_api_key('KEY'))"``.
+The raw key is never logged, echoed in an error, or kept in a repr.
 """
 
 from __future__ import annotations
 
 import hashlib
 import hmac
+import os
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, date, datetime
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader
 
-from ceap.policy.permissions import capabilities_for
+from ceap.config import Settings, SettingsError
+from ceap.policy.permissions import Role, capabilities_for
 
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 _UNAUTHORISED_HEADERS = {"WWW-Authenticate": "ApiKey"}
@@ -32,29 +43,89 @@ class Principal:
         return capabilities_for(self.roles)
 
 
+@dataclass(frozen=True)
+class KeyRecord:
+    salt: bytes = field(repr=False)
+    digest: str = field(repr=False)
+    role: str
+    expires: date | None = None
+
+    def matches(self, presented: str) -> bool:
+        candidate = hmac.new(self.salt, presented.encode(), hashlib.sha256).hexdigest()
+        return hmac.compare_digest(candidate, self.digest)
+
+    def expired(self, today: date | None = None) -> bool:
+        return self.expires is not None and (today or datetime.now(UTC).date()) > self.expires
+
+
+def hash_api_key(api_key: str, salt: bytes | None = None) -> str:
+    """The ``sha256$<salt>$<digest>`` form for ``CEAP_API_KEY_HASHES`` (append ``:role[:expiry]``)."""
+    salt = salt or os.urandom(16)
+    return f"sha256${salt.hex()}${hmac.new(salt, api_key.encode(), hashlib.sha256).hexdigest()}"
+
+
 def principal_label(role: str, api_key: str) -> str:
     return f"{role}:{hashlib.sha256(api_key.encode()).hexdigest()[:8]}"
 
 
-def _lookup(api_keys: dict[str, str], presented: str) -> str | None:
-    """Constant-time comparison against every configured key."""
-    match: str | None = None
-    for key, role in api_keys.items():
-        if hmac.compare_digest(key.encode(), presented.encode()):
-            match = role
+def parse_key_hashes(raw: str) -> list[KeyRecord]:
+    records: list[KeyRecord] = []
+    valid_roles = {r.value for r in Role}
+    for entry in (e.strip() for e in raw.split(",")):
+        if not entry:
+            continue
+        parts = entry.split(":")
+        if len(parts) not in (2, 3):
+            raise SettingsError("CEAP_API_KEY_HASHES entries must be sha256$salt$digest:role[:YYYY-MM-DD]")
+        algo, _, rest = parts[0].partition("$")
+        salt_hex, _, digest = rest.partition("$")
+        if algo != "sha256" or not salt_hex or len(digest) != 64:
+            raise SettingsError("CEAP_API_KEY_HASHES entry is not a sha256$salt$digest value")
+        if parts[1] not in valid_roles:
+            raise SettingsError(f"unknown role {parts[1]!r} in CEAP_API_KEY_HASHES")
+        expires = date.fromisoformat(parts[2]) if len(parts) == 3 else None
+        records.append(KeyRecord(bytes.fromhex(salt_hex), digest, parts[1], expires))
+    return records
+
+
+def build_key_records(settings: Settings) -> list[KeyRecord]:
+    salt = os.urandom(16)
+    records = [
+        KeyRecord(salt, hmac.new(salt, key.encode(), hashlib.sha256).hexdigest(), role)
+        for key, role in settings.api_keys.items()
+    ]
+    return records + parse_key_hashes(settings.api_key_hashes)
+
+
+def _records(request: Request) -> list[KeyRecord]:
+    settings = request.app.state.platform.settings
+    cached = getattr(request.app.state, "key_records", None)
+    if cached is None or cached[0] is not settings:
+        cached = (settings, build_key_records(settings))
+        request.app.state.key_records = cached
+    return cached[1]
+
+
+def _lookup(records: list[KeyRecord], presented: str) -> KeyRecord | None:
+    """Checks every record (no early exit) so timing does not reveal which entry matched."""
+    match: KeyRecord | None = None
+    for record in records:
+        if record.matches(presented):
+            match = record
     return match
 
 
 async def current_principal(request: Request, api_key: str | None = Depends(api_key_header)) -> Principal:
-    settings = request.app.state.platform.settings
     if not api_key:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, "missing X-API-Key header", headers=_UNAUTHORISED_HEADERS
         )
-    role = _lookup(settings.api_keys, api_key)
-    if role is None:
+    record = _lookup(_records(request), api_key)
+    if record is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid API key", headers=_UNAUTHORISED_HEADERS)
-    return Principal(name=principal_label(role, api_key), roles=frozenset({role}))
+    if record.expired():
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "API key expired", headers=_UNAUTHORISED_HEADERS)
+    return Principal(name=principal_label(record.role, api_key), roles=frozenset({record.role}))
 
 
 def require_capability(capability: str) -> Callable[..., Awaitable[Principal]]:

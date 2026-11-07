@@ -6,6 +6,8 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### R3A: LLM layer (PLAN section 2, items 3A.1-3A.8)
+
 Round R3A of the 2026-11-07 plan (LLM layer, offline-provable). No live model call anywhere (D15).
 
 ### Breaking / migration
@@ -48,6 +50,69 @@ Round R3A of the 2026-11-07 plan (LLM layer, offline-provable). No live model ca
   request metadata, call records and reports; golden hash snapshot plus CHANGELOG check).
 - 3A.8 adapter equivalence on the ten scenario templates (mock path vs adapter-plus-cassette
   path, structural diff empty apart from narrative). Adapter equivalence, not model fidelity.
+
+### R4: platform and persistence (PLAN section 2, items 4.1-4.9)
+
+#### Breaking / migration
+- **Database file.** Tasks, results, approvals, staged orders, LLM call records, the trial ledger,
+  idempotency keys and a hash-chained audit log now live in SQLite (`CEAP_DB_PATH`). Default:
+  `:memory:` when `CEAP_ENV=dev` (tests and demos leave no file), `var/ceap.db` everywhere else.
+  The schema migrates forward on start; a file at an older version is first copied to
+  `<db>.v<N>.bak` with the online backup API; a file newer than the code refuses to open. Mount
+  `var/` on a volume in containers. New commands: `ceap db status|migrate|backup|verify-chain|prune`.
+- **New `auditor` role** (`tasks:read-any`, `metrics:read`, read capabilities only). Reads are now
+  scoped to the owner: a viewer (or any role without `tasks:read-any`) gets 404 for another
+  principal's task, result, report or trace, and lists only its own. `auditor`, `approver` and
+  `admin` read everything. Dev key `dev-auditor-key` added.
+- **`Idempotency-Key` header** on `POST /investigations` and `POST /research`: scoped per
+  principal, persisted, 24 h TTL; the same key with the same body returns the first response
+  (same `task_id`), with a different body 422.
+- **`/health` is liveness only** (`status`, `version`). The previous fields moved to the
+  authenticated `GET /status` (`tools:read`). **`/metrics` needs a key** with `metrics:read`
+  (engineer, auditor, admin).
+- **Metric names in the exposition**: counters always end in `_total`; durations recorded in ms
+  are exported in seconds (`ceap_tool_latency_ms` -> `ceap_tool_latency_seconds`), and a summary's
+  maximum is a separate gauge `*_seconds_max`. Update dashboards.
+- **Request limits**: body over `CEAP_MAX_BODY_BYTES` (64 KiB) -> 413; `gross_notional` above 10 bn
+  -> 422; MCP `paginate` clamps `limit` to [1, 1000] and `offset` to the list.
+- `domain/common.py` (contracts-change): `utc_now()` and `new_id()` honour an injected clock / id
+  source held in context variables (`CLOCK`, `ID_SOURCE`); unset, behaviour is unchanged.
+
+#### Added
+- 4.1 `ceap.persistence`: stdlib `sqlite3` behind one writer thread (`Database.run` / `arun`),
+  WAL, `busy_timeout`, `PRAGMA user_version` forward-only migrations (`migrations/0001_initial.sql`,
+  `0002_platform.sql`), backup before migrate, audit hash chain over canonical bytes
+  (`ceap db verify-chain`), retention for results, traces and raw model I/O
+  (`CEAP_RETENTION_*_DAYS`) and a size bound (`CEAP_DB_MAX_BYTES`, oldest results pruned first; the
+  audit log is never pruned).
+- 4.2 Restart semantics: on start, tasks left `PENDING`/`RUNNING` become `INTERRUPTED` and pending
+  approvals `EXPIRED` (audited). A decision is a conditional `UPDATE ... WHERE status='PENDING'`:
+  of two concurrent decides exactly one wins; the loser and any late decide get 409 and an audit row.
+- 4.4 A task's concurrency slot is released while it waits for a human, so four tasks awaiting
+  approval no longer block a fifth; `CEAP_APPROVAL_TIMEOUT_S` (default 120).
+- 4.5 The staging approval carries `portfolio_hash` of the portfolio the approver saw; the harness
+  passes it to `execution.stage_orders` (`approved_portfolio_hash`), which recomputes the portfolio
+  and refuses on a mismatch (TOCTOU closed).
+- 4.6 API keys held as salted HMAC-SHA256 digests; `CEAP_API_KEY_HASHES` takes pre-hashed keys with
+  optional expiry (`sha256$salt$digest:role[:YYYY-MM-DD]`); raw keys never in reprs, logs or errors;
+  `X-Request-ID` correlation id on every response and every log line; one access-log line per request.
+- 4.7 Task replay bundles: `ceap replay BUNDLE --record --dataset T01` writes inputs, tool outputs,
+  redacted model I/O, prompt hashes, approval decisions and the clock seed; `ceap replay BUNDLE`
+  re-runs offline under an injected clock and checks the result byte for byte (exit 1 on drift,
+  naming the first differing path).
+- 4.8 Prometheus exposition passes `promtool check metrics` rules (HELP/TYPE, `_total`, base units);
+  HTTP metrics `ceap_http_requests_total`, `ceap_http_errors_total`,
+  `ceap_http_request_duration_seconds`; an OpenTelemetry span test.
+- 4.9 `tests/properties` (hypothesis: VWAP within [low, high], IS components sum, fully-filled IS =
+  execution cost, adverse cost >= 0, impact non-negative and monotone in participation, weights sum
+  to 1 and dollar-neutral; 100 derandomised examples on PR, 1000 nightly), `tests/contract` (MCP
+  schema contract + committed catalogue snapshot), `tests/golden` (research report goldens under the
+  replay clock; TCA goldens are regenerated at 0.5.0 integration after the R2T re-baseline).
+
+#### Fixed
+- `Settings` repr no longer prints `api_keys` or `ANTHROPIC_API_KEY`; the duplicate-key error no
+  longer echoes the key.
+- Span start times are late-bound to `time.perf_counter`, so an injected clock reaches them.
 
 ## [0.4.0] - 2026-11-07
 

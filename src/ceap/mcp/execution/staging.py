@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import threading
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
 
@@ -17,10 +18,29 @@ from ceap.data.synthetic import LONDON
 from ceap.domain.common import utc_now
 from ceap.domain.execution import Order, OrderStatus, Side
 from ceap.domain.research import PortfolioRiskReport
+from ceap.util.canonical import content_hash
 
 STAGING_HOUR = (14, 30)
 PAPER_ACCOUNT = "PAPER_RESEARCH"
 PAPER_STRATEGY = "VWAP"
+
+
+class StagingRefusedError(ValueError):
+    """The portfolio recomputed at staging time is not the one the approver signed off (TOCTOU, 4.5)."""
+
+
+def portfolio_hash(as_of: str | None, positions: Iterable[tuple[str, int]]) -> str:
+    """Content hash of a target portfolio: ``as_of`` plus the sorted non-zero (symbol, quantity) pairs.
+
+    The approval payload carries this hash for the portfolio the approver saw; ``stage_orders``
+    recomputes the portfolio and refuses when the hashes differ (R4 item 4.5).
+    """
+    legs = sorted((str(sym), int(qty)) for sym, qty in positions if int(qty) != 0)
+    return content_hash({"as_of": (as_of or "")[:10], "positions": [list(leg) for leg in legs]})
+
+
+def report_hash(report: PortfolioRiskReport) -> str:
+    return portfolio_hash(report.as_of, ((p.symbol, p.quantity) for p in report.positions))
 
 
 def staging_id(signal: str, dataset: str, as_of: str, gross_notional: float, long_short: bool) -> str:

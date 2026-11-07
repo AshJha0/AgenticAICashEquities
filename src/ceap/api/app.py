@@ -14,6 +14,7 @@ import logging
 from fastapi import FastAPI
 
 from ceap import __version__
+from ceap.api.middleware import RequestContextMiddleware
 from ceap.api.routes import router
 from ceap.observability.logging import configure_logging
 from ceap.platform import Platform
@@ -54,6 +55,8 @@ def create_app(platform: Platform | None = None) -> FastAPI:
         if pending:
             await asyncio.gather(*pending, return_exceptions=True)
         await p.mcp_client.close()
+        if platform is None:  # the app built it, so the app closes it (releases the SQLite file)
+            p.close()
 
     from contextlib import asynccontextmanager
 
@@ -64,6 +67,7 @@ def create_app(platform: Platform | None = None) -> FastAPI:
         lifespan=asynccontextmanager(lifespan),
     )
     app.include_router(router)
+    app.add_middleware(RequestContextMiddleware)
     return app
 
 

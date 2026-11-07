@@ -5,7 +5,8 @@
 The platform reads trading, market and telemetry data and produces reports and research
 proposals. It does not place, amend or cancel **live** orders and has no venue connectivity: the
 one exception, `execution.stage_orders` (Stage 2), builds *paper* orders held in an in-memory
-`StagedOrderBook` and never routes anywhere. It is the platform's only non-read-only tool, and
+`StagedOrderBook` and never routes anywhere. Since 0.5.0, tasks, results, approvals, staged
+orders and a hash-chained audit log persist in a local SQLite file (`CEAP_DB_PATH`). It is the platform's only non-read-only tool, and
 reaching it requires the `trading:execute` capability plus a human approval the harness alone
 schedules (see T17 below). The primary risks are therefore *wrong or misleading conclusions*,
 *unauthorised data access*, *abuse of the agentic control loop* and — narrowly, for that one tool
@@ -58,12 +59,23 @@ before they influence anything, and it never touches data or tools directly.
 | T19 | A declined research approval leaves inconsistent state | Declining the proposal approval fails the task with no report; declining the staging approval alone completes the task with the proposal intact and the report stating orders were not staged — neither path leaves a half-staged order set | `test_declined_proposal_fails_cleanly`, `test_declined_staging_completes_without_orders_and_shows_the_proposal` |
 | T20 | Untrusted or mis-annotated MCP server (a tool that omits or lies about `readOnlyHint`) | Fail closed in the adapter and the stdio client: missing `readOnlyHint` = may write, missing/unknown `riskLevel` = HIGH; servers outside `CEAP_MCP_TRUSTED_SERVERS` are read-only whatever they declare (policy rule `untrusted-server`); results with a drifted `schema_version` are rejected; standalone stdio servers enforce `required_capabilities` for the env-provided principal | `test_1_7_*`, `test_1_8_stdio_server_enforces_required_capabilities` |
 | T21 | Construction-time fallback (provider `anthropic` but the client cannot be built, so the platform quietly runs on the mock) | `build_router` raises `SettingsError`; the mock is used only when `CEAP_LLM_PROVIDER=mock`; `auto` removed; outside dev the provider must be explicit; model ids must be pinned | `test_1_1_*`, `test_1_9_unpinned_model_is_refused` |
-| T22 | Model misbehaviour in production with no safe off switch | `CEAP_LLM_DISABLED=true` makes every agent take its deterministic path (rung 4); results carry a banner and `DEGRADED`; `/health` reports `degraded` | `test_1_5_rung4_kill_switch_forces_deterministic_path_with_banner` |
+| T22 | Model misbehaviour in production with no safe off switch | `CEAP_LLM_DISABLED=true` makes every agent take its deterministic path (rung 4); results carry a banner and `DEGRADED`; `/status` reports `degraded` | `test_1_5_rung4_kill_switch_forces_deterministic_path_with_banner` |
+| T23 | Approval lost or double-decided across a crash or a race | Approvals are SQLite rows; a decision is a conditional `UPDATE ... WHERE status='PENDING'` (exactly one winner); on start, pending approvals become `EXPIRED` and in-flight tasks `INTERRUPTED`; late or losing decides get 409 and an audit row | `test_sigkill_with_pending_approval_then_restart_interrupts_task_and_expires_approval`, `test_late_decide_returns_409_and_is_audited`, `test_two_concurrent_decides_exactly_one_wins` |
+| T24 | Time-of-check / time-of-use on staging (data changes between approval and staging) | The staging approval carries `portfolio_hash`; `stage_orders` recomputes the portfolio and refuses on mismatch | `test_dataset_mutated_between_approval_and_staging_refuses` |
+| T25 | Cross-principal data access through task ids | Owner-scoped reads; 404 for other principals' ids; `auditor` role for oversight | `test_viewer_cannot_read_another_principals_task_auditor_can` |
+| T26 | Duplicate side effects from client retries | `Idempotency-Key` per principal, persisted 24 h; different body 422 | `test_idempotency_key_same_body_same_id_different_body_422` |
+| T27 | Credential leakage (keys in logs, errors, reprs) and reconnaissance via unauthenticated endpoints | Salted digests in memory, optional expiry, `repr=False` on secrets, no key in any error; `/health` liveness only; `/metrics` needs `metrics:read`; request id on every log line | `test_raw_key_absent_from_logs_errors_and_reprs_and_every_line_has_a_request_id`, `test_salted_hash_entries_and_key_expiry` |
+| T28 | Tampering with the audit trail | Hash chain over canonical bytes; `ceap db verify-chain` names the first bad row; never pruned | `test_backup_restores_and_verifies_then_tamper_breaks_chain`, `test_deleting_a_middle_audit_row_is_detected` |
+| T29 | Resource exhaustion through request size or parked tasks | Body limit (413), question length, `gross_notional` bound, pagination clamp; slots released while awaiting approval | `test_request_limits_body_question_notional_and_pagination`, `test_four_pending_approvals_do_not_block_a_fifth_task` |
 
 ## Residual risks and recommendations
 
-* API keys are static and configured via environment; production should use an identity provider
-  and short-lived tokens.
+* API keys are static and configured via environment (now hashable and expirable); production
+  should use an identity provider and short-lived tokens.
+* The SQLite file holds task inputs, results and redacted model I/O; protect it with filesystem
+  permissions and disk encryption, and keep backups under the same controls. The hash chain detects
+  tampering, it does not prevent it: anchor `ceap db verify-chain` output externally for strong
+  guarantees.
 * The knowledge base is trusted content; documents should be ingested from a controlled source
   and content-hashed, since retrieved passages influence the narrative.
 * Attribution thresholds are heuristics calibrated on synthetic data; they must be recalibrated on

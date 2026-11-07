@@ -138,6 +138,7 @@ def test_metrics_registry_renders_prometheus_text():
     m.observe("latency_ms", 7.0)
     text = m.render()
     assert 'calls_total{tool="a"} 2.0' in text
-    assert "latency_ms_count 2.0" in text and "latency_ms_max 7.0" in text
+    # R4 4.8: milliseconds are exported in base units, the max is its own gauge family
+    assert "latency_seconds_count 2.0" in text and "latency_seconds_max 0.007" in text
     m.reset()
     assert m.render() == ""
