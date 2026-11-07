@@ -54,7 +54,7 @@ ceap investigate "Why did our execution quality for AAPL deteriorate between 14:
 ```
 
 The symbol and window are parsed from the question ("between 14:00 and 15:00", "from 2pm to
-3:30pm"; naive times are Europe/London). `--dataset` picks the scenario (T01–T10 templates,
+3:30pm"; naive times are America/New_York, the desk session clock since 0.5.0). `--dataset` picks the scenario (T01–T10 templates,
 S01–S50 concrete). Add `--role quant|admin|viewer` to change the principal's role.
 
 ## 2. Run an investigation from Python
@@ -77,15 +77,14 @@ To build a request by hand:
 
 ```python
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from ceap.data.session import SESSION_TZ  # America/New_York
 from ceap.platform import InvestigationRequest
 
-LONDON = ZoneInfo("Europe/London")
 req = InvestigationRequest(
     question="Analyse MSFT VWAP execution and identify the main sources of slippage.",
     symbol="MSFT",
-    window_start=datetime(2026, 9, 18, 14, 0, tzinfo=LONDON),
-    window_end=datetime(2026, 9, 18, 15, 0, tzinfo=LONDON),
+    window_start=datetime(2026, 9, 18, 14, 0, tzinfo=SESSION_TZ),
+    window_end=datetime(2026, 9, 18, 15, 0, tzinfo=SESSION_TZ),
     dataset="S12",                           # MSFT / wide_spreads
     principal="quant.b", roles=frozenset({"quant"}),
 )
@@ -226,6 +225,9 @@ async def main():
     stats = calculate_market_statistics("AAPL", s, e, await mr.quotes("AAPL", s, e),
                                         await mr.trades("AAPL", s, e), await mr.order_books("AAPL", s, e))
     print(m.vwap, m.market_vwap, m.implementation_shortfall_bps, m.slippage_vs_vwap_bps)
+    # Perold legs (they sum to the IS), the pre-trade estimate and the residual in SEs
+    print(m.delay_cost_bps, m.spread_cost_bps, m.timing_cost_bps, m.opportunity_cost_bps, m.fees_bps)
+    print(m.pretrade_estimate_bps, m.is_residual_bps, m.is_residual_z, m.markouts_bps)
     print(stats.average_displayed_depth, stats.realised_volatility_bps)
 
 asyncio.run(main())
@@ -250,7 +252,30 @@ print(res.primary, [(c.cause.value, round(c.score, 2), c.rationale) for c in res
 ```
 
 Missing fields become `nan` and the corresponding cause scores 0 — attribution degrades
-gracefully rather than failing.
+gracefully rather than failing. Without `is_residual_bps` and `is_standard_error_bps` the
+deterioration test falls back to the v0.4 1.5 bps delta (`res.basis == "legacy_delta"`). Pass
+`peers=[PeerWindow(metrics, market), ...]`, the same clock window on previous sessions, for the
+time-of-day-matched baseline and a peer-relative effect with a CI on every cause.
+
+### TCA over many orders: the monthly report
+
+```bash
+ceap tca-report --sessions 20 --out best_ex.md        # labelled DEMONSTRATION (synthetic)
+ceap tca-report --broker-gap-bps 3 --json             # plant a 3 bps broker gap and look for it
+```
+
+```python
+from ceap.analytics.tca_aggregate import OutlierQueue, compare_groups, measure_universe
+from ceap.data.tca_universe import generate_tca_universe
+
+ms = measure_universe(generate_tca_universe(seed=1))
+print([(g.key, round(g.mean_residual_bps, 2), g.flagged) for g in compare_groups(ms, "broker")])
+queue = OutlierQueue.build(ms)          # residual beyond 2.5 SE, with reason codes
+# closing needs a second principal: await queue.close(order_id, "analyst.a", gateway)
+```
+
+Refit the pre-trade model after changing the generator: `python scripts/train_pretrade.py`
+(it rewrites `src/ceap/ml/pretrade_model.json` and `docs/quant/pretrade_model_card.md`).
 
 ## 12. Tune attribution thresholds
 

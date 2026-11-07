@@ -41,6 +41,11 @@ class Order:
     account: str | None = None
     end_time: datetime | None = None
     decision_price: float | None = None
+    # arrival-time reference data a desk OMS attaches to a parent (2T.5/2T.8); optional, additive
+    decision_time: datetime | None = None
+    adv_shares: float | None = None
+    sigma_daily_bps: float | None = None
+    broker: str | None = None
 
     @property
     def is_parent(self) -> bool:
@@ -78,7 +83,15 @@ class VenueStatistics:
     average_latency_us: float
     reject_count: int
     reject_rate: float
-    volume_share: float
+    # executed quantity at this venue / total market volume in the window (was ``volume_share``)
+    market_volume_participation: float
+    # executed quantity at this venue / our total executed quantity
+    fill_share: float = float("nan")
+
+    @property
+    def volume_share(self) -> float:
+        """Deprecated alias of :attr:`market_volume_participation` (renamed in 2T.5)."""
+        return self.market_volume_participation
 
 
 @dataclass(frozen=True)
@@ -113,3 +126,22 @@ class ExecutionMetrics:
     execution_count: int
     child_order_count: int
     venue_statistics: dict[str, VenueStatistics] = field(default_factory=dict)
+    # --- R2T additions (all optional, NaN/empty when not computable) -------------------------
+    # Perold IS components in bps of decision notional; they sum to implementation_shortfall_bps
+    delay_cost_bps: float = float("nan")
+    spread_cost_bps: float = float("nan")
+    timing_cost_bps: float = float("nan")
+    opportunity_cost_bps: float = float("nan")
+    fees_bps: float = float("nan")
+    # shortfall measured from arrival (IS minus delay): what the pre-trade model predicts
+    arrival_shortfall_bps: float = float("nan")
+    pretrade_estimate_bps: float = float("nan")
+    pretrade_interval_bps: tuple[float, float] = (float("nan"), float("nan"))
+    is_standard_error_bps: float = float("nan")
+    is_price_risk_bps: float = float("nan")
+    is_residual_bps: float = float("nan")
+    is_residual_z: float = float("nan")
+    realised_spread_bps: float = float("nan")
+    price_improvement_bps: float = float("nan")
+    markouts_bps: dict[str, float] = field(default_factory=dict)
+    venue_statistics_conditioned: dict[str, dict[str, float]] = field(default_factory=dict)

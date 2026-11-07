@@ -110,7 +110,7 @@ or put in a prompt; see `src/ceap/util/redact.py`.
 ### Example output (scenario T06, technology latency)
 
 ```
-AAPL EXECUTION INVESTIGATION 14:00-15:00 London
+AAPL EXECUTION INVESTIGATION 14:00-15:00 New York
 
 EXECUTIVE SUMMARY
 
@@ -286,7 +286,7 @@ Each template runs across AAPL, MSFT, NVDA, AMZN and META with distinct seeds (S
 `ceap evaluate` reports primary-cause accuracy, ground-truth coverage, false-positive rate,
 completion rate, unresolved-evidence count and narrative number-audit warnings. The evaluation
 test asserts ≥90 % primary accuracy and coverage, 100 % completion and zero unresolved evidence;
-the current build scores 50/50 on primary cause.
+the current build scores 49/50 on primary cause (0.98 coverage, 0.06 false-positive rate).
 
 ### Research scenarios (Stage 2)
 
