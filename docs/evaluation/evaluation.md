@@ -102,8 +102,8 @@ Student-t shocks, latent premia the signal code never touches, delistings and la
 
 ### Gates
 
-Full chain in `docs/quant/quant.md`: IC t >= 0.65 (hurdle from the 500-seed null sweep, hash
-`dfdadabe...`), deflated Sharpe >= 0.5 over ledger-counted trials, out-of-sample IC t >= 1
+Full chain in `docs/quant/quant.md`: IC t >= 0.40 (hurdle from the 500-seed null sweep, hash
+`ef474869...`), deflated Sharpe >= 0.5 over ledger-counted trials, out-of-sample IC t >= 1
 (REGIME_BREAK at <= -2), out-of-sample net Sharpe >= 0.5, costs < 50 % of gross, concentration,
 and limits over the out-of-sample history.
 

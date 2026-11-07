@@ -1,10 +1,10 @@
 {
   "signal": "momentum_12_1",
   "rebalance_days": 21,
-  "hurdle": 0.65,
+  "hurdle": 0.4,
   "oos_ic_t_min": 1.0,
   "detection": "in-sample IC t >= hurdle and out-of-sample IC t >= oos_ic_t_min (the IC part of the gate)",
-  "hurdle_sweep_hash": "dfdadabefeb7682e71e86d3ca8dfc97e2811a48c3bf118bf75e94f07373fe5c0",
+  "hurdle_sweep_hash": "ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4",
   "seeds_per_point": 40,
   "rows": [
     {
@@ -12,8 +12,8 @@
       "expected_t_is": 0.0,
       "expected_t_oos": 0.0,
       "expected_gross_sharpe": 0.0,
-      "predicted_detection": 0.0409,
-      "detection_rate": 0.125,
+      "predicted_detection": 0.0547,
+      "detection_rate": 0.15,
       "mean_t_is": 0.0862
     },
     {
@@ -21,7 +21,7 @@
       "expected_t_is": 0.5225,
       "expected_t_oos": 0.3088,
       "expected_gross_sharpe": 0.131,
-      "predicted_detection": 0.1099,
+      "predicted_detection": 0.1343,
       "detection_rate": 0.2,
       "mean_t_is": 0.6816
     },
@@ -30,8 +30,8 @@
       "expected_t_is": 1.1499,
       "expected_t_oos": 0.6797,
       "expected_gross_sharpe": 0.2884,
-      "predicted_detection": 0.2589,
-      "detection_rate": 0.35,
+      "predicted_detection": 0.2895,
+      "detection_rate": 0.375,
       "mean_t_is": 1.4242
     },
     {
@@ -39,7 +39,7 @@
       "expected_t_is": 1.9848,
       "expected_t_oos": 1.1732,
       "expected_gross_sharpe": 0.4978,
-      "predicted_detection": 0.517,
+      "predicted_detection": 0.5366,
       "detection_rate": 0.6,
       "mean_t_is": 2.3787
     },
@@ -48,7 +48,7 @@
       "expected_t_is": 2.9915,
       "expected_t_oos": 1.7683,
       "expected_gross_sharpe": 0.7502,
-      "predicted_detection": 0.7714,
+      "predicted_detection": 0.7751,
       "detection_rate": 0.8,
       "mean_t_is": 3.5447
     },
@@ -57,7 +57,7 @@
       "expected_t_is": 4.1333,
       "expected_t_oos": 2.4432,
       "expected_gross_sharpe": 1.0365,
-      "predicted_detection": 0.9253,
+      "predicted_detection": 0.9254,
       "detection_rate": 0.925,
       "mean_t_is": 4.8641
     },

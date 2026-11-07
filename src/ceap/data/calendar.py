@@ -147,10 +147,13 @@ def write_calendar(path: Path = CALENDAR_PATH) -> None:
 def _load() -> tuple[frozenset[date], frozenset[date]]:
     holidays: set[date] = set()
     early: set[date] = set()
-    with CALENDAR_PATH.open(encoding="utf-8") as fh:
-        for row in csv.DictReader(fh):
-            d = date.fromisoformat(row["date"])
-            (holidays if row["kind"] == "holiday" else early).add(d)
+    if CALENDAR_PATH.exists():
+        with CALENDAR_PATH.open(encoding="utf-8") as fh:
+            rows = [(r["date"], r["kind"], r["name"]) for r in csv.DictReader(fh)]
+    else:  # installed wheel: the committed list is not shipped; the rules generate the identical list
+        rows = generate_calendar_rows()
+    for d_text, kind, _name in rows:
+        (holidays if kind == "holiday" else early).add(date.fromisoformat(d_text))
     return frozenset(holidays), frozenset(early)
 
 

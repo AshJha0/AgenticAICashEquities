@@ -49,6 +49,10 @@ TRADING_DAYS = 252
 EULER_GAMMA = 0.5772156649015329
 _N = NormalDist()
 UNSET_HURDLE = 3.0
+# shipped with the code so an installed wheel (no data/ directory) uses the measured hurdle, not a guess;
+# a test keeps these equal to data/reference/research_thresholds.json
+COMMITTED_HURDLE = 0.4
+COMMITTED_SWEEP_HASH = "ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4"
 
 
 def _load_hurdle() -> tuple[float, str]:
@@ -56,7 +60,7 @@ def _load_hurdle() -> tuple[float, str]:
         data = json.loads(THRESHOLDS_PATH.read_text(encoding="utf-8"))
         return float(data["ic_t_stat_min"]), str(data["sweep_hash"])
     except (OSError, KeyError, ValueError):
-        return UNSET_HURDLE, "unset"
+        return COMMITTED_HURDLE, COMMITTED_SWEEP_HASH
 
 
 _HURDLE, _SWEEP_HASH = _load_hurdle()
