@@ -34,3 +34,9 @@ data/reference/*.parquet
 .vscode/
 .DS_Store
 Thumbs.db
+
+# R5 real-data raw cache: vendor prices and downloads, NEVER committed
+data/real_cache/
+!data/reference/sp500_changes.csv
+!data/reference/ticker_map.csv
+!data/reference/ff_factors.csv

@@ -1,0 +1,36 @@
+# Dated map from S&P 500 index ticker to the price-vendor root symbol (R5 item 5.2).
+# A vendor keeps a renamed company's full history under its current symbol, so an index ticker that
+# was later renamed maps to the new symbol for the dates it was used. Hand-curated from public
+# rename notices; names not listed map to themselves. GOOG before 2014-04-03 was the class A line,
+# whose history vendors now carry as GOOGL. BRK.B and BF.B formatting is handled in code.
+ticker,vendor,start,end
+FB,META,2012-05-18,2022-06-08
+GOOG,GOOGL,2004-08-19,2014-04-02
+ANTM,ELV,2004-12-01,2022-06-27
+WLP,ELV,2004-12-01,2014-12-02
+COG,CTRA,2003-11-01,2021-10-01
+ABC,COR,2003-11-01,2023-08-29
+FLT,CPAY,2010-12-15,2024-03-24
+PKI,RVTY,2003-11-01,2023-05-15
+RE,EG,2003-11-01,2023-07-06
+FISV,FI,2003-11-01,2023-06-06
+WLTW,WTW,2016-01-05,2022-01-09
+CTL,LUMN,2003-11-01,2020-09-17
+TMK,GL,2003-11-01,2019-08-07
+HCP,DOC,2003-11-01,2019-11-04
+PEAK,DOC,2019-11-05,2024-02-29
+DISCA,WBD,2003-11-01,2022-04-08
+VIAB,PARA,2006-01-03,2019-12-04
+VIAC,PARA,2019-12-05,2022-02-15
+KORS,CPRI,2011-12-15,2018-12-31
+SYMC,GEN,2003-11-01,2019-11-04
+NLOK,GEN,2019-11-05,2022-11-07
+ADS,BFH,2003-11-01,2022-04-03
+HRS,LHX,2003-11-01,2019-07-01
+UTX,RTX,2003-11-01,2020-04-02
+BBT,TFC,2003-11-01,2019-12-06
+CBG,CBRE,2004-06-10,2018-03-20
+DPS,KDP,2008-05-07,2018-07-09
+LUK,JEF,2003-11-01,2018-05-23
+JEC,J,2003-11-01,2019-12-09
+KFT,MDLZ,2003-11-01,2012-10-01
