@@ -7,7 +7,8 @@ Contents: 1. [End-to-end investigation pipeline](#1-end-to-end-investigation-pip
 2. [Harness state machine](#2-harness-state-machine) · 3. [The path of one tool call](#3-the-path-of-one-tool-call) ·
 4. [Evidence and finding model](#4-evidence-and-finding-model) · 5. [MCP topology](#5-mcp-topology) ·
 6. [Investigation sequence](#6-investigation-sequence) · 7. [Attribution decision flow](#7-attribution-decision-flow) ·
-8. [Package dependencies](#8-package-dependencies) · 9. [Stage 2 extension](#9-stage-2-extension)
+8. [Package dependencies](#8-package-dependencies) · 9. [Stage 2 extension](#9-stage-2-extension) ·
+10. [CI and the release gate](#10-ci-and-the-release-gate)
 
 ## 1. End-to-end investigation pipeline
 
@@ -248,21 +249,23 @@ flowchart TD
 
 ## 8. Package dependencies
 
-Arrows point from a package to what it imports. `domain` imports nothing from the platform;
+Arrows point from a package to what it imports. `domain` imports nothing from the platform except
+the dependency-free leaf `ceap.util` (canonical hashing, redaction; added in 0.4.0);
 `analytics` and `data` depend only on `domain`; the LLM SDK, MCP SDK and FastAPI are each
 confined to one package.
 
 ```mermaid
 flowchart BT
-    domain["ceap.domain<br/>(no platform imports)"]
+    util["ceap.util<br/>(stdlib only)"]
+    domain["ceap.domain<br/>(imports only ceap.util)"] --> util
     analytics["ceap.analytics"] --> domain
     data["ceap.data"] --> domain
     data --> analytics
     rag["ceap.rag"]
     mcp["ceap.mcp<br/>(mcp SDK confined here)"] --> domain & data & analytics & rag
     llm["ceap.llm<br/>(anthropic SDK confined here)"] --> config["ceap.config"]
-    policy["ceap.policy"] --> domain
-    obs["ceap.observability"]
+    policy["ceap.policy"] --> domain & util
+    obs["ceap.observability"] --> util
     harness["ceap.harness"] --> domain & policy & obs & config
     agents["ceap.agents"] --> domain & analytics & harness & llm
     platform["ceap.platform"] --> agents & harness & mcp & llm & policy & rag & data
@@ -298,4 +301,28 @@ flowchart LR
     HB -- declined --> FIN
     HB -- approved --> SO["execution.stage_orders<br/>HIGH · trading:execute · paper"]
     SO --> FIN
+```
+
+## 10. CI and the release gate
+
+Added in 0.4.0 (Round R0). Every PR runs the jobs on the left; a release happens only from a tag on
+a commit whose checks are all green, and the gate re-checks versions, CHANGELOG, banned words and
+licences before anything is built.
+
+```mermaid
+flowchart LR
+    PR["pull request"] --> L["lint<br/>ruff · mypy · banned words"]
+    PR --> T["test 3.11 / 3.12<br/>xdist · coverage >= 80 %"]
+    PR --> LF["lock-fresh<br/>uv --universal --generate-hashes"]
+    PR --> A["audit<br/>pip-audit"]
+    PR --> S["secrets<br/>gitleaks + planted-key self-test"]
+    PR --> D["docker<br/>build · ceap --help"]
+    PR --> C["changelog<br/>or label no-changelog"]
+    PR --> K["contracts<br/>or label contracts-change"]
+    L & T & LF & A & S & D & C & K --> M["merge to main<br/>CI re-runs on main"]
+    M --> TAG["tag vX.Y.Z"]
+    TAG --> G{"release_check.py<br/>checks green? versions agree?<br/>CHANGELOG section? banned words? licences?"}
+    G -- no --> X["no release"]
+    G -- yes --> P["build wheel, sdist, image<br/>gh release create"]
+    N["nightly.yml<br/>all tiers · random order · 1000 examples"] -.-> M
 ```

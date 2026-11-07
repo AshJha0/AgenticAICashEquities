@@ -1,4 +1,9 @@
-"""Shared fixtures."""
+"""Shared fixtures.
+
+Immutable, expensive inputs (dataset stores, the in-process MCP client) are session-scoped.
+Anything that holds mutable state (``platform``: task table, approvals queue, caches) is
+function-scoped so no test can see another test's leftovers; the random-order nightly run checks it.
+"""
 
 from __future__ import annotations
 
@@ -48,6 +53,18 @@ def settings() -> Settings:
     return Settings(llm_provider="mock", auto_approve=True)  # CEAP_ENV=dev: dev API keys apply
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def platform(store, settings) -> Platform:
     return Platform(settings=settings, llm=MockLLMClient(), store=store)
+
+
+try:  # hypothesis profiles: 100 examples on PR, 1000 nightly (HYPOTHESIS_PROFILE=nightly)
+    import os
+
+    from hypothesis import settings as hsettings
+
+    hsettings.register_profile("pr", max_examples=100, derandomize=True, deadline=None)
+    hsettings.register_profile("nightly", max_examples=1000, derandomize=True, deadline=None)
+    hsettings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "pr"))
+except ImportError:  # pragma: no cover - hypothesis is in the dev extra
+    pass

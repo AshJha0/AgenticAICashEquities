@@ -34,6 +34,14 @@ Framework-independent frozen dataclasses and abstract interfaces: `Task`, `Plan`
 
 Nothing in this package imports MCP, an LLM SDK or a web framework.
 
+**Contracts (0.4.0, Round R0).** The shapes later rounds write to are frozen first:
+`TaskStatus` (adds `DEGRADED`, `INCOMPLETE_ANALYSIS`, `INTERRUPTED`), `ResultWarning`,
+`Finding.evidence_refs` (`EvidenceRef{id, path, value}`), `HypothesisTable`, `LLMCallRecord`,
+`ToolResult.schema_version`, `InvestigationReport.schema_version` and
+`ApprovalRequest.content_hash` (in `ceap.policy.approvals`). All are additive with defaults; the
+harness starts using them in Round R1. A CI job fails any later PR that changes a public
+`ceap.domain` signature unless it carries the `contracts-change` label.
+
 ### 3.2 Analytics (`ceap.analytics`)
 
 Pure functions over NumPy arrays: VWAP, TWAP, implementation shortfall (Perold, with opportunity
@@ -150,6 +158,14 @@ retrieved passages become DOCUMENT evidence.
 `InMemoryTracer` records nested spans and events per investigation (returned by the API);
 `OpenTelemetryTracer` mirrors them to an OTel SDK when configured. `MetricsRegistry` exposes
 counters and histograms in Prometheus text format at `/metrics`. Logging is JSON lines.
+
+### 3.10a Utilities (`ceap.util`)
+
+`canonical.py` turns text and JSON into canonical bytes before hashing (LF line endings, sorted
+keys, UTC datetimes in one fixed format, NaN refused), so a hash computed on Windows equals the one
+computed on Linux. `redact.py` removes emails, API keys, tokens and account-like numbers from
+question text before it reaches a log, the task store or a prompt, and scrubs recorded HTTP
+interactions (API key, request id, organisation id) before a cassette is committed.
 
 ### 3.11 API (`ceap.api`)
 

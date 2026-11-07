@@ -1,5 +1,51 @@
 # Changelog
 
+Every pull request adds a line under `## Unreleased` (CI enforces it unless the PR is labelled
+`no-changelog`). At release time the section is renamed `## [X.Y.Z] - date`; the release gate
+refuses a tag whose version has no section.
+
+## Unreleased
+
+Round R0 of the 2026-11-07 plan (`docs/review/2026-11-07/PLAN.md`): foundations for 0.4.0.
+
+### Breaking / migration
+
+- `requirements.lock` is now a universal, hashed lock produced by `uv pip compile --universal
+  --generate-hashes`. Install it with `pip install --require-hashes -r requirements.lock` (the new
+  `scripts/bootstrap.sh` and `scripts/bootstrap.ps1` do this). The old instructions to hand-edit the
+  lock after regenerating it are gone.
+- The `ml` extra no longer pulls `xgboost` (it was never imported).
+- The `platform` test fixture is function-scoped; tests that relied on state left by an earlier
+  test must create it themselves.
+- `Task.create` redacts emails, API keys, tokens and account-like numbers from the question text.
+
+### Added
+
+- `src/ceap/util/canonical.py`: canonical bytes for every hash (LF, sorted-key JSON, UTC datetimes
+  in one format, NaN refused). `.gitattributes` makes every text file LF in the repository.
+- `src/ceap/util/redact.py`: redaction for question text and log lines, and a cassette scrubber
+  that removes `x-api-key`, request ids and organisation ids.
+- Domain contracts frozen for later rounds: `TaskStatus` (with `DEGRADED`, `INCOMPLETE_ANALYSIS`,
+  `INTERRUPTED`), `ResultWarning`, `EvidenceRef` and `Finding.evidence_refs`, `HypothesisTable`,
+  `LLMCallRecord`, `schema_version` on `ToolResult` and `InvestigationReport`, and
+  `ApprovalRequest.content_hash`. All additive with defaults.
+- CI: least-privilege permissions, a concurrency group, actions pinned to commit SHAs, pip cache,
+  a Python 3.11 and 3.12 matrix, pytest-xdist, a coverage floor of 80 %, `lock-fresh`, `pip-audit`,
+  gitleaks with a planted-key self-test, a Docker build and `ceap --help` smoke test, a CHANGELOG
+  check and a domain-contracts check (`scripts/check_contracts.py`, label `contracts-change`).
+- `nightly.yml`: every test tier in random order with 1000 hypothesis examples per property.
+- `release.yml` and `scripts/release_check.py`: a tag releases only when every check on the commit
+  is green, the version agrees in `pyproject.toml`, `ceap.__version__` and the tag, the CHANGELOG
+  has the section, `scripts/check_banned_words.py` is clean and every dependency licence is on the
+  allowlist.
+- Test markers `slow` and `nightly`; hypothesis profiles (`pr` 100 examples, `nightly` 1000, both
+  derandomised).
+
+### Changed
+
+- COOKBOOK (recipe 34), the architecture overview and the diagrams page (section 10, CI and the release gate) describe the
+  new workflow.
+
 ## 0.3.5 – Two new dedicated pages: AI/agents and quant
 
 0.3.4 folded Stage 2 and the real-model findings into the *existing* docs but added no new
