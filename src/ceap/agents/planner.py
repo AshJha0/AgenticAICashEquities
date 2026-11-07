@@ -8,6 +8,10 @@ The LLM proposes the plan as JSON; this agent converts it into typed
 * required arguments must be present;
 * arguments that scope data access (``symbol``, ``dataset``) are pinned to
   the task - the model cannot point the investigation at other data;
+* the reply is a strict structured output (``llm/schemas.py``): schema errors and semantic errors
+  (unknown agent, a window that is neither the task window nor its baseline, a symbol outside the
+  task or its universe, a duplicated governance step, too many steps) are sent back once as the
+  repair target (rung 2); a second failure is ``DEGRADED`` and the plan is sanitised as below;
 * unusable model output falls back to the canonical plan.
 
 The harness validates the result again (including a policy pre-check of
@@ -27,7 +31,7 @@ from ceap.domain.common import new_id
 from ceap.domain.plans import Plan, PlanStep, StepType
 from ceap.domain.tools import ToolRequest
 from ceap.harness.cancellation import TaskCancelled
-from ceap.llm.client import LLMClient, canonical_plan, extract_json
+from ceap.llm.client import LLMClient, canonical_plan
 from ceap.llm.models import (
     RUNG_DETERMINISTIC,
     RUNG_KILL_SWITCH,
@@ -36,7 +40,15 @@ from ceap.llm.models import (
     LLMRequest,
     LLMResponse,
 )
-from ceap.llm.prompts import PLANNER_SYSTEM_PROMPT, RESEARCH_PLANNER_SYSTEM_PROMPT
+from ceap.llm.prompts import get_prompt
+from ceap.llm.schemas import (
+    MAX_PLAN_STEPS,
+    allowed_windows,
+    parse_json_object,
+    plan_model,
+    plan_semantic_errors,
+    validate_model,
+)
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +56,7 @@ INVESTIGATION_AGENTS = ("market", "execution", "quant", "risk", "engineering", "
 RESEARCH_AGENTS = ("research", "alpha", "backtest", "portfolio_risk", "critic")
 ALLOWED_AGENTS = INVESTIGATION_AGENTS + tuple(a for a in RESEARCH_AGENTS if a not in INVESTIGATION_AGENTS)
 RESEARCH_KIND = "research"
-MAX_STEPS_FROM_MODEL = 64
+MAX_STEPS_FROM_MODEL = MAX_PLAN_STEPS  # leaves room for the governance steps the harness appends
 PINNED_ARGUMENTS = ("symbol", "dataset", "signal")
 _RESEARCH_FACT_KEYS = (
     "dataset",
@@ -59,13 +71,25 @@ _RESEARCH_FACT_KEYS = (
 )
 
 REPAIR_INSTRUCTION = (
-    "Your previous reply was not a usable plan. Reply with only one JSON object of the form "
-    '{"rationale": "...", "steps": [...]} using the tool catalogue and agents given above.'
+    "Your previous plan cannot be used. Problems found:\n{problems}\n"
+    "Reply again with a corrected plan that uses only the tool catalogue, the agents and the PARAMETERS given above."
 )
+MAX_REPAIR_PROBLEMS = 20
 
 
 def _usable(raw: dict[str, Any] | None) -> bool:
     return raw is not None and isinstance(raw.get("steps"), list) and bool(raw["steps"])
+
+
+def _reply_object(response: LLMResponse) -> tuple[dict[str, Any] | None, list[str]]:
+    """The structured reply: the adapter's parsed output, else a strict parse of the whole text."""
+    if response.parsed is not None:
+        return response.parsed, []
+    if response.parse_errors:
+        return None, list(response.parse_errors)
+    if response.stop_reason in ("refusal", "max_tokens"):
+        return None, [f"reply ended with stop_reason={response.stop_reason}"]
+    return parse_json_object(response.content)
 
 
 _JSON_TYPES: dict[str, tuple[type, ...]] = {
@@ -107,15 +131,31 @@ class PlannerAgent(BaseAgent):
             f"TOOL CATALOGUE: {json.dumps(catalogue)}\n\n"
             f"AVAILABLE AGENTS: {list(agents)}"
         )
+        prompt = get_prompt("research_planner" if research else "planner")
+        tool_schemas = {m.id: (m.input_schema or {}) for m in read_only_tools}
+        output_model = plan_model(tool_schemas, agents)
         request = LLMRequest(
-            system_prompt=RESEARCH_PLANNER_SYSTEM_PROMPT if research else PLANNER_SYSTEM_PROMPT,
+            system_prompt=prompt.text,
             messages=[{"role": "user", "content": user_message}],
             purpose="planning",  # max_tokens and effort come from model_pins.toml (16000 with thinking)
-            metadata={"parameters": facts},  # structured parameters travel out-of-band from the prose
+            # structured parameters travel out-of-band from the prose
+            metadata={"parameters": facts, "task_id": context.task_id, "prompt": prompt.ref()},
+            output_model=output_model,
         )
+
+        def problems(response: LLMResponse) -> tuple[dict[str, Any] | None, list[str]]:
+            raw, errors = _reply_object(response)
+            if raw is None:
+                return None, errors
+            errors = validate_model(output_model, raw) + plan_semantic_errors(
+                raw, facts, tool_schemas, agents
+            )
+            return raw, errors
+
         degradations: list[Degradation] = []
         raw: dict[str, Any] | None = None
         response: LLMResponse | None = None
+        repairs = 0
         if llm_disabled(self.llm):
             degradations.append(
                 Degradation(RUNG_KILL_SWITCH, "LLM_DISABLED", "kill switch on: canonical plan used")
@@ -124,14 +164,16 @@ class PlannerAgent(BaseAgent):
             try:
                 response = await self.call_llm(context, self.llm, request)
                 degradations.extend(response.degradations)
-                raw = extract_json(response.content)
-                if not _usable(raw):
-                    # rung 2: one structured-output repair retry
+                raw, errors = problems(response)
+                if errors:
+                    # rung 2: exactly one repair, with the schema and semantic errors as its target
+                    repairs = 1
+                    listed = "\n".join(f"- {e}" for e in errors[:MAX_REPAIR_PROBLEMS])
                     degradations.append(
                         Degradation(
                             RUNG_REPAIR,
                             "LLM_REPAIR_RETRY",
-                            f"planner output unusable (stop_reason={response.stop_reason}); one repair retry",
+                            f"planner output invalid ({len(errors)} problem(s), first: {errors[0][:160]}); one repair",
                         )
                     )
                     repair = LLMRequest(
@@ -139,33 +181,48 @@ class PlannerAgent(BaseAgent):
                             **request.__dict__,
                             "messages": [
                                 *request.messages,
-                                {"role": "assistant", "content": response.content[:4000] or "(empty)"},
-                                {"role": "user", "content": REPAIR_INSTRUCTION},
+                                {
+                                    "role": "assistant",
+                                    "content": response.content[:4000] or "(no usable reply)",
+                                },
+                                {"role": "user", "content": REPAIR_INSTRUCTION.format(problems=listed)},
                             ],
                         }
                     )
                     response = await self.call_llm(context, self.llm, repair)
                     degradations.extend(response.degradations)
-                    raw = extract_json(response.content)
+                    raw, errors = problems(response)
+                    if errors:
+                        degradations.append(
+                            Degradation(
+                                RUNG_REPAIR,
+                                "LLM_PLAN_INVALID_AFTER_REPAIR",
+                                f"repaired plan still invalid ({len(errors)} problem(s)); sanitised before use",
+                            )
+                        )
             except (TaskCancelled, asyncio.CancelledError):
                 raise
             except Exception as exc:  # noqa: BLE001 - rung 3 below records the failure
                 log.warning("planner: model call failed (%s); using canonical plan", exc)
                 degradations.append(
-                    Degradation(RUNG_DETERMINISTIC, "LLM_CALL_FAILED", f"{type(exc).__name__}: {str(exc)[:200]}")
+                    Degradation(
+                        RUNG_DETERMINISTIC, "LLM_CALL_FAILED", f"{type(exc).__name__}: {str(exc)[:200]}"
+                    )
                 )
         source = f"llm:{response.model}" if response is not None else "canonical-fallback"
         if not _usable(raw):
             if not any(d.rung >= RUNG_DETERMINISTIC for d in degradations):
                 degradations.append(
-                    Degradation(RUNG_DETERMINISTIC, "LLM_CANONICAL_PLAN", "unusable model output: canonical plan used")
+                    Degradation(
+                        RUNG_DETERMINISTIC, "LLM_CANONICAL_PLAN", "unusable model output: canonical plan used"
+                    )
                 )
             log.warning("planner: unusable model output; using canonical plan")
             raw = canonical_plan(facts)
             source = "canonical-fallback"
         assert raw is not None
 
-        schemas = {m.id: (m.input_schema or {}) for m in read_only_tools}
+        schemas = tool_schemas
         steps, rejected = self._to_steps(raw["steps"][:MAX_STEPS_FROM_MODEL], schemas, facts, agents)
         if len(raw["steps"]) > MAX_STEPS_FROM_MODEL:
             rejected.append(
@@ -180,7 +237,11 @@ class PlannerAgent(BaseAgent):
             rejected.extend(rejected2)
             source = "canonical-fallback"
             degradations.append(
-                Degradation(RUNG_DETERMINISTIC, "LLM_CANONICAL_PLAN", "model plan had no valid tool call: canonical plan used")
+                Degradation(
+                    RUNG_DETERMINISTIC,
+                    "LLM_CANONICAL_PLAN",
+                    "model plan had no valid tool call: canonical plan used",
+                )
             )
         plan = Plan(
             id=new_id("PLAN"),
@@ -195,6 +256,8 @@ class PlannerAgent(BaseAgent):
             "llm_model": response.model if response else None,
             "tokens": {"input": response.input_tokens, "output": response.output_tokens} if response else {},
             "degradations": degradation_records(degradations),
+            "repairs": repairs,
+            "prompt": prompt.ref(),
         }
         return AgentResult(
             agent_id=self.id,
@@ -294,6 +357,15 @@ def _sanitise_arguments(
             if key in clean and str(clean[key]) != str(pinned):
                 problems.append(f"argument {key}={clean[key]!r} re-pinned to task value {pinned!r}")
             clean[key] = pinned
+    windows = allowed_windows(facts, str(facts.get("kind") or "") == RESEARCH_KIND)
+    if (
+        windows
+        and "start" in clean
+        and "end" in clean
+        and (str(clean["start"]), str(clean["end"])) not in windows
+    ):
+        problems.append(f"window {clean['start']}..{clean['end']} is not a task window (step dropped)")
+        return None, problems
     universe = facts.get("universe")
     if isinstance(universe, (list, tuple)) and "symbol" in clean:
         if str(clean["symbol"]) not in {str(u) for u in universe}:

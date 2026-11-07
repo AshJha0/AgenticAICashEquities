@@ -35,7 +35,7 @@ from ceap.domain.research import (
     signal_statistics_from_dict,
 )
 from ceap.harness.cancellation import TaskCancelled
-from ceap.llm.client import LLMClient, extract_json
+from ceap.llm.client import LLMClient
 from ceap.llm.models import (
     RUNG_DETERMINISTIC,
     RUNG_KILL_SWITCH,
@@ -43,12 +43,13 @@ from ceap.llm.models import (
     Degradation,
     LLMRequest,
 )
-from ceap.llm.prompts import CRITIC_SYSTEM_PROMPT
+from ceap.llm.prompts import get_prompt
+from ceap.llm.schemas import CritiqueOutput, critique_semantic_errors, parse_json_object, validate_model
 
 log = logging.getLogger(__name__)
 CRITIC_REPAIR_INSTRUCTION = (
-    'Your previous reply was not usable. Reply with only one JSON object: {"assessments": '
-    '[{"finding_id": "...", "supported": true, "adjusted_confidence": 0.5, "comment": "..."}], "overall": "..."}'
+    "Your previous critique cannot be used. Problems found:\n{problems}\n"
+    "Reply again with one assessment per finding, using only the finding ids given above."
 )
 
 SINGLE_EVIDENCE_CAP = 0.7
@@ -139,7 +140,9 @@ class CriticAgent(BaseAgent):
 
         research_assessment: dict[str, Any] | None = None
         if str(context.task_input.get("kind") or "") == RESEARCH_KIND:
-            adjusted, research_assessment = self._research_assessment(context, adjusted, assessments, contradictions)
+            adjusted, research_assessment = self._research_assessment(
+                context, adjusted, assessments, contradictions
+            )
 
         overall = self._overall(assessments, contradictions)
         if research_assessment is not None:
@@ -182,6 +185,8 @@ class CriticAgent(BaseAgent):
             {"assessments": assessments, "contradictions": contradictions},
         )
         output: dict[str, Any] = {"critique": critique, "adjusted_findings": tuple(adjusted)}
+        if self.llm is not None and not llm_disabled(self.llm):
+            output["prompt"] = get_prompt("critic").ref()
         if research_assessment is not None:
             output["assessment"] = research_assessment
         if degradations:
@@ -206,12 +211,18 @@ class CriticAgent(BaseAgent):
         alpha_out = outputs.get("alpha") or {}
         bt_out = outputs.get("backtest") or {}
         risk_out = outputs.get("portfolio_risk") or {}
-        stats = signal_statistics_from_dict(alpha_out["signal_statistics"]) if alpha_out.get("signal_statistics") else None
+        stats = (
+            signal_statistics_from_dict(alpha_out["signal_statistics"])
+            if alpha_out.get("signal_statistics")
+            else None
+        )
         backtest = backtest_result_from_dict(bt_out["backtest"]) if bt_out.get("backtest") else None
         risk = portfolio_risk_report_from_dict(risk_out["risk"]) if risk_out.get("risk") else None
         assessment = assess_research(stats, backtest, risk)
         source = tuple(
-            e for e in (alpha_out.get("signal_evidence_id"), bt_out.get("backtest_evidence_id")) if isinstance(e, str)
+            e
+            for e in (alpha_out.get("signal_evidence_id"), bt_out.get("backtest_evidence_id"))
+            if isinstance(e, str)
         )
         flags = {f.value for f in assessment.flags}
         calc = self.calc_evidence(
@@ -239,7 +250,9 @@ class CriticAgent(BaseAgent):
                 and flags & {ResearchFlag.OOS_DECAY.value, ResearchFlag.COST_DRAG.value}
             ):
                 cap, note = 0.5, "claims profitability but the assessment rejects the strategy"
-            elif f.attributes.get("coverage") == "COMPLETE" and ResearchFlag.INCOMPLETE_ANALYSIS.value in flags:
+            elif (
+                f.attributes.get("coverage") == "COMPLETE" and ResearchFlag.INCOMPLETE_ANALYSIS.value in flags
+            ):
                 cap, note = 0.5, "claims complete coverage but the analysis is incomplete"
             elif isinstance(flag, str) and flag in _RESEARCH_FLAGS and flag not in flags:
                 cap, note = 0.6, f"flag {flag} is not corroborated by the assessment"
@@ -259,7 +272,10 @@ class CriticAgent(BaseAgent):
                     f,
                     confidence=round(cap, 3),
                     contradicting_evidence=tuple(contradicting),
-                    attributes={**f.attributes, "critic_notes": [*f.attributes.get("critic_notes", []), note]},
+                    attributes={
+                        **f.attributes,
+                        "critic_notes": [*f.attributes.get("critic_notes", []), note],
+                    },
                 )
             )
         return out, {**assessment.to_dict(), "evidence_id": calc.id}
@@ -301,37 +317,64 @@ class CriticAgent(BaseAgent):
             ]
         }
         assert self.llm is not None
+        prompt = get_prompt("critic")
         request = LLMRequest(
-            system_prompt=CRITIC_SYSTEM_PROMPT,
+            system_prompt=prompt.text,
             messages=[{"role": "user", "content": json.dumps(payload)}],
             purpose="critique",  # max_tokens 8000 and effort from model_pins.toml
+            metadata={"task_id": context.task_id, "prompt": prompt.ref()},
+            output_model=CritiqueOutput,
         )
+        ids = [f.id for f in findings]
+
+        def check(resp: Any) -> tuple[dict[str, Any], list[str]]:
+            if resp.parsed is not None:
+                raw: dict[str, Any] | None = resp.parsed
+                errors: list[str] = []
+            elif resp.parse_errors:
+                raw, errors = None, list(resp.parse_errors)
+            else:
+                raw, errors = parse_json_object(resp.content)
+            if raw is None:
+                return {}, errors or ["no structured reply"]
+            return raw, validate_model(CritiqueOutput, raw) + critique_semantic_errors(raw, ids)
+
         response = await self.call_llm(context, self.llm, request)
         degradations = list(response.degradations)
-        parsed = extract_json(response.content) or {}
-        if findings and not isinstance(parsed.get("assessments"), list):
+        parsed, errors = check(response)
+        if findings and errors:
             degradations.append(
-                Degradation(RUNG_REPAIR, "LLM_REPAIR_RETRY", "critique output unusable; one repair retry")
+                Degradation(
+                    RUNG_REPAIR, "LLM_REPAIR_RETRY", f"critique invalid ({errors[0][:160]}); one repair retry"
+                )
             )
             repair = LLMRequest(
                 **{
                     **request.__dict__,
                     "messages": [
                         *request.messages,
-                        {"role": "assistant", "content": response.content[:4000] or "(empty)"},
-                        {"role": "user", "content": CRITIC_REPAIR_INSTRUCTION},
+                        {"role": "assistant", "content": response.content[:4000] or "(no usable reply)"},
+                        {
+                            "role": "user",
+                            "content": CRITIC_REPAIR_INSTRUCTION.format(
+                                problems="\n".join(f"- {e}" for e in errors[:20])
+                            ),
+                        },
                     ],
                 }
             )
             response = await self.call_llm(context, self.llm, repair)
             degradations.extend(response.degradations)
-            parsed = extract_json(response.content) or {}
-            if not isinstance(parsed.get("assessments"), list):
+            parsed, errors = check(response)
+            if errors:
                 degradations.append(
                     Degradation(
-                        RUNG_DETERMINISTIC, "LLM_CRITIQUE_UNUSABLE", "deterministic critique only (model output unusable)"
+                        RUNG_DETERMINISTIC,
+                        "LLM_CRITIQUE_UNUSABLE",
+                        "deterministic critique only (model output unusable)",
                     )
                 )
+                parsed = {}
         by_id = {a.get("finding_id"): a for a in (parsed.get("assessments") or []) if isinstance(a, dict)}
         out: list[Finding] = []
         for f in findings:

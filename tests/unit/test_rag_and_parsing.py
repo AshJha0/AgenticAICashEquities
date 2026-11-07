@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from ceap.api.parsing import parse_question
-from ceap.llm.client import MockLLMClient, extract_json
+from ceap.llm.client import MockLLMClient
 from ceap.llm.models import LLMRequest
 from ceap.rag.embeddings import HashingEmbedder, tokenize
 from ceap.rag.ingestion import Document, chunk_document
@@ -46,12 +46,6 @@ def test_hashing_embedder_is_deterministic_and_normalised():
 def test_empty_knowledge_base_is_safe():
     kb = KnowledgeBase([])
     assert kb.search("anything") == [] and kb.titles() == []
-
-
-def test_extract_json_handles_fences_and_trailing_text():
-    assert extract_json('```json\n{"a": 1}\n```')["a"] == 1
-    assert extract_json('prefix {"a": {"b": 2}} trailing')["a"]["b"] == 2
-    assert extract_json("no json here") is None
 
 
 async def test_mock_llm_purposes():

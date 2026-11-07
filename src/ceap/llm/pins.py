@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from importlib import resources
 from typing import Any
@@ -25,11 +25,22 @@ class PurposePin:
 
 
 @dataclass(frozen=True)
+class Price:
+    """USD per million tokens (list price as pinned; used for the local estimate only)."""
+
+    input: float
+    output: float
+    cache_read: float = 0.0
+    cache_write: float = 0.0
+
+
+@dataclass(frozen=True)
 class ModelPins:
     sdk_package: str
     sdk_version: str
     allowed: frozenset[str]
     purposes: dict[str, PurposePin]
+    prices: dict[str, Price] = field(default_factory=dict)
 
     def require(self, model: str) -> str:
         if model not in self.allowed:
@@ -60,8 +71,19 @@ def parse_pins(raw: dict[str, Any]) -> ModelPins:
     missing = [p for p in PURPOSES if p not in purposes]
     if missing:
         raise ValueError(f"model_pins.toml lacks purposes {missing}")
+    prices = {
+        str(m): Price(
+            float(p["input"]),
+            float(p["output"]),
+            float(p.get("cache_read", 0.0)),
+            float(p.get("cache_write", 0.0)),
+        )
+        for m, p in (raw.get("pricing") or {}).items()
+    }
     sdk = raw.get("sdk") or {}
-    return ModelPins(str(sdk.get("package", "anthropic")), str(sdk.get("version", "")), allowed, purposes)
+    return ModelPins(
+        str(sdk.get("package", "anthropic")), str(sdk.get("version", "")), allowed, purposes, prices
+    )
 
 
 @lru_cache(maxsize=1)

@@ -6,6 +6,49 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+Round R3A of the 2026-11-07 plan (LLM layer, offline-provable). No live model call anywhere (D15).
+
+### Breaking / migration
+
+- `ceap.llm.client.extract_json` is deleted: model output is validated against strict schemas
+  (`ceap.llm.schemas`) and there is no lenient JSON recovery. Fake clients must return the whole
+  reply as one JSON document (or set `LLMResponse.parsed`).
+- `AnthropicLLMClient` sends the system prompt as a text block with `cache_control`, marks every
+  tool `strict: true`, and uses `messages.parse()` when `LLMRequest.output_model` is set. Without
+  an explicit model each purpose now uses its own pinned model (previously the narrative model).
+- contracts change (`domain/reports.py`, additive): `LLMCallRecord` gains `task_id`, `purpose`,
+  `prompt_id`, `prompt_version`, `stop_reason`, `usd_is_estimate`, `redacted_request`;
+  `InvestigationReport` gains `prompts`.
+- `LLMRequest` gains `output_model`; `LLMResponse` gains `parsed`, `parse_errors`,
+  `cache_read_tokens`, `cache_write_tokens`, `request_id`.
+- Prompt changes: planner@2, research_planner@2 and critic@2 describe the schema-enforced reply
+  instead of a hand-written JSON shape; report@1 and research_report@1 are unchanged in text and
+  now live in `llm/prompts/*.md`.
+
+### Added
+
+- 3A.1 structured outputs for planner and critic: plan steps are a union over the read-only tool
+  catalogue generated from MCP input schemas; semantic validation (windows, symbol, universe,
+  agents, governance duplicates, step count, finding ids, confidence range) is the target of
+  exactly one repair, then `DEGRADED`; schema-subset lint. The planner sanitiser now also drops
+  tool steps whose window is not a task window.
+- 3A.2 wire contract tests over the real `AsyncAnthropic` with an in-memory transport, a committed
+  request snapshot (`tests/contract/snapshots/`) and full-format responses validated by the pinned
+  SDK types.
+- 3A.3 nine adversarial fake clients (`tests/fakes/clients.py`).
+- 3A.4 ten harness invariants as property tests under every fake client (100 examples on PR,
+  1000 nightly). The narrative-audit invariant becomes blocking when the R3A engine patch lands.
+- 3A.5 provenance-tagged cassettes (`ceap.llm.recording`, `tests/cassettes/`): `STALE` replay
+  through the real SDK, scrubber on write, `assert_publishable` refuses model-behaviour metrics
+  from `hand_built` cassettes; `llm_provenance` labels evaluation output `NOT RUN LIVE`.
+- 3A.6 per-call `LLMCallRecord` with a redacted body, per-task cost spans attributed through a
+  context variable (`task_scope`, `task_cost`), `CEAP_TASK_BUDGET_USD` enforced before the call
+  from a labelled local token estimate, pinned list prices in `model_pins.toml`.
+- 3A.7 prompt registry (`llm/prompts/*.md`, sha256 of canonical bytes, version and hash in
+  request metadata, call records and reports; golden hash snapshot plus CHANGELOG check).
+- 3A.8 adapter equivalence on the ten scenario templates (mock path vs adapter-plus-cassette
+  path, structural diff empty apart from narrative). Adapter equivalence, not model fidelity.
+
 ## [0.4.0] - 2026-11-07
 
 Rounds R0, R1 and R2 of the 2026-11-07 plan, shipped as one combined PR (AshJha0/AgenticAICashEquities#1).

@@ -34,7 +34,10 @@ of them (`test_fabricated_numbers_and_evidence_ids_are_flagged`).
 | `LLMClient.complete(LLMRequest) -> LLMResponse` | the one interface every caller uses |
 | `MockLLMClient` | deterministic, offline default — a canonical plan for planning requests, a templated narrative rendered from structured facts for report requests, a rule-based critique. This is why the whole platform (tests, CI, demos) runs with no API key and no cost |
 | `AnthropicLLMClient` | adapts the Anthropic SDK for real calls |
-| `LLMRouter` | picks a pinned model per *purpose* (`planning` / `narrative` / `critique` / `judge`) from `llm/model_pins.toml`, enforces the call timeout and concurrency cap, and records every fallback |
+| `LLMRouter` | picks a pinned model per *purpose* (`planning` / `narrative` / `critique` / `judge`) from `llm/model_pins.toml`, enforces the call timeout and concurrency cap, records every fallback, keeps a per-task cost span and enforces `CEAP_TASK_BUDGET_USD` |
+| `ceap.llm.schemas` | strict structured-output schemas: the plan (a union over the tool catalogue generated from each tool's MCP `inputSchema`) and the critique; semantic validation; the schema-subset lint |
+| `ceap.llm.prompts` + `llm/prompts/*.md` | the prompt registry: versioned prompt files, sha256 of canonical bytes |
+| `ceap.llm.recording` | provenance-tagged cassettes, `STALE` replay through the real SDK, the metric publication gate |
 
 Until 0.3.x the router **silently** fell back to the mock, and a broken integration ran for a long
 time looking healthy (see "What running against a real model actually found" below). Since 0.4.0
@@ -48,7 +51,7 @@ the layer fails closed and degrades visibly:
   |---|---|---|
   | 0 | the model answers usably | nothing recorded |
   | 1 | the model refuses (`stop_reason=refusal`) | the pinned fallback model answers; refusal category recorded |
-  | 2 | the structured output is unparsable or truncated (`max_tokens`) | one repair retry |
+  | 2 | the structured output fails its schema or its semantic checks, or is truncated (`max_tokens`) | exactly one repair, with the list of problems as its target |
   | 3 | the client fails or the repair fails | canonical plan, deterministic critique or templated narrative |
   | 4 | `CEAP_LLM_DISABLED=true` | no model call anywhere; rung 3 everywhere; banner on every result |
 
@@ -56,17 +59,50 @@ the layer fails closed and degrades visibly:
   (planner 16000, critic and reporter 8000), no sampling parameters, 60 s timeout, retries only on
   408/409/429/5xx and transport faults, every call raced against cancellation and counted against
   a per-investigation cap.
-* **Nothing here is measured live** (D15): these paths are proven with fake clients and
-  wire-shape tests in `tests/agent/test_r1_fail_closed.py`; real-model quality is UNKNOWN / NOT RUN
-  LIVE for the 5.5 pins.
+* **Structured outputs (R3A):** the planner and the critic call `messages.parse()` with a strict
+  Pydantic schema (`additionalProperties: false` on every object, sent as `output_config.format`).
+  The reply is validated twice: by the schema, then semantically (a window that is neither the task
+  window nor its baseline, a symbol outside the task or its universe, an unknown agent, a duplicated
+  governance step, more than 64 steps, an unknown finding id, a confidence outside [0, 1]). Those
+  errors are the repair target, once; a second failure is `DEGRADED`. There is no regex or lenient
+  JSON recovery anywhere. The reporter writes prose and does not use structured output.
+* **Caching and cost:** one `cache_control` breakpoint on the system block (the last stable block
+  in the tools -> system -> messages order). Every call leaves an `LLMCallRecord` (model, SDK pin,
+  prompt id/version/sha, tokens including cache reads and writes, USD from pinned list prices,
+  latency, redacted request body). Costs are attributed per task through a context variable, so
+  concurrent tasks never share a meter. `CEAP_TASK_BUDGET_USD` aborts a call *before* it is sent
+  when spent plus a local upper-bound estimate (characters / 4 for input, `max_tokens` for output;
+  `count_tokens` is a network call and is never used) would exceed the budget.
+* **Prompt registry:** prompts are `llm/prompts/<id>.md` with a version header; the sha256 of the
+  canonical bytes travels in request metadata, call records and `InvestigationReport.prompts`. A
+  golden snapshot (`tests/cassettes/prompt_hashes.json`) fails CI when a prompt changes until the
+  version is bumped and CHANGELOG names `<id>@<version>`.
+* **Nothing here is measured live** (D15). The LLM layer is proven offline by:
+  * wire contract tests (`tests/contract/test_wire_request.py`, `test_wire_response.py`): the real
+    `AsyncAnthropic` over an in-memory transport, a committed request snapshot, and responses in the
+    full wire format (thinking, redacted thinking, tool use, both citation location types, refusal
+    with `stop_details`, cache usage) validated by the pinned SDK's own types;
+  * nine adversarial fake clients (`tests/fakes/clients.py`): schema fuzzing, truncation, refusal,
+    hanging, every SDK error class, an injection-obedient model, number and id fabricators, and
+    hostile plans;
+  * harness invariants under every fake client (`tests/properties/test_harness_invariants.py`);
+  * hand-built cassettes (`tests/cassettes/`, provenance `hand_built`) replayed through the real SDK:
+    a changed prompt, schema or message fails `STALE`, and no model-behaviour metric may be
+    published from them (`assert_publishable`, `llm_provenance`);
+  * **adapter equivalence** (`tests/contract/test_adapter_differential.py`): the mock path and the
+    adapter-plus-cassette path give identical harness outputs apart from narrative on the ten
+    scenario templates. This is adapter equivalence, never model fidelity.
+
+  Real-model quality is UNKNOWN / NOT RUN LIVE for the 5.5 pins.
 
 Three purposes, three call sites:
 
-1. **Planning** (`ceap.agents.planner.PlannerAgent`) — the model proposes a JSON plan restricted
-   to the discovered tool catalogue. The planner only shows it *read-only* tools, so it
-   structurally cannot schedule a mutating action. Unknown tools, agents, step types and
-   arguments are stripped and recorded (`rejected_steps`); if nothing usable comes back, a
-   canonical hand-written plan is used instead.
+1. **Planning** (`ceap.agents.planner.PlannerAgent`) — the model proposes a structured plan whose
+   schema only admits the discovered *read-only* tools and the task's agents, so it structurally
+   cannot schedule a mutating action. If the repaired plan is still invalid, unknown tools,
+   agents, step types and arguments are stripped and recorded (`rejected_steps`), scoping
+   arguments are pinned to the task and steps outside the task windows are dropped; if nothing
+   usable comes back, a canonical hand-written plan is used instead.
 2. **Critique** (`ceap.agents.critic.CriticAgent`) — deterministic checks run first (evidence
    resolves, cross-agent contradictions, thin-evidence caps); an optional LLM pass then runs and
    is only permitted to *lower* a finding's confidence, never raise it.

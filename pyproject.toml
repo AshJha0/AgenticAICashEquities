@@ -60,12 +60,12 @@ ceap = "ceap.cli:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-ceap = ["py.typed", "llm/*.toml"]
+ceap = ["py.typed", "llm/*.toml", "llm/prompts/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]
 addopts = "-q -p no:randomly"
 markers = [
     "slow: longer tests; run on PR but excluded from the quick local loop (-m 'not slow')",

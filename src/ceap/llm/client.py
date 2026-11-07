@@ -11,10 +11,11 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 from abc import ABC, abstractmethod
 from collections import deque
 from typing import Any
+
+from pydantic import ValidationError
 
 from ceap.domain.research import research_tool_arguments
 from ceap.llm.models import LLMRequest, LLMResponse
@@ -32,26 +33,20 @@ class LLMClient(ABC):
         return type(self).__name__
 
 
-def extract_json(text: str) -> dict[str, Any] | None:
-    """Best-effort extraction of the first JSON object in ``text``."""
-    text = text.strip()
-    fence = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
-    candidates = [fence.group(1)] if fence else []
-    start = text.find("{")
-    if start >= 0:
-        candidates.append(text[start:])
-    for cand in candidates:
-        try:
-            return json.loads(cand)
-        except json.JSONDecodeError:
-            # trim trailing garbage progressively
-            end = cand.rfind("}")
-            while end > 0:
-                try:
-                    return json.loads(cand[: end + 1])
-                except json.JSONDecodeError:
-                    end = cand.rfind("}", 0, end)
-    return None
+def _own_payload(text: str) -> dict[str, Any]:
+    """The JSON document *this platform* built for a narrative or critique request.
+
+    This parses our own request payload, never model output: model output is validated against
+    a strict schema (``llm/schemas.py``) and there is no lenient JSON recovery anywhere (3A.1).
+    """
+    start = text.find("{") if isinstance(text, str) else -1
+    if start < 0:
+        return {}
+    try:  # the payload follows a fixed lead-in such as "Write the report from these facts:"
+        value, _ = json.JSONDecoder().raw_decode(text, start)
+    except json.JSONDecodeError:
+        return {}
+    return value if isinstance(value, dict) else {}
 
 
 class MockLLMClient(LLMClient):
@@ -64,18 +59,24 @@ class MockLLMClient(LLMClient):
     async def complete(self, request: LLMRequest) -> LLMResponse:
         self.calls.append(request)
         last = request.messages[-1]["content"] if request.messages else ""
+        parsed: dict[str, Any] | None = None
         if request.purpose == "planning":
             # Structured parameters arrive out-of-band; never parse them out of the prose,
             # which contains untrusted user text (a question containing "{}" must not win).
             facts = dict(request.metadata.get("parameters") or {})
-            content = json.dumps(canonical_plan(facts))
+            parsed = canonical_plan(facts)
+            content = json.dumps(parsed)
         elif request.purpose == "narrative":
-            content = _mock_narrative(extract_json(last) or {})
+            content = _mock_narrative(_own_payload(last))
         elif request.purpose == "critique":
-            content = json.dumps(_mock_critique(extract_json(last) or {}))
+            parsed = _mock_critique(_own_payload(last))
+            content = json.dumps(parsed)
         else:
             content = "OK"
+        if request.output_model is None:
+            parsed = None
         return LLMResponse(
+            parsed=parsed,
             content=content,
             tool_calls=[],
             input_tokens=len(last) // 4,
@@ -296,9 +297,17 @@ def canonical_research_plan(facts: dict[str, Any]) -> dict[str, Any]:
                 "k": 4,
             },
         },
-        {"type": "AGENT_CALL", "description": "Research agent: hypothesis and data coverage", "agent_id": "research"},
+        {
+            "type": "AGENT_CALL",
+            "description": "Research agent: hypothesis and data coverage",
+            "agent_id": "research",
+        },
         {"type": "AGENT_CALL", "description": "Alpha agent: is the signal predictive?", "agent_id": "alpha"},
-        {"type": "AGENT_CALL", "description": "Backtest agent: does it survive costs out-of-sample?", "agent_id": "backtest"},
+        {
+            "type": "AGENT_CALL",
+            "description": "Backtest agent: does it survive costs out-of-sample?",
+            "agent_id": "backtest",
+        },
         {
             "type": "AGENT_CALL",
             "description": "Portfolio risk agent: exposure, limits and stress",
@@ -380,7 +389,11 @@ def _mock_research_narrative(f: dict[str, Any]) -> str:
             f"from {scope.get('start')} to {scope.get('end')}; in-sample period ends {scope.get('in_sample_end')}."
         )
     lines += ["", "SIGNAL STATISTICS", ""]
-    for name, label in (("in_sample", "In-sample"), ("out_of_sample", "Out-of-sample"), ("full", "Full period")):
+    for name, label in (
+        ("in_sample", "In-sample"),
+        ("out_of_sample", "Out-of-sample"),
+        ("full", "Full period"),
+    ):
         p = stats.get(name) or {}
         lines.append(
             f"{label}: mean IC {_num(p.get('mean_ic'), 4)}, IC t-stat {_num(p.get('ic_t_stat'))}, "
@@ -388,7 +401,11 @@ def _mock_research_narrative(f: dict[str, Any]) -> str:
             f"turnover {_num(p.get('turnover'))} over {p.get('n_dates', 'n/a')} dates"
         )
     lines += ["", "BACKTEST", ""]
-    for name, label in (("in_sample", "In-sample"), ("out_of_sample", "Out-of-sample"), ("full", "Full period")):
+    for name, label in (
+        ("in_sample", "In-sample"),
+        ("out_of_sample", "Out-of-sample"),
+        ("full", "Full period"),
+    ):
         p = bt_periods.get(name) or {}
         lines.append(
             f"{label}: CAGR {_num(p.get('cagr'), 1, 100.0, '%')}, volatility {_num(p.get('ann_vol'), 1, 100.0, '%')}, "
@@ -445,7 +462,9 @@ def _mock_research_narrative(f: dict[str, Any]) -> str:
             f"{_money(staging.get('buy_notional'))}, sells {_money(staging.get('sell_notional'))}."
         )
     else:
-        lines.append(f"Orders were not staged: {staging.get('error') or staging.get('status') or 'declined'}.")
+        lines.append(
+            f"Orders were not staged: {staging.get('error') or staging.get('status') or 'declined'}."
+        )
     policy = f.get("policy_context", [])
     if policy:
         lines += ["", "POLICY CONTEXT", ""]
@@ -615,7 +634,9 @@ def is_retryable(exc: BaseException) -> bool:
     if isinstance(status, int):
         return status in RETRYABLE_STATUS or status >= 500
     name = type(exc).__name__
-    return name in {"APIConnectionError", "APITimeoutError"} or isinstance(exc, (ConnectionError, TimeoutError))
+    return name in {"APIConnectionError", "APITimeoutError"} or isinstance(
+        exc, (ConnectionError, TimeoutError)
+    )
 
 
 class AnthropicLLMClient(LLMClient):
@@ -639,6 +660,7 @@ class AnthropicLLMClient(LLMClient):
     ) -> None:
         self.pins = load_pins()
         self.model = self.pins.require(model or self.pins.for_purpose("narrative").model)
+        self._explicit_model = model  # None: each purpose uses its own pinned model
         self.max_retries = max_retries
         self.timeout_s = timeout_s
         self.retry_base_delay_s = retry_base_delay_s
@@ -654,12 +676,21 @@ class AnthropicLLMClient(LLMClient):
         self._client = anthropic.AsyncAnthropic(api_key=api_key, max_retries=0, timeout=timeout_s)
 
     def request_kwargs(self, request: LLMRequest) -> dict[str, Any]:
-        """The exact wire shape sent to ``messages.create`` (used by the wire-contract tests)."""
+        """The exact arguments given to the SDK (``messages.parse`` or ``messages.create``).
+
+        Wire rules (asserted on the real HTTP body by ``tests/contract/test_wire_request.py``):
+        no sampling parameters, no forced ``tool_choice``, ``strict: true`` on every tool,
+        adaptive thinking with the pinned effort, ``max_tokens`` from the pin (thinking headroom),
+        and one ``cache_control`` breakpoint on the system block - the last stable block in the
+        tools -> system -> messages render order; the volatile user message comes after it.
+        """
         pin = self.pins.for_purpose(request.purpose)
-        model = self.pins.require(request.model or self.model)
+        model = self.pins.require(request.model or self._explicit_model or pin.model)
         kwargs: dict[str, Any] = {
             "model": model,
-            "system": request.system_prompt,
+            "system": [
+                {"type": "text", "text": request.system_prompt, "cache_control": {"type": "ephemeral"}}
+            ],
             "messages": request.messages,
             "max_tokens": request.max_tokens or pin.max_tokens,
             "thinking": {"type": "adaptive"},
@@ -667,16 +698,37 @@ class AnthropicLLMClient(LLMClient):
             "timeout": self.timeout_s,
         }
         if request.tools:
-            kwargs["tools"] = request.tools
+            kwargs["tools"] = [strict_tool(t) for t in request.tools]
+        if request.output_model is not None:
+            kwargs["output_format"] = request.output_model  # parse() adds output_config.format
         return kwargs
+
+    async def _send(self, kwargs: dict[str, Any]) -> Any:
+        if "output_format" in kwargs:
+            return await self._client.messages.parse(**kwargs)
+        return await self._client.messages.create(**kwargs)
 
     async def complete(self, request: LLMRequest) -> LLMResponse:
         kwargs = self.request_kwargs(request)
         attempt = 0
+        parse_errors: tuple[str, ...] = ()
         while True:
             try:
-                response = await self._client.messages.create(**kwargs)
+                response = await self._send(kwargs)
                 break
+            except ValidationError as exc:
+                # parse() validated the reply and it does not match the schema: hand the agent
+                # an empty structured answer so it runs its one repair (rung 2), not a crash.
+                parse_errors = tuple(f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in exc.errors()[:12])
+                return LLMResponse(
+                    content="",
+                    tool_calls=[],
+                    input_tokens=0,
+                    output_tokens=0,
+                    model=kwargs["model"],
+                    stop_reason="schema_invalid",
+                    parse_errors=parse_errors,
+                )
             except Exception as exc:
                 if attempt >= self.max_retries or not is_retryable(exc):
                     raise
@@ -684,20 +736,38 @@ class AnthropicLLMClient(LLMClient):
                 await asyncio.sleep(self.retry_base_delay_s * (2 ** (attempt - 1)))
         text_parts: list[str] = []
         tool_calls: list[dict[str, Any]] = []
+        parsed: dict[str, Any] | None = None
         for block in response.content:
-            if getattr(block, "type", "") == "text":
+            btype = getattr(block, "type", "")
+            if btype == "text":
                 text_parts.append(block.text)
-            elif getattr(block, "type", "") == "tool_use":
+                out = getattr(block, "parsed_output", None)
+                if out is not None and parsed is None:
+                    parsed = out.model_dump(mode="json") if hasattr(out, "model_dump") else out
+            elif btype == "tool_use":
                 tool_calls.append({"id": block.id, "name": block.name, "arguments": block.input})
+            # thinking / redacted_thinking blocks are not surfaced: the platform never shows reasoning
         details = getattr(response, "stop_details", None)
         if details is not None and not isinstance(details, dict):
             details = {k: getattr(details, k, None) for k in ("type", "category", "explanation")}
+        usage = response.usage
         return LLMResponse(
             content="\n".join(text_parts),
             tool_calls=tool_calls,
-            input_tokens=response.usage.input_tokens,
-            output_tokens=response.usage.output_tokens,
+            input_tokens=usage.input_tokens,
+            output_tokens=usage.output_tokens,
             model=response.model,
             stop_reason=response.stop_reason,
             stop_details=details,
+            parsed=parsed,
+            cache_read_tokens=int(getattr(usage, "cache_read_input_tokens", 0) or 0),
+            cache_write_tokens=int(getattr(usage, "cache_creation_input_tokens", 0) or 0),
+            request_id=getattr(response, "_request_id", None),
         )
+
+
+def strict_tool(tool: dict[str, Any]) -> dict[str, Any]:
+    """A client tool definition with ``strict: true`` and ``additionalProperties: false``."""
+    schema = dict(tool.get("input_schema") or {"type": "object", "properties": {}})
+    schema["additionalProperties"] = False
+    return {**tool, "input_schema": schema, "strict": True}

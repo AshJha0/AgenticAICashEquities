@@ -1,0 +1,22 @@
+{
+  "critic": {
+    "sha256": "bd3df2e774395d8c0b3ba3ea8075a9e8ffa66c21260434b3ed34b3628e352da6",
+    "version": "2"
+  },
+  "planner": {
+    "sha256": "8327e5ca33aa0558f974973c4914227410180d02cb2d108e61dcc311c3158595",
+    "version": "2"
+  },
+  "report": {
+    "sha256": "ebfaac4ca69da17afd6106c4ff7d4d345cfdc3bbfd6a2ce3108cc87eb079489a",
+    "version": "1"
+  },
+  "research_planner": {
+    "sha256": "be03bc38e8b9dccab2d04248268aeaae3a5b0ba593e07ba2a6ed28f81d35acd7",
+    "version": "2"
+  },
+  "research_report": {
+    "sha256": "44b1a056a13ab62b98e449cf2a2f71d0aad7eb338d6396c887a3debef5c9c076",
+    "version": "1"
+  }
+}
