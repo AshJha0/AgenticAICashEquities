@@ -1,7 +1,9 @@
 """``ceap paper ...``: run-day, backfill, report, export, verify (RP). Registered by ``ceap.cli``.
 
-Exit codes: 0 done (or no-op), 2 refused (bad date, gap, paper-auto not allowed), 3 the date is not a
-session in the feed (a weekend or holiday: the scheduled workflow treats this as nothing to do).
+Exit codes: 0 done (or no-op), 2 refused (bad date, gap, paper-auto not allowed), 3 the date is not an
+NYSE session (weekend or holiday: the scheduled workflow treats this as nothing to do), 4 end-of-day
+reconciliation found breaks (nothing committed; the break report is printed and written).
+The kill switch is the environment variable CEAP_PAPER_HALT (its value is the reason).
 """
 
 from __future__ import annotations
@@ -18,6 +20,7 @@ from ceap.paper.ledger import FORWARD_BOOK
 
 EXIT_REFUSED = 2
 EXIT_NO_SESSION = 3
+EXIT_RECONCILIATION = 4
 
 
 def _job(args: argparse.Namespace) -> Any:
@@ -26,7 +29,8 @@ def _job(args: argparse.Namespace) -> Any:
 
     cfg = load_config(args.config)
     db = Database(args.db or cfg.db_path)
-    return PaperJob(db, cfg, allow_paper_auto=getattr(args, "allow_paper_auto", False)), db
+    return PaperJob(db, cfg, allow_paper_auto=getattr(args, "allow_paper_auto", False),
+                    report_dir=getattr(args, "report_dir", None)), db
 
 
 def _cmd_paper(args: argparse.Namespace) -> int:
@@ -37,7 +41,12 @@ def _cmd_paper(args: argparse.Namespace) -> int:
         in_sample_sharpe_from_backtest,
         verify_csv,
     )
-    from ceap.paper.job import PaperAutoRefusedError, PaperJobError
+    from ceap.paper.job import (
+        NotASessionError,
+        PaperAutoRefusedError,
+        PaperJobError,
+        PaperReconciliationError,
+    )
 
     if args.paper_command == "verify-csv":
         rep_csv = verify_csv(args.csv)
@@ -46,11 +55,6 @@ def _cmd_paper(args: argparse.Namespace) -> int:
     job, db = _job(args)
     try:
         if args.paper_command == "run-day":
-            try:
-                job.panel.index_of(args.date)
-            except KeyError:
-                print(f"{args.date}: not a session in feed {job.panel.name}; nothing to do ({LABEL})")
-                return EXIT_NO_SESSION
             outcomes = job.run_day(args.date)
         elif args.paper_command == "backfill":
             outcomes = job.backfill(args.date_from, args.date_to, args.book)
@@ -72,6 +76,13 @@ def _cmd_paper(args: argparse.Namespace) -> int:
             rec = job.ledger.reconcile(args.book)
             print(json.dumps({"chain": asdict(rep_v), "reconciliation": rec}, default=str))
             return 0 if rep_v.ok and rec["ok"] else 1
+    except NotASessionError as exc:
+        print(f"{exc}; nothing to do ({LABEL})")
+        return EXIT_NO_SESSION
+    except PaperReconciliationError as exc:
+        print(f"RECONCILIATION FAILED: {exc}", file=sys.stderr)
+        print(json.dumps(exc.report, indent=2, default=str), file=sys.stderr)
+        return EXIT_RECONCILIATION
     except (PaperJobError, PaperAutoRefusedError) as exc:
         print(f"refused: {exc}", file=sys.stderr)
         return EXIT_REFUSED
@@ -97,6 +108,7 @@ def register(sub: Any) -> None:
     rd.add_argument("--date", required=True)
     rd.add_argument("--allow-paper-auto", action="store_true",
                     help="let the paper-auto principal decide outside CEAP_ENV=dev (audited)")
+    rd.add_argument("--report-dir", default=None, help="per-run markdown/JSON artefacts (default: config)")
     common(rd)
     bf = psub.add_parser("backfill", help="simulate a date range into a simulated book (never the forward record)")
     bf.add_argument("--from", dest="date_from", required=True)

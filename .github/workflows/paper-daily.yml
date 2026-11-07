@@ -58,7 +58,7 @@ jobs:
           D="${{ github.event.inputs.date }}"
           D="${D:-$(date -u +%F)}"
           set +e
-          ceap paper run-day --date "$D" --db forward-log/paper.db --allow-paper-auto
+          ceap paper run-day --date "$D" --db forward-log/paper.db --allow-paper-auto --report-dir forward-log/reports
           rc=$?
           set -e
           if [ "$rc" = "3" ]; then echo "not a session: nothing to record"; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0; fi
@@ -74,6 +74,6 @@ jobs:
         if: steps.run.outputs.skip != '1'
         run: |
           cd forward-log
-          git add paper.db forward_log.csv REPORT.txt
+          git add paper.db forward_log.csv REPORT.txt reports
           git commit -m "paper: forward log $(tail -n 1 forward_log.csv | cut -d, -f1) (paper, not trading)" || exit 0
           git push origin forward-log

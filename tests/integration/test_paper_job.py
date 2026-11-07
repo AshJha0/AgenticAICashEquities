@@ -127,7 +127,7 @@ def test_target_uses_no_future_rows(feed):
 
 def test_cli_run_day_report_export_verify(tmp_path, capsys):
     db = str(tmp_path / "p.db")
-    assert main(["paper", "run-day", "--date", "2026-11-13", "--db", db]) == 0
+    assert main(["paper", "run-day", "--date", "2026-11-13", "--db", db, "--report-dir", str(tmp_path / "r")]) == 0
     assert main(["paper", "run-day", "--date", "2026-11-14", "--db", db]) == 3  # a Saturday
     assert main(["paper", "run-day", "--date", "2026-11-06", "--db", db]) == 2  # before the forward start
     assert main(["paper", "verify", "--db", db]) == 0

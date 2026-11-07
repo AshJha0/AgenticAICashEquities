@@ -41,6 +41,7 @@ from ceap.analytics.backtest import (
     PositionCaps,
 )
 from ceap.paper.feed import MarketPanel
+from ceap.paper.pretrade import RiskLimits
 
 EPS = 1e-9
 
@@ -53,7 +54,8 @@ class FillParams:
     cost_multiplier: float = 1.0
     fee_per_share: float = 0.0  # the backtest charges no explicit fees; 0 by default, stated
     min_fee: float = 0.0
-    order_ttl_days: int = 5
+    order_ttl_days: int = 0  # 0: work until filled or replaced (the backtest's working-order convention)
+    risk: RiskLimits = field(default_factory=RiskLimits)
 
     def borrow_daily(self, tier: str) -> float:
         if not self.financing.enabled:
@@ -74,10 +76,17 @@ class OpenOrder:
     quantity: float  # signed remaining shares
     staged_date: str
     age: int = 0  # sessions it has been eligible to fill
+    staging_id: str = ""
+    approval_id: str = ""
+    decision_price: float = 0.0
 
     def to_json(self) -> dict[str, Any]:
         return {"order_id": self.order_id, "symbol": self.symbol, "quantity": self.quantity,
-                "staged_date": self.staged_date, "age": self.age}
+                "staged_date": self.staged_date, "age": self.age, "staging_id": self.staging_id,
+                "approval_id": self.approval_id, "decision_price": self.decision_price}
+
+    def trace(self) -> dict[str, Any]:
+        return {"staging_id": self.staging_id, "approval_id": self.approval_id}
 
 
 @dataclass
@@ -87,6 +96,8 @@ class BookState:
     positions: dict[str, float] = field(default_factory=dict)
     marks: dict[str, float] = field(default_factory=dict)
     orders: dict[str, OpenOrder] = field(default_factory=dict)  # one live order per symbol
+    target: dict[str, float] = field(default_factory=dict)  # shares targeted at the last rebalance
+    waived: dict[str, float] = field(default_factory=dict)  # target quantity knowingly given up since then
     equity: float = 0.0
     day_index: int = -1
     first_index: int = -1
@@ -100,6 +111,7 @@ class BookState:
         return BookState(
             capital=self.capital, cash=self.cash, positions=dict(self.positions), marks=dict(self.marks),
             orders={k: OpenOrder(**v.to_json()) for k, v in self.orders.items()}, equity=self.equity,
+            target=dict(self.target), waived=dict(self.waived),
             day_index=self.day_index, first_index=self.first_index, last_date=self.last_date,
         )
 
@@ -111,6 +123,7 @@ class BookState:
             "capital": self.capital, "cash": self.cash,
             "positions": dict(sorted(self.positions.items())), "marks": dict(sorted(self.marks.items())),
             "orders": [o.to_json() for _, o in sorted(self.orders.items())],
+            "target": dict(sorted(self.target.items())), "waived": dict(sorted(self.waived.items())),
             "equity": self.equity, "day_index": self.day_index, "first_index": self.first_index,
             "last_date": self.last_date,
         }
@@ -122,6 +135,8 @@ class BookState:
             positions={k: float(v) for k, v in d["positions"].items()},
             marks={k: float(v) for k, v in d["marks"].items()},
             orders={o["symbol"]: OpenOrder(**o) for o in d["orders"]},
+            target={k: float(v) for k, v in d.get("target", {}).items()},
+            waived={k: float(v) for k, v in d.get("waived", {}).items()},
             equity=float(d["equity"]), day_index=int(d["day_index"]), first_index=int(d["first_index"]),
             last_date=str(d["last_date"]),
         )
@@ -168,6 +183,10 @@ def simulate_day(
         o = st.orders.get(sp.symbol)
         if o is not None:
             o.quantity *= sp.ratio
+            o.decision_price /= sp.ratio
+        for book_map in (st.target, st.waived):
+            if sp.symbol in book_map:
+                book_map[sp.symbol] *= sp.ratio
         ev.append(_event("split", sp.symbol, quantity=q * sp.ratio - q, ratio=sp.ratio))
 
     # 2. financing on the previous close's book
@@ -192,6 +211,16 @@ def simulate_day(
         if _finite(p):
             mark_pnl += st.positions[sym] * (p - st.marks[sym])
             st.marks[sym] = p
+    signal_pnl = 0.0  # P&L the targeted shares would have made over the session
+    if i > 0:
+        for sym, t in st.target.items():
+            j = sym_col[sym]
+            p_now, p_prev = float(panel.close[i, j]), float(panel.close[i - 1, j])
+            for sp in panel.splits_on(i):
+                if sp.symbol == sym:
+                    p_prev /= sp.ratio
+            if _finite(p_now) and _finite(p_prev):
+                signal_pnl += t * (p_now - p_prev)
     if st.positions:
         ev.append(_event("mark", cash_delta=0.0, pnl=mark_pnl))
     for sym in sorted(st.positions):
@@ -201,6 +230,7 @@ def simulate_day(
             ev.append(_event("delist", sym, quantity=-q, price=st.marks[sym], cash_delta=q * st.marks[sym],
                              convention="cash out at the last mark (merger)"))
             st.cash += q * st.marks.pop(sym)
+            st.waived[sym] = st.waived.get(sym, 0.0) + q  # the target can no longer be held
 
     # 4. fills at today's close
     traded = costs = 0.0
@@ -211,16 +241,31 @@ def simulate_day(
         o.age += 1
         j = sym_col[sym]
         if not panel.members[i, j]:
-            ev.append(_event("cancel", sym, quantity=o.quantity, order_id=o.order_id, reason="not_a_member"))
+            ev.append(_event("cancel", sym, quantity=o.quantity, order_id=o.order_id, reason="not_a_member",
+                             **o.trace()))
+            st.waived[sym] = st.waived.get(sym, 0.0) + o.quantity
             del st.orders[sym]
             continue
         p = float(panel.close[i, j])
         if not _finite(p):
             ev.append(_event("reject", sym, quantity=o.quantity, order_id=o.order_id, reason="missing_price",
-                             carried=o.quantity))
+                             carried=o.quantity, **o.trace()))
+            continue
+        if o.decision_price > 0 and abs(p / o.decision_price - 1.0) > params.risk.fill_price_band:
+            ev.append(_event("cancel", sym, quantity=o.quantity, order_id=o.order_id, reason="price_band",
+                             price=p, decision_price=o.decision_price, **o.trace()))
+            st.waived[sym] = st.waived.get(sym, 0.0) + o.quantity
+            del st.orders[sym]
             continue
         q = st.positions.get(sym, 0.0)
         want = o.quantity
+        if q + want < min(q, 0.0) - EPS and params.risk.is_htb(sym, panel.tiers[j]):
+            blocked = min(q, 0.0) - (q + want)
+            ev.append(_event("reject", sym, quantity=-blocked, order_id=o.order_id, reason="hard_to_borrow",
+                             **o.trace()))
+            st.waived[sym] = st.waived.get(sym, 0.0) - blocked
+            want = min(q, 0.0) - q
+            o.quantity = want
         if want < 0 and params.financing.enabled and params.financing.ssr and i > 0:
             prev = float(panel.close[i - 1, j])
             for sp in panel.splits_on(i):
@@ -232,7 +277,8 @@ def simulate_day(
                 if q + want < floor - EPS:
                     blocked = floor - (q + want)
                     ev.append(_event("reject", sym, quantity=-blocked, order_id=o.order_id, reason="ssr",
-                                     low=low, prev_close=prev))
+                                     low=low, prev_close=prev, **o.trace()))
+                    st.waived[sym] = st.waived.get(sym, 0.0) - blocked
                     want = floor - q
                     o.quantity = want
         if abs(want) <= EPS:
@@ -241,7 +287,8 @@ def simulate_day(
         adv = float(panel.adv_20[i, j])
         cap = params.caps.max_participation * adv if np.isfinite(adv) and adv > 0 else 0.0
         if cap <= 0:
-            ev.append(_event("reject", sym, quantity=want, order_id=o.order_id, reason="no_adv", carried=want))
+            ev.append(_event("reject", sym, quantity=want, order_id=o.order_id, reason="no_adv", carried=want,
+                             **o.trace()))
             continue
         x = math.copysign(min(abs(want), cap), want)
         part = abs(x) / adv
@@ -252,7 +299,7 @@ def simulate_day(
             cost += max(abs(x) * params.fee_per_share, params.min_fee)
         carried = want - x
         ev.append(_event("fill", sym, quantity=x, price=p, cash_delta=-x * p - cost, cost=cost,
-                         order_id=o.order_id, participation=part, cost_bps=bps, carried=carried))
+                         order_id=o.order_id, participation=part, cost_bps=bps, carried=carried, **o.trace()))
         st.cash += -x * p - cost
         st.positions[sym] = q + x
         st.marks[sym] = p
@@ -269,8 +316,10 @@ def simulate_day(
     # 5. expiry
     for sym in sorted(st.orders):
         o = st.orders[sym]
-        if o.age >= params.order_ttl_days:
-            ev.append(_event("cancel", sym, quantity=o.quantity, order_id=o.order_id, reason="expired"))
+        if params.order_ttl_days and o.age >= params.order_ttl_days:
+            ev.append(_event("cancel", sym, quantity=o.quantity, order_id=o.order_id, reason="expired",
+                             **o.trace()))
+            st.waived[sym] = st.waived.get(sym, 0.0) + o.quantity
             del st.orders[sym]
 
     prev_equity = state.equity
@@ -300,5 +349,9 @@ def simulate_day(
         "daily_return": eq / prev_equity - 1.0 if prev_equity > 0 else 0.0,
         "n_positions": len(st.positions),
         "open_orders": len(st.orders),
+        "attribution": {  # signal + drift + financing - borrow - costs = equity change
+            "signal": signal_pnl, "drift": mark_pnl - signal_pnl, "financing": interest, "borrow": -borrow,
+            "costs": -costs,
+        },
     }
     return DayResult(ev, st, snapshot)

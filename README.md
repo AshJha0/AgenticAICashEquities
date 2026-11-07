@@ -363,7 +363,9 @@ ceap paper backfill --from 2026-06-01 --to 2026-10-30 --db var/paper/paper.db
 ```
 
 The feed is synthetic today (scenario R01, re-dated so its out-of-sample rows are the forward
-period). A free daily feed plugs in through `ceap.paper.feed.register_feed`. The scheduled workflow
+period). Desk controls run every session: pre-trade risk checks, a kill switch (`CEAP_PAPER_HALT`),
+borrow availability, the NYSE calendar, an end-of-day reconciliation that fails loudly, P&L
+attribution and a markdown/JSON artefact per run. A free daily feed plugs in through `ceap.paper.feed.register_feed`. The scheduled workflow
 `paper-daily.yml` is off until the owner sets `PAPER_DAILY_ENABLED=true`. See COOKBOOK recipe 42 and
 LEARN section 18a.
 

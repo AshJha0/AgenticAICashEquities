@@ -27,6 +27,15 @@ paper, synthetic or free daily data, not trading. No order leaves the process; n
 - `.github/workflows/paper-daily.yml`: scheduled after the US close, appends to branch `forward-log`;
   disabled until the repository variable `PAPER_DAILY_ENABLED` is `true`.
 
+- **Desk controls (daily frequency).** Pre-trade checks on every staged order (restricted list,
+  per-name and gross limits, max 25 % of ADV per order, fat-finger price band at staging and at fill),
+  blocked and audited; kill switch `CEAP_PAPER_HALT`; hard-to-borrow names cannot increase a short;
+  NYSE calendar (no run on holidays, half days flagged); end-of-day reconciliation with a break report
+  (ledger vs fills, target vs actual drift) that fails the run (exit 4, nothing committed); daily P&L
+  attribution (signal, drift, financing, borrow, costs); a markdown and JSON artefact per session; every
+  order and fill carries its staging and approval ids.
+- Capped fills keep working at the cap until filled or replaced (the `rf-data` backtest convention).
+
 #### Changed
 - Schema version 3. `tests/unit/test_r4_persistence.py` now asserts `LATEST_VERSION >= 2`.
 

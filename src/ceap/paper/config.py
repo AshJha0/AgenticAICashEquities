@@ -12,6 +12,7 @@ from typing import Any
 from ceap.analytics.backtest import CostModel, FinancingModel, PositionCaps
 from ceap.analytics.signals import get_signal
 from ceap.paper.fills import FillParams
+from ceap.paper.pretrade import RiskLimits
 
 DEFAULT_PATH = Path(__file__).resolve().parents[3] / "config" / "paper.json"
 
@@ -29,12 +30,14 @@ class PaperConfig:
     top_fraction: float = 1 / 3
     weighting: str = "equal"
     fractional_shares: bool = False
-    order_ttl_days: int = 5
+    order_ttl_days: int = 0
     cost_multiplier: float = 1.0
     fee_per_share: float = 0.0
     min_fee: float = 0.0
     in_sample_sharpe: float | None = None
     db_path: str = "var/paper/paper.db"
+    report_dir: str | None = None  # per-run markdown and JSON artefacts; config/paper.json sets one
+    risk: dict[str, Any] | None = None  # RiskLimits fields (see ceap.paper.pretrade)
 
     def __post_init__(self) -> None:
         date.fromisoformat(self.forward_start)
@@ -50,7 +53,7 @@ class PaperConfig:
         return FillParams(
             costs=CostModel(), financing=financing or FinancingModel(), caps=PositionCaps(),
             cost_multiplier=self.cost_multiplier, fee_per_share=self.fee_per_share, min_fee=self.min_fee,
-            order_ttl_days=self.order_ttl_days,
+            order_ttl_days=self.order_ttl_days, risk=RiskLimits.from_json(self.risk),
         )
 
     def with_(self, **kw: Any) -> PaperConfig:

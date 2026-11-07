@@ -664,6 +664,14 @@ ceap paper export  --db var/paper/paper.db --out forward_log.csv
 ceap paper backfill --from 2026-06-01 --to 2026-10-30 --db var/paper/paper.db  # simulated log only
 ```
 
+Each session writes `var/paper/reports/<book>/<date>.md` and `.json`: P&L attribution (signal,
+drift, financing, borrow, costs), fills with their staging and approval ids, every reject, cancel and
+risk block, and the reconciliation. Stop all new orders with `CEAP_PAPER_HALT="reason" ceap paper
+run-day ...`: working orders are cancelled and the reason is logged. Limits (restricted and
+hard-to-borrow lists, per-name and gross caps, % ADV, price bands, drift tolerance) live under `risk` in
+`config/paper.json`. Exit codes: 3 not a session (holiday or weekend), 4 reconciliation break (nothing
+committed; the break report is printed).
+
 Outside `CEAP_ENV=dev`, add `--allow-paper-auto` to let the `paper-auto` principal approve the
 staging; the decision is written to the audit log either way. Change the signal, capital or costs in
 `config/paper.json`. Never move `forward_start` earlier.

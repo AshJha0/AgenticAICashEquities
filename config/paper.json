@@ -11,10 +11,23 @@
   "top_fraction": 0.3333333333333333,
   "weighting": "equal",
   "fractional_shares": false,
-  "order_ttl_days": 5,
+  "order_ttl_days": 0,
   "cost_multiplier": 1.0,
   "fee_per_share": 0.0,
   "min_fee": 0.0,
   "in_sample_sharpe": null,
-  "db_path": "var/paper/paper.db"
+  "db_path": "var/paper/paper.db",
+  "report_dir": "var/paper/reports",
+  "risk": {
+    "max_name_weight": 0.1,
+    "max_gross": 1.05,
+    "max_order_adv": 0.25,
+    "price_band": 0.25,
+    "fill_price_band": 0.25,
+    "restricted": [],
+    "hard_to_borrow": [],
+    "htb_tiers": [],
+    "drift_tolerance": 0.005
+  },
+  "_comment_ttl": "order_ttl_days 0: a capped order keeps working at the cap until filled or replaced (the backtest's working-order convention)"
 }
