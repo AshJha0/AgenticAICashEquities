@@ -128,10 +128,14 @@ def evaluate_hypotheses(
 def _evidence_for(
     name: str, findings: Sequence[Finding], attribution_evidence_id: str | None
 ) -> tuple[str, ...]:
+    """The specialists' own evidence for ``name`` (market data for volatility, engineering telemetry
+    for latency); the quant agent's synthesis findings only when no specialist asserted the anomaly.
+    The attribution record is always included."""
+    asserting = [f for f in findings if f.attributes.get("anomaly") == name and f.attributes.get("role") != "rejected"]
+    specialists = [f for f in asserting if f.produced_by != "quant"] or asserting
     out: list[str] = []
-    for f in findings:
-        if f.attributes.get("anomaly") == name and f.attributes.get("role") != "rejected":
-            out.extend(e for e in f.supporting_evidence if e not in out)
+    for f in specialists:
+        out.extend(e for e in f.supporting_evidence if e not in out)
     if attribution_evidence_id and attribution_evidence_id not in out:
         out.append(attribution_evidence_id)
     return tuple(out)
