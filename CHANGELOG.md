@@ -6,6 +6,13 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+## [0.7.0] - 2026-11-08
+
+R5 (real-data momentum study, published VOID) and RP (paper trading with desk controls) of the
+2026-11-07 plan, shipped as one combined PR; the CI run that gates the tag is linked from that PR.
+The paper forward log runs on synthetic data; the real Stooq feed exists but stays off (holdout unspent).
+Final release docs pass, with every number sourced and labelled by evidence class.
+
 ### R5: real-data momentum study (PLAN items 5.1-5.5, published VOID)
 
 - R5 5.1: preregistration of the 12-1 momentum study (`docs/research/prereg_momentum_2026-11.md`), second-read and committed with its SHA-256 in `docs/research/prereg_lock.json` before any price data was read; every price loader refuses to run on a hash mismatch or past 2023-12-31 (the pseudo-holdout).
