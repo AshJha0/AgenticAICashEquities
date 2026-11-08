@@ -47,3 +47,29 @@ def test_recorded_cassettes_survive_ulp_noise():
         for it in json.loads(path.read_text(encoding="utf-8"))["interactions"]:
             noisy = json.loads(_nudge(json.dumps(it["request"])))
             assert request_sha256(noisy, it["match"]) == it["request_sha256"], (path.name, it["purpose"])
+
+
+def test_evidence_digests_are_masked_in_the_match_key():
+    def body(digest: str) -> dict:
+        return {"messages": [{"role": "user", "content": json.dumps({"digest": digest, "v": 1.5})}]}
+
+    assert request_sha256(body("621a038335a6874f")) == request_sha256(body("a0721544bcad0059"))
+    assert request_sha256({"digest": "621a038335a6874f"}) == request_sha256({"digest": "a0721544bcad0059"})
+
+
+def test_python_311_float_summation_keeps_the_cassettes_matching(monkeypatch):
+    """Python 3.12 made sum() of floats compensated; 3.11 adds left to right. CI runs both."""
+    import builtins
+
+    def left_to_right(items, start=0):
+        total = start
+        for x in items:
+            total = total + x
+        return total
+
+    monkeypatch.setattr(builtins, "sum", left_to_right)
+    # the full adapter replay under 3.11-style summation is exercised by CI's 3.11 job; here we
+    # check the property it relies on: last-digit drift and its digest never change the key
+    a = {"c": json.dumps({"is_delta_bps": -3.6534604603646805, "digest": "621a038335a6874f"})}
+    b = {"c": json.dumps({"is_delta_bps": -3.6534604603646823, "digest": "a0721544bcad0059"})}
+    assert request_sha256(a) == request_sha256(b)

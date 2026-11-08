@@ -283,3 +283,25 @@ never by the plan — see §3.6 and `docs/DIAGRAMS.md` §9.
   the governance tail with its approval gates. New signal: add a `SignalSpec` to
   `ceap.analytics.signals`; new research scenario: add a template with ground truth to
   `ceap.data.research_scenarios` and it joins the research evaluation (30 scenarios since 0.4.0).
+
+## Paper trading (RP)
+
+```
+ signal (rows <= D) -> target -> deltas -> QueuedApprovalGateway (paper-auto, audited)
+                                              |
+                                  staged_orders (PAPER_RESEARCH)
+                                              |
+ DailyFeed (synthetic | free daily) -> simulate_day(D+1): splits, financing, mark, fills, expiry
+                                              |
+                 paper_ledger (hash chain) + paper_days + paper_forward_log | paper_simulated_log
+                                              |
+                       paper report / export (CSV, schema_version) -> forward-log branch
+```
+
+paper, synthetic or free daily data, not trading. One SQLite transaction per session.
+
+Today the feed is `synthetic`. `ceap.paper.feeds_real` (feed `"stooq"`) reads the local Stooq
+cache with R5 point-in-time membership, lagged 20-day ADV and the R5 spread schedule, and refuses
+any row up to 2025-12-31 (the unspent R5 pseudo-holdout). No cache exists, so it is not enabled;
+with the 12-month formation window, January 2027 is the earliest real-price start. The forward log
+tests operations and controls, not profitability.

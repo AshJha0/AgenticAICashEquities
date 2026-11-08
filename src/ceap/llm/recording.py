@@ -85,6 +85,9 @@ def canonical_json(value: Any) -> bytes:
 
 
 MATCH_SIG_DIGITS = 9
+# Evidence digests hash raw (unrounded) tool output, so they move with the same last-ulp noise (and
+# with Python 3.11 vs 3.12 float summation); digest integrity is covered by the evidence tests.
+_DIGEST = re.compile(r'(\\?"digest\\?":\s*\\?")[0-9a-f]{8,64}(?=\\?")')
 _DECIMAL = re.compile(r"(?<![\w.])-?\d+\.\d+(?:[eE][-+]?\d+)?(?![\w.])")
 
 
@@ -98,16 +101,17 @@ def _round_floats(value: Any) -> Any:
     """Floats to ``MATCH_SIG_DIGITS`` significant digits, recursively.
 
     Request bodies carry raw tool output (for example TCA metrics), as JSON numbers and as decimal
-    literals inside prompt text, whose last-ulp digits differ across OS and BLAS builds. The match key
-    rounds both so a cassette recorded on one OS replays on another; the stored body and the request
+    literals inside prompt text, whose last-ulp digits differ across OS and BLAS builds and between
+    Python 3.11 and 3.12 float summation. The match key rounds both, and masks evidence digests of
+    those values, so a cassette recorded on one OS replays on another; the stored body and the request
     sent on the wire stay exact.
     """
     if isinstance(value, str):
-        return _DECIMAL.sub(_round_literal, value)
+        return _DECIMAL.sub(_round_literal, _DIGEST.sub(r"\g<1><digest>", value))
     if isinstance(value, float):
         return float(f"{value:.{MATCH_SIG_DIGITS}g}") if math.isfinite(value) else value
     if isinstance(value, dict):
-        return {k: _round_floats(v) for k, v in value.items()}
+        return {k: ("<digest>" if k == "digest" else _round_floats(v)) for k, v in value.items()}
     if isinstance(value, list | tuple):
         return [_round_floats(v) for v in value]
     return value

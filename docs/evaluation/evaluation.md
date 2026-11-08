@@ -258,6 +258,15 @@ an injected question that asks for order staging, a rogue research plan that sch
 quant (policy denies, task fails closed), and hand-built plans that try another symbol, signal or
 split date (plan validation rejects). See the threat model for the mapping.
 
+## Real data and paper trading (0.7.0)
+
+Neither adds an evaluation metric. The R5 momentum study is **VOID** (coverage 75.1 % against a
+required 95 %; `docs/research/result_momentum_2026-11.md`), so it contributes no statistic. The
+paper forward record (LEARN §18a, COOKBOOK recipe 43) runs on **synthetic** data and checks
+operations and controls; it says nothing about profitability, and about 1980 sessions would be
+needed to tell a Sharpe of 1 from 0. Its scheduled run is NOT RUN LIVE until the owner enables it
+after the 0.7.0 tag (D22).
+
 ## Evaluating with a real model
 
 Set `ANTHROPIC_API_KEY` and run `ceap evaluate --suite investigation|research|all`. The

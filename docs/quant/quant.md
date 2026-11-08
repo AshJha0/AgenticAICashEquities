@@ -295,7 +295,8 @@ D5); the per-scenario table is in the CHANGELOG.
 its binomial band (50 seeds on PR, 500 nightly).
 
 Thresholds are calibrated on synthetic data. On real return history they would need
-recalibration and version control like any other code; R5 runs one preregistered real-data test.
+recalibration and version control like any other code; R5 ran one preregistered real-data test
+(VOID, see [`real-data-and-paper.md`](real-data-and-paper.md)).
 
 ## What is *not* here
 
@@ -312,8 +313,8 @@ recalibration and version control like any other code; R5 runs one preregistered
   synthetic data. `execution.stage_orders` (the one non-read-only tool in the whole platform)
   builds *paper* orders from the recomputed target portfolio into an in-memory store; nothing
   routes anywhere.
-- **No machine learning.** See `docs/ai-agents/ai-agents.md` — the `ml` extra in `pyproject.toml`
-  is unused by any code path today.
+- **No ML trained on real data.** Since 0.6.0 the models in `ceap.ml` are fitted only to the
+  scenario generator; see `docs/ml/README.md`.
 
 ## Further reading
 

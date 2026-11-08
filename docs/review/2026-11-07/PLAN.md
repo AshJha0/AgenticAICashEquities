@@ -43,9 +43,9 @@ Revised 2026-11-07 by owner instruction (maximum parallelism, one combined PR pe
 |---|---|---|
 | 0.4.0 | R0 foundations + R1 fail-closed + R2 quant correctness (combined, owner 2026-11-07) | shipped 2026-11-07 (PR #1) |
 | 0.5.0 | R2T TCA realism + R4 platform and persistence + Ken French rf series | shipped 2026-11-08 (PRs #2, #3) |
-| 0.6.0 | R3 AI (3A, 3B, 3C, 3E) + R2B ML | |
-| 0.7.0 | R5 real-data study (VOID under its preregistration: coverage 75.1 % < 95 %) + RP paper trading | |
-| 1.0.0-rc1 | only when API and database schema are frozen; not planned here | |
+| 0.6.0 | R3 AI (3A, 3B, 3C, 3E) + R2B ML | shipped 2026-11-08 (PR #4) |
+| 0.7.0 | R5 real-data study (VOID under its preregistration: coverage 75.1 % < 95 %) + RP paper trading | final planned release (combined PR) |
+| 1.0.0-rc1 | only when API and database schema are frozen; not planned here (D21) | |
 
 ## 2. Rounds, items, estimates
 
@@ -249,6 +249,39 @@ only and says so.
 
 R5: 58 h, about 7 plan-days, 3 wall-clock days plus download time. Ships in 0.7.0 with RP paper trading.
 
+Status (2026-11-07): items 5.1 to 5.5 are done on branch `r5-real-data`. The study is **VOID** by owner
+decision. Free point-in-time coverage was 75.1 % against a required 95 %, and the Stooq cross-check
+was not run because Stooq serves a bot check to scripts (D2). Items 5.6 and 5.7 were not run, no test
+statistic was computed, and the pseudo-holdout is unspent. A future attempt needs delisting-aware
+prices and a new preregistration. See `docs/research/result_momentum_2026-11.md`.
+
+### RP: paper trading. Branch `rp-paper`. 0.7.0
+
+Requested by the owner on 2026-11-07. Needs R4 (persistence, approvals, audit log); the real feed
+comes from R5 at integration. Daily frequency, paper only: no broker, no order leaves the process, no
+paid data, no model in the daily job. Every output is labelled "paper, synthetic or free daily data,
+not trading". Detail and conventions: `RP_PLAN.md`.
+
+| Id | Item | Files | Effort | Decision | Done when |
+|---|---|---|---|---|---|
+| RP.1 | Simulated fill engine: next-session close (t+1), participation cap with working orders, imported backtest costs, rejects (missing price, non-member, SSR), splits | `paper/fills.py`, `paper/feed.py` | 6 h | none | Cap, carry, reject, SSR and split known answers; costs equal `CostModel` to 1e-12 |
+| RP.2 | Append-only hash-chained ledger (migration 0003), snapshots, reconciliation | `paper/ledger.py`, `migrations/0003_paper.sql` | 6 h | D7 | Hand two-name three-day ledger to 1e-9; tamper breaks the chain at that row |
+| RP.3 | `ceap paper run-day / backfill / report`, idempotent, one transaction per session, same approval gateway, `paper-auto` only in dev or with a flag | `paper/job.py`, `paper/cli.py`, `cli.py` | 7 h | D1 | Re-run no-op; crash then re-run equals uninterrupted; non-dev without flag writes nothing |
+| RP.4 | Forward record kept apart from backfill, Sharpe 95 % CI, minimum days, CSV with `schema_version`, disabled `paper-daily.yml` | `paper/forward.py`, `.github/workflows/paper-daily.yml` | 5 h | none | CI coverage 93 to 97 % over 400 series; workflow guarded by `PAPER_DAILY_ENABLED` |
+| RP.5 | Docs | README, LEARN, COOKBOOK, ARCHITECTURE, CHANGELOG | 2 h | R6 | Banned-word check clean |
+| RP.6 | Equivalence and invariants | `tests/` | 4 h | none | Replay of backtest fills equals backtest NAV within 1e-9 over 60 days; property test 200 examples |
+| RP.7 | Pre-trade risk checks (restricted, per-name, gross, % ADV, fat-finger band), blocked and audited | `paper/pretrade.py` | 5 h | none | One test per rule; HTB book never short |
+| RP.8 | Kill switch `CEAP_PAPER_HALT` | `paper/pretrade.py`, `paper/job.py` | 1 h | none | No staging, working orders cancelled, reason logged |
+| RP.9 | NYSE calendar, no run on non-sessions, half days flagged | `paper/job.py` | 1 h | none | Thanksgiving refused, next day `early_close` |
+| RP.10 | Borrow availability (hard-to-borrow rejects shorts) | `paper/pretrade.py`, `paper/fills.py` | 1 h | none | Short increase blocked at staging and fill |
+| RP.11 | End-of-day reconciliation and break report (ledger vs fills, target vs actual drift), fails loudly | `paper/job.py` | 3 h | none | Injected breaks raise, commit nothing, write the report |
+| RP.12 | Daily P&L attribution (signal, drift, financing, borrow, costs) | `paper/fills.py` | 2 h | none | Hand case; sums to the equity change |
+| RP.13 | Daily report artefact (markdown and JSON) per run | `paper/job.py` | 2 h | none | Written for every session, failed ones too |
+| RP.14 | Every order and fill traceable to staging and approval ids | `paper/fills.py`, `paper/job.py` | 1.5 h | none | Every fill resolves to an APPROVED approval |
+| RP.15 | Desk-control tests and docs | `tests/`, docs | 3 h | none | ruff and mypy clean |
+
+RP: 50 h, about 6 plan-days, 2.5 wall-clock days. Ships in the 0.7.0 combined PR with R5.
+
 ### R6: documentation pass per release (owner rule), not one pass at the end
 
 Every round PR includes its docs pass (README, LEARN, COOKBOOK, ARCHITECTURE, DIAGRAMS, threat model,
@@ -272,9 +305,10 @@ UNKNOWN for live metrics, real-data verdict). `scripts/check_docs.py` (3E.3) enf
 | R2B ML | 36 | 4.5 | 2 | 0.6.0 |
 | R3E evaluation | 24 | 3 | 1.5 | 0.6.0 |
 | R5 real data | 58 | 7 | 3 | 0.7.0 |
+| RP paper trading | 50 | 6 | 2.5 | 0.7.0 |
 | R6 docs (spread) | 31 | 4 | spread | all |
 | Rebase and conflict tax (10 %) | 64 | 8 | spread | all |
-| **Total** | **701.5** | **88** | **about 26 to 30 working days, 6 to 7 calendar weeks** | |
+| **Total** | **751.5** | **94** | **about 26 to 30 working days, 6 to 7 calendar weeks** | |
 
 Critical path: R0 → R1 (+ R2) → 0.4.0 → R3A → R3B → R3E → 0.6.0, about 32 serial plan-days. Beside it:
 R2T and R4 → 0.5.0 → R2B, and R5 + RP → 0.7.0. Originally at most two Claude sessions at once (D17);
@@ -291,8 +325,9 @@ extra usage.
 4. Parallel lanes: R2T on `r2t-tca`, R4 on `r4-platform`, the Ken French rf series. One combined PR,
    tag 0.5.0 (shipped 2026-11-08, PRs #2, #3).
 5. Parallel lanes: R3A, then R3B (R3B builds on R3A); R3C after R3B's reporter change lands; R2B
-   after R2T. Then R3E. One combined PR, tag 0.6.0.
-6. R5 (VOID under its preregistration) and RP paper trading. Tag 0.7.0.
+   after R2T. Then R3E. One combined PR, tag 0.6.0 (shipped 2026-11-08, PR #4).
+6. R5 (VOID under its preregistration) and RP paper trading. Tag 0.7.0. RP (paper trading, `rp-paper`, based on `r4-platform`) ships with R5 in the 0.7.0
+   combined PR; its real-data feed plugs into R5's connector at integration.
 7. Update the memory note with what shipped and what did not.
 
 ## 5. File conflict map (why the order above)
@@ -368,7 +403,7 @@ decision D15 changes.
 - **D13** reversed: no signal-prototyping agent, no sandboxed model-written code in 0.x. Reason: a subprocess with an import allowlist is not a sandbox (numpy and pandas are escape surfaces, no seccomp on Windows), it cannot be exercised without live calls, and it is the largest multiple-testing engine in the project.
 - **D14** (a): Opus 5.5 planner, Sonnet 5.5 narrative and critique, Haiku 5.5 reserved for judge paths, all as pinned configuration exercised only through cassettes and contract tests. Reason: the 0.3.1 live run showed planner quality drives outcomes.
 - **D15** (b): no live model calls. Every model-dependent path is proven offline by wire contract tests, adversarial fake clients, harness invariants and provenance-tagged cassettes; anything that needs a real model is labelled UNKNOWN / NOT RUN LIVE. Reason: owner constraint of zero spend. If the owner later funds a capped run, D15 becomes (a) and nothing else changes.
-- **D16** revised 2026-11-07 (owner: maximum parallelism, one combined PR per release): release train 0.4.0 (R0+R1+R2, shipped 2026-11-07), 0.5.0 (R2T+R4+Ken French rf, shipped 2026-11-08, PRs #2, #3), 0.6.0 (R3A, R3B, R3C, R3E, R2B), 0.7.0 (R5, VOID, + RP paper trading); 1.0.0-rc only when API and database schema are frozen. Reason: fifteen breaking changes in one 0.4.0 cannot be rolled back.
+- **D16** revised 2026-11-07 (owner: maximum parallelism, one combined PR per release): release train 0.4.0 (R0+R1+R2, shipped 2026-11-07), 0.5.0 (R2T+R4+Ken French rf, shipped 2026-11-08, PRs #2, #3), 0.6.0 (R3A, R3B, R3C, R3E, R2B, shipped 2026-11-08, PR #4), 0.7.0 (R5, VOID, + RP paper trading; the final planned release); 1.0.0-rc only when API and database schema are frozen. Reason: fifteen breaking changes in one 0.4.0 cannot be rolled back.
 - **D17** new: at most two Claude sessions in parallel. Reason: the owner reviews about two substantial diffs a day; three sessions outrun the reviewer and inflate the conflict tax. **Superseded** on 2026-11-07 by the owner's max-parallel instruction (as many lanes as useful, one combined PR per release).
 
 ### Owner decisions of 2026-11-08

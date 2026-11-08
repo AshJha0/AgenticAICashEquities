@@ -28,7 +28,7 @@ def _tables(db: Database) -> set[str]:
 
 def test_migrations_are_contiguous_and_latest_is_two():
     assert [m.version for m in load_migrations()] == list(range(1, LATEST_VERSION + 1))
-    assert LATEST_VERSION == 2
+    assert LATEST_VERSION >= 2  # RP adds 0003_paper
 
 
 def test_upgrade_v1_to_v2_passes_and_backs_up_first(tmp_path):
@@ -40,7 +40,7 @@ def test_upgrade_v1_to_v2_passes_and_backs_up_first(tmp_path):
         v1.append_audit("system", "task.created", "TASK-1")
 
     with Database(path) as v2:  # opening with the new code migrates forward
-        assert v2.schema_version() == 2
+        assert v2.schema_version() == LATEST_VERSION
         assert {"llm_calls", "trial_ledger", "idempotency_keys"} <= _tables(v2)
         assert TaskRepository(v2).get("TASK-1")["status"] == "COMPLETED"  # data survived
         assert v2.verify_chain().ok

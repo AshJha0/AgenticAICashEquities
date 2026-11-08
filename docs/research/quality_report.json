@@ -1,0 +1,23 @@
+{
+  "series": 613,
+  "hard_fail_series": [],
+  "series_with_duplicates": 0,
+  "series_unordered": 0,
+  "series_with_stale_runs": 15,
+  "zero_volume_name_days": 8456,
+  "name_days": 2749993,
+  "off_calendar_name_days": 0,
+  "missing_calendar_name_days": 114,
+  "moves_beyond_40pct": 421,
+  "known_splits_pass": {
+    "AAPL 2014-06-09": true,
+    "AAPL 2020-08-31": true
+  },
+  "cross_check": {
+    "secondary_vendor": "stooq",
+    "symbols_with_stooq_file": 0,
+    "common_name_days": 0,
+    "agreement_within_10bps": null,
+    "status": "NOT RUN: no Stooq files in data/real_cache/stooq (Stooq serves a JavaScript browser check to scripts; not bypassed, D2)"
+  }
+}
