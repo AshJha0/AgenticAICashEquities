@@ -6,6 +6,34 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### R3E: evaluation that measures what it can and labels the rest (3E.1-3E.4)
+
+No live model call (D15); every live-only metric is printed `UNKNOWN / NOT RUN LIVE`.
+
+- 3E.1 golden set `tests/golden/golden_set.json` v1.0.0: 30 investigation and 15 research items
+  with expected findings from the scenario specifications (primary cause, must-cite evidence by
+  tool, must-not-claim causes; verdict, must and must-not flags), frozen by an items hash
+  (`ceap.golden`); edits need the `golden-change` label (new CI job) and owner sign-off of 10
+  sampled items (PENDING for 1.0.0).
+- 3E.2 `ceap evaluation-report` (`ceap.evaluation_report`): capability, safety (4 faults x 4
+  invariants), robustness (rungs per fault), cost (labelled local estimate) and live-only rows.
+  Full run (mock LLM): primary accuracy 0.98, coverage 0.98, false-positive rate 0.06, research
+  verdicts 29/30, golden primary 0.9667 and verdicts 1.00, safety invariants 1.00.
+- 3E.3 `docs/evaluation/history.csv` (0.4.0 and 0.5.0 as recorded, 0.6.0 measured),
+  `docs/evaluation/latest.json`, and `scripts/check_docs.py` in CI (annotated numbers vs
+  `latest.json`, landing-page results need a source or UNKNOWN label, the generated table, every
+  documented `ceap` command parses).
+- 3E.4 drift monitors (`ceap.drift`, `tests/contract/test_drift_monitors.py`, own CI step):
+  cassette staleness, RAG recall/MRR floors, golden-set version, cassette models pinned, SDK
+  version vs pin and cassettes; each with a failing fixture.
+
+### 0.6.0 integration
+
+- Merged `r3c-wiring` (R3A, R4, R3C, R3B) and `r2b-ml` on `release-0.5.0`. R2B hooks applied:
+  `run_calibration_evaluation`, one shared `TrialLedger` for the alpha and backtest servers,
+  `ResearchRequest.combine_signals`. Model cards relabelled to the R2T generator hash (model hashes
+  unchanged). Report goldens regenerated; verdicts unchanged.
+
 ### R3C wiring: 3C.3 retrieval in the planner and policy, 3C.4 two-call reporter with citations
 
 Label: `contracts-change` (`domain/evidence.py`: `document_citation`; `LLMResponse.citations`;

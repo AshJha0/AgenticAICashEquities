@@ -304,7 +304,7 @@ cannot talk it out of its job:
 1. Every cited evidence id must resolve; otherwise confidence → 0.1 and the finding is marked
    unsupported.
 2. A finding that asserts an anomaly (`anomaly=WIDE_SPREADS`, say) must be corroborated by
-   the attribution score; otherwise confidence drops by 0.3 and the attribution record is
+   the attribution score; otherwise confidence drops by 0.3 and the attribution record is <!-- source: src/ceap/agents/critic.py -->
    attached as *contradicting* evidence.
 3. Cross-agent contradictions are flagged: quant attributing to technology while engineering
    reports normal latency and no errors caps the quant finding at 0.4.
@@ -432,6 +432,15 @@ Things to be honest about:
 * Hourly IS carries ≈30 bps of drift noise at 10 % vol; that is why `deteriorated` also
   considers VWAP slippage and why the executive summary distinguishes "headline cost improved
   because the price moved" from "execution quality was fine".
+
+**Since 0.6.0: one report, and the rest labelled.** `ceap evaluation-report` prints capability
+(the numbers above plus a frozen 45-item golden set), safety (governance invariants under injected
+faults), robustness (which degradation rung each fault hit) and cost (a labelled local estimate).
+Everything that needs a real model (planner quality, injection resistance, narrative faithfulness,
+refusal rate, latency, cache hit rate, run-to-run variance) prints `UNKNOWN / NOT RUN LIVE`. The
+docs check (`scripts/check_docs.py`) fails CI when a number in the docs does not trace to the
+committed report, and drift monitors fail when cassettes, pins, the SDK or the golden set move.
+See `docs/evaluation/evaluation.md`.
 
 ## 15. Observability and operations
 
@@ -561,9 +570,9 @@ out-of-sample (`REJECT`/`OOS_DECAY`, called `OVERFIT` before 0.4.0), premia eate
 (`REJECT`/`COST_DRAG`), a premium concentrated in four illiquid names (`REJECT`/`CONCENTRATION` +
 `LIMIT_BREACH`), and near-threshold cases that sit right at a gate.
 
-**Evaluated honestly, the same way as §14.** On the 0.3.x 21-scenario set (before the 0.4.0 re-baseline), with the mock model: 21/21 verdicts, 21/21 expected
+**Evaluated honestly, the same way as §14.** On the 0.3.x 21-scenario set (before the 0.4.0 re-baseline), with the mock model: 21/21 verdicts, 21/21 expected <!-- source: CHANGELOG.md -->
 flags covered. Against a real model for the first time — `claude-haiku-4-5` as both planner and
-reporter — verdict accuracy dropped to 19/21: five scenarios came back `INCOMPLETE_ANALYSIS`
+reporter — verdict accuracy dropped to 19/21: five scenarios came back `INCOMPLETE_ANALYSIS` <!-- source: CHANGELOG.md -->
 because the model's plan skipped steps the canonical plan always includes. That's the platform
 working as designed (no crash, a conservative verdict, nothing unresolved) exposing a genuinely
 weak planner, not a platform bug. Giving the planner a stronger model

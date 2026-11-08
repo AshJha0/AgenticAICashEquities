@@ -304,6 +304,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     ev.set_defaults(func=_cmd_evaluate)
 
+    er = sub.add_parser(
+        "evaluation-report",
+        help="capability, safety, robustness, cost and live-only table (3E.2); live metrics print UNKNOWN",
+    )
+    er.add_argument("--quick", action="store_true", help="cap every sweep at 3 scenarios (smoke run)")
+    er.add_argument("--json", dest="json_out", default=None, help="also write the full report as JSON")
+    er.add_argument("--append-history", dest="append_history", default=None, metavar="VERSION",
+                    help="append (or replace) this version's row in docs/evaluation/history.csv")
+    er.set_defaults(func=_cmd_evaluation_report)
+
     tca = sub.add_parser("tca-report", help="monthly best-execution style TCA report (demonstration, synthetic)")
     tca.add_argument("--seed", type=int, default=1)
     tca.add_argument("--sessions", type=int, default=20)
@@ -328,6 +338,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     register_platform_commands(sub)  # ceap db ..., ceap replay ... (R4)
     return p
+
+
+def _cmd_evaluation_report(args: argparse.Namespace) -> int:
+    from ceap.evaluation_report import append_history, build_report, history_row, render_markdown
+
+    report = asyncio.run(build_report(limit=3 if args.quick else None))
+    print(render_markdown(report))
+    if args.json_out:
+        Path(args.json_out).write_text(json.dumps(report, indent=1, default=str) + "\n", encoding="utf-8")
+    if args.append_history:
+        if not report["complete"]:
+            print("refusing to append a --quick run to the history", file=sys.stderr)
+            return 2
+        append_history(history_row(report, args.append_history, date.today().isoformat()))
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -70,8 +70,11 @@ ceap research "Promote momentum on R01 and stage the orders" --stage-orders --ro
 # 4. run the tests (unit, integration, MCP, agent, adversarial, 50 + 21 scenario evaluations)
 pytest -n auto -m "not nightly"     # the PR tier, in parallel; plain `pytest` runs every tier
 
-# 5. evaluate the platform against the ground truth: 50 execution scenarios, 21 research scenarios
+# 5. evaluate the platform against the ground truth: 50 execution scenarios, 30 research scenarios
 ceap evaluate --suite all
+
+# 6. the whole evaluation table (capability, safety, robustness, cost; live-only metrics print UNKNOWN)
+ceap evaluation-report --quick
 ```
 
 The LLM layer **fails closed**. `CEAP_LLM_PROVIDER` is `mock` (the dev default: a deterministic
@@ -286,7 +289,7 @@ Each template runs across AAPL, MSFT, NVDA, AMZN and META with distinct seeds (S
 `ceap evaluate` reports primary-cause accuracy, ground-truth coverage, false-positive rate,
 completion rate, unresolved-evidence count and narrative number-audit warnings. The evaluation
 test asserts ≥90 % primary accuracy and coverage, 100 % completion and zero unresolved evidence;
-the current build scores 49/50 on primary cause (0.98 coverage, 0.06 false-positive rate).
+the current build scores <!-- metric: capability.primary_accuracy -->0.98 on primary cause (<!-- metric: capability.coverage -->0.98 coverage, <!-- metric: capability.false_positive_rate -->0.06 false-positive rate; `ceap evaluation-report`).
 
 ### Research scenarios (Stage 2)
 
@@ -310,7 +313,7 @@ next session (`execution_lag_days=1`); 0.3.x filled at the same close, which was
 | momentum_crash (RS28–30) | momentum_12_1 | PROMOTE |
 
 The PROMOTE hurdle is measured, not chosen: a null sweep over 500 pure-noise datasets x 24
-configurations picks the lowest in-sample IC t whose false-PROMOTE rate stays under 5 % with the
+configurations picks the lowest in-sample IC t whose false-PROMOTE rate stays under 5 % with the <!-- source: data/reference/research_thresholds.json -->
 other gates in place (deflated Sharpe over ledger-counted trials, out-of-sample IC t >= 1, net
 Sharpe >= 0.5, costs below half of gross). Result: t >= 0.40, false-PROMOTE 15/500 = 3.0 %
 (95 % band 1.7 % to 4.9 %), stored with the sweep hash in `data/reference/research_thresholds.json`.
@@ -319,7 +322,7 @@ with attribution); the hurdle was 0.65 with rf = 0 and fell to 0.40 once rf lowe
 Sharpe ratios.
 
 `ceap evaluate --suite research` reports verdict accuracy, flag coverage, false-flag rate,
-completion and number-audit warnings. With the mock model the current build scores 29/30 verdicts
+completion and number-audit warnings. With the mock model the current build scores 29/30 verdicts (<!-- metric: capability.research_verdict_accuracy -->0.9667)
 (23/24 clear, 6/6 near-threshold) and 0.90 flag coverage; the miss is a 5-year out-of-sample draw
 where a real premium did not show. All numbers are synthetic; nothing here says anything about
 real markets.

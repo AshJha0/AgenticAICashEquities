@@ -93,7 +93,9 @@ the layer fails closed and degrades visibly:
     adapter-plus-cassette path give identical harness outputs apart from narrative on the ten
     scenario templates. This is adapter equivalence, never model fidelity.
 
-  Real-model quality is UNKNOWN / NOT RUN LIVE for the 5.5 pins.
+  Real-model quality is UNKNOWN / NOT RUN LIVE for the 5.5 pins. `ceap evaluation-report` prints
+  every live-only metric that way, and drift monitors (`ceap.drift`) fail CI when a cassette, the
+  model pins or the SDK version drift apart.
 
 Three purposes, three call sites:
 
@@ -230,7 +232,7 @@ After the model writes the narrative, two audits run against it before it's trus
 - **Evidence-id audit** (`audit_evidence_ids`) — every `PREFIX-xxxxxxxx` token in the prose must
   be a real `Evidence` record. The regex only matches actual evidence-type prefixes (`ceap.domain
   .evidence._PREFIX`) — it used to also match the approval-request id, which was never meant to
-  resolve as evidence and produced a false positive (fixed in 0.3.1).
+  resolve as evidence and produced a false positive (fixed in 0.3.1). <!-- source: CHANGELOG.md -->
 
 ### Two calls and a span audit (R3C 3C.4)
 
@@ -269,7 +271,7 @@ Every number above was first proven against the offline mock. Running Stage 2 ag
   (`INCOMPLETE_ANALYSIS`) — handled safely by the harness (no crash, a conservative verdict, no
   unresolved evidence), but coverage suffered. Pairing a cheap narrator/critic model
   (`CEAP_LLM_MODEL=claude-haiku-4-5`) with a stronger planner
-  (`CEAP_LLM_PLANNING_MODEL=claude-sonnet-5`) took verdict accuracy from 19/21 back to 21/21 (0.3.x scenario set; 0.4.0 re-baselined to 30 scenarios and has not been run live).
+  (`CEAP_LLM_PLANNING_MODEL=claude-sonnet-5`) took verdict accuracy from 19/21 back to 21/21 (0.3.x scenario set; 0.4.0 re-baselined to 30 scenarios and has not been run live). <!-- source: CHANGELOG.md -->
 - The audit false positives described above.
 
 The lesson generalises past this project: an offline deterministic mock proves the *control
@@ -304,10 +306,10 @@ Regenerate with `python -m ceap.rag.evaluation`:
 | sentence | 0.95 | 0.90 | 0.935 | 1.00 | 1.00 | 1.000 |
 | fixed (450 chars, 150 overlap) | 0.95 | 0.85 | 0.902 | 1.00 | 1.00 | 1.000 |
 
-Section and sentence chunking tie on train (MRR within 0.01); section wins the tie because it
+Section and sentence chunking tie on train (MRR within 0.01); section wins the tie because it <!-- source: data/reference/knowledge/eval.json -->
 yields half the chunks and whole-section citations. With the gate (`DEFAULT_MIN_SUPPORT = 2.4`):
 held-out recall at 3 is 1.00, MRR 1.000, and 0 of 10 negatives return anything. CI floors
-(`tests/unit/test_rag_eval.py`): held-out recall at 3 at least 0.80 and MRR at least 0.70 (with 10
+(`tests/unit/test_rag_eval.py`) floor: held-out recall at 3 at least 0.80 and MRR at least 0.70 (with 10
 held-out queries one miss costs 0.10, so the floor tolerates two misses), train recall at 3 at least
 0.90, every negative empty.
 

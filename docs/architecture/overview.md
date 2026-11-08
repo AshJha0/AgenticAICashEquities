@@ -55,6 +55,12 @@ statistics; `calculate_market_statistics` produces `MarketStatistics`.
 technology, market data, large order, price movement) by comparing a window with its baseline.
 Thresholds live in `Thresholds` and are documented in the evaluation guide.
 
+Evaluation (0.6.0): `ceap.evaluation` runs the scenario sweeps; `ceap.evaluation_report` builds the
+capability / safety / robustness / cost / live-only table and the regression history;
+`ceap.golden` governs the frozen golden set; `ceap.drift` holds the drift monitors (cassettes, RAG
+recall floor, golden version, model pins, SDK version). `scripts/check_docs.py` ties every
+documented number to `docs/evaluation/latest.json`.
+
 **Stage 2** adds a parallel, equally deterministic set for signal research: `signals` (a small
 fixed library — momentum, reversal, low-vol), `signal_statistics` (rank IC via Spearman, t-stat,
 information ratio, rank-autocorrelation turnover, decay, quantile spread — the gate is the

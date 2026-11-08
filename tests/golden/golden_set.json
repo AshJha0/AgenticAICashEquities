@@ -1,0 +1,917 @@
+{
+ "version": "1.0.0",
+ "frozen": "2026-11-08",
+ "authored_from": "scenario specifications (ground truth and expected verdicts); not from platform output",
+ "change_policy": "edits only in a PR labelled golden-change, with a version bump and owner sign-off",
+ "signoff_sample": [
+  "G-INV-01",
+  "G-INV-05",
+  "G-INV-10",
+  "G-INV-14",
+  "G-INV-17",
+  "G-INV-22",
+  "G-INV-28",
+  "G-RES-02",
+  "G-RES-08",
+  "G-RES-13"
+ ],
+ "signoff": {
+  "status": "PENDING",
+  "by": null,
+  "pr": null
+ },
+ "items_sha256": "c9a28cc878191a85504562fe1d51ae6bc94f19c8b9e91f106c4d018efa3f6d09",
+ "items": [
+  {
+   "id": "G-INV-01",
+   "kind": "investigation",
+   "scenario": "S01",
+   "template": "normal_vwap",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "NORMAL"
+   ],
+   "must_mention_tools": [
+    "execution.get_execution_metrics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-02",
+   "kind": "investigation",
+   "scenario": "S02",
+   "template": "normal_vwap",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "NORMAL"
+   ],
+   "must_mention_tools": [
+    "execution.get_execution_metrics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-03",
+   "kind": "investigation",
+   "scenario": "S03",
+   "template": "normal_vwap",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "NORMAL"
+   ],
+   "must_mention_tools": [
+    "execution.get_execution_metrics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-04",
+   "kind": "investigation",
+   "scenario": "S06",
+   "template": "high_volatility",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "MARKET_VOLATILITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-05",
+   "kind": "investigation",
+   "scenario": "S07",
+   "template": "high_volatility",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "MARKET_VOLATILITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-06",
+   "kind": "investigation",
+   "scenario": "S08",
+   "template": "high_volatility",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "MARKET_VOLATILITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-07",
+   "kind": "investigation",
+   "scenario": "S11",
+   "template": "wide_spreads",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "WIDE_SPREADS"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-08",
+   "kind": "investigation",
+   "scenario": "S12",
+   "template": "wide_spreads",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "WIDE_SPREADS"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-09",
+   "kind": "investigation",
+   "scenario": "S13",
+   "template": "wide_spreads",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "WIDE_SPREADS"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-10",
+   "kind": "investigation",
+   "scenario": "S16",
+   "template": "low_liquidity",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LOW_LIQUIDITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_order_book_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-11",
+   "kind": "investigation",
+   "scenario": "S17",
+   "template": "low_liquidity",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LOW_LIQUIDITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_order_book_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-12",
+   "kind": "investigation",
+   "scenario": "S18",
+   "template": "low_liquidity",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LOW_LIQUIDITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_order_book_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-13",
+   "kind": "investigation",
+   "scenario": "S21",
+   "template": "venue_degradation",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "VENUE_DEGRADATION"
+   ],
+   "must_mention_tools": [
+    "execution.get_venue_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-14",
+   "kind": "investigation",
+   "scenario": "S22",
+   "template": "venue_degradation",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "VENUE_DEGRADATION"
+   ],
+   "must_mention_tools": [
+    "execution.get_venue_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-15",
+   "kind": "investigation",
+   "scenario": "S23",
+   "template": "venue_degradation",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "VENUE_DEGRADATION"
+   ],
+   "must_mention_tools": [
+    "execution.get_venue_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-16",
+   "kind": "investigation",
+   "scenario": "S26",
+   "template": "technology_latency",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "TECHNOLOGY_LATENCY"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-17",
+   "kind": "investigation",
+   "scenario": "S27",
+   "template": "technology_latency",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "TECHNOLOGY_LATENCY"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-18",
+   "kind": "investigation",
+   "scenario": "S28",
+   "template": "technology_latency",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "TECHNOLOGY_LATENCY"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-19",
+   "kind": "investigation",
+   "scenario": "S31",
+   "template": "market_data_anomaly",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "MARKET_DATA_ANOMALY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-20",
+   "kind": "investigation",
+   "scenario": "S32",
+   "template": "market_data_anomaly",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "MARKET_DATA_ANOMALY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-21",
+   "kind": "investigation",
+   "scenario": "S33",
+   "template": "market_data_anomaly",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "MARKET_DATA_ANOMALY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-22",
+   "kind": "investigation",
+   "scenario": "S36",
+   "template": "large_parent_order",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LARGE_ORDER_IMPACT"
+   ],
+   "must_mention_tools": [
+    "execution.get_execution_metrics",
+    "execution.get_parent_orders"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-23",
+   "kind": "investigation",
+   "scenario": "S37",
+   "template": "large_parent_order",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LARGE_ORDER_IMPACT"
+   ],
+   "must_mention_tools": [
+    "execution.get_execution_metrics",
+    "execution.get_parent_orders"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-24",
+   "kind": "investigation",
+   "scenario": "S38",
+   "template": "large_parent_order",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LARGE_ORDER_IMPACT"
+   ],
+   "must_mention_tools": [
+    "execution.get_execution_metrics",
+    "execution.get_parent_orders"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-25",
+   "kind": "investigation",
+   "scenario": "S41",
+   "template": "unexpected_price_move",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "PRICE_MOVEMENT"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT"
+   ]
+  },
+  {
+   "id": "G-INV-26",
+   "kind": "investigation",
+   "scenario": "S42",
+   "template": "unexpected_price_move",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "PRICE_MOVEMENT"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT"
+   ]
+  },
+  {
+   "id": "G-INV-27",
+   "kind": "investigation",
+   "scenario": "S43",
+   "template": "unexpected_price_move",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "PRICE_MOVEMENT"
+   ],
+   "must_mention_tools": [
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT"
+   ]
+  },
+  {
+   "id": "G-INV-28",
+   "kind": "investigation",
+   "scenario": "S46",
+   "template": "mixed_market_technology",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "MARKET_VOLATILITY",
+    "TECHNOLOGY_LATENCY"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-29",
+   "kind": "investigation",
+   "scenario": "S47",
+   "template": "mixed_market_technology",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "MARKET_VOLATILITY",
+    "TECHNOLOGY_LATENCY"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-INV-30",
+   "kind": "investigation",
+   "scenario": "S48",
+   "template": "mixed_market_technology",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "MARKET_VOLATILITY",
+    "TECHNOLOGY_LATENCY"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT"
+   ]
+  },
+  {
+   "id": "G-RES-01",
+   "kind": "research",
+   "scenario": "RS01",
+   "template": "momentum_premium",
+   "signal": "momentum_12_1",
+   "verdict": "PROMOTE",
+   "must_flag": [],
+   "must_not_flag": [
+    "NO_ALPHA",
+    "OOS_DECAY",
+    "REGIME_BREAK"
+   ]
+  },
+  {
+   "id": "G-RES-02",
+   "kind": "research",
+   "scenario": "RS03",
+   "template": "momentum_premium",
+   "signal": "momentum_12_1",
+   "verdict": "PROMOTE",
+   "must_flag": [],
+   "must_not_flag": [
+    "NO_ALPHA",
+    "OOS_DECAY",
+    "REGIME_BREAK"
+   ]
+  },
+  {
+   "id": "G-RES-03",
+   "kind": "research",
+   "scenario": "RS05",
+   "template": "no_alpha",
+   "signal": "momentum_12_1",
+   "verdict": "REJECT",
+   "must_flag": [
+    "NO_ALPHA"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-04",
+   "kind": "research",
+   "scenario": "RS07",
+   "template": "reversal_premium",
+   "signal": "reversal_5",
+   "verdict": "REJECT",
+   "must_flag": [
+    "COST_DRAG"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-05",
+   "kind": "research",
+   "scenario": "RS09",
+   "template": "reversal_premium",
+   "signal": "reversal_5",
+   "verdict": "REJECT",
+   "must_flag": [
+    "COST_DRAG"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-06",
+   "kind": "research",
+   "scenario": "RS11",
+   "template": "regime_break",
+   "signal": "momentum_12_1",
+   "verdict": "REJECT",
+   "must_flag": [
+    "OOS_DECAY"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-07",
+   "kind": "research",
+   "scenario": "RS13",
+   "template": "cost_drag",
+   "signal": "reversal_5",
+   "verdict": "REJECT",
+   "must_flag": [
+    "COST_DRAG"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-08",
+   "kind": "research",
+   "scenario": "RS15",
+   "template": "cost_drag",
+   "signal": "reversal_5",
+   "verdict": "REJECT",
+   "must_flag": [
+    "COST_DRAG"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-09",
+   "kind": "research",
+   "scenario": "RS17",
+   "template": "concentration",
+   "signal": "momentum_12_1",
+   "verdict": "REJECT",
+   "must_flag": [
+    "CONCENTRATION",
+    "LIMIT_BREACH"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-10",
+   "kind": "research",
+   "scenario": "RS19",
+   "template": "mixed",
+   "signal": "momentum_12_1",
+   "verdict": "REJECT",
+   "must_flag": [
+    "COST_DRAG"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-11",
+   "kind": "research",
+   "scenario": "RS21",
+   "template": "mixed",
+   "signal": "momentum_12_1",
+   "verdict": "REJECT",
+   "must_flag": [
+    "COST_DRAG"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-12",
+   "kind": "research",
+   "scenario": "RS23",
+   "template": "momentum_near_threshold",
+   "signal": "momentum_12_1",
+   "verdict": "PROMOTE",
+   "must_flag": [],
+   "must_not_flag": [
+    "NO_ALPHA",
+    "OOS_DECAY",
+    "REGIME_BREAK"
+   ]
+  },
+  {
+   "id": "G-RES-13",
+   "kind": "research",
+   "scenario": "RS25",
+   "template": "reversal_weak",
+   "signal": "reversal_5",
+   "verdict": "REJECT",
+   "must_flag": [
+    "COST_DRAG"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-14",
+   "kind": "research",
+   "scenario": "RS27",
+   "template": "reversal_weak",
+   "signal": "reversal_5",
+   "verdict": "REJECT",
+   "must_flag": [
+    "COST_DRAG"
+   ],
+   "must_not_flag": []
+  },
+  {
+   "id": "G-RES-15",
+   "kind": "research",
+   "scenario": "RS29",
+   "template": "momentum_crash",
+   "signal": "momentum_12_1",
+   "verdict": "PROMOTE",
+   "must_flag": [],
+   "must_not_flag": [
+    "NO_ALPHA",
+    "OOS_DECAY",
+    "REGIME_BREAK"
+   ]
+  }
+ ]
+}
