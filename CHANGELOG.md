@@ -13,6 +13,23 @@ R5 (real-data momentum study, published VOID) and RP (paper trading with desk co
 The paper forward log runs on synthetic data; the real Stooq feed exists but stays off (holdout unspent).
 Final release docs pass, with every number sourced and labelled by evidence class.
 
+### 0.7.0 integration
+
+- 0.6.0 was merged (AshJha0/AgenticAICashEquities#4) but not tagged: its Python 3.11 CI job failed on
+  cassette replay, so its content ships in this release (owner decision 2026-11-08).
+- Cassette match keys are OS- and Python-stable. `request_sha256` rounds floats, and long decimal
+  literals inside prompt text, to 9 significant digits, and masks evidence digests (as the report
+  goldens do). Causes found by CI: last-ulp differences between Windows and Linux builds, and Python
+  3.12 summing floats with compensation where 3.11 adds left to right. Stored bodies and wire requests
+  stay exact. Regression tests in `tests/contract/test_cassette_match_os_stable.py`.
+- `docs/quant/quant.md` is part of the RAG knowledge corpus, so release notes no longer go there; the
+  0.7.0 numbers live in `docs/quant/real-data-and-paper.md`. A draft that added them to quant.md moved
+  the calibrated support gate (2.5 to 2.3) and the chunking winner. quant.md now carries two short
+  factual corrections and the RAG eval is unchanged. Cassettes and report goldens re-recorded (diff:
+  corpus hash only).
+- `test_paper_daily_workflow_is_disabled_by_default` checks the workflow text instead of importing
+  PyYAML, which is not a project dependency.
+
 ### R5: real-data momentum study (PLAN items 5.1-5.5, published VOID)
 
 - R5 5.1: preregistration of the 12-1 momentum study (`docs/research/prereg_momentum_2026-11.md`), second-read and committed with its SHA-256 in `docs/research/prereg_lock.json` before any price data was read; every price loader refuses to run on a hash mismatch or past 2023-12-31 (the pseudo-holdout).
