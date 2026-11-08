@@ -6,6 +6,11 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+## [0.5.0] - 2026-11-08
+
+Rounds R4, R2T and the rf-data series of the 2026-11-07 plan, shipped as one combined PR (AshJha0/AgenticAICashEquities#2).
+CI green on the combined head f141320: run 42458999143 (all 9 jobs).
+
 - `.gitleaks.toml`: allowlist the documented `dev-auditor-key` demo key added with the R4 `auditor` role.
 
 ### R4: platform and persistence (PLAN section 2, items 4.1-4.9)
