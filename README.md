@@ -68,7 +68,7 @@ no live model call was made (decision D15).
   reporter writes claims, then prose with citations whose quoted spans are checked.
 - *ML (R2B):* change points, ridge signal combination, leakage tests and held-out calibration, all
   deterministic and labelled as fitted to the synthetic generator.
-- *Evaluation (R3E):* a frozen golden set (owner sign-off PENDING), `ceap evaluation-report`,
+- *Evaluation (R3E):* a frozen golden set (owner sign-off recorded 2026-11-08), `ceap evaluation-report`,
   `docs/evaluation/history.csv` and `latest.json`, drift monitors, and `scripts/check_docs.py`.
   The numbers come from the mock LLM; they measure the deterministic pipeline, not model quality.
 - *Speed:* one investigation takes about 3.4 s instead of about 10 s (measured locally on one

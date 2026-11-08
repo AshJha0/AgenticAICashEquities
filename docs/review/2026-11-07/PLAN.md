@@ -408,7 +408,7 @@ decision D15 changes.
 
 ### Owner decisions of 2026-11-08
 
-- **D18** golden-set sign-off: the owner's sign-off of 10 sampled golden-set items is done after the 0.6.0 tag; until then `latest.json` reports it as PENDING.
+- **D18** golden-set sign-off: the owner's sign-off of 10 sampled golden-set items is done after the 0.6.0 tag; until then `latest.json` reports it as PENDING. Done 2026-11-08 after the v0.7.0 tag (0.6.0 was not tagged): all ten OK, recorded in AshJha0/AgenticAICashEquities#6.
 - **D19** no live-model run: D15 stays, zero spend. Every live-only metric stays UNKNOWN / NOT RUN LIVE.
 - **D20** R5 stays VOID. It is rerun only if the owner hand-downloads the Stooq bulk file, and then under a new (v2) preregistration.
 - **D21** no 1.0.0-rc1 yet. Fixes ship as 0.7.x; revisit after 2 to 4 weeks of paper-trading log.

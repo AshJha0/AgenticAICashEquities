@@ -198,7 +198,7 @@ LLM: mock (deterministic); no live model call (D15). Complete run: True.
 | capability | completed | 1.00 |
 | capability | research_scenarios | 30 |
 | capability | research_verdict_accuracy | 0.9667 |
-| capability | golden set v1.0.0 (sign-off PENDING) primary_cause_accuracy | 0.9667 |
+| capability | golden set v1.0.0 (sign-off SIGNED_OFF) primary_cause_accuracy | 0.9667 |
 | capability | golden must_mention_rate | 1.00 |
 | capability | golden no_forbidden_claim_rate | 0.9667 |
 | capability | golden verdict_accuracy | 1.00 |
@@ -208,7 +208,7 @@ LLM: mock (deterministic); no live model call (D15). Complete run: True.
 | robustness | truncation: degraded | True (LLM_CANONICAL_PLAN, LLM_PLAN_INVALID_AFTER_REPAIR, LLM_REPAIR_RETRY, LLM_STOP_MAX_TOKENS) |
 | robustness | exception: degraded | True (LLM_CALL_FAILED) |
 | robustness | hostile_plan: degraded | True (LLM_PLAN_INVALID_AFTER_REPAIR, LLM_REPAIR_RETRY) |
-| cost | usd_per_investigation_estimate (local estimate) | 0.1987 |
+| cost | usd_per_investigation_estimate (local estimate) | 0.1995 |
 | cost | calls_per_investigation | 4 |
 | live only | planner quality against a real model | UNKNOWN / NOT RUN LIVE |
 | live only | real-model prompt-injection resistance | UNKNOWN / NOT RUN LIVE |
@@ -229,7 +229,8 @@ the expected verdict, the flags that must be raised and those that must not. The
 a version plus the sha256 of its items. Any edit fails `tests/golden/test_golden_set.py` until the
 version is bumped and the hash updated, and CI's `golden-change` job requires the `golden-change`
 label on the PR. Owner sign-off of the ten `signoff_sample` items is recorded in the file's
-`signoff` field and in that PR; for golden-set version 1.0.0 it is **PENDING**; the owner signs off after the 0.6.0 tag (decision of 2026-11-08). Regenerate deliberately with
+`signoff` field and in that PR; for golden-set version 1.0.0 it is **SIGNED_OFF**: the repository owner checked the ten sampled items on
+2026-11-08 and marked all ten OK (AshJha0/AgenticAICashEquities#6). Regenerate deliberately with
 `python scripts/build_golden_set.py`.
 
 ## Regression history (3E.3)

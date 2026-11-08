@@ -1,8 +1,9 @@
 """Gate a release: run by ``release.yml`` on a ``v*`` tag before anything is built.
 
 Checks, in order, and exits non-zero on the first failure:
-1. every check run on the tagged commit (other than the release workflow's own jobs) concluded
-   success, skipped or neutral, and at least one exists;
+1. the latest run of the CI workflow on the tagged commit completed with success. Only CI gates:
+   the daily paper job, the nightly run and Pages also report on main commits, and a refused
+   paper session (a holiday, a run before the forward start) must not block a release;
 2. the version agrees in ``pyproject.toml``, ``src/ceap/__init__.py`` and the tag;
 3. ``CHANGELOG.md`` has a ``## [<version>]`` section;
 4. the banned-word check is clean;
@@ -24,6 +25,7 @@ import tomllib
 import urllib.request
 from importlib import metadata
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 ALLOWED_LICENCE_MARKERS = (
@@ -37,41 +39,39 @@ LICENCE_EXCEPTIONS = {
     "setuptools": "MIT",
     "wheel": "MIT",
 }
-#: Release-workflow job names, which are still running when the gate queries the commit.
-IGNORED_CHECKS = {"gate", "publish"}
+#: Workflows whose result gates a release (by workflow name).
+GATING_WORKFLOWS = {"CI"}
 
 
 class ReleaseRefusedError(Exception):
     pass
 
 
-def evaluate_runs(runs: list[dict[str, str]]) -> int:
-    """Raise ``ReleaseRefusedError`` unless every relevant check run is green; return how many were evaluated."""
-    evaluated = [r for r in runs if r["name"].lower() not in IGNORED_CHECKS]
-    if not evaluated:
-        raise ReleaseRefusedError("no check runs found; refusing to release an unverified commit")
-    bad = [
-        f"{r['name']}={r['status']}/{r['conclusion']}"
-        for r in evaluated
-        if r["status"] != "completed" or r["conclusion"] not in ("success", "skipped", "neutral")
-    ]
-    if bad:
-        raise ReleaseRefusedError("commit is not green: " + ", ".join(bad))
-    return len(evaluated)
+def evaluate_workflow_runs(runs: list[dict[str, Any]]) -> str:
+    """Raise ``ReleaseRefusedError`` unless the latest gating run succeeded; return its description."""
+    gating = [r for r in runs if r.get("name") in GATING_WORKFLOWS]
+    if not gating:
+        raise ReleaseRefusedError("no CI run found for this commit; refusing to release an unverified commit")
+    latest = max(gating, key=lambda r: (r.get("created_at") or "", r.get("run_attempt") or 0))
+    desc = f"{latest['name']} run {latest.get('id')} ({latest.get('event')})"
+    if latest.get("status") != "completed" or latest.get("conclusion") != "success":
+        raise ReleaseRefusedError(
+            f"commit is not green: {desc} is {latest.get('status')}/{latest.get('conclusion')}"
+        )
+    return desc
 
 
 def check_runs(repo: str, sha: str) -> None:
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
-        raise ReleaseRefusedError("GH_TOKEN not set; cannot verify check runs")
+        raise ReleaseRefusedError("GH_TOKEN not set; cannot verify the CI run")
     req = urllib.request.Request(
-        f"https://api.github.com/repos/{repo}/commits/{sha}/check-runs?per_page=100",
+        f"https://api.github.com/repos/{repo}/actions/runs?head_sha={sha}&per_page=100",
         headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
     )
     with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 - fixed https host
-        runs = json.load(resp)["check_runs"]
-    n = evaluate_runs(runs)
-    print(f"ok: {n} check runs green on {sha[:12]}")
+        runs = json.load(resp)["workflow_runs"]
+    print(f"ok: {evaluate_workflow_runs(runs)} succeeded on {sha[:12]}")
 
 
 def versions(tag: str, root: Path = ROOT) -> str:
