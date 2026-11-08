@@ -6,6 +6,6 @@ useDefault = true
 [allowlist]
 description = "Documented development API keys and test fixtures (not secrets)"
 regexes = [
-  # The fixed demo keys of CEAP_ENV=dev (src/ceap/api/auth.py), shown in README/COOKBOOK curl examples.
-  '''dev-(trader|viewer|admin|quant|approver|risk|engineer)-key''',
+  # The fixed demo keys of CEAP_ENV=dev (src/ceap/config.py; auditor added in 0.5.0, R4 4.3), shown in README/COOKBOOK curl examples.
+  '''dev-(trader|viewer|admin|quant|approver|auditor|risk|engineer)-key''',
 ]

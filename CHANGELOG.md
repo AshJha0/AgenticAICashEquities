@@ -168,6 +168,13 @@ Round R3A of the 2026-11-07 plan (LLM layer, offline-provable). No live model ca
 - 3A.8 adapter equivalence on the ten scenario templates (mock path vs adapter-plus-cassette
   path, structural diff empty apart from narrative). Adapter equivalence, not model fidelity.
 
+## [0.5.0] - 2026-11-08
+
+Rounds R4, R2T and the rf-data series of the 2026-11-07 plan, shipped as one combined PR (AshJha0/AgenticAICashEquities#2).
+CI green on the combined head f141320: run 42458999143 (all 9 jobs).
+
+- `.gitleaks.toml`: allowlist the documented `dev-auditor-key` demo key added with the R4 `auditor` role.
+
 ### R4: platform and persistence (PLAN section 2, items 4.1-4.9)
 
 #### Breaking / migration
