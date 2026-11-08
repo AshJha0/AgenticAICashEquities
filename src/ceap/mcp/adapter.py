@@ -34,7 +34,9 @@ _SERVER_EVIDENCE = {
     "research_data": EvidenceType.MARKET_DATA,
     "alpha": EvidenceType.SIGNAL,
     "backtest": EvidenceType.BACKTEST,
+    "knowledge": EvidenceType.DOCUMENT,  # R3B 3B.4: retrieved policy text is DOC evidence
 }
+MAX_BOUND_VALUES = 40
 _TOOL_EVIDENCE = {
     "get_order_book": EvidenceType.ORDER_BOOK,
     "get_parent_orders": EvidenceType.ORDER_DATA,
@@ -135,11 +137,26 @@ class MCPToolAdapter(Tool):
                 "task_id": context.task_id,
                 "step_id": context.step_id,
                 "digest": _digest(data),
+                # R3B 3B.4: top-level scalar values, so a finding can cite ``values.<field>``
+                "values": _scalar_values(data),
             },
         )
         return ToolResult(
             status=ToolStatus.SUCCESS, data=data, evidence=(evidence,), execution_time_ms=_ms(started)
         )
+
+
+def _scalar_values(data: Any) -> dict[str, Any]:
+    """The first ``MAX_BOUND_VALUES`` top-level scalar fields of a dict result (the citable values)."""
+    if not isinstance(data, dict):
+        return {}
+    out: dict[str, Any] = {}
+    for key, value in data.items():
+        if len(out) >= MAX_BOUND_VALUES:
+            break
+        if isinstance(value, (int, float, str, bool)) or value is None:
+            out[str(key)] = value if not isinstance(value, str) else value[:200]
+    return out
 
 
 def _ms(started: float) -> float:

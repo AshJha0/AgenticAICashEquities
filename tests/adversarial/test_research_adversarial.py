@@ -88,7 +88,7 @@ async def test_rogue_research_plan_is_sanitised(platform: Platform):
     )
     result = await harness.execute(task, platform.policy_context(req, task))
     assert result.success, result.error
-    tool_steps = [s for s in result.plan.steps if s.tool_request]
+    tool_steps = [s for s in result.plan.steps if s.tool_request and not s.id.startswith("gov-data-")]  # R3B: harness data steps excluded
     assert [s.tool_request.tool_id for s in tool_steps] == ["research_data.get_daily_bars"]
     assert tool_steps[0].tool_request.arguments["symbol"] == "AAPL"
     assert tool_steps[0].tool_request.arguments["dataset"] == "R01"  # re-pinned to the task

@@ -1,3 +1,9 @@
+---
+version: 2.0
+effective_date: 2026-10-01
+classification: restricted
+---
+
 # Trading Limits Policy
 
 ## Cash equities book CASH_EQ_1

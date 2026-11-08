@@ -20,6 +20,8 @@ from typing import Any
 
 from ceap.data.research_scenarios import ResearchScenarioSpec, all_research_scenarios
 from ceap.data.scenarios import ScenarioSpec, all_scenarios
+from ceap.harness.memory import CaseMemory
+from ceap.llm.recording import llm_provenance, model_metrics_label
 from ceap.platform import Platform, default_request, default_research_request
 
 
@@ -51,10 +53,15 @@ async def evaluate_scenario(platform: Platform, spec: ScenarioSpec) -> dict[str,
     }
 
 
+def evaluation_platform() -> Platform:
+    """R3B 3B.7 (D10): case memory is OFF in evaluation, so no run can learn from another."""
+    return Platform(case_memory=CaseMemory(enabled=False))
+
+
 async def run_evaluation(
     limit: int | None = None, verbose: bool = False, platform: Platform | None = None
 ) -> dict[str, Any]:
-    platform = platform or Platform()
+    platform = platform or evaluation_platform()
     specs = all_scenarios()[:limit] if limit else all_scenarios()
     rows = []
     for spec in specs:
@@ -66,8 +73,12 @@ async def run_evaluation(
                 f"{flag} {row['scenario']} {row['symbol']:5s} {row['template']:24s} primary={str(row['primary'] or '-'):20s} fp={row['false_positives']} {row['duration_ms']:.0f}ms"
             )
     n = len(rows)
+    provenance = llm_provenance(platform.llm)  # R3A 3A.5: never publish model behaviour from a non-recorded run
     return {
         "scenarios": n,
+        "llm_provenance": provenance,
+        "model_behaviour_metrics": model_metrics_label(provenance),
+        "case_memory": {"enabled": platform.case_memory.enabled, "reads": platform.case_memory.reads},
         "primary_accuracy": sum(r["primary_hit"] for r in rows) / n if n else 0.0,
         "coverage": sum(r["coverage"] for r in rows) / n if n else 0.0,
         "false_positive_rate": sum(bool(r["false_positives"]) for r in rows) / n if n else 0.0,
@@ -122,7 +133,7 @@ async def evaluate_research_scenario(platform: Platform, spec: ResearchScenarioS
 async def run_research_evaluation(
     limit: int | None = None, verbose: bool = False, platform: Platform | None = None
 ) -> dict[str, Any]:
-    platform = platform or Platform()
+    platform = platform or evaluation_platform()
     specs = all_research_scenarios()[:limit] if limit else all_research_scenarios()
     rows = []
     for spec in specs:

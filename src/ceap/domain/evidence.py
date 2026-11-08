@@ -66,3 +66,29 @@ class Evidence:
             timestamp=timestamp,
             attributes=dict(attributes or {}),
         )
+
+
+def document_citation(
+    chunk: dict[str, Any], cited_text: str, span: tuple[int, int], cited_sentence: str, corpus_hash: str
+) -> Evidence:
+    """R3C 3C.4: DOC evidence for one verified citation (contracts-change: new attribute keys).
+
+    Minted only after the harness checked that ``cited_text`` equals the retrieved chunk's text.
+    ``span`` is the ``[start, end)`` of the citing sentence in the report narrative.
+    """
+    return Evidence.create(
+        EvidenceType.DOCUMENT,
+        source="knowledge.citation",
+        description=f"{chunk.get('title')} / {chunk.get('section')} (version {chunk.get('version')})",
+        attributes={
+            "chunk_id": chunk.get("chunk_id"),
+            "document": chunk.get("document"),
+            "section": chunk.get("section"),
+            "version": chunk.get("version"),
+            "effective_date": chunk.get("effective_date"),
+            "cited_text": cited_text,
+            "cited_sentence": cited_sentence,
+            "narrative_span": [span[0], span[1]],
+            "corpus_hash": corpus_hash,
+        },
+    )

@@ -1,0 +1,405 @@
+{
+ "version": 1,
+ "written": "2026-11-07",
+ "note": "Written before any retrieval tuning. Tune only on split=train; held-out and negative are scored, never tuned on.",
+ "queries": [
+  {
+   "id": "Q01",
+   "split": "train",
+   "query": "What is the maximum participation rate for the VWAP algorithm?",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Configuration in force"
+    }
+   ]
+  },
+  {
+   "id": "Q02",
+   "split": "train",
+   "query": "How is implementation shortfall calculated?",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Benchmarks"
+    }
+   ]
+  },
+  {
+   "id": "Q03",
+   "split": "train",
+   "query": "Which venue has a speed bump?",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Eligible venues"
+    }
+   ]
+  },
+  {
+   "id": "Q04",
+   "split": "train",
+   "query": "maximum position per symbol in the cash equities book",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Cash equities book CASH_EQ_1"
+    }
+   ]
+  },
+  {
+   "id": "Q05",
+   "split": "train",
+   "query": "when does a deterioration require a written explanation",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Escalation"
+    }
+   ]
+  },
+  {
+   "id": "Q06",
+   "split": "train",
+   "query": "how often are order book snapshots published",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Feed handling"
+    }
+   ]
+  },
+  {
+   "id": "Q07",
+   "split": "train",
+   "query": "child orders rejected TOO_LATE_TO_ENTER",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Symptoms"
+    }
+   ]
+  },
+  {
+   "id": "Q08",
+   "split": "train",
+   "query": "difference between TWAP and POV strategies",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Strategies"
+    }
+   ]
+  },
+  {
+   "id": "Q09",
+   "split": "train",
+   "query": "what happens to the algorithm when spreads widen",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Expected behaviour under stress"
+    }
+   ]
+  },
+  {
+   "id": "Q10",
+   "split": "train",
+   "query": "how is market impact split into permanent and temporary",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Decomposition"
+    }
+   ]
+  },
+  {
+   "id": "Q11",
+   "split": "train",
+   "query": "ARCA acknowledgement delays during maintenance",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Known issues"
+    }
+   ]
+  },
+  {
+   "id": "Q12",
+   "split": "train",
+   "query": "what happens when a trading limit is breached",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Breach handling"
+    }
+   ]
+  },
+  {
+   "id": "Q13",
+   "split": "train",
+   "query": "must report numbers come from deterministic analytics",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Evidence standard"
+    }
+   ]
+  },
+  {
+   "id": "Q14",
+   "split": "train",
+   "query": "feed gap detected warning metric",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Quality monitoring"
+    }
+   ]
+  },
+  {
+   "id": "Q15",
+   "split": "train",
+   "query": "roll back a deployment that coincides with latency",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "First response"
+    }
+   ]
+  },
+  {
+   "id": "Q16",
+   "split": "train",
+   "query": "normal acknowledgement latency at p50",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Child order lifecycle"
+    }
+   ]
+  },
+  {
+   "id": "Q17",
+   "split": "train",
+   "query": "why this deterioration threshold",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Why these deterioration thresholds"
+    }
+   ]
+  },
+  {
+   "id": "Q18",
+   "split": "train",
+   "query": "threshold for stale quote fraction and crossed quotes",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Cause threshold table"
+    },
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Attribution thresholds"
+    }
+   ]
+  },
+  {
+   "id": "Q19",
+   "split": "train",
+   "query": "how are p-values corrected for multiple testing",
+   "expected": [
+    {
+     "document": "quant.md",
+     "section": "Multiple testing (2.8, 2.10, decision D4)"
+    }
+   ]
+  },
+  {
+   "id": "Q20",
+   "split": "train",
+   "query": "why is the market data synthetic",
+   "expected": [
+    {
+     "document": "quant.md",
+     "section": "Synthetic data — and why it's built this way"
+    }
+   ]
+  },
+  {
+   "id": "Q21",
+   "split": "heldout",
+   "query": "SOR down-weighting of a venue with a low fill rate",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Smart-order-router behaviour"
+    }
+   ]
+  },
+  {
+   "id": "Q22",
+   "split": "heldout",
+   "query": "which change altered smart-order-router routing latency budgets",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Known change"
+    }
+   ]
+  },
+  {
+   "id": "Q23",
+   "split": "heldout",
+   "query": "large IS but small VWAP slippage, what does it mean",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Reading a report"
+    }
+   ]
+  },
+  {
+   "id": "Q24",
+   "split": "heldout",
+   "query": "baseline window used to compare an investigation window",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Baseline comparison"
+    }
+   ]
+  },
+  {
+   "id": "Q25",
+   "split": "heldout",
+   "query": "stress scenario adverse move on end of window position",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Stress"
+    }
+   ]
+  },
+  {
+   "id": "Q26",
+   "split": "heldout",
+   "query": "stale quotes make the router misjudge the far touch",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Impact on execution"
+    }
+   ]
+  },
+  {
+   "id": "Q27",
+   "split": "heldout",
+   "query": "checks before running a VWAP order, orders above usual size need approval",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Operational checks"
+    }
+   ]
+  },
+  {
+   "id": "Q28",
+   "split": "heldout",
+   "query": "best execution obligations of the desk",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Best execution"
+    }
+   ]
+  },
+  {
+   "id": "Q29",
+   "split": "heldout",
+   "query": "how to change an attribution threshold",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Changing a threshold"
+    }
+   ]
+  },
+  {
+   "id": "Q30",
+   "split": "heldout",
+   "query": "venue degradation threshold fill rate gap to peers",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Cause threshold table"
+    },
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Attribution thresholds"
+    }
+   ]
+  },
+  {
+   "id": "N01",
+   "split": "negative",
+   "query": "what is the cafeteria lunch menu on friday",
+   "expected": []
+  },
+  {
+   "id": "N02",
+   "split": "negative",
+   "query": "how do I reset my email password",
+   "expected": []
+  },
+  {
+   "id": "N03",
+   "split": "negative",
+   "query": "football results from last weekend",
+   "expected": []
+  },
+  {
+   "id": "N04",
+   "split": "negative",
+   "query": "recipe for chocolate chip cookies",
+   "expected": []
+  },
+  {
+   "id": "N05",
+   "split": "negative",
+   "query": "what is the office wifi password",
+   "expected": []
+  },
+  {
+   "id": "N06",
+   "split": "negative",
+   "query": "holiday calendar for the london office",
+   "expected": []
+  },
+  {
+   "id": "N07",
+   "split": "negative",
+   "query": "how to book a meeting room",
+   "expected": []
+  },
+  {
+   "id": "N08",
+   "split": "negative",
+   "query": "weather forecast for tomorrow",
+   "expected": []
+  },
+  {
+   "id": "N09",
+   "split": "negative",
+   "query": "parking permit renewal for employees",
+   "expected": []
+  },
+  {
+   "id": "N10",
+   "split": "negative",
+   "query": "who won the oscar for best picture",
+   "expected": []
+  }
+ ]
+}

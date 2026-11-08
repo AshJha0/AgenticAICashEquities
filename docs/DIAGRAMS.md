@@ -22,18 +22,25 @@ flowchart TD
     PARSE --> H
 
     subgraph H["AGENT HARNESS — ceap.harness (control plane)"]
-        PLAN["Planner agent<br/>LLM proposes JSON plan → sanitised against tool catalogue<br/>canonical fallback"]
-        VAL["Plan validation<br/>structure · unknown tools/agents · policy pre-check<br/>governance steps appended"]
-        EXEC["Step execution<br/>TOOL_CALL batches (asyncio.TaskGroup) · AGENT_CALL"]
-        CRIT["Critic agent<br/>evidence resolves · corroboration · contradictions<br/>LLM may only lower confidence"]
-        EV["Evidence validation<br/>unresolved findings dropped"]
-        FIN["Reporter<br/>facts → LLM narrative → number + evidence-id audits"]
-        PLAN --> VAL --> EXEC --> CRIT --> EV --> FIN
+        MEM[("Case memory (D10)<br/>harness-written · append-only · per dataset<br/>OFF in evaluation")]
+        PLAN["Planner agent<br/>structured plan: agents · optional tools · baseline · ranked hypotheses<br/>inputs in data blocks · canonical fallback"]
+        VAL["Plan validation<br/>data steps for the chosen agents · governance tail appended<br/>windows pinned · policy pre-check"]
+        EXEC["Step execution<br/>TOOL_CALL batches (asyncio.TaskGroup) · AGENT_CALL<br/>one bounded re-plan on failure"]
+        CRIT["Critic agent<br/>evidence resolves · corroboration · contradictions<br/>model may only name a dispute check"]
+        DISP["Dispute checks<br/>alternative baseline / horizon via the policy path<br/>a contradiction caps confidence (max 3)"]
+        EV["Evidence validation<br/>unresolved ids · cited value at path · derived_from"]
+        HYP["Hypothesis table<br/>pre-registered deterministic tests<br/>supported · refuted · untested"]
+        SIGN["Optional human sign-off<br/>review payload · reason audited"]
+        FIN["Reporter<br/>facts in data blocks → narrative → number + evidence-id audits"]
+        MEM -. "3 nearest cases, read-only" .-> PLAN
+        PLAN --> VAL --> EXEC --> CRIT --> DISP --> EV --> HYP --> SIGN --> FIN
+        SIGN -. "case record" .-> MEM
     end
 
     EXEC --> MA["Market agent"] & XA["Execution agent"] & QA["Quant agent<br/>attribute_causes"] & RA["Risk agent"] & EA["Engineering agent"]
-    MA & XA & QA & RA & EA --> REG["ToolRegistry<br/>MCPToolAdapter → MCPClient"]
-    EXEC --> REG
+    MA & XA & QA & RA & EA -. "read plan-fetched data (fetched)<br/>typed AgentMessage envelopes" .-> EXEC
+    EXEC --> REG["ToolRegistry<br/>MCPToolAdapter → MCPClient"]
+    DISP --> REG
 
     REG --> MD["market_data MCP<br/>8 tools"] & EX["execution MCP<br/>6 tools · TCA inside"] & RK["risk MCP<br/>4 tools"] & EN["engineering MCP<br/>5 tools"] & KN["knowledge MCP<br/>3 tools · RAG"]
     MD & EX --> AN["Quant analytics — ceap.analytics<br/>VWAP · TWAP · IS · slippage · spread · impact<br/>volatility · liquidity · market statistics"]

@@ -6,6 +6,140 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### R3C wiring: 3C.3 retrieval in the planner and policy, 3C.4 two-call reporter with citations
+
+Label: `contracts-change` (`domain/evidence.py`: `document_citation`; `LLMResponse.citations`;
+the knowledge tools' input schema gains `classifications`). No live model call (D15).
+
+- **Breaking:** the knowledge query is built by `ceap.rag.query.retrieval_query` from the parsed
+  question (domain vocabulary only), symbol, window and cause candidates; the planner replaces
+  whatever query the model wrote and pins `classifications` to the principal's roles.
+  `KnowledgeBase.search` scores `"; "`-separated segments separately and merges them round-robin.
+- **Breaking:** `knowledge.search_documents` and `knowledge.get_document` take `classifications`
+  (comma-separated) and default to `public,internal`; a new policy rule
+  (`knowledge-classification`) denies a request for more than the roles allow. Viewers can no longer
+  read `restricted` documents (`04_trading_limits.md`).
+- **Breaking:** investigation reports are written in two calls: structured claims
+  (prompt **reporter_claims@1**), validated against facts, evidence ids and numbers; then prose with
+  citations (prompt **reporter_prose@1**) over one `document` block per retrieved chunk with
+  `cache_control` on the last. Each citation's quoted text must equal the chunk sent; verified
+  citations become `DOC` evidence with the narrative span, document version and corpus hash, a
+  fabricated quote is a blocking `NARRATIVE_UNTRACEABLE`. The narrative ends with the knowledge
+  corpus hash. New report fields under `critique.knowledge`.
+- `AnthropicLLMClient` returns `content_block_location` citations with their offsets in the joined
+  text (`LLMResponse.citations`); the mock and the hand-built cassettes cite verbatim.
+- Contract snapshots: `wire_request_claims.json`, `wire_request_prose.json` (new),
+  `mcp_tools.json`, `wire_request_planning.json` and the ten investigation cassettes regenerated.
+
+
+### R3B: agents and agentic AI, within the boundary (PLAN section 2, items 3B.1-3B.9)
+
+No live model call anywhere (D15); no code-writing agent (D13); case memory per D10.
+
+#### Breaking / migration
+
+- **Agents no longer fetch their own data.** `BaseAgent.fetched()` reads what the plan fetched and
+  never invokes a tool; `ensure` remains only where arguments depend on fetched data (the risk
+  agent's limit check). The harness appends, before the first agent step, every tool call a chosen
+  agent declares in `ceap.agents.requirements` (`gov-data-NN` steps, validated and policy-checked
+  like the plan). An agent whose data step failed fails with `PlanDataMissingError`.
+  Mechanical signature change in `agents/quant.py`, `agents/execution.py` (R2T lane) and
+  `agents/alpha.py`, `agents/market.py`, `agents/engineering.py` (R2B lane): `self.ensure(` ->
+  `self.fetched(`, no logic change.
+- **The critic model can no longer change a confidence.** A dispute counts only when it names an
+  alternative deterministic check (`check`: `alternative_baseline`, `different_horizon`, `peer_set`)
+  whose result contradicts the finding's cited value; the harness runs the check through the policy
+  path (at most 3 per task) and caps an overturned finding at 0.3. `supported=False` without a check
+  is recorded (`unbacked_disputes`) and changes nothing. `critique.overall` no longer includes model
+  text; it is stored separately as `critique.llm_overall`.
+- Prompt changes: **planner@3** (scope within enumerated choices: agents, baseline, ranked
+  hypotheses, prior cases; data blocks) and **critic@3** (disputes need a named check).
+  `report@1`, `research_planner@2` and `research_report@1` are unchanged.
+- contracts change (additive): `HypothesisRow` gains `test`, `evidence_ids`, `rank`, `reason`;
+  `domain/agents.py` gains `AgentMessage` (envelope version 1) and `parse_message`;
+  `CritiqueAssessment` gains `check`; the plan output schema gains optional `baseline` and
+  `hypotheses`; `ApprovalDecision` gains `action`; `QueuedApprovalGateway.decide` gains keyword-only
+  `action`.
+- Tool evidence records carry `values` (top-level scalar fields of the result) so findings can cite
+  `values.<field>`; knowledge results are `DOCUMENT` evidence.
+- `POST /approvals/{id}`: a reject or modify decision needs a reason in `comment` (422 otherwise);
+  `action: modify` means not approved, changes requested.
+
+#### Added
+
+- 3B.1 planner owns scope within enumerated choices: which agents run, which optional tools, which
+  baseline (`task_baseline`, `prior_equal_length`, `prior_double_length`; each distinct choice is
+  a trial recorded in `agent_outputs.scope.trials`), which pre-registered hypotheses to rank. A
+  baseline outside the set is rejected by the schema, semantic validation and the sanitiser.
+  `ensure` call sites fall from 28 to 1.
+- 3B.2 `analytics/hypotheses.py`: each hypothesis maps to a pre-registered deterministic test; the
+  model only ranks; the harness builds `InvestigationReport.hypotheses` and the report shows
+  supported, refuted and untested hypotheses, each with its own evidence.
+- 3B.3 critic disputes through alternative deterministic checks (above).
+- 3B.4 evidence binding: findings carry `evidence_refs {id, path, value}` (bound by the harness from
+  the attribute the agent cited); validation drops a finding whose cited value does not match the
+  value at its path (`EVIDENCE_VALUE_MISMATCH`) or whose calculation derives from unknown evidence.
+- 3B.5 injection hygiene: the question, tool descriptions, prior cases, evidence (logs, deployment
+  text) and retrieved policy text reach a model only inside `<data surface=... id=...>` blocks that
+  cannot be closed from inside; threat model section per surface; `tests/adversarial/test_surfaces.py`.
+- 3B.6 typed agent messages (`AgentMessage`, drifted versions rejected), one bounded re-plan on a
+  tool or required-agent failure with the failure reason, and a per-call context budget with a
+  documented truncation order (`ceap.llm.prompts.TRUNCATION_ORDER`).
+- 3B.7 case memory (D10): after a human decision the harness appends a compact case record; the
+  planner receives the three nearest cases of the same dataset as read-only context; append-only,
+  audited, partitioned by dataset, no memory tool; OFF in evaluation (`evaluation_platform()`,
+  `case_memory.reads == 0` reported). Investigations accept `signoff: true` (optional human sign-off).
+- 3B.8 approval review payload: hypothesis table, evidence links, diff against the pre-trade
+  estimate (the baseline window until a pre-trade cost model lands) and the critic's disputes;
+  `GET /approvals/{id}`; the reject / modify reason is in the hash-chained audit entry and the case record.
+- 3B.9 stdio MCP lifecycle: each connection's `AsyncExitStack` is owned by a dedicated task; one
+  reconnect when the child exits (test marked `slow`).
+
+### R3A: LLM layer (PLAN section 2, items 3A.1-3A.8)
+
+Round R3A of the 2026-11-07 plan (LLM layer, offline-provable). No live model call anywhere (D15).
+
+### Breaking / migration
+
+- `ceap.llm.client.extract_json` is deleted: model output is validated against strict schemas
+  (`ceap.llm.schemas`) and there is no lenient JSON recovery. Fake clients must return the whole
+  reply as one JSON document (or set `LLMResponse.parsed`).
+- `AnthropicLLMClient` sends the system prompt as a text block with `cache_control`, marks every
+  tool `strict: true`, and uses `messages.parse()` when `LLMRequest.output_model` is set. Without
+  an explicit model each purpose now uses its own pinned model (previously the narrative model).
+- contracts change (`domain/reports.py`, additive): `LLMCallRecord` gains `task_id`, `purpose`,
+  `prompt_id`, `prompt_version`, `stop_reason`, `usd_is_estimate`, `redacted_request`;
+  `InvestigationReport` gains `prompts`.
+- `LLMRequest` gains `output_model`; `LLMResponse` gains `parsed`, `parse_errors`,
+  `cache_read_tokens`, `cache_write_tokens`, `request_id`.
+- Prompt changes: planner@2, research_planner@2 and critic@2 describe the schema-enforced reply
+  instead of a hand-written JSON shape; report@1 and research_report@1 are unchanged in text and
+  now live in `llm/prompts/*.md`.
+
+### Added
+
+- 3A.1 structured outputs for planner and critic: plan steps are a union over the read-only tool
+  catalogue generated from MCP input schemas; semantic validation (windows, symbol, universe,
+  agents, governance duplicates, step count, finding ids, confidence range) is the target of
+  exactly one repair, then `DEGRADED`; schema-subset lint. The planner sanitiser now also drops
+  tool steps whose window is not a task window.
+- 3A.2 wire contract tests over the real `AsyncAnthropic` with an in-memory transport, a committed
+  request snapshot (`tests/contract/snapshots/`) and full-format responses validated by the pinned
+  SDK types.
+- 3A.3 nine adversarial fake clients (`tests/fakes/clients.py`).
+- 3A.4 ten harness invariants as property tests under every fake client (100 examples on PR,
+  1000 nightly). The narrative-audit invariant becomes blocking when the R3A engine patch lands.
+- 3A.5 provenance-tagged cassettes (`ceap.llm.recording`, `tests/cassettes/`): `STALE` replay
+  through the real SDK, scrubber on write, `assert_publishable` refuses model-behaviour metrics
+  from `hand_built` cassettes; `llm_provenance` labels evaluation output `NOT RUN LIVE`.
+- 3A.6 per-call `LLMCallRecord` with a redacted body, per-task cost spans attributed through a
+  context variable (`task_scope`, `task_cost`), `CEAP_TASK_BUDGET_USD` enforced before the call
+  from a labelled local token estimate, pinned list prices in `model_pins.toml`.
+- 3A.7 prompt registry (`llm/prompts/*.md`, sha256 of canonical bytes, version and hash in
+  request metadata, call records and reports; golden hash snapshot plus CHANGELOG check).
+- 3A.8 adapter equivalence on the ten scenario templates (mock path vs adapter-plus-cassette
+  path, structural diff empty apart from narrative). Adapter equivalence, not model fidelity.
+
 ### R4: platform and persistence (PLAN section 2, items 4.1-4.9)
 
 #### Breaking / migration
@@ -102,6 +236,23 @@ Re-baseline (50 synthetic scenarios, mock LLM):
 
 The scenario numbers fall slightly because the generator is harder (U-shape, fees, delay, odd
 lots and late prints) and attribution now needs a statistically significant residual.
+
+### Round R3C (retrieval half: 3C.1, 3C.2, 3C.5)
+
+- **Breaking:** knowledge retrieval is Okapi BM25 (stdlib) instead of hashed TF-IDF;
+  `ceap.rag.embeddings` (`Embedder`, `HashingEmbedder`) is removed and `tokenize` moved to
+  `ceap.rag.text`. The knowledge tool no longer calls itself "semantic search". `KnowledgeBase`
+  takes `chunking` and `min_support` instead of an embedder; `search` gains `classifications` and
+  `min_support` and returns nothing when no chunk clears the support gate ("no policy found").
+- Chunks and hits carry document, section, version, effective date and classification; the
+  knowledge tool returns a SHA-256 `corpus_hash`.
+- Three chunking strategies (`section`, `sentence`, `fixed` with overlap) compared by a retrieval
+  eval (`data/reference/knowledge/eval.json`, 20 train / 10 held-out / 10 negative queries written
+  before tuning; `python -m ceap.rag.evaluation`). Held-out recall at 3 is 1.00 and MRR 1.000;
+  CI floor 0.80 / 0.70; all negatives empty.
+- Corpus growth: front-matter versioning on every knowledge document, a new
+  `09_attribution_thresholds.md` (kept equal to `Thresholds` defaults by a test) and
+  `docs/quant/quant.md` via `manifest.json`.
 
 ## [0.4.0] - 2026-11-07
 

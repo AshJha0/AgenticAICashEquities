@@ -23,23 +23,23 @@ class EngineeringAgent(BaseAgent):
             "baseline_end": w.baseline_end,
             "dataset": w.dataset,
         }
-        latency, lat_ev = await self.ensure(context, "engineering.get_latency_metrics", lat_args)
-        deployments, dep_ev = await self.ensure(
+        latency, lat_ev = await self.fetched(context, "engineering.get_latency_metrics", lat_args)
+        deployments, dep_ev = await self.fetched(
             context,
             "engineering.get_deployments",
             {"start": w.baseline_start, "end": w.end, "dataset": w.dataset},
         )
-        errors, err_ev = await self.ensure(
+        errors, err_ev = await self.fetched(
             context,
             "engineering.search_logs",
             {"start": w.start, "end": w.end, "level": "ERROR", "dataset": w.dataset},
         )
-        warns, warn_ev = await self.ensure(
+        warns, warn_ev = await self.fetched(
             context,
             "engineering.search_logs",
             {"start": w.start, "end": w.end, "level": "WARN", "dataset": w.dataset},
         )
-        md_metrics, md_ev = await self.ensure(
+        md_metrics, md_ev = await self.fetched(
             context,
             "engineering.get_service_metrics",
             {

@@ -22,7 +22,7 @@ class AlphaAgent(BaseAgent):
 
     async def execute(self, context: AgentContext) -> AgentResult:
         s = scope(context)
-        data, ev = await self.ensure(context, "alpha.evaluate_signal", tool_args(context)["evaluate_signal"])
+        data, ev = await self.fetched(context, "alpha.evaluate_signal", tool_args(context)["evaluate_signal"])
         stats = signal_statistics_from_dict(data)
         ins, oos = stats.period("in_sample"), stats.period("out_of_sample")
         if ins is None or oos is None:

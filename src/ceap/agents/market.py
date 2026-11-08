@@ -12,10 +12,10 @@ class MarketAgent(BaseAgent):
 
     async def execute(self, context: AgentContext) -> AgentResult:
         w = self.window(context)
-        win, win_ev = await self.ensure(context, "market_data.get_market_statistics", w.window_args)
-        base, base_ev = await self.ensure(context, "market_data.get_market_statistics", w.baseline_args)
-        book_w, book_w_ev = await self.ensure(context, "market_data.get_order_book_statistics", w.window_args)
-        book_b, book_b_ev = await self.ensure(
+        win, win_ev = await self.fetched(context, "market_data.get_market_statistics", w.window_args)
+        base, base_ev = await self.fetched(context, "market_data.get_market_statistics", w.baseline_args)
+        book_w, book_w_ev = await self.fetched(context, "market_data.get_order_book_statistics", w.window_args)
+        book_b, book_b_ev = await self.fetched(
             context, "market_data.get_order_book_statistics", w.baseline_args
         )
 
