@@ -438,12 +438,12 @@
           "query": "out-of-sample cost; research promotion criteria out-of-sample cost drag approval policy"
         },
         "correlation_id": "CORR-0000000d",
-        "digest": "1b89a5aea5cc2a53",
+        "digest": "dbce228478f556bf",
         "step_id": "step-07",
         "task_id": "TASK-00000001",
         "tool_id": "knowledge.search_documents",
         "values": {
-          "corpus_hash": "d1f2f91cd141950b328a3b3ff451d66b36ef97275930c5905591c78d29bf02cb",
+          "corpus_hash": "8efb190cab1eb405810e7babb8b478bbce97a59f57483f65869acb874a566960",
           "count": 3,
           "query": "out-of-sample cost; research promotion criteria out-of-sample cost drag approval policy"
         }
