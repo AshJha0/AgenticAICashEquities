@@ -1,0 +1,122 @@
+{
+  "window": "2005-01-03 to 2023-12-29",
+  "months": 228,
+  "vendor_roots": 944,
+  "stooq_series": 606,
+  "yahoo_series": 613,
+  "stooq_series_starting_after_2004_01_01": 337,
+  "roots_in_neither_vendor": 327,
+  "gate1_coverage_stooq": 0.7488,
+  "gate1_worst_month_stooq": 0.497,
+  "gate1_min_eligible": 240,
+  "gate1_pass": false,
+  "coverage_by_year_stooq": {
+    "2005": 0.5281,
+    "2006": 0.5585,
+    "2007": 0.5825,
+    "2008": 0.6158,
+    "2009": 0.6423,
+    "2010": 0.6663,
+    "2011": 0.6772,
+    "2012": 0.7012,
+    "2013": 0.7238,
+    "2014": 0.7405,
+    "2015": 0.7584,
+    "2016": 0.7931,
+    "2017": 0.8241,
+    "2018": 0.8442,
+    "2019": 0.869,
+    "2020": 0.8936,
+    "2021": 0.9114,
+    "2022": 0.9305,
+    "2023": 0.9518
+  },
+  "descriptive_coverage_stooq_then_yahoo": 0.7509,
+  "descriptive_worst_month_stooq_then_yahoo": 0.503,
+  "gate2_common_name_days": 2620341,
+  "gate2_agreement_within_10bps": 0.99563,
+  "gate2_yahoo_overlap_of_stooq_name_days": 0.9966,
+  "gate2_known_splits_pass": {
+    "AAPL 2014-06-09": true,
+    "AAPL 2020-08-31": true
+  },
+  "gate2_pass": true,
+  "stooq_series_duplicate_or_unordered": [],
+  "lowest_agreement_symbols": [
+    [
+      "MI",
+      71,
+      0.3662
+    ],
+    [
+      "PLD",
+      5073,
+      0.659
+    ],
+    [
+      "WEN",
+      5073,
+      0.7611
+    ],
+    [
+      "EQ",
+      1311,
+      0.8406
+    ],
+    [
+      "KG",
+      3937,
+      0.923
+    ],
+    [
+      "BLDR",
+      4657,
+      0.951
+    ],
+    [
+      "ELV",
+      5073,
+      0.9519
+    ],
+    [
+      "ENPH",
+      2956,
+      0.954
+    ],
+    [
+      "NKTR",
+      4739,
+      0.9622
+    ],
+    [
+      "UPC",
+      697,
+      0.9756
+    ],
+    [
+      "MU",
+      5073,
+      0.9834
+    ],
+    [
+      "CZR",
+      2332,
+      0.9841
+    ],
+    [
+      "T",
+      5073,
+      0.9844
+    ],
+    [
+      "HBAN",
+      5073,
+      0.985
+    ],
+    [
+      "NWS",
+      2648,
+      0.986
+    ]
+  ]
+}
