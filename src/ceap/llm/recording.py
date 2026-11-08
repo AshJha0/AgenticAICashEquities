@@ -26,6 +26,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import re
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, Literal
@@ -82,10 +84,42 @@ def canonical_json(value: Any) -> bytes:
     )
 
 
+MATCH_SIG_DIGITS = 9
+_DECIMAL = re.compile(r"(?<![\w.])-?\d+\.\d+(?:[eE][-+]?\d+)?(?![\w.])")
+
+
+def _round_literal(m: re.Match[str]) -> str:
+    text = m.group(0)
+    digits = len(re.sub(r"[^0-9]", "", text.split("e")[0].split("E")[0]).lstrip("0"))
+    return text if digits <= MATCH_SIG_DIGITS else f"{float(text):.{MATCH_SIG_DIGITS}g}"
+
+
+def _round_floats(value: Any) -> Any:
+    """Floats to ``MATCH_SIG_DIGITS`` significant digits, recursively.
+
+    Request bodies carry raw tool output (for example TCA metrics), as JSON numbers and as decimal
+    literals inside prompt text, whose last-ulp digits differ across OS and BLAS builds. The match key
+    rounds both so a cassette recorded on one OS replays on another; the stored body and the request
+    sent on the wire stay exact.
+    """
+    if isinstance(value, str):
+        return _DECIMAL.sub(_round_literal, value)
+    if isinstance(value, float):
+        return float(f"{value:.{MATCH_SIG_DIGITS}g}") if math.isfinite(value) else value
+    if isinstance(value, dict):
+        return {k: _round_floats(v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [_round_floats(v) for v in value]
+    return value
+
+
 def request_sha256(body: Mapping[str, Any], match: str = "exact") -> str:
-    """sha256 of the canonical request body (``prefix``: only the stable, cacheable prefix)."""
+    """sha256 of the canonical request body (``prefix``: only the stable, cacheable prefix).
+
+    Floats are rounded to ``MATCH_SIG_DIGITS`` significant digits first (see ``_round_floats``).
+    """
     scoped = {k: body.get(k) for k in _PREFIX_KEYS} if match == "prefix" else dict(body)
-    return hashlib.sha256(canonical_json(scoped)).hexdigest()
+    return hashlib.sha256(canonical_json(_round_floats(scoped))).hexdigest()
 
 
 def purpose_of(body: Mapping[str, Any]) -> str:
