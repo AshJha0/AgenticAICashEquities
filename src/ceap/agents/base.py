@@ -144,6 +144,15 @@ class BaseAgent(Agent):
                 return msg
         return None
 
+    def calibrated(self, key: str, raw: float) -> float:
+        """Map a raw confidence through the held-out calibration registered for ``key`` (2B.4).
+
+        Returns ``raw`` unchanged unless a calibration map for ``key`` is registered and shipped.
+        """
+        from ceap.analytics.calibration import apply_calibration
+
+        return apply_calibration(key, raw)
+
     def calc_evidence(
         self,
         ctx: AgentContext,
@@ -190,7 +199,10 @@ def finite(x: Any) -> bool:
 
 
 def confidence_from_excess(excess: float, scale: float, floor: float = 0.55, cap: float = 0.95) -> float:
-    """Map how far a metric sits beyond its threshold into a calibrated confidence."""
+    """Map how far a metric sits beyond its threshold into a heuristic confidence.
+
+    Not calibrated against outcomes; see ``BaseAgent.calibrated`` and ``analytics.calibration`` (2B.4).
+    """
     if not finite(excess) or excess <= 0:
         return floor
     return min(cap, floor + (cap - floor) * (1 - math.exp(-excess / scale)))

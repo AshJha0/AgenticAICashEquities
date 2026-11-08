@@ -1,0 +1,130 @@
+{
+ "card": {
+  "created": "2026-11-07",
+  "description": "Ridge (no intercept) of the 21-day demeaned forward return on the three cross-sectional signal z-scores; penalty chosen by purged (21 days) and embargoed (5 days) walk-forward CV over five folds; every penalty and every single signal is a ledger trial.",
+  "feature_reference": {
+   "low_vol_60": {
+    "edges": [
+     -0.025635150195931482,
+     -0.0225620541714513,
+     -0.020600219088825096,
+     -0.019079299861916494,
+     -0.017735922927154237,
+     -0.016639584779436126,
+     -0.015525768664695988,
+     -0.01435042933748592,
+     -0.013053383987895087
+    ],
+    "expected": [
+     0.10000395038318717,
+     0.09999407442521925,
+     0.10000395038318717,
+     0.09999407442521925,
+     0.10000395038318717,
+     0.09999407442521925,
+     0.10000395038318717,
+     0.09999407442521925,
+     0.10000395038318717,
+     0.10000395038318717
+    ]
+   },
+   "momentum_12_1": {
+    "edges": [
+     -0.33170400848819315,
+     -0.22907206587146134,
+     -0.14837766429224025,
+     -0.07126844756461401,
+     0.007983730166965075,
+     0.09314330636860796,
+     0.196408060301146,
+     0.32748835242278945,
+     0.5353343492624519
+    ],
+    "expected": [
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1
+    ]
+   },
+   "reversal_5": {
+    "edges": [
+     -0.05238241617481165,
+     -0.032857589499253104,
+     -0.020148426296544116,
+     -0.009787404429220325,
+     -0.00037001906853428856,
+     0.00890242252733431,
+     0.018937776522513605,
+     0.031293757166042546,
+     0.0498757895293217
+    ],
+    "expected": [
+     0.09999901401090504,
+     0.09999901401090504,
+     0.10000887390185464,
+     0.09998915411995543,
+     0.09999901401090504,
+     0.10000887390185464,
+     0.09998915411995543,
+     0.09999901401090504,
+     0.09999901401090504,
+     0.10000887390185464
+    ]
+   }
+  },
+  "generator_hash": "b71fd0ca78ba7d08",
+  "intended_use": "Reference combination for the alpha agent on the momentum-premium synthetic set.",
+  "kind": "ridge_combination_v1",
+  "label": "fitted to synthetic generator b71fd0ca78ba7d08",
+  "limitations": "Gross of costs; constant weights between rebalances; synthetic premium only.",
+  "metrics": {
+   "cv_sharpe_daily": {
+    "ridge/alpha=1": 0.069035,
+    "ridge/alpha=10": 0.069035,
+    "ridge/alpha=100": 0.069137,
+    "ridge/alpha=1000": 0.069312,
+    "ridge/alpha=10000": 0.069775,
+    "ridge/alpha=100000": 0.069862,
+    "single/low_vol_60": -0.010619,
+    "single/momentum_12_1": 0.078158,
+    "single/reversal_5": -0.009736
+   },
+   "n_trials": 9,
+   "oos_dsr": {
+    "combination": 0.998695,
+    "low_vol_60": 0.159388,
+    "momentum_12_1": 0.994897,
+    "reversal_5": 8e-06
+   },
+   "oos_sharpe_ann": {
+    "combination": 2.217146,
+    "low_vol_60": 0.419332,
+    "momentum_12_1": 2.018659,
+    "reversal_5": -1.060673
+   },
+   "promote": true
+  },
+  "model_hash": "1b5b2fcd6870c289",
+  "name": "ridge_combination",
+  "sklearn_version": "1.9.1",
+  "training_data_hash": "8a68d1fdd3f025c250657705c514201366c9edadf82846512e3a1891979165ca"
+ },
+ "params": {
+  "alpha": 100000.0,
+  "coef": {
+   "low_vol_60": -0.00032328,
+   "momentum_12_1": 0.0023323,
+   "reversal_5": -0.00080512
+  },
+  "embargo": 5,
+  "folds": 5,
+  "horizon": 21
+ }
+}
