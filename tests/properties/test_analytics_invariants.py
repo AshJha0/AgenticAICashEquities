@@ -65,14 +65,16 @@ def test_cost_is_non_negative_when_every_fill_is_adverse(s, decision, q, adverse
 
 
 @given(
-    st.floats(min_value=0.0, max_value=1.0),
-    st.floats(min_value=0.0, max_value=1.0),
+    st.floats(min_value=0.0, max_value=1e6),
+    st.floats(min_value=0.0, max_value=1e6),
+    st.floats(min_value=1e3, max_value=1e8),
     st.floats(min_value=1.0, max_value=500.0),
 )
-def test_impact_is_non_negative_and_monotone_in_participation(p1, p2, vol):
-    lo, hi = sorted((p1, p2))
-    a = square_root_impact_estimate_bps(lo, vol)
-    b = square_root_impact_estimate_bps(hi, vol)
+def test_impact_is_non_negative_and_monotone_in_participation(q1, q2, adv, vol):
+    # 0.5.0 (2T.5): impact = c * sigma_daily * sqrt(Q / ADV); monotone in Q at fixed ADV.
+    lo, hi = sorted((q1, q2))
+    a = square_root_impact_estimate_bps(lo, adv, vol)
+    b = square_root_impact_estimate_bps(hi, adv, vol)
     assert 0.0 <= a <= b + 1e-12
 
 
