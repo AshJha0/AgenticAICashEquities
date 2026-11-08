@@ -105,6 +105,15 @@ Re-baseline (50 synthetic scenarios, mock LLM):
 The scenario numbers fall slightly because the generator is harder (U-shape, fees, delay, odd
 lots and late prints) and attribution now needs a statistically significant residual.
 
+### R5: real-data momentum study (PLAN items 5.1-5.5, published VOID)
+
+- R5 5.1: preregistration of the 12-1 momentum study (`docs/research/prereg_momentum_2026-11.md`), second-read and committed with its SHA-256 in `docs/research/prereg_lock.json` before any price data was read; every price loader refuses to run on a hash mismatch or past 2023-12-31 (the pseudo-holdout).
+- R5 5.2: approximately point-in-time S&P 500 membership (`ceap.data.real.universe_pit`, `data/reference/sp500_changes.csv` from fja05680/sp500 reconciled against Wikipedia, CC BY-SA attribution in `data/reference/ATTRIBUTION.md`), dated ticker map and a monthly coverage report.
+- R5 5.3: Stooq and yfinance daily loaders reading a gitignored local cache (`data/real_cache/`, never committed), `scripts/download_daily.py` (yfinance; Stooq now serves a browser check to scripts and is not bypassed), and a data quality gate with planted-defect tests.
+- R5 5.4: real-data cost schedule `ceap.analytics.real_costs` (5/10 bps half-spread, square-root impact Y = 0.7 at USD 100M, borrow GC plus hard-to-borrow, Corwin-Schultz as sensitivity) with known-answer tests.
+- R5 outcome: the study is published as **VOID** (`docs/research/result_momentum_2026-11.md`). Coverage was 75.1 % against a required 95 %, and the Stooq cross-check was not run. No test statistic was computed and no verdict is issued. Items 5.6 and 5.7 were not run, and the pseudo-holdout is recorded UNSPENT in `prereg_lock.json`. The 5.5 breakeven figure (-38 bps) partly reveals the sign of gross returns; this is disclosed in the result document.
+- R5 5.5: UMD replication gate `ceap.analytics.factor_check` (correlation >= 0.5 or PIPELINE SUSPECT), FF5 + UMD loadings, per-year and crash-month tables, breakeven cost; `data/reference/ff_factors.csv` from the Ken French library.
+
 ## [0.4.0] - 2026-11-07
 
 Rounds R0, R1 and R2 of the 2026-11-07 plan, shipped as one combined PR (AshJha0/AgenticAICashEquities#1).

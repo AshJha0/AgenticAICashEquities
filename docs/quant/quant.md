@@ -295,7 +295,10 @@ D5); the per-scenario table is in the CHANGELOG.
 its binomial band (50 seeds on PR, 500 nightly).
 
 Thresholds are calibrated on synthetic data. On real return history they would need
-recalibration and version control like any other code; R5 runs one preregistered real-data test.
+recalibration and version control like any other code; R5 prepared one preregistered real-data test, and it came out VOID: on free data the point-in-time
+S&P 500 coverage was 75.1 % against a required 95 % (yfinance lacks most delisted names), and the
+second-vendor cross-check could not run. No test statistic was computed. See
+[`docs/research/result_momentum_2026-11.md`](../research/result_momentum_2026-11.md).
 
 ## What is *not* here
 
