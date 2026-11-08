@@ -59,7 +59,9 @@ def test_crlf_and_lf_copies_hash_identically(tmp_path: Path) -> None:
 
 
 def test_canonical_json_is_key_order_independent() -> None:
-    assert canonical_json({"b": 1, "a": [1, 2]}) == canonical_json({"a": [1, 2], "b": 1}) == b'{"a":[1,2],"b":1}'
+    assert (
+        canonical_json({"b": 1, "a": [1, 2]}) == canonical_json({"a": [1, 2], "b": 1}) == b'{"a":[1,2],"b":1}'
+    )
 
 
 def test_canonical_json_refuses_nan_and_naive_datetimes() -> None:
@@ -177,13 +179,32 @@ def test_contract_checker_flags_signature_changes() -> None:
 
 def test_release_gate_refuses_red_or_missing_checks() -> None:
     mod = _load_script("release_check")
-    green = {"name": "test (3.12)", "status": "completed", "conclusion": "success"}
-    red = {"name": "lint", "status": "completed", "conclusion": "failure"}
-    running = {"name": "docker", "status": "in_progress", "conclusion": None}
-    assert mod.evaluate_runs([green, {"name": "gate", "status": "in_progress", "conclusion": None}]) == 1
-    for runs in ([], [green, red], [green, running]):
+
+    def run(name, conclusion="success", status="completed", created="2026-11-08T10:00:00Z", attempt=1):
+        return {
+            "name": name,
+            "id": 1,
+            "event": "push",
+            "status": status,
+            "conclusion": conclusion,
+            "created_at": created,
+            "run_attempt": attempt,
+        }
+
+    ci = run("CI")
+    # only CI gates: a refused daily paper session or a red nightly on the same commit does not block
+    assert mod.evaluate_workflow_runs([ci, run("paper-daily", "failure"), run("Nightly", "failure")])
+    # the latest CI run decides (a green re-run after a red one releases; a red latest refuses)
+    assert mod.evaluate_workflow_runs([run("CI", "failure"), run("CI", created="2026-11-08T11:00:00Z")])
+    for runs in (
+        [],
+        [run("paper-daily")],
+        [run("CI", "failure")],
+        [run("CI", None, "in_progress")],
+        [ci, run("CI", "failure", created="2026-11-08T11:00:00Z")],
+    ):
         with pytest.raises(mod.ReleaseRefusedError):
-            mod.evaluate_runs(runs)
+            mod.evaluate_workflow_runs(runs)
 
 
 def test_release_gate_checks_versions_and_changelog(tmp_path: Path) -> None:
