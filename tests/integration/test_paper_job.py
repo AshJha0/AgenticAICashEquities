@@ -142,13 +142,13 @@ def test_cli_run_day_report_export_verify(tmp_path, capsys):
 
 
 def test_paper_daily_workflow_is_disabled_by_default():
+    """Text checks, no YAML parser: PyYAML is not a project dependency (hashed lock)."""
+    import re
     from pathlib import Path
 
-    import yaml
-
-    wf = yaml.safe_load((Path(__file__).resolve().parents[2] / ".github/workflows/paper-daily.yml").read_text())
-    job = wf["jobs"]["run-day"]
-    assert job["if"].replace(" ", "") == "${{vars.PAPER_DAILY_ENABLED=='true'}}"
-    assert wf[True]["schedule"][0]["cron"] == "30 21 * * 1-5"  # YAML 1.1 reads the `on` key as True
-    run = " ".join(s.get("run", "") for s in job["steps"])
-    assert "--allow-paper-auto" in run and "forward-log" in run and "ANTHROPIC_API_KEY" not in run
+    text = (Path(__file__).resolve().parents[2] / ".github/workflows/paper-daily.yml").read_text(encoding="utf-8")
+    job = text[text.index("\n  run-day:") :]
+    gate = re.search(r"^    if: (.+)$", job, flags=re.M)
+    assert gate and gate.group(1).replace(" ", "") == "${{vars.PAPER_DAILY_ENABLED=='true'}}"
+    assert re.search(r'^\s*- cron: "30 21 \* \* 1-5"', text, flags=re.M)
+    assert "--allow-paper-auto" in job and "forward-log" in job and "ANTHROPIC_API_KEY" not in text
