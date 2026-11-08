@@ -78,7 +78,9 @@ def _round_floats(v: Any) -> Any:
     if isinstance(v, float):
         return float(f"{v:.{SIG_DIGITS}g}") if math.isfinite(v) else v
     if isinstance(v, dict):
-        return {k: _round_floats(x) for k, x in v.items()}
+        # Evidence digests hash raw (unrounded) tool output, so they move with last-ulp noise across OS
+        # builds; digest integrity is covered by the evidence tests, the golden pins everything else.
+        return {k: ("<digest>" if k == "digest" else _round_floats(x)) for k, x in v.items()}
     if isinstance(v, list):
         return [_round_floats(x) for x in v]
     return v

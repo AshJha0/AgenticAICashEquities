@@ -220,7 +220,7 @@
           "start": "2007-09-07"
         },
         "correlation_id": "CORR-00000007",
-        "digest": "c265e4cb2958cb2d",
+        "digest": "<digest>",
         "step_id": "step-01",
         "task_id": "TASK-00000001",
         "tool_id": "research_data.get_universe_summary"
@@ -242,7 +242,7 @@
           "start": "2007-09-07"
         },
         "correlation_id": "CORR-00000008",
-        "digest": "147b9a7dbb38cd98",
+        "digest": "<digest>",
         "step_id": "step-02",
         "task_id": "TASK-00000001",
         "tool_id": "alpha.evaluate_signal"
@@ -268,7 +268,7 @@
           "start": "2007-09-07"
         },
         "correlation_id": "CORR-00000009",
-        "digest": "1d72939a645e081e",
+        "digest": "<digest>",
         "step_id": "step-03",
         "task_id": "TASK-00000001",
         "tool_id": "backtest.run_backtest"
@@ -289,7 +289,7 @@
           "signal": "reversal_5"
         },
         "correlation_id": "CORR-0000000a",
-        "digest": "00c9e443950af861",
+        "digest": "<digest>",
         "step_id": "step-04",
         "task_id": "TASK-00000001",
         "tool_id": "risk.get_portfolio_exposure"
@@ -310,7 +310,7 @@
           "signal": "reversal_5"
         },
         "correlation_id": "CORR-0000000b",
-        "digest": "304895c4aa1730f1",
+        "digest": "<digest>",
         "step_id": "step-05",
         "task_id": "TASK-00000001",
         "tool_id": "risk.check_portfolio_limits"
@@ -331,7 +331,7 @@
           "signal": "reversal_5"
         },
         "correlation_id": "CORR-0000000c",
-        "digest": "d368920a349e190f",
+        "digest": "<digest>",
         "step_id": "step-06",
         "task_id": "TASK-00000001",
         "tool_id": "risk.calculate_portfolio_stress"
@@ -349,7 +349,7 @@
           "query": "research promotion criteria out-of-sample degradation turnover cost drag approval policy"
         },
         "correlation_id": "CORR-0000000d",
-        "digest": "bb00c96ba4c0a337",
+        "digest": "<digest>",
         "step_id": "step-07",
         "task_id": "TASK-00000001",
         "tool_id": "knowledge.search_documents"

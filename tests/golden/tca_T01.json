@@ -487,7 +487,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000007",
-        "digest": "2c82bad23ee7c871",
+        "digest": "<digest>",
         "step_id": "step-01",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_parent_orders"
@@ -508,7 +508,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000008",
-        "digest": "36175b4d5c9c38b7",
+        "digest": "<digest>",
         "step_id": "step-02",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_child_orders"
@@ -529,7 +529,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000009",
-        "digest": "ce8fe0e82a850adf",
+        "digest": "<digest>",
         "step_id": "step-03",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_executions"
@@ -549,7 +549,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000000a",
-        "digest": "87c6f5c8d5f5d618",
+        "digest": "<digest>",
         "step_id": "step-04",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_market_statistics"
@@ -569,7 +569,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000000b",
-        "digest": "401228fbe21d3ce8",
+        "digest": "<digest>",
         "step_id": "step-05",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_market_statistics"
@@ -589,7 +589,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000000c",
-        "digest": "cbaa0fcac3e3ceb9",
+        "digest": "<digest>",
         "step_id": "step-06",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_order_book_statistics"
@@ -609,7 +609,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000000d",
-        "digest": "e4566f37457e0623",
+        "digest": "<digest>",
         "step_id": "step-07",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_order_book_statistics"
@@ -629,7 +629,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000000e",
-        "digest": "51be3fada876ca4a",
+        "digest": "<digest>",
         "step_id": "step-08",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_execution_metrics"
@@ -649,7 +649,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000000f",
-        "digest": "0b0833176efbc4fb",
+        "digest": "<digest>",
         "step_id": "step-09",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_execution_metrics"
@@ -669,7 +669,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000010",
-        "digest": "9efadea535894c76",
+        "digest": "<digest>",
         "step_id": "step-10",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_venue_statistics"
@@ -691,7 +691,7 @@
           "start": "2026-09-18T14:00:00-04:00"
         },
         "correlation_id": "CORR-00000011",
-        "digest": "94c2273c52f10054",
+        "digest": "<digest>",
         "step_id": "step-11",
         "task_id": "TASK-00000001",
         "tool_id": "engineering.get_latency_metrics"
@@ -710,7 +710,7 @@
           "start": "2026-09-18T13:00:00-04:00"
         },
         "correlation_id": "CORR-00000012",
-        "digest": "f0321d33aed9b693",
+        "digest": "<digest>",
         "step_id": "step-12",
         "task_id": "TASK-00000001",
         "tool_id": "engineering.get_deployments"
@@ -730,7 +730,7 @@
           "start": "2026-09-18T14:00:00-04:00"
         },
         "correlation_id": "CORR-00000013",
-        "digest": "55d165c960ca2918",
+        "digest": "<digest>",
         "step_id": "step-13",
         "task_id": "TASK-00000001",
         "tool_id": "engineering.search_logs"
@@ -748,7 +748,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000014",
-        "digest": "1f6d222f49ea8e8e",
+        "digest": "<digest>",
         "step_id": "step-14",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_strategy_configuration"
@@ -766,7 +766,7 @@
           "query": "VWAP configuration participation ceiling behaviour under wide spreads and low liquidity; escalation policy"
         },
         "correlation_id": "CORR-00000015",
-        "digest": "663df40a5239d610",
+        "digest": "<digest>",
         "step_id": "step-15",
         "task_id": "TASK-00000001",
         "tool_id": "knowledge.search_documents"
@@ -845,7 +845,7 @@
           "start": "2026-09-18T14:00:00-04:00"
         },
         "correlation_id": "CORR-00000049",
-        "digest": "55d165c960ca2918",
+        "digest": "<digest>",
         "step_id": "step-18/engineering#1",
         "task_id": "TASK-00000001",
         "tool_id": "engineering.search_logs"
@@ -866,7 +866,7 @@
           "start": "2026-09-18T14:00:00-04:00"
         },
         "correlation_id": "CORR-0000004c",
-        "digest": "8f404ea5e206a426",
+        "digest": "<digest>",
         "step_id": "step-18/engineering#2",
         "task_id": "TASK-00000001",
         "tool_id": "engineering.get_service_metrics"
@@ -910,7 +910,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000054",
-        "digest": "7d01a4781fc13559",
+        "digest": "<digest>",
         "step_id": "step-19/risk#1",
         "task_id": "TASK-00000001",
         "tool_id": "risk.check_limit"
@@ -929,7 +929,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000057",
-        "digest": "ca48adc8353fbb8f",
+        "digest": "<digest>",
         "step_id": "step-19/risk#2",
         "task_id": "TASK-00000001",
         "tool_id": "risk.get_exposure"
@@ -949,7 +949,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000005d",
-        "digest": "77167a0759a037a8",
+        "digest": "<digest>",
         "step_id": "step-20/quant#1",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_execution_metrics"
@@ -969,7 +969,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000060",
-        "digest": "dcdce252a4599ba2",
+        "digest": "<digest>",
         "step_id": "step-20/quant#2",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_market_statistics"
@@ -989,7 +989,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000063",
-        "digest": "80d5d2d1f5622474",
+        "digest": "<digest>",
         "step_id": "step-20/quant#3",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_order_book_statistics"
@@ -1009,7 +1009,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000066",
-        "digest": "87763524ce4a92a5",
+        "digest": "<digest>",
         "step_id": "step-20/quant#4",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_execution_metrics"
@@ -1029,7 +1029,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000069",
-        "digest": "9a976d3c3f2d7647",
+        "digest": "<digest>",
         "step_id": "step-20/quant#5",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_market_statistics"
@@ -1049,7 +1049,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000006c",
-        "digest": "bd7f64650d8eaead",
+        "digest": "<digest>",
         "step_id": "step-20/quant#6",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_order_book_statistics"
@@ -1069,7 +1069,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000006f",
-        "digest": "c85eba64015315da",
+        "digest": "<digest>",
         "step_id": "step-20/quant#7",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_execution_metrics"
@@ -1089,7 +1089,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000072",
-        "digest": "e055191b6638ba0f",
+        "digest": "<digest>",
         "step_id": "step-20/quant#8",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_market_statistics"
@@ -1109,7 +1109,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000075",
-        "digest": "6ab4f02046eb1829",
+        "digest": "<digest>",
         "step_id": "step-20/quant#9",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_order_book_statistics"
@@ -1129,7 +1129,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000078",
-        "digest": "2d8bd0378ff1e736",
+        "digest": "<digest>",
         "step_id": "step-20/quant#10",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_execution_metrics"
@@ -1149,7 +1149,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000007b",
-        "digest": "ba104ef989ef7058",
+        "digest": "<digest>",
         "step_id": "step-20/quant#11",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_market_statistics"
@@ -1169,7 +1169,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000007e",
-        "digest": "8791f45c859708e3",
+        "digest": "<digest>",
         "step_id": "step-20/quant#12",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_order_book_statistics"
@@ -1189,7 +1189,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000081",
-        "digest": "3648043a1fc324ce",
+        "digest": "<digest>",
         "step_id": "step-20/quant#13",
         "task_id": "TASK-00000001",
         "tool_id": "execution.get_execution_metrics"
@@ -1209,7 +1209,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000084",
-        "digest": "1bede73c93ee8db0",
+        "digest": "<digest>",
         "step_id": "step-20/quant#14",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_market_statistics"
@@ -1229,7 +1229,7 @@
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000087",
-        "digest": "16da611201665e67",
+        "digest": "<digest>",
         "step_id": "step-20/quant#15",
         "task_id": "TASK-00000001",
         "tool_id": "market_data.get_order_book_statistics"
