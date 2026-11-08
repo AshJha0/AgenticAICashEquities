@@ -20,6 +20,8 @@ from typing import Any
 
 from ceap.data.research_scenarios import ResearchScenarioSpec, all_research_scenarios
 from ceap.data.scenarios import ScenarioSpec, all_scenarios
+from ceap.harness.memory import CaseMemory
+from ceap.llm.recording import llm_provenance, model_metrics_label
 from ceap.platform import Platform, default_request, default_research_request
 
 
@@ -51,10 +53,15 @@ async def evaluate_scenario(platform: Platform, spec: ScenarioSpec) -> dict[str,
     }
 
 
+def evaluation_platform() -> Platform:
+    """R3B 3B.7 (D10): case memory is OFF in evaluation, so no run can learn from another."""
+    return Platform(case_memory=CaseMemory(enabled=False))
+
+
 async def run_evaluation(
     limit: int | None = None, verbose: bool = False, platform: Platform | None = None
 ) -> dict[str, Any]:
-    platform = platform or Platform()
+    platform = platform or evaluation_platform()
     specs = all_scenarios()[:limit] if limit else all_scenarios()
     rows = []
     for spec in specs:
@@ -66,8 +73,12 @@ async def run_evaluation(
                 f"{flag} {row['scenario']} {row['symbol']:5s} {row['template']:24s} primary={str(row['primary'] or '-'):20s} fp={row['false_positives']} {row['duration_ms']:.0f}ms"
             )
     n = len(rows)
+    provenance = llm_provenance(platform.llm)  # R3A 3A.5: never publish model behaviour from a non-recorded run
     return {
         "scenarios": n,
+        "llm_provenance": provenance,
+        "model_behaviour_metrics": model_metrics_label(provenance),
+        "case_memory": {"enabled": platform.case_memory.enabled, "reads": platform.case_memory.reads},
         "primary_accuracy": sum(r["primary_hit"] for r in rows) / n if n else 0.0,
         "coverage": sum(r["coverage"] for r in rows) / n if n else 0.0,
         "false_positive_rate": sum(bool(r["false_positives"]) for r in rows) / n if n else 0.0,
@@ -122,7 +133,7 @@ async def evaluate_research_scenario(platform: Platform, spec: ResearchScenarioS
 async def run_research_evaluation(
     limit: int | None = None, verbose: bool = False, platform: Platform | None = None
 ) -> dict[str, Any]:
-    platform = platform or Platform()
+    platform = platform or evaluation_platform()
     specs = all_research_scenarios()[:limit] if limit else all_research_scenarios()
     rows = []
     for spec in specs:
@@ -296,4 +307,45 @@ def run_tca_cause_recall(
         hit = sum(set(r["truth"]) <= set(r["material"]) for r in rows)
         primary = sum(r["primary"] in r["truth"] for r in rows)
         out[t] = {"seeds": n_seeds, "coverage": hit / n_seeds, "primary_accuracy": primary / n_seeds}
+    return out
+
+
+# ---------------------------------------------------------------------- calibration (2B.4)
+def run_calibration_evaluation(recompute: bool = False) -> dict[str, Any]:
+    """Held-out calibration of finding confidences: Brier and ECE on seeds 100-199 (fit on 0-99).
+
+    Reads the registered calibration card; ``recompute`` re-derives the held-out numbers from the
+    generator with the registered detector and map (minutes, not seconds).
+    """
+    from ceap.analytics.calibration import (
+        CHANGE_POINT_KEY,
+        EVAL_SEEDS,
+        brier,
+        calibration_model_name,
+        change_point_samples,
+        ece,
+    )
+    from ceap.ml.registry import ModelRegistry
+
+    model = ModelRegistry().load(calibration_model_name(CHANGE_POINT_KEY))
+    out: dict[str, Any] = {
+        "key": CHANGE_POINT_KEY,
+        "model_hash": model.model_hash,
+        "label": model.card.label,
+        **model.card.metrics,
+    }
+    if recompute:
+        import numpy as np
+
+        from ceap.analytics.calibration import IsotonicMap
+
+        p, y = change_point_samples(EVAL_SEEDS)
+        cal = IsotonicMap(tuple(model.params["x"]), tuple(model.params["y"]))(np.asarray(p, dtype=float))
+        out["recomputed"] = {
+            "n_eval": len(p),
+            "brier_raw": brier(p, y),
+            "brier_calibrated": brier(cal, y),
+            "ece_raw": ece(p, y),
+            "ece_calibrated": ece(cal, y),
+        }
     return out

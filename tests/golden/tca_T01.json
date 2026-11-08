@@ -302,80 +302,90 @@
     "assessments": [
       {
         "adjusted_confidence": 0.8,
-        "finding_id": "F-00000038",
+        "finding_id": "F-00000056",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.8,
         "notes": [],
         "original_confidence": 0.8,
         "supported": true
       },
       {
         "adjusted_confidence": 0.8,
-        "finding_id": "F-00000039",
+        "finding_id": "F-00000057",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.8,
         "notes": [],
         "original_confidence": 0.8,
         "supported": true
       },
       {
         "adjusted_confidence": 0.8,
-        "finding_id": "F-0000003a",
+        "finding_id": "F-00000058",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.8,
         "notes": [],
         "original_confidence": 0.8,
         "supported": true
       },
       {
         "adjusted_confidence": 0.75,
-        "finding_id": "F-0000003b",
+        "finding_id": "F-00000059",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.75,
         "notes": [],
         "original_confidence": 0.75,
         "supported": true
       },
       {
         "adjusted_confidence": 0.9,
-        "finding_id": "F-0000003e",
+        "finding_id": "F-0000005c",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.9,
         "notes": [],
         "original_confidence": 0.9,
         "supported": true
       },
       {
         "adjusted_confidence": 0.9,
-        "finding_id": "F-0000003f",
+        "finding_id": "F-0000005d",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.9,
         "notes": [],
         "original_confidence": 0.9,
         "supported": true
       },
       {
         "adjusted_confidence": 0.9,
-        "finding_id": "F-00000040",
+        "finding_id": "F-0000005e",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.9,
         "notes": [],
         "original_confidence": 0.9,
         "supported": true
       },
       {
         "adjusted_confidence": 0.9,
-        "finding_id": "F-00000041",
+        "finding_id": "F-0000005f",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.9,
         "notes": [],
         "original_confidence": 0.9,
         "supported": true
       },
       {
         "adjusted_confidence": 0.75,
-        "finding_id": "F-00000043",
+        "finding_id": "F-00000061",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.75,
         "notes": [],
         "original_confidence": 0.75,
         "supported": true
       },
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-00000044",
+        "finding_id": "F-00000062",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -384,8 +394,9 @@
       },
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-00000045",
+        "finding_id": "F-00000063",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -394,8 +405,9 @@
       },
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-00000046",
+        "finding_id": "F-00000064",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -404,48 +416,54 @@
       },
       {
         "adjusted_confidence": 0.85,
-        "finding_id": "F-00000047",
+        "finding_id": "F-00000065",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.85,
         "notes": [],
         "original_confidence": 0.85,
         "supported": true
       },
       {
         "adjusted_confidence": 0.85,
-        "finding_id": "F-00000050",
+        "finding_id": "F-0000006e",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.85,
         "notes": [],
         "original_confidence": 0.85,
         "supported": true
       },
       {
         "adjusted_confidence": 0.8,
-        "finding_id": "F-00000051",
+        "finding_id": "F-0000006f",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.8,
         "notes": [],
         "original_confidence": 0.8,
         "supported": true
       },
       {
         "adjusted_confidence": 0.8,
-        "finding_id": "F-00000052",
+        "finding_id": "F-00000070",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.8,
         "notes": [],
         "original_confidence": 0.8,
         "supported": true
       },
       {
         "adjusted_confidence": 0.9,
-        "finding_id": "F-0000005a",
+        "finding_id": "F-00000075",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.9,
         "notes": [],
         "original_confidence": 0.9,
         "supported": true
       },
       {
         "adjusted_confidence": 0.7,
-        "finding_id": "F-0000005b",
+        "finding_id": "F-00000076",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.7,
         "notes": [
           "single evidence record; confidence capped"
         ],
@@ -454,27 +472,242 @@
       },
       {
         "adjusted_confidence": 0.9,
-        "finding_id": "F-0000008b",
+        "finding_id": "F-000000a6",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.9,
         "notes": [],
         "original_confidence": 0.9,
         "supported": true
       },
       {
         "adjusted_confidence": 0.8,
-        "finding_id": "F-0000008c",
+        "finding_id": "F-000000a7",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
+        "llm_proposed_confidence": 0.8,
         "notes": [],
         "original_confidence": 0.8,
         "supported": true
       }
     ],
     "contradictions": [],
+    "disputes": [],
+    "hypotheses": {
+      "REFUTED": [
+        {
+          "evidence_ids": [
+            "TCA-000000a5"
+          ],
+          "name": "MARKET_VOLATILITY",
+          "rank": null,
+          "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+          "statistic": 0.0,
+          "test": "attribution_score>=0.35"
+        },
+        {
+          "evidence_ids": [
+            "TCA-000000a5"
+          ],
+          "name": "WIDE_SPREADS",
+          "rank": null,
+          "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+          "statistic": 0.0,
+          "test": "attribution_score>=0.35"
+        },
+        {
+          "evidence_ids": [
+            "TCA-000000a5"
+          ],
+          "name": "LOW_LIQUIDITY",
+          "rank": null,
+          "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+          "statistic": 0.0,
+          "test": "attribution_score>=0.35"
+        },
+        {
+          "evidence_ids": [
+            "TCA-000000a5"
+          ],
+          "name": "VENUE_DEGRADATION",
+          "rank": null,
+          "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+          "statistic": 0.0,
+          "test": "attribution_score>=0.35"
+        },
+        {
+          "evidence_ids": [
+            "TCA-000000a5"
+          ],
+          "name": "TECHNOLOGY_LATENCY",
+          "rank": null,
+          "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+          "statistic": 0.0,
+          "test": "attribution_score>=0.35"
+        },
+        {
+          "evidence_ids": [
+            "TCA-000000a5"
+          ],
+          "name": "MARKET_DATA_ANOMALY",
+          "rank": null,
+          "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+          "statistic": 0.0,
+          "test": "attribution_score>=0.35"
+        },
+        {
+          "evidence_ids": [
+            "TCA-000000a5"
+          ],
+          "name": "LARGE_ORDER_IMPACT",
+          "rank": null,
+          "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+          "statistic": 0.0,
+          "test": "attribution_score>=0.35"
+        },
+        {
+          "evidence_ids": [
+            "TCA-000000a5"
+          ],
+          "name": "PRICE_MOVEMENT",
+          "rank": null,
+          "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+          "statistic": 0.0,
+          "test": "attribution_score>=0.35"
+        }
+      ],
+      "SUPPORTED": [],
+      "UNTESTED": []
+    },
     "incomplete_analysis": [],
+    "knowledge": {
+      "citation_warnings": [],
+      "citations": [
+        "DOC-000000ab",
+        "DOC-000000ac",
+        "DOC-000000ad"
+      ],
+      "claims": [
+        {
+          "evidence_ids": [
+            "ORDER-00000035",
+            "TCA-0000003c"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 52,124 shares across 215 fills on 5 venues."
+        },
+        {
+          "evidence_ids": [
+            "TCA-0000003c",
+            "TCA-00000045",
+            "TCA-0000005b"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Implementation shortfall was -17.1 bps versus arrival 229.7800 (decreased by 6.7 bps relative to the baseline's -10.4 bps)."
+        },
+        {
+          "evidence_ids": [
+            "TCA-0000003c",
+            "TCA-00000045",
+            "TCA-0000005b"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Execution VWAP 229.4973 versus interval VWAP 229.4632: slippage +1.5 bps (baseline +0.4 bps, delta +1.1 bps)."
+        },
+        {
+          "evidence_ids": [
+            "TCA-0000003c",
+            "TCA-00000045",
+            "TCA-0000005b"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Fill rate was 86.9% of the parent quantity with participation of 5.4% of market volume."
+        },
+        {
+          "evidence_ids": [
+            "RISK-00000074",
+            "TCA-0000003c"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "The parent order breached trading limits: max_position (561029.00 vs 500000.00)."
+        },
+        {
+          "evidence_ids": [
+            "TCA-0000003c",
+            "TCA-000000a5"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Execution quality did not materially deteriorate: arrival shortfall -15.1 bps against a pre-trade estimate of +3.3 bps, a residual of -18.4 bps (-1.00 standard errors; SE 18.5 bps)."
+        },
+        {
+          "evidence_ids": [
+            "EXEC-0000004a",
+            "DOC-0000004b",
+            "TCA-0000003c"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Observed participation 5.4% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook."
+        },
+        {
+          "evidence_ids": [
+            "ENG-00000047",
+            "TCA-0000006d"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Execution latency remained within the normal range (1.01x baseline, p99 996 us)."
+        },
+        {
+          "evidence_ids": [
+            "DOC-0000004b"
+          ],
+          "fact_keys": [
+            "policy_context"
+          ],
+          "needs_policy_support": true,
+          "section": "CONCLUSION",
+          "text": "The applicable policy is Execution Algorithm Documentation: Reading a report."
+        }
+      ],
+      "corpus_hash": "8efb190cab1eb405810e7babb8b478bbce97a59f57483f65869acb874a566960",
+      "dropped_claims": [],
+      "unsupported_policy_claims": []
+    },
     "llm_model": "mock-deterministic-v1",
+    "llm_overall": "Findings are consistent with the deterministic evidence; confidence adjustments applied where evidence was thin.",
     "narrative_evidence_warnings": [],
     "narrative_number_warnings": [],
-    "overall": "Reviewed 20 findings: 20 supported by resolvable evidence, 0 unsupported. Confidence lowered on 4 finding(s). No cross-agent contradictions. Findings are consistent with the deterministic evidence; confidence adjustments applied where evidence was thin.",
+    "overall": "Reviewed 20 findings: 20 supported by resolvable evidence, 0 unsupported. Confidence lowered on 4 finding(s). No cross-agent contradictions.",
+    "unbacked_disputes": [],
     "unsupported": []
   },
   "evidence": [
@@ -490,10 +723,16 @@
         "digest": "<digest>",
         "step_id": "step-01",
         "task_id": "TASK-00000001",
-        "tool_id": "execution.get_parent_orders"
+        "tool_id": "execution.get_parent_orders",
+        "values": {
+          "count": 1,
+          "end": "2026-09-18T19:00:00+00:00",
+          "start": "2026-09-18T18:00:00+00:00",
+          "symbol": "AAPL"
+        }
       },
       "description": "execution.get_parent_orders(symbol=AAPL, dataset=T01, start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00) -> 1 records",
-      "id": "ORDER-00000020",
+      "id": "ORDER-00000035",
       "source": "execution.get_parent_orders",
       "timestamp": "2026-01-01T00:00:00.048000+00:00",
       "type": "ORDER_DATA"
@@ -511,10 +750,19 @@
         "digest": "<digest>",
         "step_id": "step-02",
         "task_id": "TASK-00000001",
-        "tool_id": "execution.get_child_orders"
+        "tool_id": "execution.get_child_orders",
+        "values": {
+          "count": 120,
+          "end": "2026-09-18T19:00:00+00:00",
+          "limit": 500,
+          "offset": 0,
+          "returned": 120,
+          "start": "2026-09-18T18:00:00+00:00",
+          "symbol": "AAPL"
+        }
       },
       "description": "execution.get_child_orders(symbol=AAPL, dataset=T01, start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00, limit=500) -> 120 records",
-      "id": "ORDER-00000021",
+      "id": "ORDER-00000036",
       "source": "execution.get_child_orders",
       "timestamp": "2026-01-01T00:00:00.049000+00:00",
       "type": "ORDER_DATA"
@@ -532,10 +780,21 @@
         "digest": "<digest>",
         "step_id": "step-03",
         "task_id": "TASK-00000001",
-        "tool_id": "execution.get_executions"
+        "tool_id": "execution.get_executions",
+        "values": {
+          "count": 215,
+          "end": "2026-09-18T19:00:00+00:00",
+          "executed_quantity": 52124,
+          "limit": 1000,
+          "notional": 11962315.1,
+          "offset": 0,
+          "returned": 215,
+          "start": "2026-09-18T18:00:00+00:00",
+          "symbol": "AAPL"
+        }
       },
       "description": "execution.get_executions(symbol=AAPL, dataset=T01, start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00, limit=1000) -> 215 records",
-      "id": "EXEC-00000022",
+      "id": "EXEC-00000037",
       "source": "execution.get_executions",
       "timestamp": "2026-01-01T00:00:00.050000+00:00",
       "type": "EXECUTION_DATA"
@@ -552,10 +811,31 @@
         "digest": "<digest>",
         "step_id": "step-04",
         "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_market_statistics"
+        "tool_id": "market_data.get_market_statistics",
+        "values": {
+          "annualised_volatility": 0.103160986,
+          "average_displayed_depth": 8757.5,
+          "average_spread_bps": 1.85100938,
+          "average_top_of_book_size": 499.069444,
+          "close_mid": 228.97,
+          "crossed_quote_count": 0,
+          "end": "2026-09-18T19:00:00+00:00",
+          "high": 229.95,
+          "low": 228.94,
+          "open_mid": 229.78,
+          "price_drift_bps": -35.2511098,
+          "quote_count": 3600,
+          "realised_volatility_bps": 3.29065924,
+          "stale_quote_fraction": 0.00222283968,
+          "start": "2026-09-18T18:00:00+00:00",
+          "symbol": "AAPL",
+          "trade_count": 5370,
+          "traded_volume": 973304,
+          "vwap": 229.463212
+        }
       },
       "description": "market_data.get_market_statistics(symbol=AAPL, dataset=T01, start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00) -> object with keys: symbol, start, end, open_mid, close_mid, high",
-      "id": "TCA-00000023",
+      "id": "TCA-00000038",
       "source": "market_data.get_market_statistics",
       "timestamp": "2026-01-01T00:00:00.051000+00:00",
       "type": "CALCULATION"
@@ -572,10 +852,31 @@
         "digest": "<digest>",
         "step_id": "step-05",
         "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_market_statistics"
+        "tool_id": "market_data.get_market_statistics",
+        "values": {
+          "annualised_volatility": 0.0873008275,
+          "average_displayed_depth": 9003.88889,
+          "average_spread_bps": 1.85745573,
+          "average_top_of_book_size": 493.986111,
+          "close_mid": 229.795,
+          "crossed_quote_count": 0,
+          "end": "2026-09-18T18:00:00+00:00",
+          "high": 230.08,
+          "low": 229.34,
+          "open_mid": 229.83,
+          "price_drift_bps": -1.52286473,
+          "quote_count": 3600,
+          "realised_volatility_bps": 2.78474727,
+          "stale_quote_fraction": 0.00305640456,
+          "start": "2026-09-18T17:00:00+00:00",
+          "symbol": "AAPL",
+          "trade_count": 3801,
+          "traded_volume": 684985,
+          "vwap": 229.7356
+        }
       },
       "description": "market_data.get_market_statistics(symbol=AAPL, dataset=T01, start=2026-09-18T13:00:00-04:00, end=2026-09-18T14:00:00-04:00) -> object with keys: symbol, start, end, open_mid, close_mid, high",
-      "id": "TCA-00000024",
+      "id": "TCA-00000039",
       "source": "market_data.get_market_statistics",
       "timestamp": "2026-01-01T00:00:00.052000+00:00",
       "type": "CALCULATION"
@@ -592,10 +893,19 @@
         "digest": "<digest>",
         "step_id": "step-06",
         "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_order_book_statistics"
+        "tool_id": "market_data.get_order_book_statistics",
+        "values": {
+          "average_displayed_depth": 8757.5,
+          "average_imbalance": -0.00597192783,
+          "end": "2026-09-18T19:00:00+00:00",
+          "min_displayed_depth": 2500,
+          "snapshots": 360,
+          "start": "2026-09-18T18:00:00+00:00",
+          "symbol": "AAPL"
+        }
       },
       "description": "market_data.get_order_book_statistics(symbol=AAPL, dataset=T01, start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00) -> object with keys: symbol, start, end, snapshots, average_displayed_depth, min_displayed_depth",
-      "id": "MARKET-00000025",
+      "id": "MARKET-0000003a",
       "source": "market_data.get_order_book_statistics",
       "timestamp": "2026-01-01T00:00:00.053000+00:00",
       "type": "MARKET_DATA"
@@ -612,10 +922,19 @@
         "digest": "<digest>",
         "step_id": "step-07",
         "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_order_book_statistics"
+        "tool_id": "market_data.get_order_book_statistics",
+        "values": {
+          "average_displayed_depth": 9003.88889,
+          "average_imbalance": -0.0185566637,
+          "end": "2026-09-18T18:00:00+00:00",
+          "min_displayed_depth": 4000,
+          "snapshots": 360,
+          "start": "2026-09-18T17:00:00+00:00",
+          "symbol": "AAPL"
+        }
       },
       "description": "market_data.get_order_book_statistics(symbol=AAPL, dataset=T01, start=2026-09-18T13:00:00-04:00, end=2026-09-18T14:00:00-04:00) -> object with keys: symbol, start, end, snapshots, average_displayed_depth, min_displayed_depth",
-      "id": "MARKET-00000026",
+      "id": "MARKET-0000003b",
       "source": "market_data.get_order_book_statistics",
       "timestamp": "2026-01-01T00:00:00.054000+00:00",
       "type": "MARKET_DATA"
@@ -632,10 +951,49 @@
         "digest": "<digest>",
         "step_id": "step-08",
         "task_id": "TASK-00000001",
-        "tool_id": "execution.get_execution_metrics"
+        "tool_id": "execution.get_execution_metrics",
+        "values": {
+          "arrival_price": 229.78,
+          "arrival_shortfall_bps": -15.1101093,
+          "average_latency_us": 878.407907,
+          "average_spread_bps": 1.85100938,
+          "child_order_count": 120,
+          "delay_cost_bps": -2.01021468,
+          "effective_spread_bps": 2.32410312,
+          "end": "2026-09-18T19:00:00+00:00",
+          "executed_quantity": 52124,
+          "execution_count": 215,
+          "fees_bps": 0.0895430257,
+          "fill_rate": 0.868733333,
+          "implementation_shortfall_bps": -17.120324,
+          "is_price_risk_bps": 14.2653498,
+          "is_residual_bps": -18.4417009,
+          "is_residual_z": -1.21562091,
+          "is_standard_error_bps": 15.1706019,
+          "market_impact_bps": 2.3271879,
+          "market_vwap": 229.463209,
+          "opportunity_cost_bps": -4.51213424,
+          "participation_rate": 0.0536219837,
+          "pretrade_estimate_bps": 3.33159162,
+          "price_drift_bps": -35.2511098,
+          "price_improvement_bps": 0.484677347,
+          "realised_spread_bps": 7.98971297,
+          "realised_volatility_bps": 3.29065924,
+          "reject_rate": 0.0,
+          "side": "BUY",
+          "slippage_vs_arrival_bps": -12.3048886,
+          "slippage_vs_vwap_bps": 1.48385285,
+          "spread_cost_bps": 0.416970882,
+          "start": "2026-09-18T18:00:00+00:00",
+          "symbol": "AAPL",
+          "target_quantity": 60000,
+          "temporary_impact_bps": 3.99485649,
+          "timing_cost_bps": -11.104489,
+          "vwap": 229.497258
+        }
       },
       "description": "execution.get_execution_metrics(symbol=AAPL, dataset=T01, start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
-      "id": "TCA-00000027",
+      "id": "TCA-0000003c",
       "source": "execution.get_execution_metrics",
       "timestamp": "2026-01-01T00:00:00.055000+00:00",
       "type": "CALCULATION"
@@ -652,12 +1010,51 @@
         "digest": "<digest>",
         "step_id": "step-09",
         "task_id": "TASK-00000001",
-        "tool_id": "execution.get_execution_metrics"
+        "tool_id": "execution.get_execution_metrics",
+        "values": {
+          "arrival_price": 229.83,
+          "arrival_shortfall_bps": -3.40316363,
+          "average_latency_us": 777.830583,
+          "average_spread_bps": 1.85745573,
+          "child_order_count": 120,
+          "delay_cost_bps": -6.99592897,
+          "effective_spread_bps": 2.022118,
+          "end": "2026-09-18T18:00:00+00:00",
+          "executed_quantity": 51785,
+          "execution_count": 206,
+          "fees_bps": 0.0891701947,
+          "fill_rate": 0.863083333,
+          "implementation_shortfall_bps": -10.3990926,
+          "is_price_risk_bps": 14.2653498,
+          "is_residual_bps": -6.73469468,
+          "is_residual_z": -0.443930618,
+          "is_standard_error_bps": 15.1706019,
+          "market_impact_bps": 2.3271879,
+          "market_vwap": 229.73574,
+          "opportunity_cost_bps": -0.297656704,
+          "participation_rate": 0.075767219,
+          "pretrade_estimate_bps": 3.33153105,
+          "price_drift_bps": -1.52286473,
+          "price_improvement_bps": 0.489589958,
+          "realised_spread_bps": 1.5384448,
+          "realised_volatility_bps": 2.78474727,
+          "reject_rate": 0.0,
+          "side": "BUY",
+          "slippage_vs_arrival_bps": -3.7040614,
+          "slippage_vs_vwap_bps": 0.397414636,
+          "spread_cost_bps": 0.339223566,
+          "start": "2026-09-18T17:00:00+00:00",
+          "symbol": "AAPL",
+          "target_quantity": 60000,
+          "temporary_impact_bps": 0.769222399,
+          "timing_cost_bps": -3.53390069,
+          "vwap": 229.74487
+        }
       },
       "description": "execution.get_execution_metrics(symbol=AAPL, dataset=T01, start=2026-09-18T13:00:00-04:00, end=2026-09-18T14:00:00-04:00) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
-      "id": "TCA-0000002f",
+      "id": "TCA-00000045",
       "source": "execution.get_execution_metrics",
-      "timestamp": "2026-01-01T00:00:00.092000+00:00",
+      "timestamp": "2026-01-01T00:00:00.096000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -672,12 +1069,17 @@
         "digest": "<digest>",
         "step_id": "step-10",
         "task_id": "TASK-00000001",
-        "tool_id": "execution.get_venue_statistics"
+        "tool_id": "execution.get_venue_statistics",
+        "values": {
+          "end": "2026-09-18T19:00:00+00:00",
+          "start": "2026-09-18T18:00:00+00:00",
+          "symbol": "AAPL"
+        }
       },
       "description": "execution.get_venue_statistics(symbol=AAPL, dataset=T01, start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00) -> object with keys: symbol, start, end, venues",
-      "id": "TCA-00000030",
+      "id": "TCA-00000046",
       "source": "execution.get_venue_statistics",
-      "timestamp": "2026-01-01T00:00:00.093000+00:00",
+      "timestamp": "2026-01-01T00:00:00.097000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -694,12 +1096,19 @@
         "digest": "<digest>",
         "step_id": "step-11",
         "task_id": "TASK-00000001",
-        "tool_id": "engineering.get_latency_metrics"
+        "tool_id": "engineering.get_latency_metrics",
+        "values": {
+          "latency_ratio": 1.01302749,
+          "metric": "ack_latency_p50_us",
+          "service": "order-gateway",
+          "slo_breached": false,
+          "slo_p99_us": 3000.0
+        }
       },
       "description": "engineering.get_latency_metrics(service=order-gateway, start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00, baseline_start=2026-09-18T13:00:00-04:00, baseline_end=2026-09-18T14:00:00-04:00, dataset=T01) -> object with keys: service, metric, window, baseline, latency_ratio, slo_p99_us",
-      "id": "ENG-00000031",
+      "id": "ENG-00000047",
       "source": "engineering.get_latency_metrics",
-      "timestamp": "2026-01-01T00:00:00.094000+00:00",
+      "timestamp": "2026-01-01T00:00:00.098000+00:00",
       "type": "SYSTEM_METRIC"
     },
     {
@@ -713,12 +1122,17 @@
         "digest": "<digest>",
         "step_id": "step-12",
         "task_id": "TASK-00000001",
-        "tool_id": "engineering.get_deployments"
+        "tool_id": "engineering.get_deployments",
+        "values": {
+          "count": 0,
+          "end": "2026-09-18T19:00:00+00:00",
+          "start": "2026-09-18T17:00:00+00:00"
+        }
       },
       "description": "engineering.get_deployments(start=2026-09-18T13:00:00-04:00, end=2026-09-18T15:00:00-04:00, dataset=T01) -> 0 records",
-      "id": "CHANGE-00000032",
+      "id": "CHANGE-00000048",
       "source": "engineering.get_deployments",
-      "timestamp": "2026-01-01T00:00:00.095000+00:00",
+      "timestamp": "2026-01-01T00:00:00.099000+00:00",
       "type": "CODE_CHANGE"
     },
     {
@@ -733,12 +1147,20 @@
         "digest": "<digest>",
         "step_id": "step-13",
         "task_id": "TASK-00000001",
-        "tool_id": "engineering.search_logs"
+        "tool_id": "engineering.search_logs",
+        "values": {
+          "count": 0,
+          "end": "2026-09-18T19:00:00+00:00",
+          "limit": 200,
+          "offset": 0,
+          "returned": 0,
+          "start": "2026-09-18T18:00:00+00:00"
+        }
       },
       "description": "engineering.search_logs(start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00, level=ERROR, dataset=T01) -> 0 records",
-      "id": "LOG-00000033",
+      "id": "LOG-00000049",
       "source": "engineering.search_logs",
-      "timestamp": "2026-01-01T00:00:00.096000+00:00",
+      "timestamp": "2026-01-01T00:00:00.100000+00:00",
       "type": "LOG"
     },
     {
@@ -751,90 +1173,49 @@
         "digest": "<digest>",
         "step_id": "step-14",
         "task_id": "TASK-00000001",
-        "tool_id": "execution.get_strategy_configuration"
+        "tool_id": "execution.get_strategy_configuration",
+        "values": {
+          "dark_pool_enabled": true,
+          "limit_offset_ticks": 2,
+          "max_participation_rate": 0.2,
+          "slice_interval_seconds": 30,
+          "strategy": "VWAP",
+          "symbol": "AAPL",
+          "target_participation_rate": 0.08,
+          "urgency": "NORMAL",
+          "venue_selection": "smart-order-router",
+          "version": "vwap-3.4.0"
+        }
       },
       "description": "execution.get_strategy_configuration(symbol=AAPL, strategy=VWAP) -> object with keys: symbol, strategy, version, slice_interval_seconds, target_participation_rate, max_participation_rate",
-      "id": "EXEC-00000034",
+      "id": "EXEC-0000004a",
       "source": "execution.get_strategy_configuration",
-      "timestamp": "2026-01-01T00:00:00.097000+00:00",
+      "timestamp": "2026-01-01T00:00:00.101000+00:00",
       "type": "EXECUTION_DATA"
     },
     {
       "attributes": {
         "arguments": {
+          "classifications": "public,internal,restricted",
           "k": 4,
-          "query": "VWAP configuration participation ceiling behaviour under wide spreads and low liquidity; escalation policy"
+          "query": "execution implementation shortfall; AAPL 2026-09-18T14:00:00-04:00 2026-09-18T15:00:00-04:00; execution policy escalation deterioration threshold"
         },
         "correlation_id": "CORR-00000015",
         "digest": "<digest>",
         "step_id": "step-15",
         "task_id": "TASK-00000001",
-        "tool_id": "knowledge.search_documents"
+        "tool_id": "knowledge.search_documents",
+        "values": {
+          "corpus_hash": "8efb190cab1eb405810e7babb8b478bbce97a59f57483f65869acb874a566960",
+          "count": 4,
+          "query": "execution implementation shortfall; AAPL 2026-09-18T14:00:00-04:00 2026-09-18T15:00:00-04:00; execution policy escalation deterioration threshold"
+        }
       },
-      "description": "knowledge.search_documents(query=VWAP configuration participation, k=4) -> 4 records",
-      "id": "ENG-00000035",
+      "description": "knowledge.search_documents(query=execution implementation shortfa, k=4, classifications=public,internal,restricted) -> 4 records",
+      "id": "DOC-0000004b",
       "source": "knowledge.search_documents",
-      "timestamp": "2026-01-01T00:00:00.098000+00:00",
-      "type": "SYSTEM_METRIC"
-    },
-    {
-      "attributes": {
-        "crossed_quotes": 0,
-        "depth_ratio": 0.972635281,
-        "derived_from": [
-          "TCA-00000023",
-          "TCA-00000024",
-          "MARKET-00000025",
-          "MARKET-00000026"
-        ],
-        "price_drift_bps": -35.2511098,
-        "spread_ratio": 0.996529474,
-        "stale_quote_fraction": 0.00222283968,
-        "task_id": "TASK-00000001",
-        "top_of_book_ratio": 1.01029044,
-        "volatility_ratio": 1.18167249
-      },
-      "description": "Window vs baseline market ratios (volatility, spread, depth, top-of-book)",
-      "id": "TCA-00000037",
-      "source": "agent:market",
-      "timestamp": "2026-01-01T00:00:00.109000+00:00",
-      "type": "CALCULATION"
-    },
-    {
-      "attributes": {
-        "derived_from": [
-          "TCA-00000027",
-          "TCA-0000002f"
-        ],
-        "fill_rate": 0.868733333,
-        "is_delta_bps": -6.72123136,
-        "participation_rate": 0.0536219837,
-        "reject_rate": 0.0,
-        "task_id": "TASK-00000001",
-        "vwap_slippage_delta_bps": 1.08643821
-      },
-      "description": "Window vs baseline execution deltas (IS, VWAP slippage, fill rate, participation)",
-      "id": "TCA-0000003d",
-      "source": "agent:execution",
-      "timestamp": "2026-01-01T00:00:00.114000+00:00",
-      "type": "CALCULATION"
-    },
-    {
-      "attributes": {
-        "derived_from": [
-          "TCA-00000030"
-        ],
-        "fill_gap": -0.0135862157,
-        "score": 0.243792815,
-        "slippage_excess_bps": 0.48758563,
-        "task_id": "TASK-00000001",
-        "worst_venue": "DARK1"
-      },
-      "description": "Per-venue peer comparison (fill-rate gap, slippage excess)",
-      "id": "TCA-00000042",
-      "source": "agent:execution",
-      "timestamp": "2026-01-01T00:00:00.115000+00:00",
-      "type": "CALCULATION"
+      "timestamp": "2026-01-01T00:00:00.102000+00:00",
+      "type": "DOCUMENT"
     },
     {
       "attributes": {
@@ -844,16 +1225,24 @@
           "level": "WARN",
           "start": "2026-09-18T14:00:00-04:00"
         },
-        "correlation_id": "CORR-00000049",
+        "correlation_id": "CORR-00000023",
         "digest": "<digest>",
-        "step_id": "step-18/engineering#1",
+        "step_id": "gov-data-01",
         "task_id": "TASK-00000001",
-        "tool_id": "engineering.search_logs"
+        "tool_id": "engineering.search_logs",
+        "values": {
+          "count": 0,
+          "end": "2026-09-18T19:00:00+00:00",
+          "limit": 200,
+          "offset": 0,
+          "returned": 0,
+          "start": "2026-09-18T18:00:00+00:00"
+        }
       },
       "description": "engineering.search_logs(start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00, level=WARN, dataset=T01) -> 0 records",
-      "id": "LOG-0000004b",
+      "id": "LOG-0000004c",
       "source": "engineering.search_logs",
-      "timestamp": "2026-01-01T00:00:00.123000+00:00",
+      "timestamp": "2026-01-01T00:00:00.103000+00:00",
       "type": "LOG"
     },
     {
@@ -865,27 +1254,194 @@
           "service": "market-data-adapter",
           "start": "2026-09-18T14:00:00-04:00"
         },
-        "correlation_id": "CORR-0000004c",
+        "correlation_id": "CORR-00000024",
+        "digest": "<digest>",
+        "step_id": "gov-data-02",
+        "task_id": "TASK-00000001",
+        "tool_id": "engineering.get_service_metrics",
+        "values": {
+          "end": "2026-09-18T19:00:00+00:00",
+          "service": "market-data-adapter",
+          "start": "2026-09-18T18:00:00+00:00"
+        }
+      },
+      "description": "engineering.get_service_metrics(service=market-data-adapter, start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00, metric=feed_gap_count, dataset=T01) -> object with keys: service, start, end, series, summary",
+      "id": "ENG-0000004f",
+      "source": "engineering.get_service_metrics",
+      "timestamp": "2026-01-01T00:00:00.120000+00:00",
+      "type": "SYSTEM_METRIC"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "as_of": "2026-09-18T15:00:00-04:00",
+          "dataset": "T01",
+          "symbol": "AAPL"
+        },
+        "correlation_id": "CORR-00000026",
+        "digest": "<digest>",
+        "step_id": "gov-data-03",
+        "task_id": "TASK-00000001",
+        "tool_id": "risk.get_exposure",
+        "values": {
+          "as_of": "2026-09-18T19:00:00+00:00",
+          "gross_exposure": 114730631.0,
+          "max_notional": 150000000.0,
+          "notional_utilisation": 0.7649,
+          "quantity": 501029,
+          "reference_price": 228.99,
+          "symbol": "AAPL"
+        }
+      },
+      "description": "risk.get_exposure(symbol=AAPL, as_of=2026-09-18T15:00:00-04:00, dataset=T01) -> object with keys: symbol, as_of, quantity, reference_price, gross_exposure, max_notional",
+      "id": "RISK-00000050",
+      "source": "risk.get_exposure",
+      "timestamp": "2026-01-01T00:00:00.121000+00:00",
+      "type": "RISK"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-18T15:00:00-04:00",
+          "service": "market-data-adapter",
+          "start": "2026-09-18T12:00:00-04:00"
+        },
+        "correlation_id": "CORR-00000052",
+        "digest": "<digest>",
+        "step_id": "step-16/market#1",
+        "task_id": "TASK-00000001",
+        "tool_id": "engineering.get_service_metrics",
+        "values": {
+          "end": "2026-09-18T19:00:00+00:00",
+          "service": "market-data-adapter",
+          "start": "2026-09-18T16:00:00+00:00"
+        }
+      },
+      "description": "engineering.get_service_metrics(service=market-data-adapter, start=2026-09-18T12:00:00-04:00, end=2026-09-18T15:00:00-04:00, dataset=T01) -> object with keys: service, start, end, series, summary",
+      "id": "ENG-00000054",
+      "source": "engineering.get_service_metrics",
+      "timestamp": "2026-01-01T00:00:00.130000+00:00",
+      "type": "SYSTEM_METRIC"
+    },
+    {
+      "attributes": {
+        "crossed_quotes": 0,
+        "depth_ratio": 0.972635281,
+        "derived_from": [
+          "TCA-00000038",
+          "TCA-00000039",
+          "MARKET-0000003a",
+          "MARKET-0000003b"
+        ],
+        "price_drift_bps": -35.2511098,
+        "spread_ratio": 0.996529474,
+        "stale_quote_fraction": 0.00222283968,
+        "task_id": "TASK-00000001",
+        "top_of_book_ratio": 1.01029044,
+        "volatility_ratio": 1.18167249
+      },
+      "description": "Window vs baseline market ratios (volatility, spread, depth, top-of-book)",
+      "id": "TCA-00000055",
+      "source": "agent:market",
+      "timestamp": "2026-01-01T00:00:00.132000+00:00",
+      "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "derived_from": [
+          "TCA-0000003c",
+          "TCA-00000045"
+        ],
+        "fill_rate": 0.868733333,
+        "is_delta_bps": -6.72123136,
+        "participation_rate": 0.0536219837,
+        "reject_rate": 0.0,
+        "task_id": "TASK-00000001",
+        "vwap_slippage_delta_bps": 1.08643821
+      },
+      "description": "Window vs baseline execution deltas (IS, VWAP slippage, fill rate, participation)",
+      "id": "TCA-0000005b",
+      "source": "agent:execution",
+      "timestamp": "2026-01-01T00:00:00.137000+00:00",
+      "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "derived_from": [
+          "TCA-00000046"
+        ],
+        "fill_gap": -0.0135862157,
+        "score": 0.243792815,
+        "slippage_excess_bps": 0.48758563,
+        "task_id": "TASK-00000001",
+        "worst_venue": "DARK1"
+      },
+      "description": "Per-venue peer comparison (fill-rate gap, slippage excess)",
+      "id": "TCA-00000060",
+      "source": "agent:execution",
+      "timestamp": "2026-01-01T00:00:00.138000+00:00",
+      "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-18T15:00:00-04:00",
+          "service": "order-gateway",
+          "start": "2026-09-18T12:00:00-04:00"
+        },
+        "correlation_id": "CORR-00000067",
+        "digest": "<digest>",
+        "step_id": "step-18/engineering#1",
+        "task_id": "TASK-00000001",
+        "tool_id": "engineering.get_service_metrics",
+        "values": {
+          "end": "2026-09-18T19:00:00+00:00",
+          "service": "order-gateway",
+          "start": "2026-09-18T16:00:00+00:00"
+        }
+      },
+      "description": "engineering.get_service_metrics(service=order-gateway, start=2026-09-18T12:00:00-04:00, end=2026-09-18T15:00:00-04:00, dataset=T01) -> object with keys: service, start, end, series, summary",
+      "id": "ENG-00000069",
+      "source": "engineering.get_service_metrics",
+      "timestamp": "2026-01-01T00:00:00.146000+00:00",
+      "type": "SYSTEM_METRIC"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-18T15:00:00-04:00",
+          "service": "smart-order-router",
+          "start": "2026-09-18T12:00:00-04:00"
+        },
+        "correlation_id": "CORR-0000006a",
         "digest": "<digest>",
         "step_id": "step-18/engineering#2",
         "task_id": "TASK-00000001",
-        "tool_id": "engineering.get_service_metrics"
+        "tool_id": "engineering.get_service_metrics",
+        "values": {
+          "end": "2026-09-18T19:00:00+00:00",
+          "service": "smart-order-router",
+          "start": "2026-09-18T16:00:00+00:00"
+        }
       },
-      "description": "engineering.get_service_metrics(service=market-data-adapter, start=2026-09-18T14:00:00-04:00, end=2026-09-18T15:00:00-04:00, metric=feed_gap_count, dataset=T01) -> object with keys: service, start, end, series, summary",
-      "id": "ENG-0000004e",
+      "description": "engineering.get_service_metrics(service=smart-order-router, start=2026-09-18T12:00:00-04:00, end=2026-09-18T15:00:00-04:00, dataset=T01) -> object with keys: service, start, end, series, summary",
+      "id": "ENG-0000006c",
       "source": "engineering.get_service_metrics",
-      "timestamp": "2026-01-01T00:00:00.128000+00:00",
+      "timestamp": "2026-01-01T00:00:00.151000+00:00",
       "type": "SYSTEM_METRIC"
     },
     {
       "attributes": {
         "deployments_in_scope": 0,
         "derived_from": [
-          "ENG-00000031",
-          "CHANGE-00000032",
-          "LOG-00000033",
-          "LOG-0000004b",
-          "ENG-0000004e"
+          "ENG-00000047",
+          "CHANGE-00000048",
+          "LOG-00000049",
+          "LOG-0000004c",
+          "ENG-0000004f"
         ],
         "error_logs": 0,
         "feed_gap_count": 0.0,
@@ -896,9 +1452,9 @@
         "window_p99_us": 995.581
       },
       "description": "Technology health summary for the window",
-      "id": "TCA-0000004f",
+      "id": "TCA-0000006d",
       "source": "agent:engineering",
-      "timestamp": "2026-01-01T00:00:00.130000+00:00",
+      "timestamp": "2026-01-01T00:00:00.153000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -909,35 +1465,23 @@
           "participation_rate": 0.0536219837,
           "symbol": "AAPL"
         },
-        "correlation_id": "CORR-00000054",
+        "correlation_id": "CORR-00000072",
         "digest": "<digest>",
         "step_id": "step-19/risk#1",
         "task_id": "TASK-00000001",
-        "tool_id": "risk.check_limit"
+        "tool_id": "risk.check_limit",
+        "values": {
+          "any_breached": true,
+          "found": true,
+          "projected_position": 561029,
+          "side": "BUY",
+          "symbol": "AAPL"
+        }
       },
       "description": "risk.check_limit(symbol=AAPL, order_quantity=60000, participation_rate=0.053621983737696284, dataset=T01) -> object with keys: symbol, found, side, projected_position, any_breached, checks",
-      "id": "RISK-00000056",
+      "id": "RISK-00000074",
       "source": "risk.check_limit",
-      "timestamp": "2026-01-01T00:00:00.138000+00:00",
-      "type": "RISK"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "as_of": "2026-09-18T15:00:00-04:00",
-          "dataset": "T01",
-          "symbol": "AAPL"
-        },
-        "correlation_id": "CORR-00000057",
-        "digest": "<digest>",
-        "step_id": "step-19/risk#2",
-        "task_id": "TASK-00000001",
-        "tool_id": "risk.get_exposure"
-      },
-      "description": "risk.get_exposure(symbol=AAPL, as_of=2026-09-18T15:00:00-04:00, dataset=T01) -> object with keys: symbol, as_of, quantity, reference_price, gross_exposure, max_notional",
-      "id": "RISK-00000059",
-      "source": "risk.get_exposure",
-      "timestamp": "2026-01-01T00:00:00.143000+00:00",
+      "timestamp": "2026-01-01T00:00:00.161000+00:00",
       "type": "RISK"
     },
     {
@@ -946,218 +1490,444 @@
           "dataset": "T01",
           "end": "2026-09-17T15:00:00-04:00",
           "start": "2026-09-17T14:00:00-04:00",
-          "symbol": "AAPL"
-        },
-        "correlation_id": "CORR-0000005d",
-        "digest": "<digest>",
-        "step_id": "step-20/quant#1",
-        "task_id": "TASK-00000001",
-        "tool_id": "execution.get_execution_metrics"
-      },
-      "description": "execution.get_execution_metrics(symbol=AAPL, start=2026-09-17T14:00:00-04:00, end=2026-09-17T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
-      "id": "TCA-0000005f",
-      "source": "execution.get_execution_metrics",
-      "timestamp": "2026-01-01T00:00:00.152000+00:00",
-      "type": "CALCULATION"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "T01",
-          "end": "2026-09-17T15:00:00-04:00",
-          "start": "2026-09-17T14:00:00-04:00",
-          "symbol": "AAPL"
-        },
-        "correlation_id": "CORR-00000060",
-        "digest": "<digest>",
-        "step_id": "step-20/quant#2",
-        "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_market_statistics"
-      },
-      "description": "market_data.get_market_statistics(symbol=AAPL, start=2026-09-17T14:00:00-04:00, end=2026-09-17T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, open_mid, close_mid, high",
-      "id": "TCA-00000062",
-      "source": "market_data.get_market_statistics",
-      "timestamp": "2026-01-01T00:00:00.157000+00:00",
-      "type": "CALCULATION"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "T01",
-          "end": "2026-09-17T15:00:00-04:00",
-          "start": "2026-09-17T14:00:00-04:00",
-          "symbol": "AAPL"
-        },
-        "correlation_id": "CORR-00000063",
-        "digest": "<digest>",
-        "step_id": "step-20/quant#3",
-        "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_order_book_statistics"
-      },
-      "description": "market_data.get_order_book_statistics(symbol=AAPL, start=2026-09-17T14:00:00-04:00, end=2026-09-17T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, snapshots, average_displayed_depth, min_displayed_depth",
-      "id": "MARKET-00000065",
-      "source": "market_data.get_order_book_statistics",
-      "timestamp": "2026-01-01T00:00:00.162000+00:00",
-      "type": "MARKET_DATA"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "T01",
-          "end": "2026-09-16T15:00:00-04:00",
-          "start": "2026-09-16T14:00:00-04:00",
-          "symbol": "AAPL"
-        },
-        "correlation_id": "CORR-00000066",
-        "digest": "<digest>",
-        "step_id": "step-20/quant#4",
-        "task_id": "TASK-00000001",
-        "tool_id": "execution.get_execution_metrics"
-      },
-      "description": "execution.get_execution_metrics(symbol=AAPL, start=2026-09-16T14:00:00-04:00, end=2026-09-16T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
-      "id": "TCA-00000068",
-      "source": "execution.get_execution_metrics",
-      "timestamp": "2026-01-01T00:00:00.167000+00:00",
-      "type": "CALCULATION"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "T01",
-          "end": "2026-09-16T15:00:00-04:00",
-          "start": "2026-09-16T14:00:00-04:00",
-          "symbol": "AAPL"
-        },
-        "correlation_id": "CORR-00000069",
-        "digest": "<digest>",
-        "step_id": "step-20/quant#5",
-        "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_market_statistics"
-      },
-      "description": "market_data.get_market_statistics(symbol=AAPL, start=2026-09-16T14:00:00-04:00, end=2026-09-16T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, open_mid, close_mid, high",
-      "id": "TCA-0000006b",
-      "source": "market_data.get_market_statistics",
-      "timestamp": "2026-01-01T00:00:00.172000+00:00",
-      "type": "CALCULATION"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "T01",
-          "end": "2026-09-16T15:00:00-04:00",
-          "start": "2026-09-16T14:00:00-04:00",
-          "symbol": "AAPL"
-        },
-        "correlation_id": "CORR-0000006c",
-        "digest": "<digest>",
-        "step_id": "step-20/quant#6",
-        "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_order_book_statistics"
-      },
-      "description": "market_data.get_order_book_statistics(symbol=AAPL, start=2026-09-16T14:00:00-04:00, end=2026-09-16T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, snapshots, average_displayed_depth, min_displayed_depth",
-      "id": "MARKET-0000006e",
-      "source": "market_data.get_order_book_statistics",
-      "timestamp": "2026-01-01T00:00:00.177000+00:00",
-      "type": "MARKET_DATA"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "T01",
-          "end": "2026-09-15T15:00:00-04:00",
-          "start": "2026-09-15T14:00:00-04:00",
-          "symbol": "AAPL"
-        },
-        "correlation_id": "CORR-0000006f",
-        "digest": "<digest>",
-        "step_id": "step-20/quant#7",
-        "task_id": "TASK-00000001",
-        "tool_id": "execution.get_execution_metrics"
-      },
-      "description": "execution.get_execution_metrics(symbol=AAPL, start=2026-09-15T14:00:00-04:00, end=2026-09-15T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
-      "id": "TCA-00000071",
-      "source": "execution.get_execution_metrics",
-      "timestamp": "2026-01-01T00:00:00.182000+00:00",
-      "type": "CALCULATION"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "T01",
-          "end": "2026-09-15T15:00:00-04:00",
-          "start": "2026-09-15T14:00:00-04:00",
-          "symbol": "AAPL"
-        },
-        "correlation_id": "CORR-00000072",
-        "digest": "<digest>",
-        "step_id": "step-20/quant#8",
-        "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_market_statistics"
-      },
-      "description": "market_data.get_market_statistics(symbol=AAPL, start=2026-09-15T14:00:00-04:00, end=2026-09-15T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, open_mid, close_mid, high",
-      "id": "TCA-00000074",
-      "source": "market_data.get_market_statistics",
-      "timestamp": "2026-01-01T00:00:00.187000+00:00",
-      "type": "CALCULATION"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "T01",
-          "end": "2026-09-15T15:00:00-04:00",
-          "start": "2026-09-15T14:00:00-04:00",
-          "symbol": "AAPL"
-        },
-        "correlation_id": "CORR-00000075",
-        "digest": "<digest>",
-        "step_id": "step-20/quant#9",
-        "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_order_book_statistics"
-      },
-      "description": "market_data.get_order_book_statistics(symbol=AAPL, start=2026-09-15T14:00:00-04:00, end=2026-09-15T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, snapshots, average_displayed_depth, min_displayed_depth",
-      "id": "MARKET-00000077",
-      "source": "market_data.get_order_book_statistics",
-      "timestamp": "2026-01-01T00:00:00.192000+00:00",
-      "type": "MARKET_DATA"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "T01",
-          "end": "2026-09-14T15:00:00-04:00",
-          "start": "2026-09-14T14:00:00-04:00",
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000078",
         "digest": "<digest>",
-        "step_id": "step-20/quant#10",
+        "step_id": "step-20/quant#1",
         "task_id": "TASK-00000001",
-        "tool_id": "execution.get_execution_metrics"
+        "tool_id": "execution.get_execution_metrics",
+        "values": {
+          "arrival_price": 231.23,
+          "arrival_shortfall_bps": -21.9396442,
+          "average_latency_us": 837.713825,
+          "average_spread_bps": 1.85139549,
+          "child_order_count": 120,
+          "delay_cost_bps": 0.134067446,
+          "effective_spread_bps": 2.53762624,
+          "end": "2026-09-17T19:00:00+00:00",
+          "executed_quantity": 62074,
+          "execution_count": 217,
+          "fees_bps": 0.0774961031,
+          "fill_rate": 0.844544218,
+          "implementation_shortfall_bps": -21.8055768,
+          "is_price_risk_bps": 14.2653498,
+          "is_residual_bps": -25.4257975,
+          "is_residual_z": -1.67599135,
+          "is_standard_error_bps": 15.1706019,
+          "market_impact_bps": 2.575725,
+          "market_vwap": 230.722856,
+          "opportunity_cost_bps": -4.70615865,
+          "participation_rate": 0.0621253155,
+          "pretrade_estimate_bps": 3.48615331,
+          "price_drift_bps": -30.9215932,
+          "price_improvement_bps": 0.506250329,
+          "realised_spread_bps": 7.31087274,
+          "realised_volatility_bps": 3.29888395,
+          "reject_rate": 0.0,
+          "side": "BUY",
+          "slippage_vs_arrival_bps": -20.4971501,
+          "slippage_vs_vwap_bps": 1.4384409,
+          "spread_cost_bps": 0.381802434,
+          "start": "2026-09-17T18:00:00+00:00",
+          "symbol": "AAPL",
+          "target_quantity": 73500,
+          "temporary_impact_bps": 3.65543637,
+          "timing_cost_bps": -17.6927841,
+          "vwap": 230.756044
+        }
       },
-      "description": "execution.get_execution_metrics(symbol=AAPL, start=2026-09-14T14:00:00-04:00, end=2026-09-14T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
+      "description": "execution.get_execution_metrics(symbol=AAPL, start=2026-09-17T14:00:00-04:00, end=2026-09-17T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
       "id": "TCA-0000007a",
       "source": "execution.get_execution_metrics",
-      "timestamp": "2026-01-01T00:00:00.197000+00:00",
+      "timestamp": "2026-01-01T00:00:00.170000+00:00",
       "type": "CALCULATION"
     },
     {
       "attributes": {
         "arguments": {
           "dataset": "T01",
-          "end": "2026-09-14T15:00:00-04:00",
-          "start": "2026-09-14T14:00:00-04:00",
+          "end": "2026-09-17T15:00:00-04:00",
+          "start": "2026-09-17T14:00:00-04:00",
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-0000007b",
         "digest": "<digest>",
-        "step_id": "step-20/quant#11",
+        "step_id": "step-20/quant#2",
         "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_market_statistics"
+        "tool_id": "market_data.get_market_statistics",
+        "values": {
+          "annualised_volatility": 0.103418828,
+          "average_displayed_depth": 9256.11111,
+          "average_spread_bps": 1.85139549,
+          "average_top_of_book_size": 498.833333,
+          "close_mid": 230.515,
+          "crossed_quote_count": 0,
+          "end": "2026-09-17T19:00:00+00:00",
+          "high": 231.25,
+          "low": 230.31,
+          "open_mid": 231.23,
+          "price_drift_bps": -30.9215932,
+          "quote_count": 3600,
+          "realised_volatility_bps": 3.29888395,
+          "stale_quote_fraction": 0.00194498472,
+          "start": "2026-09-17T18:00:00+00:00",
+          "symbol": "AAPL",
+          "trade_count": 5460,
+          "traded_volume": 1000204,
+          "vwap": 230.722822
+        }
       },
-      "description": "market_data.get_market_statistics(symbol=AAPL, start=2026-09-14T14:00:00-04:00, end=2026-09-14T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, open_mid, close_mid, high",
+      "description": "market_data.get_market_statistics(symbol=AAPL, start=2026-09-17T14:00:00-04:00, end=2026-09-17T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, open_mid, close_mid, high",
       "id": "TCA-0000007d",
       "source": "market_data.get_market_statistics",
-      "timestamp": "2026-01-01T00:00:00.202000+00:00",
+      "timestamp": "2026-01-01T00:00:00.175000+00:00",
+      "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-17T15:00:00-04:00",
+          "start": "2026-09-17T14:00:00-04:00",
+          "symbol": "AAPL"
+        },
+        "correlation_id": "CORR-0000007e",
+        "digest": "<digest>",
+        "step_id": "step-20/quant#3",
+        "task_id": "TASK-00000001",
+        "tool_id": "market_data.get_order_book_statistics",
+        "values": {
+          "average_displayed_depth": 9256.11111,
+          "average_imbalance": -0.0138753104,
+          "end": "2026-09-17T19:00:00+00:00",
+          "min_displayed_depth": 2400,
+          "snapshots": 360,
+          "start": "2026-09-17T18:00:00+00:00",
+          "symbol": "AAPL"
+        }
+      },
+      "description": "market_data.get_order_book_statistics(symbol=AAPL, start=2026-09-17T14:00:00-04:00, end=2026-09-17T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, snapshots, average_displayed_depth, min_displayed_depth",
+      "id": "MARKET-00000080",
+      "source": "market_data.get_order_book_statistics",
+      "timestamp": "2026-01-01T00:00:00.180000+00:00",
+      "type": "MARKET_DATA"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-16T15:00:00-04:00",
+          "start": "2026-09-16T14:00:00-04:00",
+          "symbol": "AAPL"
+        },
+        "correlation_id": "CORR-00000081",
+        "digest": "<digest>",
+        "step_id": "step-20/quant#4",
+        "task_id": "TASK-00000001",
+        "tool_id": "execution.get_execution_metrics",
+        "values": {
+          "arrival_price": 227.075,
+          "arrival_shortfall_bps": 18.4149524,
+          "average_latency_us": 861.600917,
+          "average_spread_bps": 1.8620893,
+          "child_order_count": 120,
+          "delay_cost_bps": -4.12908815,
+          "effective_spread_bps": 2.13670472,
+          "end": "2026-09-16T19:00:00+00:00",
+          "executed_quantity": 56624,
+          "execution_count": 218,
+          "fees_bps": 0.0757283149,
+          "fill_rate": 0.880622084,
+          "implementation_shortfall_bps": 14.2858643,
+          "is_price_risk_bps": 14.2653498,
+          "is_residual_bps": 15.1389715,
+          "is_residual_z": 0.997915016,
+          "is_standard_error_bps": 15.1706019,
+          "market_impact_bps": 2.40913596,
+          "market_vwap": 227.422566,
+          "opportunity_cost_bps": 6.09583634,
+          "participation_rate": 0.0574300887,
+          "pretrade_estimate_bps": 3.27598097,
+          "price_drift_bps": 50.6440603,
+          "price_improvement_bps": 0.629891237,
+          "realised_spread_bps": -7.07062448,
+          "realised_volatility_bps": 3.31334552,
+          "reject_rate": 0.0,
+          "side": "BUY",
+          "slippage_vs_arrival_bps": 13.9088554,
+          "slippage_vs_vwap_bps": -1.39522924,
+          "spread_cost_bps": 0.236671522,
+          "start": "2026-09-16T18:00:00+00:00",
+          "symbol": "AAPL",
+          "target_quantity": 64300,
+          "temporary_impact_bps": -3.53531224,
+          "timing_cost_bps": 12.0067162,
+          "vwap": 227.390835
+        }
+      },
+      "description": "execution.get_execution_metrics(symbol=AAPL, start=2026-09-16T14:00:00-04:00, end=2026-09-16T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
+      "id": "TCA-00000083",
+      "source": "execution.get_execution_metrics",
+      "timestamp": "2026-01-01T00:00:00.185000+00:00",
+      "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-16T15:00:00-04:00",
+          "start": "2026-09-16T14:00:00-04:00",
+          "symbol": "AAPL"
+        },
+        "correlation_id": "CORR-00000084",
+        "digest": "<digest>",
+        "step_id": "step-20/quant#5",
+        "task_id": "TASK-00000001",
+        "tool_id": "market_data.get_market_statistics",
+        "values": {
+          "annualised_volatility": 0.103872193,
+          "average_displayed_depth": 9335.83333,
+          "average_spread_bps": 1.8620893,
+          "average_top_of_book_size": 503.916667,
+          "close_mid": 228.225,
+          "crossed_quote_count": 0,
+          "end": "2026-09-16T19:00:00+00:00",
+          "high": 228.25,
+          "low": 226.98,
+          "open_mid": 227.075,
+          "price_drift_bps": 50.6440603,
+          "quote_count": 3600,
+          "realised_volatility_bps": 3.31334552,
+          "stale_quote_fraction": 0.0013892748,
+          "start": "2026-09-16T18:00:00+00:00",
+          "symbol": "AAPL",
+          "trade_count": 5362,
+          "traded_volume": 988264,
+          "vwap": 227.422474
+        }
+      },
+      "description": "market_data.get_market_statistics(symbol=AAPL, start=2026-09-16T14:00:00-04:00, end=2026-09-16T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, open_mid, close_mid, high",
+      "id": "TCA-00000086",
+      "source": "market_data.get_market_statistics",
+      "timestamp": "2026-01-01T00:00:00.190000+00:00",
+      "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-16T15:00:00-04:00",
+          "start": "2026-09-16T14:00:00-04:00",
+          "symbol": "AAPL"
+        },
+        "correlation_id": "CORR-00000087",
+        "digest": "<digest>",
+        "step_id": "step-20/quant#6",
+        "task_id": "TASK-00000001",
+        "tool_id": "market_data.get_order_book_statistics",
+        "values": {
+          "average_displayed_depth": 9335.83333,
+          "average_imbalance": -0.00237161023,
+          "end": "2026-09-16T19:00:00+00:00",
+          "min_displayed_depth": 3500,
+          "snapshots": 360,
+          "start": "2026-09-16T18:00:00+00:00",
+          "symbol": "AAPL"
+        }
+      },
+      "description": "market_data.get_order_book_statistics(symbol=AAPL, start=2026-09-16T14:00:00-04:00, end=2026-09-16T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, snapshots, average_displayed_depth, min_displayed_depth",
+      "id": "MARKET-00000089",
+      "source": "market_data.get_order_book_statistics",
+      "timestamp": "2026-01-01T00:00:00.195000+00:00",
+      "type": "MARKET_DATA"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-15T15:00:00-04:00",
+          "start": "2026-09-15T14:00:00-04:00",
+          "symbol": "AAPL"
+        },
+        "correlation_id": "CORR-0000008a",
+        "digest": "<digest>",
+        "step_id": "step-20/quant#7",
+        "task_id": "TASK-00000001",
+        "tool_id": "execution.get_execution_metrics",
+        "values": {
+          "arrival_price": 228.29,
+          "arrival_shortfall_bps": 2.53718096,
+          "average_latency_us": 847.714359,
+          "average_spread_bps": 1.85432008,
+          "child_order_count": 120,
+          "delay_cost_bps": 0.705293071,
+          "effective_spread_bps": 2.11604888,
+          "end": "2026-09-15T19:00:00+00:00",
+          "executed_quantity": 50483,
+          "execution_count": 195,
+          "fees_bps": 0.0885045619,
+          "fill_rate": 0.871899827,
+          "implementation_shortfall_bps": 3.24247403,
+          "is_price_risk_bps": 14.2653498,
+          "is_residual_bps": -0.755139428,
+          "is_residual_z": -0.0497764975,
+          "is_standard_error_bps": 15.1706019,
+          "market_impact_bps": 2.28609938,
+          "market_vwap": 228.369462,
+          "opportunity_cost_bps": -1.57127242,
+          "participation_rate": 0.0520382677,
+          "pretrade_estimate_bps": 3.29232039,
+          "price_drift_bps": -12.2651014,
+          "price_improvement_bps": 0.582360377,
+          "realised_spread_bps": 6.24471093,
+          "realised_volatility_bps": 3.22888671,
+          "reject_rate": 0.0,
+          "side": "BUY",
+          "slippage_vs_arrival_bps": 4.61023754,
+          "slippage_vs_vwap_bps": 1.12907511,
+          "spread_cost_bps": 0.325129067,
+          "start": "2026-09-15T18:00:00+00:00",
+          "symbol": "AAPL",
+          "target_quantity": 57900,
+          "temporary_impact_bps": 3.12235546,
+          "timing_cost_bps": 3.69481976,
+          "vwap": 228.395247
+        }
+      },
+      "description": "execution.get_execution_metrics(symbol=AAPL, start=2026-09-15T14:00:00-04:00, end=2026-09-15T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
+      "id": "TCA-0000008c",
+      "source": "execution.get_execution_metrics",
+      "timestamp": "2026-01-01T00:00:00.200000+00:00",
+      "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-15T15:00:00-04:00",
+          "start": "2026-09-15T14:00:00-04:00",
+          "symbol": "AAPL"
+        },
+        "correlation_id": "CORR-0000008d",
+        "digest": "<digest>",
+        "step_id": "step-20/quant#8",
+        "task_id": "TASK-00000001",
+        "tool_id": "market_data.get_market_statistics",
+        "values": {
+          "annualised_volatility": 0.10122444,
+          "average_displayed_depth": 9107.77778,
+          "average_spread_bps": 1.85432008,
+          "average_top_of_book_size": 493.930556,
+          "close_mid": 228.01,
+          "crossed_quote_count": 0,
+          "end": "2026-09-15T19:00:00+00:00",
+          "high": 228.8,
+          "low": 227.9,
+          "open_mid": 228.29,
+          "price_drift_bps": -12.2651014,
+          "quote_count": 3600,
+          "realised_volatility_bps": 3.22888671,
+          "stale_quote_fraction": 0.00222283968,
+          "start": "2026-09-15T18:00:00+00:00",
+          "symbol": "AAPL",
+          "trade_count": 5303,
+          "traded_volume": 971803,
+          "vwap": 228.369273
+        }
+      },
+      "description": "market_data.get_market_statistics(symbol=AAPL, start=2026-09-15T14:00:00-04:00, end=2026-09-15T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, open_mid, close_mid, high",
+      "id": "TCA-0000008f",
+      "source": "market_data.get_market_statistics",
+      "timestamp": "2026-01-01T00:00:00.205000+00:00",
+      "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-15T15:00:00-04:00",
+          "start": "2026-09-15T14:00:00-04:00",
+          "symbol": "AAPL"
+        },
+        "correlation_id": "CORR-00000090",
+        "digest": "<digest>",
+        "step_id": "step-20/quant#9",
+        "task_id": "TASK-00000001",
+        "tool_id": "market_data.get_order_book_statistics",
+        "values": {
+          "average_displayed_depth": 9107.77778,
+          "average_imbalance": 0.0206646076,
+          "end": "2026-09-15T19:00:00+00:00",
+          "min_displayed_depth": 2800,
+          "snapshots": 360,
+          "start": "2026-09-15T18:00:00+00:00",
+          "symbol": "AAPL"
+        }
+      },
+      "description": "market_data.get_order_book_statistics(symbol=AAPL, start=2026-09-15T14:00:00-04:00, end=2026-09-15T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, snapshots, average_displayed_depth, min_displayed_depth",
+      "id": "MARKET-00000092",
+      "source": "market_data.get_order_book_statistics",
+      "timestamp": "2026-01-01T00:00:00.210000+00:00",
+      "type": "MARKET_DATA"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-14T15:00:00-04:00",
+          "start": "2026-09-14T14:00:00-04:00",
+          "symbol": "AAPL"
+        },
+        "correlation_id": "CORR-00000093",
+        "digest": "<digest>",
+        "step_id": "step-20/quant#10",
+        "task_id": "TASK-00000001",
+        "tool_id": "execution.get_execution_metrics",
+        "values": {
+          "arrival_price": 226.585,
+          "arrival_shortfall_bps": 13.5768494,
+          "average_latency_us": 819.621359,
+          "average_spread_bps": 1.85503772,
+          "child_order_count": 120,
+          "delay_cost_bps": 1.3683272,
+          "effective_spread_bps": 2.14092285,
+          "end": "2026-09-14T19:00:00+00:00",
+          "executed_quantity": 56092,
+          "execution_count": 206,
+          "fees_bps": 0.097198819,
+          "fill_rate": 0.8764375,
+          "implementation_shortfall_bps": 14.9451766,
+          "is_price_risk_bps": 14.2653498,
+          "is_residual_bps": 10.2120703,
+          "is_residual_z": 0.673148654,
+          "is_standard_error_bps": 15.1706019,
+          "market_impact_bps": 2.40350933,
+          "market_vwap": 226.907369,
+          "opportunity_cost_bps": 1.82708924,
+          "participation_rate": 0.058568144,
+          "pretrade_estimate_bps": 3.3647791,
+          "price_drift_bps": 14.5640709,
+          "price_improvement_bps": 0.475991111,
+          "realised_spread_bps": 0.0939166736,
+          "realised_volatility_bps": 3.24412106,
+          "reject_rate": 0.0,
+          "side": "BUY",
+          "slippage_vs_arrival_bps": 13.2935515,
+          "slippage_vs_vwap_bps": -0.932402609,
+          "spread_cost_bps": 0.401552996,
+          "start": "2026-09-14T18:00:00+00:00",
+          "symbol": "AAPL",
+          "target_quantity": 64000,
+          "temporary_impact_bps": 0.0469583368,
+          "timing_cost_bps": 11.2510083,
+          "vwap": 226.886212
+        }
+      },
+      "description": "execution.get_execution_metrics(symbol=AAPL, start=2026-09-14T14:00:00-04:00, end=2026-09-14T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
+      "id": "TCA-00000095",
+      "source": "execution.get_execution_metrics",
+      "timestamp": "2026-01-01T00:00:00.215000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -1168,16 +1938,66 @@
           "start": "2026-09-14T14:00:00-04:00",
           "symbol": "AAPL"
         },
-        "correlation_id": "CORR-0000007e",
+        "correlation_id": "CORR-00000096",
+        "digest": "<digest>",
+        "step_id": "step-20/quant#11",
+        "task_id": "TASK-00000001",
+        "tool_id": "market_data.get_market_statistics",
+        "values": {
+          "annualised_volatility": 0.101702031,
+          "average_displayed_depth": 8926.66667,
+          "average_spread_bps": 1.85503772,
+          "average_top_of_book_size": 499.722222,
+          "close_mid": 226.915,
+          "crossed_quote_count": 0,
+          "end": "2026-09-14T19:00:00+00:00",
+          "high": 227.32,
+          "low": 226.23,
+          "open_mid": 226.585,
+          "price_drift_bps": 14.5640709,
+          "quote_count": 3600,
+          "realised_volatility_bps": 3.24412106,
+          "stale_quote_fraction": 0.0027785496,
+          "start": "2026-09-14T18:00:00+00:00",
+          "symbol": "AAPL",
+          "trade_count": 5392,
+          "traded_volume": 959472,
+          "vwap": 226.907501
+        }
+      },
+      "description": "market_data.get_market_statistics(symbol=AAPL, start=2026-09-14T14:00:00-04:00, end=2026-09-14T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, open_mid, close_mid, high",
+      "id": "TCA-00000098",
+      "source": "market_data.get_market_statistics",
+      "timestamp": "2026-01-01T00:00:00.220000+00:00",
+      "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "T01",
+          "end": "2026-09-14T15:00:00-04:00",
+          "start": "2026-09-14T14:00:00-04:00",
+          "symbol": "AAPL"
+        },
+        "correlation_id": "CORR-00000099",
         "digest": "<digest>",
         "step_id": "step-20/quant#12",
         "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_order_book_statistics"
+        "tool_id": "market_data.get_order_book_statistics",
+        "values": {
+          "average_displayed_depth": 8926.66667,
+          "average_imbalance": 0.000180270042,
+          "end": "2026-09-14T19:00:00+00:00",
+          "min_displayed_depth": 2700,
+          "snapshots": 360,
+          "start": "2026-09-14T18:00:00+00:00",
+          "symbol": "AAPL"
+        }
       },
       "description": "market_data.get_order_book_statistics(symbol=AAPL, start=2026-09-14T14:00:00-04:00, end=2026-09-14T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, snapshots, average_displayed_depth, min_displayed_depth",
-      "id": "MARKET-00000080",
+      "id": "MARKET-0000009b",
       "source": "market_data.get_order_book_statistics",
-      "timestamp": "2026-01-01T00:00:00.207000+00:00",
+      "timestamp": "2026-01-01T00:00:00.225000+00:00",
       "type": "MARKET_DATA"
     },
     {
@@ -1188,16 +2008,55 @@
           "start": "2026-09-11T14:00:00-04:00",
           "symbol": "AAPL"
         },
-        "correlation_id": "CORR-00000081",
+        "correlation_id": "CORR-0000009c",
         "digest": "<digest>",
         "step_id": "step-20/quant#13",
         "task_id": "TASK-00000001",
-        "tool_id": "execution.get_execution_metrics"
+        "tool_id": "execution.get_execution_metrics",
+        "values": {
+          "arrival_price": 229.385,
+          "arrival_shortfall_bps": 35.3798373,
+          "average_latency_us": 835.0,
+          "average_spread_bps": 1.85202765,
+          "child_order_count": 120,
+          "delay_cost_bps": 3.07001822,
+          "effective_spread_bps": 2.15494516,
+          "end": "2026-09-11T19:00:00+00:00",
+          "executed_quantity": 51847,
+          "execution_count": 213,
+          "fees_bps": 0.0825050295,
+          "fill_rate": 0.847173203,
+          "implementation_shortfall_bps": 38.4498555,
+          "is_price_risk_bps": 14.2653498,
+          "is_residual_bps": 32.1640664,
+          "is_residual_z": 2.12015756,
+          "is_standard_error_bps": 15.1706019,
+          "market_impact_bps": 2.35034457,
+          "market_vwap": 230.180733,
+          "opportunity_cost_bps": 5.99805323,
+          "participation_rate": 0.0531253554,
+          "pretrade_estimate_bps": 3.21577089,
+          "price_drift_bps": 39.4533208,
+          "price_improvement_bps": 0.534927542,
+          "realised_spread_bps": -4.49603734,
+          "realised_volatility_bps": 3.27439871,
+          "reject_rate": 0.0,
+          "side": "BUY",
+          "slippage_vs_arrival_bps": 34.5741423,
+          "slippage_vs_vwap_bps": -0.11532181,
+          "spread_cost_bps": 0.325860949,
+          "start": "2026-09-11T18:00:00+00:00",
+          "symbol": "AAPL",
+          "target_quantity": 61200,
+          "temporary_impact_bps": -2.24801867,
+          "timing_cost_bps": 28.9734181,
+          "vwap": 230.178079
+        }
       },
       "description": "execution.get_execution_metrics(symbol=AAPL, start=2026-09-11T14:00:00-04:00, end=2026-09-11T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, side, target_quantity, executed_quantity",
-      "id": "TCA-00000083",
+      "id": "TCA-0000009e",
       "source": "execution.get_execution_metrics",
-      "timestamp": "2026-01-01T00:00:00.212000+00:00",
+      "timestamp": "2026-01-01T00:00:00.230000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -1208,16 +2067,37 @@
           "start": "2026-09-11T14:00:00-04:00",
           "symbol": "AAPL"
         },
-        "correlation_id": "CORR-00000084",
+        "correlation_id": "CORR-0000009f",
         "digest": "<digest>",
         "step_id": "step-20/quant#14",
         "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_market_statistics"
+        "tool_id": "market_data.get_market_statistics",
+        "values": {
+          "annualised_volatility": 0.102651225,
+          "average_displayed_depth": 9106.94444,
+          "average_spread_bps": 1.85202765,
+          "average_top_of_book_size": 495.902778,
+          "close_mid": 230.29,
+          "crossed_quote_count": 0,
+          "end": "2026-09-11T19:00:00+00:00",
+          "high": 230.65,
+          "low": 229.34,
+          "open_mid": 229.385,
+          "price_drift_bps": 39.4533208,
+          "quote_count": 3600,
+          "realised_volatility_bps": 3.27439871,
+          "stale_quote_fraction": 0.00166712976,
+          "start": "2026-09-11T18:00:00+00:00",
+          "symbol": "AAPL",
+          "trade_count": 5350,
+          "traded_volume": 976567,
+          "vwap": 230.180844
+        }
       },
       "description": "market_data.get_market_statistics(symbol=AAPL, start=2026-09-11T14:00:00-04:00, end=2026-09-11T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, open_mid, close_mid, high",
-      "id": "TCA-00000086",
+      "id": "TCA-000000a1",
       "source": "market_data.get_market_statistics",
-      "timestamp": "2026-01-01T00:00:00.217000+00:00",
+      "timestamp": "2026-01-01T00:00:00.235000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -1228,16 +2108,25 @@
           "start": "2026-09-11T14:00:00-04:00",
           "symbol": "AAPL"
         },
-        "correlation_id": "CORR-00000087",
+        "correlation_id": "CORR-000000a2",
         "digest": "<digest>",
         "step_id": "step-20/quant#15",
         "task_id": "TASK-00000001",
-        "tool_id": "market_data.get_order_book_statistics"
+        "tool_id": "market_data.get_order_book_statistics",
+        "values": {
+          "average_displayed_depth": 9106.94444,
+          "average_imbalance": 0.00816100119,
+          "end": "2026-09-11T19:00:00+00:00",
+          "min_displayed_depth": 3400,
+          "snapshots": 360,
+          "start": "2026-09-11T18:00:00+00:00",
+          "symbol": "AAPL"
+        }
       },
       "description": "market_data.get_order_book_statistics(symbol=AAPL, start=2026-09-11T14:00:00-04:00, end=2026-09-11T15:00:00-04:00, dataset=T01) -> object with keys: symbol, start, end, snapshots, average_displayed_depth, min_displayed_depth",
-      "id": "MARKET-00000089",
+      "id": "MARKET-000000a4",
       "source": "market_data.get_order_book_statistics",
-      "timestamp": "2026-01-01T00:00:00.222000+00:00",
+      "timestamp": "2026-01-01T00:00:00.240000+00:00",
       "type": "MARKET_DATA"
     },
     {
@@ -1320,27 +2209,27 @@
           "total_bps": -17.120324
         },
         "derived_from": [
-          "TCA-00000027",
-          "TCA-0000002f",
-          "TCA-00000023",
-          "TCA-00000024",
-          "MARKET-00000025",
-          "MARKET-00000026",
-          "TCA-0000005f",
-          "TCA-00000062",
-          "MARKET-00000065",
-          "TCA-00000068",
-          "TCA-0000006b",
-          "MARKET-0000006e",
-          "TCA-00000071",
-          "TCA-00000074",
-          "MARKET-00000077",
+          "TCA-0000003c",
+          "TCA-00000045",
+          "TCA-00000038",
+          "TCA-00000039",
+          "MARKET-0000003a",
+          "MARKET-0000003b",
           "TCA-0000007a",
           "TCA-0000007d",
           "MARKET-00000080",
           "TCA-00000083",
           "TCA-00000086",
-          "MARKET-00000089"
+          "MARKET-00000089",
+          "TCA-0000008c",
+          "TCA-0000008f",
+          "MARKET-00000092",
+          "TCA-00000095",
+          "TCA-00000098",
+          "MARKET-0000009b",
+          "TCA-0000009e",
+          "TCA-000000a1",
+          "MARKET-000000a4"
         ],
         "deteriorated": false,
         "is_delta_bps": -26.9438827,
@@ -1563,9 +2452,9 @@
         "vwap_slippage_delta_bps": 1.45894038
       },
       "description": "Cause attribution: primary=NORMAL, IS residual -18.4 bps (z -1.00 vs pre-trade estimate), IS delta -26.9 bps, VWAP-slippage delta +1.5 bps, baseline time_of_day_matched",
-      "id": "TCA-0000008a",
+      "id": "TCA-000000a5",
       "source": "agent:quant",
-      "timestamp": "2026-01-01T00:00:00.224000+00:00",
+      "timestamp": "2026-01-01T00:00:00.242000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -1573,80 +2462,90 @@
         "assessments": [
           {
             "adjusted_confidence": 0.8,
-            "finding_id": "F-00000038",
+            "finding_id": "F-00000056",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.8,
             "notes": [],
             "original_confidence": 0.8,
             "supported": true
           },
           {
             "adjusted_confidence": 0.8,
-            "finding_id": "F-00000039",
+            "finding_id": "F-00000057",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.8,
             "notes": [],
             "original_confidence": 0.8,
             "supported": true
           },
           {
             "adjusted_confidence": 0.8,
-            "finding_id": "F-0000003a",
+            "finding_id": "F-00000058",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.8,
             "notes": [],
             "original_confidence": 0.8,
             "supported": true
           },
           {
             "adjusted_confidence": 0.75,
-            "finding_id": "F-0000003b",
+            "finding_id": "F-00000059",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.75,
             "notes": [],
             "original_confidence": 0.75,
             "supported": true
           },
           {
             "adjusted_confidence": 0.9,
-            "finding_id": "F-0000003e",
+            "finding_id": "F-0000005c",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.9,
             "notes": [],
             "original_confidence": 0.9,
             "supported": true
           },
           {
             "adjusted_confidence": 0.9,
-            "finding_id": "F-0000003f",
+            "finding_id": "F-0000005d",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.9,
             "notes": [],
             "original_confidence": 0.9,
             "supported": true
           },
           {
             "adjusted_confidence": 0.9,
-            "finding_id": "F-00000040",
+            "finding_id": "F-0000005e",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.9,
             "notes": [],
             "original_confidence": 0.9,
             "supported": true
           },
           {
             "adjusted_confidence": 0.9,
-            "finding_id": "F-00000041",
+            "finding_id": "F-0000005f",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.9,
             "notes": [],
             "original_confidence": 0.9,
             "supported": true
           },
           {
             "adjusted_confidence": 0.75,
-            "finding_id": "F-00000043",
+            "finding_id": "F-00000061",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.75,
             "notes": [],
             "original_confidence": 0.75,
             "supported": true
           },
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-00000044",
+            "finding_id": "F-00000062",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1655,8 +2554,9 @@
           },
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-00000045",
+            "finding_id": "F-00000063",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1665,8 +2565,9 @@
           },
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-00000046",
+            "finding_id": "F-00000064",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1675,48 +2576,54 @@
           },
           {
             "adjusted_confidence": 0.85,
-            "finding_id": "F-00000047",
+            "finding_id": "F-00000065",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.85,
             "notes": [],
             "original_confidence": 0.85,
             "supported": true
           },
           {
             "adjusted_confidence": 0.85,
-            "finding_id": "F-00000050",
+            "finding_id": "F-0000006e",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.85,
             "notes": [],
             "original_confidence": 0.85,
             "supported": true
           },
           {
             "adjusted_confidence": 0.8,
-            "finding_id": "F-00000051",
+            "finding_id": "F-0000006f",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.8,
             "notes": [],
             "original_confidence": 0.8,
             "supported": true
           },
           {
             "adjusted_confidence": 0.8,
-            "finding_id": "F-00000052",
+            "finding_id": "F-00000070",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.8,
             "notes": [],
             "original_confidence": 0.8,
             "supported": true
           },
           {
             "adjusted_confidence": 0.9,
-            "finding_id": "F-0000005a",
+            "finding_id": "F-00000075",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.9,
             "notes": [],
             "original_confidence": 0.9,
             "supported": true
           },
           {
             "adjusted_confidence": 0.7,
-            "finding_id": "F-0000005b",
+            "finding_id": "F-00000076",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.7,
             "notes": [
               "single evidence record; confidence capped"
             ],
@@ -1725,16 +2632,18 @@
           },
           {
             "adjusted_confidence": 0.9,
-            "finding_id": "F-0000008b",
+            "finding_id": "F-000000a6",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.9,
             "notes": [],
             "original_confidence": 0.9,
             "supported": true
           },
           {
             "adjusted_confidence": 0.8,
-            "finding_id": "F-0000008c",
+            "finding_id": "F-000000a7",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
+            "llm_proposed_confidence": 0.8,
             "notes": [],
             "original_confidence": 0.8,
             "supported": true
@@ -1745,10 +2654,73 @@
         "task_id": "TASK-00000001"
       },
       "description": "Critic assessment of findings",
-      "id": "TCA-0000008e",
+      "id": "TCA-000000a9",
       "source": "agent:critic",
-      "timestamp": "2026-01-01T00:00:00.230000+00:00",
+      "timestamp": "2026-01-01T00:00:00.248000+00:00",
       "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "chunk_id": "DOC-cda0f096#2",
+        "cited_sentence": "- TCA-0000009e",
+        "cited_text": "## Reading a report\n\nExecution VWAP above interval VWAP for a buy means we paid more than the market average; the gap is the VWAP\nslippage. Implementation shortfall against arrival includes price drift, so a large IS with small VWAP\nslippage usually indicates a market move rather than poor scheduling.",
+        "corpus_hash": "8efb190cab1eb405810e7babb8b478bbce97a59f57483f65869acb874a566960",
+        "document": "08_execution_algorithm_documentation.md",
+        "effective_date": "2026-10-01",
+        "narrative_span": [
+          3291,
+          3305
+        ],
+        "section": "Reading a report",
+        "version": "1.0"
+      },
+      "description": "Execution Algorithm Documentation / Reading a report (version 1.0)",
+      "id": "DOC-000000ab",
+      "source": "knowledge.citation",
+      "timestamp": null,
+      "type": "DOCUMENT"
+    },
+    {
+      "attributes": {
+        "chunk_id": "DOC-4f44a2f1#0",
+        "cited_sentence": "- TCA-0000009e",
+        "cited_text": "# Attribution Threshold Tables\n\n## Why these deterioration thresholds\n\nAn investigation only looks for causes when the window has deteriorated against its baseline: implementation\nshortfall up by at least 1.5 bps. The threshold sits just above the noise of a one-hour VWAP-slippage estimate on\na liquid name, so ordinary hour-to-hour variation does not trigger an attribution, while the 5 bps escalation\nlevel in the execution policy is still caught with margin. Thresholds are a ratio against the baseline window\nso that one table works across names of different volatility and spread. Since 0.5.0 the window must also be\nstatistically worse than expected: the residual against the pre-trade estimate must reach z 1.96, where the standard\nerror pools the model's execution noise (weight 4 pseudo-observations) with the dispersion of matched peers.",
+        "corpus_hash": "8efb190cab1eb405810e7babb8b478bbce97a59f57483f65869acb874a566960",
+        "document": "09_attribution_thresholds.md",
+        "effective_date": "2026-11-08",
+        "narrative_span": [
+          3291,
+          3305
+        ],
+        "section": "Why these deterioration thresholds",
+        "version": "1.1"
+      },
+      "description": "Attribution Threshold Tables / Why these deterioration thresholds (version 1.1)",
+      "id": "DOC-000000ac",
+      "source": "knowledge.citation",
+      "timestamp": null,
+      "type": "DOCUMENT"
+    },
+    {
+      "attributes": {
+        "chunk_id": "DOC-cda0f096#0",
+        "cited_sentence": "- TCA-0000009e",
+        "cited_text": "# Execution Algorithm Documentation\n\n## Strategies\n\n- VWAP: tracks interval VWAP using the historical volume profile (default).\n- TWAP: evenly spaced slices, used for illiquid names or when the volume profile is unreliable.\n- IS (Implementation Shortfall): front-loads execution to minimise arrival-price risk at the cost of impact.\n- POV (Percentage of Volume): follows realised volume at a fixed participation rate.",
+        "corpus_hash": "8efb190cab1eb405810e7babb8b478bbce97a59f57483f65869acb874a566960",
+        "document": "08_execution_algorithm_documentation.md",
+        "effective_date": "2026-10-01",
+        "narrative_span": [
+          3291,
+          3305
+        ],
+        "section": "Strategies",
+        "version": "1.0"
+      },
+      "description": "Execution Algorithm Documentation / Strategies (version 1.0)",
+      "id": "DOC-000000ad",
+      "source": "knowledge.citation",
+      "timestamp": null,
+      "type": "DOCUMENT"
     }
   ],
   "execution_id": "RUN-00000003",
@@ -1763,12 +2735,12 @@
       "confidence": 0.9,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-0000003e",
+      "id": "F-0000005c",
       "produced_by": "execution",
       "statement": "Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 52,124 shares across 215 fills on 5 venues.",
       "supporting_evidence": [
-        "ORDER-00000020",
-        "TCA-00000027"
+        "ORDER-00000035",
+        "TCA-0000003c"
       ]
     },
     {
@@ -1780,14 +2752,20 @@
       "category": "EXECUTION",
       "confidence": 0.9,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-0000003f",
+      "evidence_refs": [
+        {
+          "id": "TCA-0000005b",
+          "path": "is_delta_bps",
+          "value": -6.72123136
+        }
+      ],
+      "id": "F-0000005d",
       "produced_by": "execution",
       "statement": "Implementation shortfall was -17.1 bps versus arrival 229.7800 (decreased by 6.7 bps relative to the baseline's -10.4 bps).",
       "supporting_evidence": [
-        "TCA-00000027",
-        "TCA-0000002f",
-        "TCA-0000003d"
+        "TCA-0000003c",
+        "TCA-00000045",
+        "TCA-0000005b"
       ]
     },
     {
@@ -1799,14 +2777,20 @@
       "category": "EXECUTION",
       "confidence": 0.9,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000040",
+      "evidence_refs": [
+        {
+          "id": "TCA-0000005b",
+          "path": "vwap_slippage_delta_bps",
+          "value": 1.08643821
+        }
+      ],
+      "id": "F-0000005e",
       "produced_by": "execution",
       "statement": "Execution VWAP 229.4973 versus interval VWAP 229.4632: slippage +1.5 bps (baseline +0.4 bps, delta +1.1 bps).",
       "supporting_evidence": [
-        "TCA-00000027",
-        "TCA-0000002f",
-        "TCA-0000003d"
+        "TCA-0000003c",
+        "TCA-00000045",
+        "TCA-0000005b"
       ]
     },
     {
@@ -1818,14 +2802,25 @@
       "category": "EXECUTION",
       "confidence": 0.9,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000041",
+      "evidence_refs": [
+        {
+          "id": "TCA-0000003c",
+          "path": "values.fill_rate",
+          "value": 0.868733333
+        },
+        {
+          "id": "TCA-0000003c",
+          "path": "values.participation_rate",
+          "value": 0.0536219837
+        }
+      ],
+      "id": "F-0000005f",
       "produced_by": "execution",
       "statement": "Fill rate was 86.9% of the parent quantity with participation of 5.4% of market volume.",
       "supporting_evidence": [
-        "TCA-00000027",
-        "TCA-0000002f",
-        "TCA-0000003d"
+        "TCA-0000003c",
+        "TCA-00000045",
+        "TCA-0000005b"
       ]
     },
     {
@@ -1840,12 +2835,12 @@
       "confidence": 0.9,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-0000005a",
+      "id": "F-00000075",
       "produced_by": "risk",
       "statement": "The parent order breached trading limits: max_position (561029.00 vs 500000.00).",
       "supporting_evidence": [
-        "RISK-00000056",
-        "TCA-00000027"
+        "RISK-00000074",
+        "TCA-0000003c"
       ]
     },
     {
@@ -1857,13 +2852,19 @@
       "category": "ATTRIBUTION",
       "confidence": 0.9,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-0000008b",
+      "evidence_refs": [
+        {
+          "id": "TCA-000000a5",
+          "path": "residual_z",
+          "value": -0.996618314
+        }
+      ],
+      "id": "F-000000a6",
       "produced_by": "quant",
       "statement": "Execution quality did not materially deteriorate: arrival shortfall -15.1 bps against a pre-trade estimate of +3.3 bps, a residual of -18.4 bps (-1.00 standard errors; SE 18.5 bps).",
       "supporting_evidence": [
-        "TCA-00000027",
-        "TCA-0000008a"
+        "TCA-0000003c",
+        "TCA-000000a5"
       ]
     },
     {
@@ -1876,14 +2877,25 @@
       "category": "EXECUTION",
       "confidence": 0.85,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000047",
+      "evidence_refs": [
+        {
+          "id": "TCA-0000003c",
+          "path": "values.participation_rate",
+          "value": 0.0536219837
+        },
+        {
+          "id": "EXEC-0000004a",
+          "path": "values.max_participation_rate",
+          "value": 0.2
+        }
+      ],
+      "id": "F-00000065",
       "produced_by": "execution",
       "statement": "Observed participation 5.4% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook.",
       "supporting_evidence": [
-        "EXEC-00000034",
-        "ENG-00000035",
-        "TCA-00000027"
+        "EXEC-0000004a",
+        "DOC-0000004b",
+        "TCA-0000003c"
       ]
     },
     {
@@ -1894,13 +2906,19 @@
       "category": "TECHNOLOGY",
       "confidence": 0.85,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000050",
+      "evidence_refs": [
+        {
+          "id": "TCA-0000006d",
+          "path": "latency_ratio",
+          "value": 1.01302749
+        }
+      ],
+      "id": "F-0000006e",
       "produced_by": "engineering",
       "statement": "Execution latency remained within the normal range (1.01x baseline, p99 996 us).",
       "supporting_evidence": [
-        "ENG-00000031",
-        "TCA-0000004f"
+        "ENG-00000047",
+        "TCA-0000006d"
       ]
     },
     {
@@ -1911,14 +2929,20 @@
       "category": "MARKET",
       "confidence": 0.8,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000038",
+      "evidence_refs": [
+        {
+          "id": "TCA-00000055",
+          "path": "volatility_ratio",
+          "value": 1.18167249
+        }
+      ],
+      "id": "F-00000056",
       "produced_by": "market",
       "statement": "Realised volatility (3.29 bps/min) was in line with the baseline (1.18x).",
       "supporting_evidence": [
-        "TCA-00000023",
-        "TCA-00000024",
-        "TCA-00000037"
+        "TCA-00000038",
+        "TCA-00000039",
+        "TCA-00000055"
       ]
     },
     {
@@ -1929,14 +2953,20 @@
       "category": "MARKET",
       "confidence": 0.8,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000039",
+      "evidence_refs": [
+        {
+          "id": "TCA-00000055",
+          "path": "spread_ratio",
+          "value": 0.996529474
+        }
+      ],
+      "id": "F-00000057",
       "produced_by": "market",
       "statement": "Average quoted spread (1.85 bps) was in line with the baseline (1.00x).",
       "supporting_evidence": [
-        "TCA-00000023",
-        "TCA-00000024",
-        "TCA-00000037"
+        "TCA-00000038",
+        "TCA-00000039",
+        "TCA-00000055"
       ]
     },
     {
@@ -1947,14 +2977,20 @@
       "category": "MARKET",
       "confidence": 0.8,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-0000003a",
+      "evidence_refs": [
+        {
+          "id": "TCA-00000055",
+          "path": "depth_ratio",
+          "value": 0.972635281
+        }
+      ],
+      "id": "F-00000058",
       "produced_by": "market",
       "statement": "Displayed liquidity was normal (97% of baseline depth).",
       "supporting_evidence": [
-        "MARKET-00000025",
-        "MARKET-00000026",
-        "TCA-00000037"
+        "MARKET-0000003a",
+        "MARKET-0000003b",
+        "TCA-00000055"
       ]
     },
     {
@@ -1965,12 +3001,12 @@
       "confidence": 0.8,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000051",
+      "id": "F-0000006f",
       "produced_by": "engineering",
       "statement": "No deployments to the execution path occurred in the hour before or during the window.",
       "supporting_evidence": [
-        "CHANGE-00000032",
-        "TCA-0000004f"
+        "CHANGE-00000048",
+        "TCA-0000006d"
       ]
     },
     {
@@ -1981,12 +3017,12 @@
       "confidence": 0.8,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000052",
+      "id": "F-00000070",
       "produced_by": "engineering",
       "statement": "No ERROR-level log events were recorded in the window.",
       "supporting_evidence": [
-        "LOG-00000033",
-        "TCA-0000004f"
+        "LOG-00000049",
+        "TCA-0000006d"
       ]
     },
     {
@@ -1998,32 +3034,32 @@
       "confidence": 0.8,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-0000008c",
+      "id": "F-000000a7",
       "produced_by": "quant",
       "statement": "No candidate cause scored as material; the window is statistically consistent with the baseline.",
       "supporting_evidence": [
-        "TCA-0000008a",
-        "TCA-00000027",
-        "TCA-0000002f",
-        "TCA-00000023",
-        "TCA-00000024",
-        "MARKET-00000025",
-        "MARKET-00000026",
-        "TCA-0000005f",
-        "TCA-00000062",
-        "MARKET-00000065",
-        "TCA-00000068",
-        "TCA-0000006b",
-        "MARKET-0000006e",
-        "TCA-00000071",
-        "TCA-00000074",
-        "MARKET-00000077",
+        "TCA-000000a5",
+        "TCA-0000003c",
+        "TCA-00000045",
+        "TCA-00000038",
+        "TCA-00000039",
+        "MARKET-0000003a",
+        "MARKET-0000003b",
         "TCA-0000007a",
         "TCA-0000007d",
         "MARKET-00000080",
         "TCA-00000083",
         "TCA-00000086",
-        "MARKET-00000089"
+        "MARKET-00000089",
+        "TCA-0000008c",
+        "TCA-0000008f",
+        "MARKET-00000092",
+        "TCA-00000095",
+        "TCA-00000098",
+        "MARKET-0000009b",
+        "TCA-0000009e",
+        "TCA-000000a1",
+        "MARKET-000000a4"
       ]
     },
     {
@@ -2034,14 +3070,20 @@
       "category": "MARKET",
       "confidence": 0.75,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-0000003b",
+      "evidence_refs": [
+        {
+          "id": "TCA-00000038",
+          "path": "values.stale_quote_fraction",
+          "value": 0.00222283968
+        }
+      ],
+      "id": "F-00000059",
       "produced_by": "market",
       "statement": "Market-data feed quality was normal (no stale runs or crossed quotes of note).",
       "supporting_evidence": [
-        "TCA-00000023",
-        "TCA-00000024",
-        "TCA-00000037"
+        "TCA-00000038",
+        "TCA-00000039",
+        "TCA-00000055"
       ]
     },
     {
@@ -2052,12 +3094,12 @@
       "confidence": 0.75,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000043",
+      "id": "F-00000061",
       "produced_by": "execution",
       "statement": "No venue was materially worse than its peers on fill rate or slippage.",
       "supporting_evidence": [
-        "TCA-00000030",
-        "TCA-00000042"
+        "TCA-00000046",
+        "TCA-00000060"
       ]
     },
     {
@@ -2074,12 +3116,38 @@
       "category": "EXECUTION",
       "confidence": 0.7,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000044",
+      "evidence_refs": [
+        {
+          "id": "TCA-0000003c",
+          "path": "values.delay_cost_bps",
+          "value": -2.01021468
+        },
+        {
+          "id": "TCA-0000003c",
+          "path": "values.spread_cost_bps",
+          "value": 0.416970882
+        },
+        {
+          "id": "TCA-0000003c",
+          "path": "values.timing_cost_bps",
+          "value": -11.104489
+        },
+        {
+          "id": "TCA-0000003c",
+          "path": "values.opportunity_cost_bps",
+          "value": -4.51213424
+        },
+        {
+          "id": "TCA-0000003c",
+          "path": "values.fees_bps",
+          "value": 0.0895430257
+        }
+      ],
+      "id": "F-00000062",
       "produced_by": "execution",
       "statement": "Implementation shortfall by component: delay -2.0 bps, spread +0.4 bps, timing -11.1 bps, opportunity -4.5 bps, fees +0.1 bps (total -17.1 bps).",
       "supporting_evidence": [
-        "TCA-00000027"
+        "TCA-0000003c"
       ]
     },
     {
@@ -2093,12 +3161,18 @@
       "category": "EXECUTION",
       "confidence": 0.7,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-00000045",
+      "evidence_refs": [
+        {
+          "id": "TCA-0000003c",
+          "path": "values.pretrade_estimate_bps",
+          "value": 3.33159162
+        }
+      ],
+      "id": "F-00000063",
       "produced_by": "execution",
       "statement": "Against the pre-trade estimate of +3.3 bps (fitted square-root model) the arrival shortfall -15.1 bps is a residual of -18.4 bps, -1.22 standard errors (SE 15.2 bps).",
       "supporting_evidence": [
-        "TCA-00000027"
+        "TCA-0000003c"
       ]
     },
     {
@@ -2111,11 +3185,11 @@
       "confidence": 0.7,
       "contradicting_evidence": [],
       "evidence_refs": [],
-      "id": "F-00000046",
+      "id": "F-00000064",
       "produced_by": "execution",
       "statement": "Size-weighted effective spread +2.3 bps on aggressive fills, realised spread +8.0 bps at 5 min; markouts 1 s -0.5 bps, 60 s -1.0 bps, 5 min -3.4 bps (positive = price moved our way).",
       "supporting_evidence": [
-        "TCA-00000027"
+        "TCA-0000003c"
       ]
     },
     {
@@ -2128,17 +3202,132 @@
       "category": "RISK",
       "confidence": 0.7,
       "contradicting_evidence": [],
-      "evidence_refs": [],
-      "id": "F-0000005b",
+      "evidence_refs": [
+        {
+          "id": "RISK-00000050",
+          "path": "values.gross_exposure",
+          "value": 114730631.0
+        }
+      ],
+      "id": "F-00000076",
       "produced_by": "risk",
       "statement": "Post-window gross exposure in AAPL was 114,730,631 USD (76% of the notional limit).",
       "supporting_evidence": [
-        "RISK-00000059"
+        "RISK-00000050"
       ]
     }
   ],
-  "generated_at": "2026-01-01T00:00:00.240000+00:00",
-  "hypotheses": null,
+  "generated_at": "2026-01-01T00:00:00.258000+00:00",
+  "hypotheses": {
+    "correction": "none: fixed pre-registered thresholds, no p-values",
+    "rows": [
+      {
+        "evidence_ids": [
+          "TCA-000000a5"
+        ],
+        "n_obs": 0,
+        "name": "MARKET_VOLATILITY",
+        "p_value": null,
+        "rank": null,
+        "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+        "statistic": 0.0,
+        "test": "attribution_score>=0.35",
+        "verdict": "REFUTED"
+      },
+      {
+        "evidence_ids": [
+          "TCA-000000a5"
+        ],
+        "n_obs": 0,
+        "name": "WIDE_SPREADS",
+        "p_value": null,
+        "rank": null,
+        "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+        "statistic": 0.0,
+        "test": "attribution_score>=0.35",
+        "verdict": "REFUTED"
+      },
+      {
+        "evidence_ids": [
+          "TCA-000000a5"
+        ],
+        "n_obs": 0,
+        "name": "LOW_LIQUIDITY",
+        "p_value": null,
+        "rank": null,
+        "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+        "statistic": 0.0,
+        "test": "attribution_score>=0.35",
+        "verdict": "REFUTED"
+      },
+      {
+        "evidence_ids": [
+          "TCA-000000a5"
+        ],
+        "n_obs": 0,
+        "name": "VENUE_DEGRADATION",
+        "p_value": null,
+        "rank": null,
+        "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+        "statistic": 0.0,
+        "test": "attribution_score>=0.35",
+        "verdict": "REFUTED"
+      },
+      {
+        "evidence_ids": [
+          "TCA-000000a5"
+        ],
+        "n_obs": 0,
+        "name": "TECHNOLOGY_LATENCY",
+        "p_value": null,
+        "rank": null,
+        "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+        "statistic": 0.0,
+        "test": "attribution_score>=0.35",
+        "verdict": "REFUTED"
+      },
+      {
+        "evidence_ids": [
+          "TCA-000000a5"
+        ],
+        "n_obs": 0,
+        "name": "MARKET_DATA_ANOMALY",
+        "p_value": null,
+        "rank": null,
+        "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+        "statistic": 0.0,
+        "test": "attribution_score>=0.35",
+        "verdict": "REFUTED"
+      },
+      {
+        "evidence_ids": [
+          "TCA-000000a5"
+        ],
+        "n_obs": 0,
+        "name": "LARGE_ORDER_IMPACT",
+        "p_value": null,
+        "rank": null,
+        "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+        "statistic": 0.0,
+        "test": "attribution_score>=0.35",
+        "verdict": "REFUTED"
+      },
+      {
+        "evidence_ids": [
+          "TCA-000000a5"
+        ],
+        "n_obs": 0,
+        "name": "PRICE_MOVEMENT",
+        "p_value": null,
+        "rank": null,
+        "reason": "attribution score 0.00 < 0.35; execution quality did not deteriorate past the threshold",
+        "statistic": 0.0,
+        "test": "attribution_score>=0.35",
+        "verdict": "REFUTED"
+      }
+    ],
+    "trials_counted": 8
+  },
   "kind": "investigation",
   "metrics": {
     "engineering": {
@@ -2650,7 +3839,7 @@
       }
     }
   },
-  "narrative": "AAPL EXECUTION INVESTIGATION 14:00-15:00 New York\n\nEXECUTIVE SUMMARY\n\nExecution quality in the window was consistent with the baseline: implementation shortfall moved by -26.9 bps and slippage versus interval VWAP by +1.5 bps. No market, venue or technology anomaly of material size was identified.\n\nPRIMARY OBSERVATIONS\n\n1. Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 52,124 shares across 215 fills on 5 venues. [confidence 0.90]\n2. Implementation shortfall was -17.1 bps versus arrival 229.7800 (decreased by 6.7 bps relative to the baseline's -10.4 bps). [confidence 0.90]\n3. Execution VWAP 229.4973 versus interval VWAP 229.4632: slippage +1.5 bps (baseline +0.4 bps, delta +1.1 bps). [confidence 0.90]\n4. Fill rate was 86.9% of the parent quantity with participation of 5.4% of market volume. [confidence 0.90]\n5. The parent order breached trading limits: max_position (561029.00 vs 500000.00). [confidence 0.90]\n6. Execution quality did not materially deteriorate: arrival shortfall -15.1 bps against a pre-trade estimate of +3.3 bps, a residual of -18.4 bps (-1.00 standard errors; SE 18.5 bps). [confidence 0.90]\n7. Observed participation 5.4% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook. [confidence 0.85]\n8. Execution latency remained within the normal range (1.01x baseline, p99 996 us). [confidence 0.85]\n\nEXECUTION\n\nVWAP: 229.4973 (market VWAP 229.4632)\nArrival price: 229.7800\nImplementation shortfall: -17.1 bps (baseline -10.4 bps)\nSlippage vs interval VWAP: +1.5 bps (baseline +0.4 bps)\nAverage spread: 1.85 bps\nFill rate: 86.9%\nParticipation rate: 5.4%\nMarket impact: +2.3 bps\n\nMARKET CONDITIONS\n\nVolatility: +18% vs baseline (3.29 bps/min)\nDisplayed depth: -3% vs baseline\nQuoted spread: -0% vs baseline\nPrice drift in window: -35.3 bps\nStale quotes: 0.2%; crossed quotes: 0\n\nTECHNOLOGY\n\nExecution latency: Normal (ratio 1.01 vs baseline)\nReject rate: Normal (0.0%)\nDeployments in scope: 0; error logs: 0\n\nCONCLUSION\n\nThe evidence does not indicate a material deterioration attributable to market conditions, venue behaviour or technology.\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the ranked causes above.\n\nPOLICY CONTEXT\n\n- Execution Policy / Escalation: ## Escalation\n- Venue Configuration / Venue Configuration: # Venue Configuration\n- Execution Policy / Execution Policy: # Execution Policy\n\nCRITIC\n\nReviewed 20 findings: 20 supported by resolvable evidence, 0 unsupported. Confidence lowered on 4 finding(s). No cross-agent contradictions. Findings are consistent with the deterministic evidence; confidence adjustments applied where evidence was thin.\n\nEVIDENCE\n\n- CHANGE-00000032\n- ENG-00000031\n- ENG-00000035\n- ENG-0000004e\n- EXEC-00000022\n- EXEC-00000034\n- LOG-00000033\n- LOG-0000004b\n- MARKET-00000025\n- MARKET-00000026\n- MARKET-00000065\n- MARKET-0000006e\n- MARKET-00000077\n- MARKET-00000080\n- MARKET-00000089\n- ORDER-00000020\n- ORDER-00000021\n- RISK-00000056\n- RISK-00000059\n- TCA-00000023\n- TCA-00000024\n- TCA-00000027\n- TCA-0000002f\n- TCA-00000030\n- TCA-00000037\n- TCA-0000003d\n- TCA-00000042\n- TCA-0000004f\n- TCA-0000005f\n- TCA-00000062\n- TCA-00000068\n- TCA-0000006b\n- TCA-00000071\n- TCA-00000074\n- TCA-0000007a\n- TCA-0000007d\n- TCA-00000083\n- TCA-00000086\n- TCA-0000008a\n- TCA-0000008e",
+  "narrative": "AAPL EXECUTION INVESTIGATION 14:00-15:00 New York\n\nEXECUTIVE SUMMARY\n\nExecution quality in the window was consistent with the baseline: implementation shortfall moved by -26.9 bps and slippage versus interval VWAP by +1.5 bps. No market, venue or technology anomaly of material size was identified.\n\nPRIMARY OBSERVATIONS\n\n1. Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 52,124 shares across 215 fills on 5 venues. [confidence 0.90]\n2. Implementation shortfall was -17.1 bps versus arrival 229.7800 (decreased by 6.7 bps relative to the baseline's -10.4 bps). [confidence 0.90]\n3. Execution VWAP 229.4973 versus interval VWAP 229.4632: slippage +1.5 bps (baseline +0.4 bps, delta +1.1 bps). [confidence 0.90]\n4. Fill rate was 86.9% of the parent quantity with participation of 5.4% of market volume. [confidence 0.90]\n5. The parent order breached trading limits: max_position (561029.00 vs 500000.00). [confidence 0.90]\n6. Execution quality did not materially deteriorate: arrival shortfall -15.1 bps against a pre-trade estimate of +3.3 bps, a residual of -18.4 bps (-1.00 standard errors; SE 18.5 bps). [confidence 0.90]\n7. Observed participation 5.4% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook. [confidence 0.85]\n8. Execution latency remained within the normal range (1.01x baseline, p99 996 us). [confidence 0.85]\n\nEXECUTION\n\nVWAP: 229.4973 (market VWAP 229.4632)\nArrival price: 229.7800\nImplementation shortfall: -17.1 bps (baseline -10.4 bps)\nSlippage vs interval VWAP: +1.5 bps (baseline +0.4 bps)\nAverage spread: 1.85 bps\nFill rate: 86.9%\nParticipation rate: 5.4%\nMarket impact: +2.3 bps\n\nMARKET CONDITIONS\n\nVolatility: +18% vs baseline (3.29 bps/min)\nDisplayed depth: -3% vs baseline\nQuoted spread: -0% vs baseline\nPrice drift in window: -35.3 bps\nStale quotes: 0.2%; crossed quotes: 0\n\nTECHNOLOGY\n\nExecution latency: Normal (ratio 1.01 vs baseline)\nReject rate: Normal (0.0%)\nDeployments in scope: 0; error logs: 0\n\nCONCLUSION\n\nThe evidence does not indicate a material deterioration attributable to market conditions, venue behaviour or technology.\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the ranked causes above.\n\nPOLICY CONTEXT\n\n- Execution Algorithm Documentation / Reading a report: ## Reading a report\n- Attribution Threshold Tables / Why these deterioration thresholds: # Attribution Threshold Tables\n- Execution Algorithm Documentation / Strategies: # Execution Algorithm Documentation\n\nCRITIC\n\nReviewed 20 findings: 20 supported by resolvable evidence, 0 unsupported. Confidence lowered on 4 finding(s). No cross-agent contradictions.\n\nEVIDENCE\n\n- CHANGE-00000048\n- DOC-0000004b\n- ENG-00000047\n- ENG-0000004f\n- ENG-00000054\n- ENG-00000069\n- ENG-0000006c\n- EXEC-00000037\n- EXEC-0000004a\n- LOG-00000049\n- LOG-0000004c\n- MARKET-0000003a\n- MARKET-0000003b\n- MARKET-00000080\n- MARKET-00000089\n- MARKET-00000092\n- MARKET-0000009b\n- MARKET-000000a4\n- ORDER-00000035\n- ORDER-00000036\n- RISK-00000050\n- RISK-00000074\n- TCA-00000038\n- TCA-00000039\n- TCA-0000003c\n- TCA-00000045\n- TCA-00000046\n- TCA-00000055\n- TCA-0000005b\n- TCA-00000060\n- TCA-0000006d\n- TCA-0000007a\n- TCA-0000007d\n- TCA-00000083\n- TCA-00000086\n- TCA-0000008c\n- TCA-0000008f\n- TCA-00000095\n- TCA-00000098\n- TCA-0000009e\n\nHYPOTHESES\n\nSupported hypotheses: 0\nRefuted hypotheses: 8\n- MARKET_VOLATILITY: score 0.0 (evidence: TCA-000000a5)\n- WIDE_SPREADS: score 0.0 (evidence: TCA-000000a5)\n- LOW_LIQUIDITY: score 0.0 (evidence: TCA-000000a5)\n- VENUE_DEGRADATION: score 0.0 (evidence: TCA-000000a5)\n- TECHNOLOGY_LATENCY: score 0.0 (evidence: TCA-000000a5)\n- MARKET_DATA_ANOMALY: score 0.0 (evidence: TCA-000000a5)\n- LARGE_ORDER_IMPACT: score 0.0 (evidence: TCA-000000a5)\n- PRICE_MOVEMENT: score 0.0 (evidence: TCA-000000a5)\nUntested hypotheses: 0\n\nKnowledge corpus sha256:8efb190cab1eb405810e7babb8b478bbce97a59f57483f65869acb874a566960",
   "primary_observations": [
     "Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 52,124 shares across 215 fills on 5 venues.",
     "Implementation shortfall was -17.1 bps versus arrival 229.7800 (decreased by 6.7 bps relative to the baseline's -10.4 bps).",
@@ -2661,6 +3850,16 @@
     "Observed participation 5.4% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook.",
     "Execution latency remained within the normal range (1.01x baseline, p99 996 us)."
   ],
+  "prompts": {
+    "critic": {
+      "sha256": "f471e75077d3b8738b646774811d519d1f706735c8da0711ea78d1d4415d28af",
+      "version": "3"
+    },
+    "planner": {
+      "sha256": "8a5034b96237fd747815dd2fdd20e6e806bb4a5b6506eb6c0567b0cf2507fd44",
+      "version": "3"
+    }
+  },
   "proposal": {},
   "schema_version": 1,
   "task_id": "TASK-00000001",

@@ -22,7 +22,7 @@ class BacktestAgent(BaseAgent):
 
     async def execute(self, context: AgentContext) -> AgentResult:
         s = scope(context)
-        data, ev = await self.ensure(context, "backtest.run_backtest", tool_args(context)["run_backtest"])
+        data, ev = await self.fetched(context, "backtest.run_backtest", tool_args(context)["run_backtest"])
         bt = backtest_result_from_dict(data)
         ins, oos, full = bt.period("in_sample"), bt.period("out_of_sample"), bt.period("full")
         if ins is None or oos is None or full is None:

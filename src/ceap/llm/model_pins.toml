@@ -35,3 +35,23 @@ model = "claude-haiku-5-5"
 fallback_model = "claude-sonnet-5-5"
 effort = "low"
 max_tokens = 4000
+
+# USD per million tokens, used ONLY for the local cost estimate and the task budget (3A.6).
+# Source: the published list prices as cached on 2026-10-06; never fetched at run time.
+[pricing."claude-opus-5-5"]
+input = 4.00
+output = 20.00
+cache_read = 0.20
+cache_write = 5.00
+
+[pricing."claude-sonnet-5-5"]
+input = 2.00
+output = 10.00
+cache_read = 0.20
+cache_write = 2.50
+
+[pricing."claude-haiku-5-5"]
+input = 0.10
+output = 0.50
+cache_read = 0.01
+cache_write = 0.125

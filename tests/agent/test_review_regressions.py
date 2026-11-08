@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import time
 from datetime import date
 
 import pytest
@@ -211,16 +212,25 @@ class SlowTool(Tool):
     id = "slow.tool"
     metadata = ToolMetadata("slow.tool", "tool", "", True, RiskLevel.LOW)
 
+    started: asyncio.Event | None = None
+
     async def execute(self, request, context):
+        if self.started is not None:
+            self.started.set()
         await asyncio.sleep(3)
         return ToolResult(ToolStatus.SUCCESS)
 
 
-async def test_cancel_during_tool_batch_is_cancelled_not_failed(platform):
-    """H3: TaskCancelled inside a TaskGroup surfaced as an ExceptionGroup -> FAILED."""
+async def test_cancel_during_tool_batch_is_cancelled_not_failed(platform, dataset_t01):
+    """H3: TaskCancelled inside a TaskGroup surfaced as an ExceptionGroup -> FAILED.
+
+    ``dataset_t01`` warms the store: since R2T a cold T01 build (with its matched prior sessions)
+    takes seconds, which would hide what the duration bound measures.
+    """
     base = await platform.harness()
     if not base.tools.has("slow.tool"):
         base.tools.register(SlowTool())
+    started = SlowTool.started = asyncio.Event()
     steps = [
         PlanStep(f"s{i}", i, StepType.TOOL_CALL, "slow", ToolRequest("slow.tool", {})) for i in range(1, 4)
     ]
@@ -229,15 +239,21 @@ async def test_cancel_during_tool_batch_is_cancelled_not_failed(platform):
     token = CancellationToken()
     harness = await _harness(platform, FixedPlanner(steps), tools=base.tools)
 
-    async def cancel_soon():
-        await asyncio.sleep(0.2)
+    async def cancel_once_in_flight() -> float:
+        # cancel only once a tool call is actually running, so harness set-up time under
+        # -n auto load cannot eat the budget; measure from the cancel, not from the start
+        await asyncio.wait_for(started.wait(), 120)
         token.cancel("user pressed stop")
+        return time.perf_counter()
 
-    result, _ = await asyncio.gather(
-        harness.execute(task, platform.policy_context(req, task), token), cancel_soon()
+    result, cancelled_at = await asyncio.gather(
+        harness.execute(task, platform.policy_context(req, task), token), cancel_once_in_flight()
     )
+    after_cancel_s = time.perf_counter() - cancelled_at
+    SlowTool.started = None
     assert result.state is HarnessState.CANCELLED, result.error
-    assert result.duration_ms < 2500, "in-flight tool call was abandoned, not awaited to completion"
+    # the tool sleeps 3 s; a prompt cancel ends well before the in-flight call would have completed
+    assert after_cancel_s < 2.5, f"cancel took {after_cancel_s:.2f}s to take effect"
 
 
 # ----------------------------------------------------- tracer under concurrency

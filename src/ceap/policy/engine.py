@@ -14,10 +14,13 @@ from typing import Any
 
 from ceap.domain.policy import PolicyContext, PolicyDecision, PolicyEngine, PolicyEvaluation
 from ceap.domain.tools import RiskLevel, ToolMetadata, ToolRequest
+from ceap.rag.query import allowed_classifications, parse_classifications
 
 Rule = Callable[[ToolRequest, ToolMetadata, PolicyContext], PolicyEvaluation | None]
 
 MAX_PAGE_LIMIT = 5000
+#: knowledge tools whose ``classifications`` argument is checked against the principal's roles (3C.3)
+KNOWLEDGE_CLASSIFIED_TOOLS = frozenset({"knowledge.search_documents", "knowledge.get_document"})
 #: built-in MCP servers; overridden by CEAP_MCP_TRUSTED_SERVERS (comma-separated)
 DEFAULT_TRUSTED_SERVERS = (
     "market_data",
@@ -53,6 +56,7 @@ class RulePolicyEngine(PolicyEngine):
             self._rule_capabilities,
             self._rule_argument_guards,
             self._rule_symbol_universe,
+            self._rule_knowledge_classification,
             self._rule_risk_level,
         ]
 
@@ -152,6 +156,31 @@ class RulePolicyEngine(PolicyEngine):
         if universe and symbol and symbol not in universe:
             return PolicyEvaluation(
                 PolicyDecision.DENY, f"symbol {symbol} outside permitted universe", "symbol-universe", meta.id
+            )
+        return None
+
+    def _rule_knowledge_classification(
+        self, req: ToolRequest, meta: ToolMetadata, ctx: PolicyContext
+    ) -> PolicyEvaluation | None:
+        """R3C 3C.3: a knowledge read may only ask for classifications the principal's roles allow.
+
+        Omitting ``classifications`` is safe: the server then reads public and internal only.
+        """
+        if meta.id not in KNOWLEDGE_CLASSIFIED_TOOLS:
+            return None
+        try:
+            requested = parse_classifications(req.arguments.get("classifications"))
+        except ValueError as exc:
+            return PolicyEvaluation(PolicyDecision.DENY, str(exc), "argument-guard", meta.id)
+        if requested is None:
+            return None
+        excess = sorted(set(requested) - set(allowed_classifications(ctx.roles)))
+        if excess:
+            return PolicyEvaluation(
+                PolicyDecision.DENY,
+                f"roles {sorted(ctx.roles)} may not read {excess} knowledge documents",
+                "knowledge-classification",
+                meta.id,
             )
         return None
 

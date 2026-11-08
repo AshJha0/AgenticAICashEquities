@@ -12,7 +12,9 @@ import asyncio
 import json
 import math
 import re
-from typing import Any
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from ceap.agents.base import (
     REQUIRED_INVESTIGATION_AGENTS,
@@ -21,8 +23,10 @@ from ceap.agents.base import (
     finite,
     llm_disabled,
 )
+from ceap.analytics.hypotheses import table_groups
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.common import utc_now
+from ceap.domain.evidence import Evidence, document_citation
 from ceap.domain.findings import Finding
 from ceap.domain.reports import InvestigationReport
 from ceap.domain.research import ResearchFlag, ResearchScope
@@ -36,7 +40,15 @@ from ceap.llm.models import (
     LLMRequest,
     LLMResponse,
 )
-from ceap.llm.prompts import REPORT_SYSTEM_PROMPT, RESEARCH_REPORT_SYSTEM_PROMPT
+from ceap.llm.prompts import (
+    DATA_BLOCK_NOTE,
+    REPORT_SYSTEM_PROMPT,
+    REPORTER_CLAIMS_SYSTEM_PROMPT,
+    REPORTER_PROSE_SYSTEM_PROMPT,
+    RESEARCH_REPORT_SYSTEM_PROMPT,
+    data_block,
+    get_prompt,
+)
 
 SECTION_NAMES = (
     "EXECUTIVE SUMMARY",
@@ -64,6 +76,23 @@ KILL_SWITCH_BANNER = (
     "no model was called."
 )
 STAGE_TOOL_ID = "execution.stage_orders"
+MAX_CLAIMS = 24
+
+
+class Claim(BaseModel):
+    """R3C 3C.4 call 1: one claim the report will make, tied to facts and evidence."""
+
+    model_config = ConfigDict(extra="forbid")
+    section: Literal["EXECUTIVE SUMMARY", "FINDINGS", "CONCLUSION", "ALTERNATIVE EXPLANATIONS"]
+    text: str = Field(max_length=600)
+    fact_keys: list[str] = Field(max_length=12)
+    evidence_ids: list[str] = Field(max_length=12)
+    needs_policy_support: bool
+
+
+class ClaimsOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    claims: list[Claim] = Field(max_length=MAX_CLAIMS)
 
 
 class ReportAgent(BaseAgent):
@@ -91,26 +120,27 @@ class ReportAgent(BaseAgent):
         degradations: list[Degradation] = []
         response: LLMResponse | None = None
         narrative = ""
+        claims: dict[str, list[dict[str, Any]]] = {"kept": [], "dropped": []}
         if llm_disabled(self.llm):
             degradations.append(
                 Degradation(RUNG_KILL_SWITCH, "LLM_DISABLED", "kill switch on: templated narrative used")
             )
         else:
             try:
-                response = await self.call_llm(
-                    context,
-                    self.llm,
-                    LLMRequest(
-                        system_prompt=system_prompt,
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": "Write the report from these facts:\n\n" + json.dumps(facts, default=str),
-                            }
-                        ],
-                        purpose="narrative",  # max_tokens 8000 and effort from model_pins.toml
-                    ),
-                )
+                if research:
+                    response = await self.call_llm(
+                        context,
+                        self.llm,
+                        LLMRequest(
+                            system_prompt=system_prompt,
+                            messages=[{"role": "user", "content": report_request_content(facts)}],
+                            purpose="narrative",  # max_tokens 8000 and effort from model_pins.toml
+                        ),
+                    )
+                else:
+                    # R3C 3C.4: call 1 claims (structured), call 2 prose with citations
+                    claims = await self._claims(context, facts, degradations)
+                    response = await self.call_llm(context, self.llm, prose_request(claims["kept"], facts))
                 degradations.extend(response.degradations)
                 if response.stop_reason in ("max_tokens", "refusal") or not response.content.strip():
                     degradations.append(
@@ -134,6 +164,8 @@ class ReportAgent(BaseAgent):
                 )
         if not narrative:
             narrative = _mock_narrative(facts)
+        if facts.get("hypotheses"):
+            narrative = f"{narrative}\n\n{hypotheses_section(facts['hypotheses'])}"
         incomplete = _failed_required_agents(outputs) if not research else []
         if incomplete:
             narrative = f"{incomplete_banner(incomplete)}\n\n{narrative}"
@@ -142,6 +174,29 @@ class ReportAgent(BaseAgent):
         sections = _split_sections(narrative)
         number_warnings = audit_numbers(narrative, facts)
         id_warnings = audit_evidence_ids(narrative, set(memory.evidence))
+        knowledge: dict[str, Any] = {}
+        cited: list[Evidence] = []
+        if not research:
+            # R3C 3C.4: span audit of every citation, DOC evidence for each verified one
+            model_prose = (
+                response is not None
+                and bool(response.content.strip())
+                and response.content.strip() in narrative
+            )
+            cited, citation_warnings = audit_citations(
+                response.citations if model_prose and response else (), facts
+            )
+            id_warnings = [*id_warnings, *citation_warnings]  # a fabricated quote is blocking
+            knowledge = {
+                "corpus_hash": facts.get("knowledge_corpus_hash"),
+                "claims": claims["kept"],
+                "dropped_claims": claims["dropped"],
+                "unsupported_policy_claims": unsupported_policy_claims(claims["kept"], cited),
+                "citations": [e.id for e in cited],
+                "citation_warnings": citation_warnings,
+            }
+            if facts.get("knowledge_corpus_hash"):
+                narrative = f"{narrative}\n\nKnowledge corpus sha256:{facts['knowledge_corpus_hash']}"
         critique_out = {
             **critique,
             "narrative_number_warnings": number_warnings,
@@ -149,6 +204,12 @@ class ReportAgent(BaseAgent):
             "llm_model": response.model if response else None,
             "incomplete_analysis": incomplete,
         }
+        if knowledge:
+            critique_out["knowledge"] = knowledge
+        if facts.get("hypotheses"):
+            critique_out["hypotheses"] = facts["hypotheses"]  # R3B 3B.2: verdicts from code only
+        if facts.get("prior_cases"):
+            critique_out["prior_cases"] = facts["prior_cases"]  # R3B 3B.7: cited, read-only
         alternatives = list(facts.get("alternatives") or [])
         if research:
             assessment = facts.get("assessment") or {}
@@ -194,7 +255,7 @@ class ReportAgent(BaseAgent):
                 ),
                 alternative_explanations=tuple(alternatives),
                 findings=tuple(findings),
-                evidence=memory.evidence_list(),
+                evidence=(*memory.evidence_list(), *cited),
                 metrics={
                     "execution": facts["metrics"],
                     "market": facts["market"],
@@ -218,6 +279,7 @@ class ReportAgent(BaseAgent):
             agent_id=self.id,
             success=True,
             output=output,
+            evidence=tuple(cited),
             summary=f"report generated ({len(narrative)} chars, {len(number_warnings)} number warnings)",
         )
 
@@ -267,7 +329,12 @@ class ReportAgent(BaseAgent):
             },
             "alternatives": self._alternatives(attribution, quant),
             "policy_context": self._policy_context(memory),
+            "knowledge_corpus_hash": self._corpus_hash(memory),
             "evidence_ids": sorted(memory.evidence),
+            "hypotheses": table_groups(memory.scratch.get("hypotheses"))
+            if memory.scratch.get("hypotheses")
+            else {},
+            "prior_cases": list(((outputs.get("scope") or {}).get("context_cases")) or []),
         }
 
     def _research_facts(
@@ -333,6 +400,7 @@ class ReportAgent(BaseAgent):
             "approval": approvals.get("gov-approval"),
             "staging": staging,
             "policy_context": self._policy_context(memory),
+            "knowledge_corpus_hash": self._corpus_hash(memory),
             "evidence_ids": sorted(memory.evidence),
         }
 
@@ -371,7 +439,11 @@ class ReportAgent(BaseAgent):
             value = metrics.get(key)
             return float(value) if isinstance(value, (int, float)) and finite(value) else float("nan")
 
-        cost_share, ratio, concentration = number("cost_share"), number("sharpe_ratio_oos_is"), number("pnl_concentration_top3")
+        cost_share, ratio, concentration = (
+            number("cost_share"),
+            number("sharpe_ratio_oos_is"),
+            number("pnl_concentration_top3"),
+        )
         if ResearchFlag.OOS_DECAY.value in flags:
             alts.append(
                 "The signal may be regime-specific: the in-sample premium did not persist out-of-sample, "
@@ -409,9 +481,54 @@ class ReportAgent(BaseAgent):
                 "section": h.get("section"),
                 "excerpt": str(h.get("text", ""))[:400],
                 "evidence": list(out.evidence_ids),
+                # R3C 3C.4/3C.5: what a citation is checked against, and which revision it was
+                "chunk_id": h.get("chunk_id"),
+                "document": h.get("document"),
+                "version": h.get("version"),
+                "effective_date": h.get("effective_date"),
+                "text": str(h.get("text", "")),
             }
             for h in (out.data.get("items") or [])[:3]
         ]
+
+    @staticmethod
+    def _corpus_hash(memory: Any) -> str | None:
+        out = memory.find("knowledge.search_documents")
+        value = out.data.get("corpus_hash") if out else None
+        return str(value) if value else None
+
+    async def _claims(
+        self, context: AgentContext, facts: dict[str, Any], degradations: list[Degradation]
+    ) -> dict[str, list[dict[str, Any]]]:
+        """R3C 3C.4 call 1: structured claims, validated deterministically. Never fails the report."""
+        prompt = get_prompt("reporter_claims")
+        request = LLMRequest(
+            system_prompt=REPORTER_CLAIMS_SYSTEM_PROMPT,
+            messages=[{"role": "user", "content": report_request_content(facts)}],
+            purpose="claims",  # pins fall back to the narrative pin
+            metadata={"prompt": prompt.ref(), "task_id": context.task_id},
+            output_model=ClaimsOutput,
+        )
+        try:
+            response = await self.call_llm(context, self.llm, request)
+            degradations.extend(response.degradations)
+            raw = response.parsed
+            if raw is None:
+                raise ValueError(f"no structured claims (stop_reason={response.stop_reason})")
+            parsed = ClaimsOutput.model_validate(raw)
+        except (TaskCancelled, asyncio.CancelledError):
+            raise
+        except Exception as exc:  # noqa: BLE001 - the prose call still runs, from the facts alone
+            degradations.append(
+                Degradation(
+                    RUNG_DETERMINISTIC,
+                    "LLM_CLAIMS_UNAVAILABLE",
+                    f"claims call unusable ({type(exc).__name__}: {str(exc)[:160]}); prose from facts only",
+                )
+            )
+            return {"kept": [], "dropped": []}
+        kept, dropped = validate_claims([c.model_dump() for c in parsed.claims], facts)
+        return {"kept": kept, "dropped": dropped}
 
     @staticmethod
     def _alternatives(attribution: dict[str, Any], quant: dict[str, Any]) -> list[str]:
@@ -498,7 +615,20 @@ _ISO = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+
 # Only ids shaped like an actual Evidence record (see ceap.domain.evidence._PREFIX) are audited;
 # other id-shaped tokens in the facts (e.g. an approval request id, "APR-...") are legitimate
 # and are not expected to resolve as evidence.
-_EVIDENCE_PREFIXES = ("MARKET", "ORDER", "EXEC", "BOOK", "ENG", "LOG", "DOC", "TCA", "CHANGE", "RISK", "SIG", "BT")
+_EVIDENCE_PREFIXES = (
+    "MARKET",
+    "ORDER",
+    "EXEC",
+    "BOOK",
+    "ENG",
+    "LOG",
+    "DOC",
+    "TCA",
+    "CHANGE",
+    "RISK",
+    "SIG",
+    "BT",
+)
 _ID = re.compile(r"\b(?:" + "|".join(_EVIDENCE_PREFIXES) + r")-[0-9a-f]{8}\b")
 
 
@@ -563,3 +693,180 @@ def audit_numbers(narrative: str, facts: dict[str, Any]) -> list[str]:
 
 def audit_evidence_ids(narrative: str, known: set[str]) -> list[str]:
     return [f"evidence id {m} not found" for m in sorted(set(_ID.findall(narrative))) if m not in known]
+
+
+# ------------------------------------------------------------------ R3B helpers
+
+
+def report_request_content(facts: dict[str, Any]) -> str:
+    """R3B 3B.5: the facts travel in a data block; retrieved policy text gets one block per chunk."""
+    policy = facts.get("policy_context") or []
+    head = {k: v for k, v in facts.items() if k != "policy_context"}
+    parts = [
+        DATA_BLOCK_NOTE,
+        "Write the report from these facts:",
+        data_block("evidence", "facts", json.dumps({**head, "policy_context": policy}, default=str)),
+    ]
+    for i, hit in enumerate(policy):
+        if isinstance(hit, dict):
+            parts.append(data_block("rag", f"policy-{i + 1}", hit))
+    return "\n\n".join(parts)
+
+
+def hypotheses_section(groups: dict[str, list[dict[str, Any]]]) -> str:
+    """R3B 3B.2: the hypothesis table as text, written by code from the deterministic verdicts."""
+    titles = (
+        ("SUPPORTED", "Supported hypotheses"),
+        ("REFUTED", "Refuted hypotheses"),
+        ("UNTESTED", "Untested hypotheses"),
+    )
+    lines = ["HYPOTHESES", ""]
+    for key, title in titles:
+        rows = groups.get(key) or []
+        lines.append(f"{title}: {len(rows)}")
+        for r in rows:
+            evidence = ", ".join(r.get("evidence_ids") or []) or "none"
+            # numbers in this section are the facts' own statistics, so the number audit holds
+            detail = f"score {r['statistic']}" if r.get("statistic") is not None else r.get("reason", "")
+            lines.append(f"- {r['name']}: {detail} (evidence: {evidence})")
+    return "\n".join(lines)
+
+
+# ------------------------------------------------------------------ R3C 3C.4 helpers
+
+
+def _resolves(facts: dict[str, Any], path: str) -> bool:
+    node: Any = facts
+    for part in path.split("."):
+        if isinstance(node, dict) and part in node:
+            node = node[part]
+        elif isinstance(node, list) and part.isdigit() and int(part) < len(node):
+            node = node[int(part)]
+        else:
+            return False
+    return True
+
+
+def validate_claims(
+    claims: list[dict[str, Any]], facts: dict[str, Any]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Keep a claim only if its fact keys resolve, its evidence ids are known and its numbers trace.
+
+    A claim with neither fact keys nor evidence ids is dropped too. Dropped claims carry their
+    reasons, so the report shows what the model wanted to say and why it was not allowed to.
+    """
+    known = set(facts.get("evidence_ids") or [])
+    kept: list[dict[str, Any]] = []
+    dropped: list[dict[str, Any]] = []
+    for c in claims[:MAX_CLAIMS]:
+        reasons = []
+        if not c.get("fact_keys") and not c.get("evidence_ids"):
+            reasons.append("no fact keys and no evidence ids")
+        reasons += [
+            f"fact key {k!r} not in facts" for k in c.get("fact_keys") or [] if not _resolves(facts, k)
+        ]
+        reasons += [f"evidence id {e!r} unknown" for e in c.get("evidence_ids") or [] if e not in known]
+        reasons += audit_numbers(str(c.get("text", "")), facts)
+        if reasons:
+            dropped.append({**c, "reasons": reasons})
+        else:
+            kept.append(c)
+    return kept, dropped
+
+
+def document_block(hit: dict[str, Any], last: bool) -> dict[str, Any]:
+    """One knowledge chunk as a citable ``document`` block of custom content (one content block)."""
+    block: dict[str, Any] = {
+        "type": "document",
+        "source": {"type": "content", "content": [{"type": "text", "text": document_text(hit)}]},
+        "title": f"{hit.get('title')} / {hit.get('section')}"[:250],
+        "context": f"chunk {hit.get('chunk_id')} version {hit.get('version')} effective {hit.get('effective_date')}",
+        "citations": {"enabled": True},
+    }
+    if last:  # one breakpoint after the last document caches them all (2 of the 4 allowed, with system)
+        block["cache_control"] = {"type": "ephemeral"}
+    return block
+
+
+def prose_request(claims: list[dict[str, Any]], facts: dict[str, Any]) -> LLMRequest:
+    """R3C 3C.4 call 2: documents first (stable, cached), then the facts and claims (volatile).
+
+    Citations are on and there is no structured output: the API does not allow both in one call.
+    """
+    policy = [p for p in (facts.get("policy_context") or []) if isinstance(p, dict) and p.get("text")]
+    head = {
+        **facts,
+        "policy_context": [{k: v for k, v in p.items() if k != "text"} for p in policy],
+    }
+    text = "\n\n".join(
+        [
+            DATA_BLOCK_NOTE,
+            "Write the report from these facts and validated claims:",
+            data_block("evidence", "facts", json.dumps(head, default=str)),
+            data_block("evidence", "claims", json.dumps(claims, default=str)),
+        ]
+    )
+    blocks = [document_block(p, i == len(policy) - 1) for i, p in enumerate(policy)]
+    return LLMRequest(
+        system_prompt=REPORTER_PROSE_SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": [*blocks, {"type": "text", "text": text}]}],
+        purpose="narrative",
+        metadata={"prompt": get_prompt("reporter_prose").ref()},
+    )
+
+
+def document_text(hit: dict[str, Any]) -> str:
+    """The exact text of a chunk's document block: the chunk wrapped as untrusted ``rag`` data (3B.5).
+
+    The citation audit compares ``cited_text`` with this string, byte for byte after whitespace
+    normalisation; the minted evidence stores the unwrapped chunk text.
+    """
+    return data_block("rag", str(hit.get("chunk_id") or "chunk"), str(hit.get("text", "")))
+
+
+def _norm(text: str) -> str:
+    return " ".join(str(text).split())
+
+
+def audit_citations(citations: Any, facts: dict[str, Any]) -> tuple[list[Evidence], list[str]]:
+    """Check each citation's ``cited_text`` equals the cited chunk's text; mint DOC evidence for each.
+
+    ``document_index`` maps to the chunk sent at that position in the prose call. A citation that
+    points nowhere, or whose text is not the chunk text (a fabricated quote), is a warning and mints
+    nothing.
+    """
+    policy = [p for p in (facts.get("policy_context") or []) if isinstance(p, dict) and p.get("text")]
+    corpus = str(facts.get("knowledge_corpus_hash") or "")
+    minted: list[Evidence] = []
+    warnings: list[str] = []
+    seen: set[tuple[Any, ...]] = set()
+    for c in citations or ():
+        idx = c.get("document_index")
+        if (
+            c.get("type") != "content_block_location"
+            or not isinstance(idx, int)
+            or not 0 <= idx < len(policy)
+        ):
+            warnings.append(f"citation to unknown document {idx!r}")
+            continue
+        chunk = policy[idx]
+        cited = str(c.get("cited_text") or "")
+        if _norm(cited) != _norm(document_text(chunk)):
+            warnings.append(
+                f"citation span mismatch for chunk {chunk.get('chunk_id')}: cited text is not the chunk text"
+            )
+            continue
+        key = (idx, c.get("text_start"), c.get("text_end"))
+        if key in seen:
+            continue
+        seen.add(key)
+        span = (int(c.get("text_start") or 0), int(c.get("text_end") or 0))
+        minted.append(document_citation(chunk, str(chunk["text"]), span, str(c.get("text") or ""), corpus))
+    return minted, warnings
+
+
+def unsupported_policy_claims(claims: list[dict[str, Any]], cited: list[Evidence]) -> list[str]:
+    """Claims flagged ``needs_policy_support`` when the prose carries no verified citation."""
+    if cited:
+        return []
+    return [str(c.get("text", ""))[:200] for c in claims if c.get("needs_policy_support")]

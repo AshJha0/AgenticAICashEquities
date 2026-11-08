@@ -1,0 +1,210 @@
+{
+ "card": {
+  "created": "2026-11-08",
+  "description": "Robust z (median and MAD over a 60-minute reference) of seven per-minute technology and feed features, two-sided CUSUM with k = 1 and threshold h, PELT segments for the change picture. h minimises 30 analyst-minutes per false alarm against 10 per minute of incident delay (incident prior 5 %), subject to the 95 % Clopper-Pearson upper bound of the per-session false-alarm rate being at most 1/20 (ARL0 >= 20 sessions).",
+  "feature_reference": {
+   "ack_latency_p50": {
+    "edges": [
+     6.557913983963256,
+     6.598563509677625,
+     6.630062992303687,
+     6.656135057915009,
+     6.675886221661868,
+     6.695971486144875,
+     6.720099520597481,
+     6.745095073371503,
+     6.789703329107853
+    ],
+    "expected": [
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.09583333333333334,
+     0.10416666666666667,
+     0.1,
+     0.1
+    ]
+   },
+   "ack_latency_p99": {
+    "edges": [
+     7.620351354209112,
+     7.656450687230696,
+     7.700711587021052,
+     7.733026606710584,
+     7.761169647534134,
+     7.803851464971568,
+     7.831795402623461,
+     7.86891229607933,
+     7.947572498652561
+    ],
+    "expected": [
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.1
+    ]
+   },
+   "quote_rate": {
+    "edges": [
+     53.690000000000005,
+     55.98,
+     57.0,
+     58.3,
+     59.4,
+     61.24,
+     62.3,
+     64.02,
+     66.11999999999999
+    ],
+    "expected": [
+     0.1,
+     0.1,
+     0.09166666666666666,
+     0.1,
+     0.10833333333333334,
+     0.1,
+     0.09583333333333334,
+     0.10416666666666667,
+     0.1,
+     0.1
+    ]
+   },
+   "route_latency": {
+    "edges": [
+     5.735119512457822,
+     5.762554369278984,
+     5.798576587842278,
+     5.82859252063274,
+     5.857361562584502,
+     5.885937341631053,
+     5.918651517733118,
+     5.946048415478043,
+     5.987933090505415
+    ],
+    "expected": [
+     0.1,
+     0.1,
+     0.1,
+     0.1,
+     0.09583333333333334,
+     0.10416666666666667,
+     0.1,
+     0.1,
+     0.1,
+     0.1
+    ]
+   },
+   "router_cpu": {
+    "edges": [
+     26.4,
+     28.240000000000002,
+     30.17,
+     31.3,
+     33.150000000000006,
+     34.0,
+     35.63,
+     37.1,
+     38.309999999999995
+    ],
+    "expected": [
+     0.09166666666666666,
+     0.10833333333333334,
+     0.1,
+     0.09166666666666666,
+     0.10833333333333334,
+     0.09166666666666666,
+     0.10833333333333334,
+     0.09583333333333334,
+     0.10416666666666667,
+     0.1
+    ]
+   }
+  },
+  "generator_hash": "ce0da55d75b78559",
+  "intended_use": "Flag and time-stamp technology or market-data regime changes for the engineering and market agents.",
+  "kind": "robust_z_cusum_pelt",
+  "label": "fitted to synthetic generator ce0da55d75b78559",
+  "limitations": "Fitted to the synthetic generator's metric law only; a real feed needs its own reference and threshold.",
+  "metrics": {
+   "calibration_arl0_sessions": null,
+   "calibration_false_alarm_ci95": [
+    0.0,
+    0.01222097
+   ],
+   "calibration_false_alarm_rate": 0.0,
+   "calibration_mean_delay_min": 1.775,
+   "calibration_sessions_clean": 300,
+   "expected_cost_per_session_min": 0.8875,
+   "h": 11.0
+  },
+  "model_hash": "b2a6c3822c3e4459",
+  "name": "change_detector",
+  "sklearn_version": "1.9.1",
+  "training_data_hash": "fc4726bdf6c6ed4992052a12e44ed1b192c0f60a582b52b86cb7db88ca32a551"
+ },
+ "params": {
+  "features": [
+   [
+    "ack_latency_p50",
+    "order-gateway",
+    "ack_latency_p50_us",
+    true,
+    0.03
+   ],
+   [
+    "ack_latency_p99",
+    "order-gateway",
+    "ack_latency_p99_us",
+    true,
+    0.03
+   ],
+   [
+    "reject_count",
+    "order-gateway",
+    "reject_count",
+    false,
+    1.0
+   ],
+   [
+    "route_latency",
+    "smart-order-router",
+    "route_latency_us",
+    true,
+    0.03
+   ],
+   [
+    "router_cpu",
+    "smart-order-router",
+    "cpu_percent",
+    false,
+    1.0
+   ],
+   [
+    "feed_gaps",
+    "market-data-adapter",
+    "feed_gap_count",
+    false,
+    1.0
+   ],
+   [
+    "quote_rate",
+    "market-data-adapter",
+    "quote_rate_per_s",
+    false,
+    1.0
+   ]
+  ],
+  "h": 11.0,
+  "k": 1.0,
+  "reference_minutes": 60
+ }
+}

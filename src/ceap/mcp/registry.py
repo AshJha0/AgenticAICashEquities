@@ -28,6 +28,9 @@ def build_default_servers(
     store = store or DatasetStore()
     knowledge = knowledge or build_knowledge_base()
     history = history or HistoricalStore()
+    from ceap.analytics.trial_ledger import TrialLedger
+
+    trials = TrialLedger()  # one ledger: combination trials and backtest trials deflate together (2B.2)
     servers = [
         market_data(store),
         execution(store, history=history),
@@ -35,8 +38,8 @@ def build_default_servers(
         engineering(store),
         knowledge_server(knowledge),
         research_data(history),
-        alpha(history),
-        backtest(history),
+        alpha(history, ledger=trials),
+        backtest(history, ledger=trials),
     ]
     return {s.name: s for s in servers}
 

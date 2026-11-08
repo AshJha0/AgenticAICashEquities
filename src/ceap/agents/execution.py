@@ -14,10 +14,10 @@ class ExecutionAgent(BaseAgent):
 
     async def execute(self, context: AgentContext) -> AgentResult:
         w = self.window(context)
-        win, win_ev = await self.ensure(context, "execution.get_execution_metrics", w.window_args)
-        base, base_ev = await self.ensure(context, "execution.get_execution_metrics", w.baseline_args)
-        venues, venue_ev = await self.ensure(context, "execution.get_venue_statistics", w.window_args)
-        parents, parent_ev = await self.ensure(context, "execution.get_parent_orders", w.window_args)
+        win, win_ev = await self.fetched(context, "execution.get_execution_metrics", w.window_args)
+        base, base_ev = await self.fetched(context, "execution.get_execution_metrics", w.baseline_args)
+        venues, venue_ev = await self.fetched(context, "execution.get_venue_statistics", w.window_args)
+        parents, parent_ev = await self.fetched(context, "execution.get_parent_orders", w.window_args)
 
         is_w, is_b = win.get("implementation_shortfall_bps"), base.get("implementation_shortfall_bps")
         vs_w, vs_b = win.get("slippage_vs_vwap_bps"), base.get("slippage_vs_vwap_bps")

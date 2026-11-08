@@ -269,8 +269,17 @@ shipping 14,400 quotes and 22,000 prints into model context.
 ## 9. The agents
 
 Each specialist agent answers one question, reads the plan's tool outputs from
-`InvestigationMemory`, fetches anything missing through `ensure()` (which goes through
-policy), and returns findings that cite evidence.
+`InvestigationMemory` through `fetched()`, and returns findings that cite evidence, down to the
+attribute (`evidence_refs`). An agent never fetches for itself: the plan chooses the agents, and
+the harness adds the data each chosen agent declares in `ceap/agents/requirements.py`, so every
+fetch passes plan validation and policy. If a fetch fails the agent fails loudly and the harness
+re-plans once.
+
+The model decides scope, within enumerated choices (which agents and optional tools, which of
+three baselines, how to rank the pre-registered hypotheses); deterministic code decides truth (the
+hypothesis verdicts, and whether a critic dispute holds). Ask yourself why the critic model is not
+allowed to lower a confidence even though lowering looks "safe": an injected critic could erase a
+real finding, so a dispute must name a check the platform can run.
 
 | Agent | Question | Produces |
 |---|---|---|
@@ -295,7 +304,7 @@ cannot talk it out of its job:
 1. Every cited evidence id must resolve; otherwise confidence → 0.1 and the finding is marked
    unsupported.
 2. A finding that asserts an anomaly (`anomaly=WIDE_SPREADS`, say) must be corroborated by
-   the attribution score; otherwise confidence drops by 0.3 and the attribution record is
+   the attribution score; otherwise confidence drops by 0.3 and the attribution record is <!-- source: src/ceap/agents/critic.py -->
    attached as *contradicting* evidence.
 3. Cross-agent contradictions are flagged: quant attributing to technology while engineering
    reports normal latency and no errors caps the quant finding at 0.4.
@@ -347,17 +356,32 @@ reads everything and changes nothing.
 
 ## 12. RAG and enterprise knowledge
 
-Eight Markdown documents under `data/reference/knowledge/` — VWAP runbook, TCA methodology,
-venue configuration, trading limits, execution policy, market-data architecture, incident
-runbook, algorithm documentation — are chunked by heading and paragraph (34 chunks) and
-embedded with a dependency-free hashed TF-IDF embedder (feature hashing, sublinear TF, corpus
-IDF, L2-normalised). Retrieval is cosine similarity.
+Ten documents make up the corpus: nine Markdown files under `data/reference/knowledge/` (VWAP
+runbook, TCA methodology, venue configuration, trading limits, execution policy, market-data
+architecture, incident runbook, algorithm documentation, attribution thresholds) plus
+`docs/quant/quant.md` through `manifest.json`. Since 0.6.0 they are chunked by section (65 chunks
+with the default `section` strategy) and searched with Okapi BM25 from the standard library; each
+document carries a version and classification, and the corpus has one hash. The hashed TF-IDF
+embedder of 0.5.x and earlier is gone.
 
 The knowledge base is an MCP server, so a retrieved passage is a DOCUMENT evidence record
 like any other tool result. The canonical plan searches for the VWAP configuration and
 escalation policy; the execution agent compares observed participation with the configured
 ceiling and cites both the configuration tool output and the runbook; the report gets a
 POLICY CONTEXT section.
+
+
+**Retrieval you can audit (R3C).** Retrieval here is keyword search (BM25), measured on a held-out
+query set, not "semantic search". Three ideas carry over to any RAG system:
+
+- *Let code write the query.* The model plans; the harness builds the retrieval query from the
+  parsed question (domain words only), the symbol, the window and the cause candidates. A model
+  cannot steer retrieval, and an injected sentence cannot become a tool argument.
+- *Filter by who is asking, twice.* The planner pins the classifications a principal may read, and
+  the policy engine denies a request that asks for more. Defaults are least privilege.
+- *Check every quote.* The writer cites document blocks; code compares each quoted span with the
+  exact chunk that was sent and only then records it as evidence, with the document version and the
+  corpus hash. "No policy found" is a valid answer; a confident citation of nothing is not.
 
 ## 13. The synthetic market and the 50 scenarios
 
@@ -410,6 +434,15 @@ Things to be honest about:
 * Hourly IS carries ≈30 bps of drift noise at 10 % vol; that is why `deteriorated` also
   considers VWAP slippage and why the executive summary distinguishes "headline cost improved
   because the price moved" from "execution quality was fine".
+
+**Since 0.6.0: one report, and the rest labelled.** `ceap evaluation-report` prints capability
+(the numbers above plus a frozen 45-item golden set), safety (governance invariants under injected
+faults), robustness (which degradation rung each fault hit) and cost (a labelled local estimate).
+Everything that needs a real model (planner quality, injection resistance, narrative faithfulness,
+refusal rate, latency, cache hit rate, run-to-run variance) prints `UNKNOWN / NOT RUN LIVE`. The
+docs check (`scripts/check_docs.py`) fails CI when a number in the docs does not trace to the
+committed report, and drift monitors fail when cassettes, pins, the SDK or the golden set move.
+See `docs/evaluation/evaluation.md`.
 
 ## 15. Observability and operations
 
@@ -539,9 +572,9 @@ out-of-sample (`REJECT`/`OOS_DECAY`, called `OVERFIT` before 0.4.0), premia eate
 (`REJECT`/`COST_DRAG`), a premium concentrated in four illiquid names (`REJECT`/`CONCENTRATION` +
 `LIMIT_BREACH`), and near-threshold cases that sit right at a gate.
 
-**Evaluated honestly, the same way as §14.** On the 0.3.x 21-scenario set (before the 0.4.0 re-baseline), with the mock model: 21/21 verdicts, 21/21 expected
+**Evaluated honestly, the same way as §14.** On the 0.3.x 21-scenario set (before the 0.4.0 re-baseline), with the mock model: 21/21 verdicts, 21/21 expected <!-- source: CHANGELOG.md -->
 flags covered. Against a real model for the first time — `claude-haiku-4-5` as both planner and
-reporter — verdict accuracy dropped to 19/21: five scenarios came back `INCOMPLETE_ANALYSIS`
+reporter — verdict accuracy dropped to 19/21: five scenarios came back `INCOMPLETE_ANALYSIS` <!-- source: CHANGELOG.md -->
 because the model's plan skipped steps the canonical plan always includes. That's the platform
 working as designed (no crash, a conservative verdict, nothing unresolved) exposing a genuinely
 weak planner, not a platform bug. Giving the planner a stronger model
@@ -552,6 +585,11 @@ call had been falling back to the mock without raising), and a narrative audit s
 real model's legitimate arithmetic. See `docs/evaluation/evaluation.md` and `CHANGELOG.md` 0.3.1
 for the numbers; the lesson generalises past this project: *an offline mock proves the control
 plane works, not that the model integration does — check both.*
+
+On the current 30-scenario set (0.4.0 re-baseline), with the mock model, `ceap evaluation-report`
+gives research verdict accuracy <!-- metric: capability.research_verdict_accuracy -->0.9667 (29/30; evidence class: mock,
+source `docs/evaluation/latest.json`). That number measures the deterministic pipeline; real-model
+verdict accuracy on this set is UNKNOWN / NOT RUN LIVE (D15).
 
 ## 19. Further reading
 

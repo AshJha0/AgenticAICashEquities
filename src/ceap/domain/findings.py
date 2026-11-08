@@ -24,6 +24,11 @@ class HypothesisRow:
     p_value: float | None = None
     n_obs: int = 0
     verdict: str = "UNKNOWN"
+    # R3B 3B.2 (additive): the pre-registered deterministic test, its evidence and the model's rank
+    test: str = ""
+    evidence_ids: tuple[str, ...] = ()
+    rank: int | None = None  # position in the planner's ranking; None = not proposed by the model
+    reason: str = ""
 
 
 @dataclass(frozen=True)

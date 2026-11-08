@@ -4,15 +4,19 @@ from __future__ import annotations
 
 from typing import Any
 
+from ceap.analytics.ml_signals import DEFAULT_HORIZON
+from ceap.analytics.ml_signals import combine_signals as _combine_signals
 from ceap.analytics.signal_statistics import evaluate_signal as _evaluate_signal
 from ceap.analytics.signals import SIGNALS
+from ceap.analytics.trial_ledger import TrialLedger
 from ceap.data.historical import HistoricalStore
 from ceap.domain.common import to_jsonable
 from ceap.mcp.common import DEFAULT_RESEARCH_DATASET, select_history
 from ceap.mcp.server import MCPServerDefinition
 
 
-def build_server(history: HistoricalStore) -> MCPServerDefinition:
+def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) -> MCPServerDefinition:
+    trials = ledger if ledger is not None else TrialLedger()
     server = MCPServerDefinition(
         "alpha",
         "Deterministic alpha-signal analytics: the signal library and cross-sectional rank-IC statistics "
@@ -39,5 +43,17 @@ def build_server(history: HistoricalStore) -> MCPServerDefinition:
         ds = select_history(history, dataset)
         stats = _evaluate_signal(ds, signal, start, end, in_sample_end, horizon_days, rebalance_days)
         return to_jsonable(stats)
+
+    @server.tool(
+        "Combine the three library signals with ridge regression: penalty chosen by purged and embargoed "
+        "walk-forward cross-validation on the in-sample period (every penalty tried is a trial-ledger entry), "
+        "then the out-of-sample deflated Sharpe ratio of the combination next to each single signal. Gross of "
+        "costs; fitted to synthetic data only."
+    )
+    async def combine_signals(
+        dataset: str = DEFAULT_RESEARCH_DATASET, horizon_days: int = DEFAULT_HORIZON
+    ) -> dict[str, Any]:
+        ds = select_history(history, dataset)
+        return to_jsonable(_combine_signals(ds, ledger=trials, horizon=int(horizon_days)).to_dict())
 
     return server

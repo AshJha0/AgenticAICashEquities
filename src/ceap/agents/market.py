@@ -5,6 +5,7 @@ from __future__ import annotations
 from ceap.agents.base import BaseAgent, confidence_from_excess, finite, ratio
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.findings import Finding
+from ceap.ml.anomaly import MARKET_DATA_FEATURES, alarm_confidence
 
 
 class MarketAgent(BaseAgent):
@@ -12,11 +13,17 @@ class MarketAgent(BaseAgent):
 
     async def execute(self, context: AgentContext) -> AgentResult:
         w = self.window(context)
-        win, win_ev = await self.ensure(context, "market_data.get_market_statistics", w.window_args)
-        base, base_ev = await self.ensure(context, "market_data.get_market_statistics", w.baseline_args)
-        book_w, book_w_ev = await self.ensure(context, "market_data.get_order_book_statistics", w.window_args)
-        book_b, book_b_ev = await self.ensure(
+        win, win_ev = await self.fetched(context, "market_data.get_market_statistics", w.window_args)
+        base, base_ev = await self.fetched(context, "market_data.get_market_statistics", w.baseline_args)
+        book_w, book_w_ev = await self.fetched(context, "market_data.get_order_book_statistics", w.window_args)
+        book_b, book_b_ev = await self.fetched(
             context, "market_data.get_order_book_statistics", w.baseline_args
+        )
+
+        from ceap.agents.engineering import change_point_scan, window_alarms
+
+        cp_report, cp_ev, cp_error = await change_point_scan(
+            self, context, w, ("market-data-adapter",), MARKET_DATA_FEATURES
         )
 
         vol_ratio = ratio(win.get("realised_volatility_bps"), base.get("realised_volatility_bps"))
@@ -130,11 +137,31 @@ class MarketAgent(BaseAgent):
                 stale_quote_fraction=stale,
             )
 
+        cp_alarms = window_alarms(cp_report, w)
+        if cp_report is not None and cp_alarms:
+            first = cp_alarms[0]
+            cp_calc = self.calc_evidence(
+                context,
+                "Change-point detection (robust z, CUSUM, PELT) on per-minute market-data feed metrics",
+                {"change_points": cp_report.to_dict(), "model_hash": cp_report.model_hash, "label": cp_report.label},
+                cp_ev,
+            )
+            add(
+                f"Change-point detector on the market-data feed: {first.describe()}.",
+                alarm_confidence(cp_report),
+                (*cp_ev, cp_calc.id),
+                change_point=first.feature,
+                change_onset=first.onset_at.isoformat(),
+                model_hash=cp_report.model_hash,
+            )
+
         return AgentResult(
             agent_id=self.id,
             success=True,
             findings=tuple(findings),
             output={
+                "change_points": None if cp_report is None else cp_report.to_dict(),
+                "change_point_error": cp_error,
                 "window": win,
                 "baseline": base,
                 "order_book": {"window": book_w, "baseline": book_b},

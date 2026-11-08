@@ -31,6 +31,7 @@ class InvestigationReport:
     kind: str = "investigation"
     proposal: dict[str, Any] = field(default_factory=dict)
     hypotheses: HypothesisTable | None = None
+    prompts: dict[str, dict[str, str]] = field(default_factory=dict)  # prompt id -> {version, sha256} (3A.7)
     schema_version: int = SCHEMA_VERSION
 
 
@@ -48,4 +49,14 @@ class LLMCallRecord:
     usd: float = 0.0
     latency_ms: float = 0.0
     request_id: str | None = None
+    # 3A.6 / 3A.7 (additive): attribution, provenance and the redacted request body
+    task_id: str | None = None
+    purpose: str = "general"
+    prompt_id: str | None = None
+    prompt_version: str | None = None
+    stop_reason: str | None = None
+    usd_is_estimate: bool = (
+        True  # tokens are the provider's when it reports them; prices are pinned list prices
+    )
+    redacted_request: str | None = None
     schema_version: int = SCHEMA_VERSION

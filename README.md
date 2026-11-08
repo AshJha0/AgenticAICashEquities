@@ -46,6 +46,24 @@ The architectural boundary is enforced in code, not just described:
 | Authority | `ceap.policy` | – |
 | Auditability | `Evidence` / `Finding` | a finding without resolvable evidence survives validation |
 
+**What 0.6.0 adds** (details in `CHANGELOG.md`). Evidence class for everything below: offline only;
+no live model call was made (decision D15).
+
+- *LLM layer (R3A):* strict output schemas, one pinned model per purpose, versioned prompts,
+  scrubbed cassettes and wire contract tests over the real SDK with an in-memory transport.
+- *Agents (R3B):* the planner picks scope only from enumerated choices and ranks pre-registered
+  hypotheses; the critic can dispute a finding only through a named deterministic check; every
+  model input sits in a data block; bounded case memory (OFF in evaluation).
+- *Retrieval (R3C):* BM25 over a versioned, classified corpus; the query is built by code; the
+  reporter writes claims, then prose with citations whose quoted spans are checked.
+- *ML (R2B):* change points, ridge signal combination, leakage tests and held-out calibration, all
+  deterministic and labelled as fitted to the synthetic generator.
+- *Evaluation (R3E):* a frozen golden set (owner sign-off PENDING), `ceap evaluation-report`,
+  `docs/evaluation/history.csv` and `latest.json`, drift monitors, and `scripts/check_docs.py`.
+  The numbers come from the mock LLM; they measure the deterministic pipeline, not model quality.
+- *Speed:* one investigation takes about 3.4 s instead of about 10 s (measured locally on one
+  machine; `_slice_by_time` now indexes each dataset once).
+
 ---
 
 ## Quick start
@@ -67,11 +85,14 @@ ceap research "Does 12-1 momentum work on R01? Evaluate it out-of-sample with co
 ceap research "Does momentum survive the regime break on R04?"
 ceap research "Promote momentum on R01 and stage the orders" --stage-orders --role admin   # two approval gates, paper orders
 
-# 4. run the tests (unit, integration, MCP, agent, adversarial, 50 + 21 scenario evaluations)
+# 4. run the tests (unit, integration, MCP, agent, adversarial, 50 + 30 scenario evaluations)
 pytest -n auto -m "not nightly"     # the PR tier, in parallel; plain `pytest` runs every tier
 
-# 5. evaluate the platform against the ground truth: 50 execution scenarios, 21 research scenarios
+# 5. evaluate the platform against the ground truth: 50 execution scenarios, 30 research scenarios
 ceap evaluate --suite all
+
+# 6. the whole evaluation table (capability, safety, robustness, cost; live-only metrics print UNKNOWN)
+ceap evaluation-report --quick
 ```
 
 The LLM layer **fails closed**. `CEAP_LLM_PROVIDER` is `mock` (the dev default: a deterministic
@@ -244,25 +265,32 @@ src/ceap/
 │                  market_statistics · execution_metrics (TCA) · attribution ·
 │                  signals · signal_statistics · backtest · portfolio_risk · research_assessment
 ├── data/          synthetic market model (6 symbols, 5 venues), 10 scenario templates x 5 symbols = 50 scenarios;
-│                  historical (30-name, 4-year daily universe) · research_scenarios (7 templates x 3 seeds = 21)
+│                  historical (30-name, 20-year daily universe) · research_scenarios (10 templates x 3 seeds = 30)
 ├── mcp/           server definition (in-process + FastMCP export), client (in-process + stdio), adapter, registry,
 │                  market_data/ execution/ risk/ engineering/ knowledge/ research_data/ alpha/ backtest/
 │                  (each runnable: python -m ceap.mcp.<name>); execution/staging.py holds the paper order book
-├── llm/           LLMClient · MockLLMClient (deterministic) · AnthropicLLMClient · router · prompts
+├── llm/           LLMClient · MockLLMClient (deterministic) · AnthropicLLMClient · strict schemas · model pins ·
+│                  versioned prompts (llm/prompts/*.md) · cassette recording
 ├── harness/       engine (AgentHarness) · state_machine · executor · retry · cancellation · memory
 ├── agents/        planner · market · execution · quant · risk · engineering · critic · reporter ·
 │                  research · alpha · backtest · portfolio_risk
 ├── policy/        rule engine · RBAC permissions · approval gateways (auto / queued / deny)
-├── rag/           hashing TF-IDF embedder · chunking · KnowledgeBase
+├── rag/           BM25 (stdlib) · measured chunking · versioned corpus hash · query builder · held-out eval
+├── ml/            pre-trade cost model · anomaly · model registry (deterministic, labelled synthetic)
+├── persistence/   SQLite (WAL, single writer, forward-only migrations)
 ├── util/          canonical bytes for hashing (LF, sorted-key JSON, UTC datetimes) · redaction, cassette scrubbing
 ├── observability/ tracing (in-memory + OpenTelemetry) · metrics (Prometheus text) · JSON logging
 ├── api/           FastAPI app · routes · auth · schemas · request parsing
 ├── platform.py    composition root (InvestigationRequest · ResearchRequest)
-├── evaluation.py  50-scenario execution evaluation · 21-scenario research evaluation
-└── cli.py         ceap investigate | research | scenarios | research-scenarios | evaluate | generate-data | serve
+├── evaluation.py  50-scenario execution evaluation · 30-scenario research evaluation
+├── evaluation_report.py  capability · safety · robustness · cost · live-only rows (UNKNOWN / NOT RUN LIVE)
+├── golden.py      frozen golden set (version + items hash)
+├── drift.py       drift monitors (cassettes, RAG floors, golden version, model and SDK pins)
+└── cli.py         ceap investigate | research | scenarios | research-scenarios | profitability | evaluate |
+                   evaluation-report | tca-report | generate-data | serve
 tests/             unit · integration · mcp · agent · evaluation · adversarial
 data/reference/knowledge/   runbooks, TCA methodology, venue config, limits, policies (RAG corpus)
-docs/              architecture · threat-model · api · evaluation
+docs/              architecture · threat-model · api · evaluation (history.csv, latest.json) · ml · quant · ai-agents
 ```
 
 ---
@@ -286,7 +314,7 @@ Each template runs across AAPL, MSFT, NVDA, AMZN and META with distinct seeds (S
 `ceap evaluate` reports primary-cause accuracy, ground-truth coverage, false-positive rate,
 completion rate, unresolved-evidence count and narrative number-audit warnings. The evaluation
 test asserts ≥90 % primary accuracy and coverage, 100 % completion and zero unresolved evidence;
-the current build scores 49/50 on primary cause (0.98 coverage, 0.06 false-positive rate).
+the current build scores <!-- metric: capability.primary_accuracy -->0.98 on primary cause (<!-- metric: capability.coverage -->0.98 coverage, <!-- metric: capability.false_positive_rate -->0.06 false-positive rate; `ceap evaluation-report`).
 
 ### Research scenarios (Stage 2)
 
@@ -310,7 +338,7 @@ next session (`execution_lag_days=1`); 0.3.x filled at the same close, which was
 | momentum_crash (RS28–30) | momentum_12_1 | PROMOTE |
 
 The PROMOTE hurdle is measured, not chosen: a null sweep over 500 pure-noise datasets x 24
-configurations picks the lowest in-sample IC t whose false-PROMOTE rate stays under 5 % with the
+configurations picks the lowest in-sample IC t whose false-PROMOTE rate stays under 5 % with the <!-- source: data/reference/research_thresholds.json -->
 other gates in place (deflated Sharpe over ledger-counted trials, out-of-sample IC t >= 1, net
 Sharpe >= 0.5, costs below half of gross). Result: t >= 0.40, false-PROMOTE 15/500 = 3.0 %
 (95 % band 1.7 % to 4.9 %), stored with the sweep hash in `data/reference/research_thresholds.json`.
@@ -319,7 +347,7 @@ with attribution); the hurdle was 0.65 with rf = 0 and fell to 0.40 once rf lowe
 Sharpe ratios.
 
 `ceap evaluate --suite research` reports verdict accuracy, flag coverage, false-flag rate,
-completion and number-audit warnings. With the mock model the current build scores 29/30 verdicts
+completion and number-audit warnings. With the mock model the current build scores 29/30 verdicts (<!-- metric: capability.research_verdict_accuracy -->0.9667)
 (23/24 clear, 6/6 near-threshold) and 0.90 flag coverage; the miss is a 5-year out-of-sample draw
 where a real premium did not show. All numbers are synthetic; nothing here says anything about
 real markets.
@@ -388,12 +416,13 @@ subprocesses with the official `mcp` SDK; the test suite includes a real stdio r
 Site: **https://ashjha0.github.io/AgenticAICashEquities/** (landing page with measured numbers; published from `docs/`, see [docs/GITHUB_PAGES.md](docs/GITHUB_PAGES.md)).
 
 * [LEARN.md](LEARN.md) – guided tour: concepts, how the repo implements them, real numbers, knowledge check
-* [COOKBOOK.md](COOKBOOK.md) – 33 copy-pasteable recipes
+* [COOKBOOK.md](COOKBOOK.md) – 42 copy-pasteable recipes
 * [docs/SPECIFICATION.md](docs/SPECIFICATION.md) – the governing specification with realised / partial / roadmap status per requirement
 * [docs/architecture/overview.md](docs/architecture/overview.md) – components, data flow, design decisions
 * [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md) – how LLM/AI/ML/agents actually work in this project (and what doesn't)
 * [docs/quant/quant.md](docs/quant/quant.md) – the deterministic quant layer: TCA, attribution, Stage 2 signal research (and what doesn't)
-* [docs/DIAGRAMS.md](docs/DIAGRAMS.md) – Mermaid diagrams: pipeline, state machine, tool-call path, evidence model, MCP topology, sequence, attribution
+* [docs/DIAGRAMS.md](docs/DIAGRAMS.md) – Mermaid diagrams: pipeline, state machine, tool-call path, evidence model, MCP topology, sequence, attribution, research workflow, CI, LLM/RAG/ML/evaluation
+* [docs/ml/README.md](docs/ml/README.md) – the deterministic ML models (synthetic-labelled), model cards, calibration
 * [docs/threat-model/threat-model.md](docs/threat-model/threat-model.md) – assets, threats, controls, adversarial tests
 * [docs/evaluation/evaluation.md](docs/evaluation/evaluation.md) – scenarios, thresholds, metrics, results
 * [docs/api/api.md](docs/api/api.md) – endpoints, auth, schemas

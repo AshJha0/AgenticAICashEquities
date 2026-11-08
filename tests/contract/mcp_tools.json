@@ -1,4 +1,27 @@
 {
+  "alpha.combine_signals": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Combine the three library signals with ridge regression: penalty chosen by purged and embargoed walk-forward cross-validation on the in-sample period (every penalty tried is a trial-ledger entry), then the out-of-sample deflated Sharpe ratio of the combination next to each single signal. Gross of costs; fitted to synthetic data only.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        },
+        "horizon_days": {
+          "default": 21,
+          "type": "integer"
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "name": "combine_signals"
+  },
   "alpha.evaluate_signal": {
     "annotations": {
       "readOnlyHint": true,
@@ -799,9 +822,13 @@
       "requiredCapabilities": [],
       "riskLevel": "LOW"
     },
-    "description": "Return a whole document by id.",
+    "description": "Return a whole document by id (same classification rule as search_documents).",
     "inputSchema": {
       "properties": {
+        "classifications": {
+          "default": "",
+          "type": "string"
+        },
         "document_id": {
           "type": "string"
         }
@@ -833,9 +860,13 @@
       "requiredCapabilities": [],
       "riskLevel": "LOW"
     },
-    "description": "Semantic search over enterprise documents; returns the best matching sections with scores.",
+    "description": "Keyword (BM25) search over enterprise documents; returns matching sections with document, version, effective date and score. An empty result means no document supports the query. classifications is comma-separated and defaults to public,internal; the policy engine decides who may ask for more.",
     "inputSchema": {
       "properties": {
+        "classifications": {
+          "default": "",
+          "type": "string"
+        },
         "k": {
           "default": 4,
           "type": "integer"

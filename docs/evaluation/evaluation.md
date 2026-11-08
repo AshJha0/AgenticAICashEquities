@@ -165,6 +165,89 @@ exercised were fixed (a stale `temperature` kwarg the installed SDK rejects, and
 audit being stricter than a real model's legitimate bps/per-mille arithmetic) — see CHANGELOG
 0.3.1. Cost: the full 21-scenario run is well under $2 on Haiku pricing.
 
+## Evaluation report (0.6.0, 3E.2)
+
+One command produces the whole table, from the mock model only:
+
+```bash
+ceap evaluation-report --json docs/evaluation/latest.json
+```
+
+It has five sections. **Capability**: cause accuracy, coverage and false-positive rate on the 50
+synthetic scenarios, research verdict accuracy on the 30 research scenarios, the golden set, and
+held-out calibration (2B.4). **Safety**: four in-process faults (refusal, truncation, an exception,
+a hostile plan that points at another symbol and an unknown tool), each checked for the governance
+tail, catalogue-only tools, pinned arguments and a `DEGRADED` status. **Robustness**: the
+degradation rungs each fault produced. **Cost**: a local token estimate at the pinned list prices,
+labelled as an estimate (never `count_tokens`, never a live call). **Live only**: every metric that
+needs a real model prints `UNKNOWN / NOT RUN LIVE` (D15).
+
+The table below is generated from `docs/evaluation/latest.json`; `scripts/check_docs.py` fails CI
+if it drifts from that file, if an annotated number anywhere in the docs differs from it, or if a
+landing-page result has no measured source.
+
+<!-- evaluation-report:begin -->
+LLM: mock (deterministic); no live model call (D15). Complete run: True.
+
+| Section | Metric | Value |
+|---|---|---|
+| capability | scenarios | 50 |
+| capability | primary_accuracy | 0.98 |
+| capability | coverage | 0.98 |
+| capability | false_positive_rate | 0.06 |
+| capability | completed | 1.00 |
+| capability | research_scenarios | 30 |
+| capability | research_verdict_accuracy | 0.9667 |
+| capability | golden set v1.0.0 (sign-off PENDING) primary_cause_accuracy | 0.9667 |
+| capability | golden must_mention_rate | 1.00 |
+| capability | golden no_forbidden_claim_rate | 0.9667 |
+| capability | golden verdict_accuracy | 1.00 |
+| capability | golden must_flag_rate | 0.8667 |
+| safety | invariants_rate (4 faults x 4 invariants) | 1.00 |
+| robustness | refusal: degraded | True (LLM_CANONICAL_PLAN, LLM_PLAN_INVALID_AFTER_REPAIR, LLM_REFUSAL_FALLBACK, LLM_REPAIR_RETRY, LLM_STOP_REFUSAL) |
+| robustness | truncation: degraded | True (LLM_CANONICAL_PLAN, LLM_PLAN_INVALID_AFTER_REPAIR, LLM_REPAIR_RETRY, LLM_STOP_MAX_TOKENS) |
+| robustness | exception: degraded | True (LLM_CALL_FAILED) |
+| robustness | hostile_plan: degraded | True (LLM_PLAN_INVALID_AFTER_REPAIR, LLM_REPAIR_RETRY) |
+| cost | usd_per_investigation_estimate (local estimate) | 0.1987 |
+| cost | calls_per_investigation | 4 |
+| live only | planner quality against a real model | UNKNOWN / NOT RUN LIVE |
+| live only | real-model prompt-injection resistance | UNKNOWN / NOT RUN LIVE |
+| live only | narrative faithfulness of a real model | UNKNOWN / NOT RUN LIVE |
+| live only | refusal rate | UNKNOWN / NOT RUN LIVE |
+| live only | model latency | UNKNOWN / NOT RUN LIVE |
+| live only | prompt-cache hit rate | UNKNOWN / NOT RUN LIVE |
+| live only | run-to-run variance of a real model | UNKNOWN / NOT RUN LIVE |
+<!-- evaluation-report:end -->
+
+## Golden set (3E.1)
+
+`tests/golden/golden_set.json`: 30 investigation questions (ten templates x three symbols) and 15
+research questions, each with its expected findings written from the scenario specification, not
+from platform output. Investigation items list the acceptable primary causes, the evidence that
+must be cited (by tool) and the causes that must not be claimed as material; research items list
+the expected verdict, the flags that must be raised and those that must not. The file is frozen:
+a version plus the sha256 of its items. Any edit fails `tests/golden/test_golden_set.py` until the
+version is bumped and the hash updated, and CI's `golden-change` job requires the `golden-change`
+label on the PR. Owner sign-off of the ten `signoff_sample` items is recorded in the file's
+`signoff` field and in that PR; for golden-set version 1.0.0 it is **PENDING**; the owner signs off after the 0.6.0 tag (decision of 2026-11-08). Regenerate deliberately with
+`python scripts/build_golden_set.py`.
+
+## Regression history (3E.3)
+
+`docs/evaluation/history.csv` has one row per release from 0.4.0. Rows for 0.4.0 and 0.5.0 are the
+numbers recorded in CHANGELOG at the time (the report did not exist yet); from 0.6.0 each row is
+appended by `ceap evaluation-report --append-history <version>`. A release note must explain any
+metric that moves beyond its run-to-run band. With the mock model every run is deterministic, so
+the band is zero: any change is a code or data change and must be explained.
+
+## Drift monitors (3E.4)
+
+`tests/contract/test_drift_monitors.py` (also run as its own CI step) checks, each with a failing
+fixture: cassette staleness against the prompt registry, the RAG held-out recall floor (0.80) and
+MRR floor (0.70), the golden-set version hash, every cassette model still pinned in
+`model_pins.toml`, and the SDK version (pin, installed package and cassettes must agree, so an SDK
+bump fails until the cassettes are re-authored).
+
 ## Adversarial suite
 
 `tests/adversarial` covers prompt injection, rogue plans (unknown/mutating tools, malformed

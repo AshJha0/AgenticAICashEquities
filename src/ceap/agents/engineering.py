@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from ceap.agents.base import BaseAgent, confidence_from_excess, finite
+from ceap.agents.base import BaseAgent, Window, confidence_from_excess, finite
+from ceap.analytics.calibration import CHANGE_POINT_KEY, calibration_info
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.findings import Finding
+from ceap.ml.anomaly import (
+    TECHNOLOGY_FEATURES,
+    Alarm,
+    DetectionReport,
+    alarm_confidence,
+    attribute_deployment,
+    load_detector,
+    minute_features,
+    series_features,
+)
+
+#: change onsets this long before the window start still belong to the window's story
+CHANGE_POINT_LEAD = timedelta(minutes=15)
 
 
 class EngineeringAgent(BaseAgent):
@@ -23,23 +37,23 @@ class EngineeringAgent(BaseAgent):
             "baseline_end": w.baseline_end,
             "dataset": w.dataset,
         }
-        latency, lat_ev = await self.ensure(context, "engineering.get_latency_metrics", lat_args)
-        deployments, dep_ev = await self.ensure(
+        latency, lat_ev = await self.fetched(context, "engineering.get_latency_metrics", lat_args)
+        deployments, dep_ev = await self.fetched(
             context,
             "engineering.get_deployments",
             {"start": w.baseline_start, "end": w.end, "dataset": w.dataset},
         )
-        errors, err_ev = await self.ensure(
+        errors, err_ev = await self.fetched(
             context,
             "engineering.search_logs",
             {"start": w.start, "end": w.end, "level": "ERROR", "dataset": w.dataset},
         )
-        warns, warn_ev = await self.ensure(
+        warns, warn_ev = await self.fetched(
             context,
             "engineering.search_logs",
             {"start": w.start, "end": w.end, "level": "WARN", "dataset": w.dataset},
         )
-        md_metrics, md_ev = await self.ensure(
+        md_metrics, md_ev = await self.fetched(
             context,
             "engineering.get_service_metrics",
             {
@@ -49,6 +63,10 @@ class EngineeringAgent(BaseAgent):
                 "metric": "feed_gap_count",
                 "dataset": w.dataset,
             },
+        )
+
+        cp_report, cp_ev, cp_error = await change_point_scan(
+            self, context, w, ("order-gateway", "smart-order-router"), TECHNOLOGY_FEATURES
         )
 
         lr = latency.get("latency_ratio")
@@ -146,11 +164,44 @@ class EngineeringAgent(BaseAgent):
                 feed_gap_count=feed_gaps,
             )
 
+        cp_alarms = window_alarms(cp_report, w)
+        if cp_report is not None and cp_alarms:
+            first = cp_alarms[0]
+            dep = attribute_deployment(first, deps)
+            raw = alarm_confidence(cp_report)
+            cp_calc = self.calc_evidence(
+                context,
+                "Change-point detection (robust z, CUSUM, PELT) on per-minute technology metrics",
+                {
+                    "change_points": cp_report.to_dict(),
+                    "model_hash": cp_report.model_hash,
+                    "label": cp_report.label,
+                    "raw_confidence": raw,
+                    "calibration": calibration_info(CHANGE_POINT_KEY),
+                },
+                cp_ev,
+            )
+            lag = ""
+            if dep:
+                minutes = int((first.onset_at - _parse_ts(dep["timestamp"])).total_seconds() // 60)
+                lag = f", {minutes} minutes after deployment {dep['change_id']}"
+            others = f"; {len(cp_alarms) - 1} other feature(s) also changed." if len(cp_alarms) > 1 else "."
+            add(
+                f"Change-point detector: {first.describe()}{lag}{others}",
+                self.calibrated(CHANGE_POINT_KEY, raw),
+                (*cp_ev, cp_calc.id),
+                change_point=first.feature,
+                change_onset=first.onset_at.isoformat(),
+                model_hash=cp_report.model_hash,
+            )
+
         return AgentResult(
             agent_id=self.id,
             success=True,
             findings=tuple(findings),
             output={
+                "change_points": None if cp_report is None else cp_report.to_dict(),
+                "change_point_error": cp_error,
                 "latency_ratio": lr,
                 "slo_breached": slo,
                 "window_p99_us": window_p99,
@@ -165,6 +216,44 @@ class EngineeringAgent(BaseAgent):
             if finite(lr)
             else "no latency data",
         )
+
+
+async def change_point_scan(
+    agent: BaseAgent,
+    ctx: AgentContext,
+    w: Window,
+    services: tuple[str, ...],
+    features: tuple[str, ...],
+) -> tuple[DetectionReport | None, tuple[str, ...], str | None]:
+    """Fetch per-minute series (a reference period before the baseline, through the window end) and detect."""
+    det = load_detector()
+    start = (_parse_ts(w.baseline_start) - timedelta(minutes=det.reference_minutes)).isoformat()
+    points: list[dict[str, Any]] = []
+    evidence: tuple[str, ...] = ()
+    try:
+        for svc in services:
+            data, ev = await agent.ensure(
+                ctx,
+                "engineering.get_service_metrics",
+                {"service": svc, "start": start, "end": w.end, "dataset": w.dataset},
+            )
+            points += series_features((data or {}).get("series") or {}, svc)
+            evidence += ev
+    except Exception as exc:  # an auxiliary scan: the agent's core findings do not depend on it
+        return None, evidence, f"{type(exc).__name__}: {exc}"
+    mf = minute_features(points, det.features)
+    if len(mf) <= det.reference_minutes:
+        return None, evidence, "not enough minutes for the reference period"
+    return det.detect(mf, only=features), evidence, None
+
+
+def window_alarms(report: DetectionReport | None, w: Window) -> list[Alarm]:
+    """Alarms whose onset falls in ``[window start - lead, window end)``, earliest first."""
+    if report is None:
+        return []
+    lo, hi = _parse_ts(w.start) - CHANGE_POINT_LEAD, _parse_ts(w.end)
+    hits = [a for a in report.alarms if lo <= a.onset_at < hi]
+    return sorted(hits, key=lambda a: (a.alarm_index, a.onset_index, -a.peak_z))
 
 
 def _parse_ts(value: Any) -> datetime:

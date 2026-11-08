@@ -34,6 +34,9 @@ class LLMRequest:
     effort: str | None = None  # None: the pinned effort for ``purpose``
     purpose: str = "general"  # planning | narrative | critique | judge | general
     metadata: dict[str, Any] = field(default_factory=dict)
+    # structured output (PLAN 3A.1): a Pydantic model class; the adapter sends its JSON schema as
+    # ``output_config.format`` through ``messages.parse()`` and the agent validates the reply again.
+    output_model: Any = None
 
 
 @dataclass(frozen=True)
@@ -47,3 +50,11 @@ class LLMResponse:
     fallback_reason: str | None = None  # set by the router when a fallback client answered
     stop_details: dict[str, Any] | None = None  # populated by the API for ``refusal`` only
     degradations: tuple[Degradation, ...] = ()
+    parsed: dict[str, Any] | None = None  # the structured output, when ``output_model`` was set
+    parse_errors: tuple[str, ...] = ()  # the adapter could not validate the reply against the schema
+    cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
+    request_id: str | None = None
+    # R3C 3C.4: citations on text blocks (citations call only): document_index, start/end_block_index,
+    # cited_text, type, and the cited sentence with its [text_start, text_end) offsets in ``content``
+    citations: tuple[dict[str, Any], ...] = ()

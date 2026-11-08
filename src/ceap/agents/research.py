@@ -16,7 +16,7 @@ class ResearchAgent(BaseAgent):
 
     async def execute(self, context: AgentContext) -> AgentResult:
         s = scope(context)
-        summary, ev = await self.ensure(context, "research_data.get_universe_summary", tool_args(context)["universe_summary"])
+        summary, ev = await self.fetched(context, "research_data.get_universe_summary", tool_args(context)["universe_summary"])
         spec = SIGNALS.get(s.signal)
         description = spec.description if spec else s.signal
         book = "long-short" if s.long_short else "long-only"

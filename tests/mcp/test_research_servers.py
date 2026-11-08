@@ -31,7 +31,7 @@ def _ctx() -> ToolExecutionContext:
 async def test_discovery(mcp_client):
     research = {t["name"] for t in await mcp_client.discover_tools("research_data")}
     assert research == {"get_universe", "get_daily_bars", "get_universe_summary"}
-    assert {t["name"] for t in await mcp_client.discover_tools("alpha")} == {"list_signals", "evaluate_signal"}
+    assert {t["name"] for t in await mcp_client.discover_tools("alpha")} == {"list_signals", "evaluate_signal", "combine_signals"}
     assert {t["name"] for t in await mcp_client.discover_tools("backtest")} == {"run_backtest", "trial_count"}
     risk = {t["name"] for t in await mcp_client.discover_tools("risk")}
     assert {"get_portfolio_exposure", "check_portfolio_limits", "calculate_portfolio_stress"} <= risk

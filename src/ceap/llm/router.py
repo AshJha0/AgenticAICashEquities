@@ -16,9 +16,19 @@ Rung 2 (one structured-output repair retry) lives in the agents, which know the 
 from __future__ import annotations
 
 import asyncio
+import contextvars
+import json
 import logging
+import os
+import time
+import weakref
+from collections import OrderedDict
+from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass, field
 
 from ceap.config import Settings, SettingsError, load_settings
+from ceap.domain.reports import LLMCallRecord
 from ceap.llm.client import AnthropicLLMClient, LLMClient, MockLLMClient
 from ceap.llm.models import (
     RUNG_DETERMINISTIC,
@@ -28,11 +38,77 @@ from ceap.llm.models import (
     LLMRequest,
     LLMResponse,
 )
-from ceap.llm.pins import ModelPins, load_pins
+from ceap.llm.pins import ModelPins, Price, load_pins
+from ceap.util.redact import redact
 
 log = logging.getLogger(__name__)
 
 DEFAULT_MAX_CALLS_PER_TASK = 12
+
+
+CHARS_PER_TOKEN = 4  # LOCAL ESTIMATE: count_tokens is a network call and is never used (D15)
+_current_task: contextvars.ContextVar[str | None] = contextvars.ContextVar("ceap_llm_task", default=None)
+
+
+@contextmanager
+def task_scope(task_id: str) -> Iterator[None]:
+    """Attribute every model call made inside this block (and the asyncio tasks it starts) to ``task_id``.
+
+    A context variable, so two tasks running concurrently on one router never share a meter.
+    """
+    token = _current_task.set(task_id)
+    try:
+        yield
+    finally:
+        _current_task.reset(token)
+
+
+def estimate_input_tokens(request: LLMRequest) -> int:
+    """Local, offline token estimate of the request (labelled an estimate wherever it is shown)."""
+    text = (
+        request.system_prompt
+        + json.dumps(request.messages, default=str)
+        + json.dumps(request.tools, default=str)
+    )
+    return len(text) // CHARS_PER_TOKEN + 1
+
+
+def usd(
+    price: Price | None, input_tokens: int, output_tokens: int, cache_read: int = 0, cache_write: int = 0
+) -> float:
+    if price is None:
+        return 0.0
+    return (
+        input_tokens * price.input
+        + output_tokens * price.output
+        + cache_read * price.cache_read
+        + cache_write * price.cache_write
+    ) / 1_000_000
+
+
+@dataclass
+class TaskCost:
+    """Per-task cost span: every call's record and the running USD estimate."""
+
+    task_id: str
+    usd: float = 0.0
+    calls: int = 0
+    records: list[LLMCallRecord] = field(default_factory=list)
+
+
+_ROUTERS: weakref.WeakSet[LLMRouter] = weakref.WeakSet()
+
+
+def task_cost(task_id: str) -> TaskCost:
+    """The cost span of ``task_id`` across every live router (the harness reads this after a run)."""
+    total = TaskCost(task_id)
+    for router in list(_ROUTERS):
+        meter = router._costs.get(task_id)
+        if meter is not None:
+            total.usd += meter.usd
+            total.calls += meter.calls
+            total.records.extend(meter.records)
+    return total
 
 
 class LLMDisabledError(RuntimeError):
@@ -55,6 +131,8 @@ class LLMRouter(LLMClient):
         timeout_s: float | None = None,
         max_concurrency: int = 4,
         max_calls_per_task: int = DEFAULT_MAX_CALLS_PER_TASK,
+        task_budget_usd: float | None = None,
+        keep_tasks: int = 256,
     ) -> None:
         self.primary = primary
         self.fallback = fallback
@@ -66,6 +144,77 @@ class LLMRouter(LLMClient):
         self._sem = asyncio.Semaphore(max_concurrency)
         self.usage: dict[str, int] = {"input_tokens": 0, "output_tokens": 0, "calls": 0, "fallbacks": 0}
         self.last_fallback_reason: str | None = None
+        self.task_budget_usd = task_budget_usd
+        self._keep_tasks = keep_tasks
+        self._costs: OrderedDict[str, TaskCost] = OrderedDict()  # bounded: the router is long-lived
+        _ROUTERS.add(self)
+
+    def cost_for(self, task_id: str) -> TaskCost:
+        return self._costs.get(task_id) or TaskCost(task_id)
+
+    def _meter(self, task_id: str) -> TaskCost:
+        meter = self._costs.get(task_id)
+        if meter is None:
+            meter = self._costs[task_id] = TaskCost(task_id)
+            while len(self._costs) > self._keep_tasks:
+                self._costs.popitem(last=False)
+        return meter
+
+    def _price(self, model: str | None) -> Price | None:
+        return self.pins.prices.get(model or "") if self.pins is not None else None
+
+    def _check_budget(self, task_id: str, request: LLMRequest, model: str | None) -> None:
+        """Abort *before* the call when the local upper-bound estimate would exceed the task budget."""
+        if self.task_budget_usd is None:
+            return
+        if model is None and self.pins is not None:
+            model = self.pins.for_purpose(request.purpose).model
+        max_out = request.max_tokens or (
+            self.pins.for_purpose(request.purpose).max_tokens if self.pins is not None else 0
+        )
+        estimate = usd(self._price(model), estimate_input_tokens(request), max_out)
+        spent = self.cost_for(task_id).usd
+        if spent + estimate > self.task_budget_usd:
+            raise LLMBudgetExceededError(
+                f"task budget ${self.task_budget_usd:.4f} would be exceeded: spent ${spent:.4f} + "
+                f"local estimate ${estimate:.4f} (upper bound: estimated input + max_tokens output)"
+            )
+
+    def _record(self, task_id: str, request: LLMRequest, response: LLMResponse, latency_ms: float) -> None:
+        price = self._price(response.model)
+        cost = usd(
+            price,
+            response.input_tokens,
+            response.output_tokens,
+            response.cache_read_tokens,
+            response.cache_write_tokens,
+        )
+        prompt = request.metadata.get("prompt") or {}
+        body = redact(
+            json.dumps({"system": request.system_prompt, "messages": request.messages}, default=str)
+        )
+        record = LLMCallRecord(
+            model=response.model,
+            sdk=f"{self.pins.sdk_package}=={self.pins.sdk_version}" if self.pins is not None else "unknown",
+            prompt_sha=str(prompt.get("sha256", "")),
+            input_tokens=response.input_tokens,
+            output_tokens=response.output_tokens,
+            cache_read_tokens=response.cache_read_tokens,
+            cache_write_tokens=response.cache_write_tokens,
+            usd=round(cost, 8),
+            latency_ms=round(latency_ms, 3),
+            request_id=response.request_id,
+            task_id=task_id,
+            purpose=request.purpose,
+            prompt_id=prompt.get("id"),
+            prompt_version=prompt.get("version"),
+            stop_reason=response.stop_reason,
+            redacted_request=body[:20000],
+        )
+        meter = self._meter(task_id)
+        meter.usd += cost
+        meter.calls += 1
+        meter.records.append(record)
 
     async def _call(self, client: LLMClient, request: LLMRequest) -> LLMResponse:
         async with self._sem:  # model-call concurrency cap
@@ -78,6 +227,9 @@ class LLMRouter(LLMClient):
             raise LLMDisabledError("LLM disabled by CEAP_LLM_DISABLED=true")
         model = request.model or self.models_by_purpose.get(request.purpose)
         routed = LLMRequest(**{**request.__dict__, "model": model})
+        task_id = str(request.metadata.get("task_id") or _current_task.get() or "unattributed")
+        self._check_budget(task_id, request, model)
+        started = time.perf_counter()
         degradations: list[Degradation] = []
         try:
             response = await self._call(self.primary, routed)
@@ -119,6 +271,7 @@ class LLMRouter(LLMClient):
             response = LLMResponse(
                 **{**response.__dict__, "degradations": (*response.degradations, *degradations)}
             )
+        self._record(task_id, request, response, (time.perf_counter() - started) * 1000)
         self.usage["calls"] += 1
         self.usage["input_tokens"] += response.input_tokens
         self.usage["output_tokens"] += response.output_tokens
@@ -145,6 +298,8 @@ def build_router(settings: Settings | None = None) -> LLMRouter:
         "timeout_s": settings.llm_timeout_s,
         "max_concurrency": settings.llm_max_concurrency,
         "max_calls_per_task": settings.llm_max_calls_per_task,
+        # read here until R4 moves it into Settings; empty or 0 means no budget
+        "task_budget_usd": float(os.environ.get("CEAP_TASK_BUDGET_USD") or 0) or None,
     }
     if settings.llm_provider == "mock":
         return LLMRouter(MockLLMClient(), **common)  # type: ignore[arg-type]

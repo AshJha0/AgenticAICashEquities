@@ -9,6 +9,7 @@ repository interfaces (see ``ceap.data.export``).
 from __future__ import annotations
 
 import threading
+import weakref
 from bisect import bisect_left
 from collections.abc import Sequence
 from datetime import datetime
@@ -23,16 +24,49 @@ from ceap.domain.repositories import ExecutionRepository, MarketDataRepository
 T = TypeVar("T")
 
 
-def _slice_by_time(items: Sequence[T], start: datetime, end: datetime, key=lambda x: x.timestamp) -> list[T]:
+def _time_keys(items: Sequence[T], key=lambda x: x.timestamp) -> list[float]:
+    return [key(i).timestamp() for i in items]
+
+
+def _slice_by_time(
+    items: Sequence[T],
+    start: datetime,
+    end: datetime,
+    key=lambda x: x.timestamp,
+    keys: Sequence[float] | None = None,
+) -> list[T]:
     """Return items with ``start <= ts < end`` assuming ``items`` sorted by ``key``.
 
     Uses ``bisect_left`` for the exclusive upper bound: subtracting an epsilon
-    from an epoch-scale float would underflow double precision.
+    from an epoch-scale float would underflow double precision. Repositories pass
+    precomputed ``keys`` so a slice is O(log n), not a pass over the whole series.
     """
-    keys = [key(i).timestamp() for i in items]
+    if keys is None:
+        keys = _time_keys(items, key)
     lo = bisect_left(keys, start.timestamp())
     hi = bisect_left(keys, end.timestamp())
     return list(items[lo:hi])
+
+
+# Sorted series and their epoch keys, computed once per dataset object. The MCP servers build
+# repositories per call, so caching on the repository would redo an O(n) pass on every tool call.
+_INDEX: dict[int, dict[str, tuple[list, list[float]]]] = {}
+_INDEX_LOCK = threading.Lock()
+
+
+def _indexed(dataset: SyntheticDataset, attr: str) -> tuple[list, list[float]]:
+    with _INDEX_LOCK:
+        per = _INDEX.get(id(dataset))
+        if per is None:
+            per = _INDEX[id(dataset)] = {}
+            weakref.finalize(dataset, _INDEX.pop, id(dataset), None)
+        hit = per.get(attr)
+    if hit is None or len(hit[0]) != len(getattr(dataset, attr)):  # rebuilt if the series grew
+        items = sorted(getattr(dataset, attr), key=lambda x: x.timestamp)
+        hit = (items, _time_keys(items))
+        with _INDEX_LOCK:
+            per[attr] = hit
+    return hit
 
 
 class DatasetStore:
@@ -66,24 +100,24 @@ class DatasetStore:
 class InMemoryMarketDataRepository(MarketDataRepository):
     def __init__(self, dataset: SyntheticDataset) -> None:
         self._ds = dataset
-        self._quotes = sorted(dataset.quotes, key=lambda q: q.timestamp)
-        self._trades = sorted(dataset.trades, key=lambda t: t.timestamp)
-        self._books = sorted(dataset.order_books, key=lambda b: b.timestamp)
+        self._quotes, self._quotes_keys = _indexed(dataset, "quotes")
+        self._trades, self._trades_keys = _indexed(dataset, "trades")
+        self._books, self._books_keys = _indexed(dataset, "order_books")
 
     async def quotes(self, symbol: str, start: datetime, end: datetime) -> list[Quote]:
         if symbol != self._ds.symbol:
             return []
-        return _slice_by_time(self._quotes, start, end)
+        return _slice_by_time(self._quotes, start, end, keys=self._quotes_keys)
 
     async def trades(self, symbol: str, start: datetime, end: datetime) -> list[Trade]:
         if symbol != self._ds.symbol:
             return []
-        return _slice_by_time(self._trades, start, end)
+        return _slice_by_time(self._trades, start, end, keys=self._trades_keys)
 
     async def order_books(self, symbol: str, start: datetime, end: datetime) -> list[OrderBookSnapshot]:
         if symbol != self._ds.symbol:
             return []
-        return _slice_by_time(self._books, start, end)
+        return _slice_by_time(self._books, start, end, keys=self._books_keys)
 
     async def symbols(self) -> list[str]:
         return [self._ds.symbol]
@@ -92,15 +126,15 @@ class InMemoryMarketDataRepository(MarketDataRepository):
 class InMemoryExecutionRepository(ExecutionRepository):
     def __init__(self, dataset: SyntheticDataset) -> None:
         self._ds = dataset
-        self._orders = sorted(dataset.orders, key=lambda o: o.timestamp)
-        self._executions = sorted(dataset.executions, key=lambda e: e.timestamp)
+        self._orders, self._orders_keys = _indexed(dataset, "orders")
+        self._executions, self._executions_keys = _indexed(dataset, "executions")
 
     async def orders(self, symbol: str, start: datetime, end: datetime) -> list[Order]:
         if symbol != self._ds.symbol:
             return []
-        return _slice_by_time(self._orders, start, end)
+        return _slice_by_time(self._orders, start, end, keys=self._orders_keys)
 
     async def executions(self, symbol: str, start: datetime, end: datetime) -> list[Execution]:
         if symbol != self._ds.symbol:
             return []
-        return _slice_by_time(self._executions, start, end)
+        return _slice_by_time(self._executions, start, end, keys=self._executions_keys)

@@ -38,6 +38,12 @@ jobs:
       - run: mypy src
       - name: Banned-word check
         run: python scripts/check_banned_words.py
+      - name: Docs numbers and commands match measured artefacts (3E.3)
+        run: python scripts/check_docs.py
+      - name: Contract and drift monitors (3E.4)
+        env:
+          ANTHROPIC_API_KEY: ""
+        run: pytest -q -p no:randomly tests/contract --no-cov
 
   test:
     runs-on: ubuntu-latest
@@ -164,4 +170,22 @@ jobs:
           if python scripts/check_contracts.py "$BASE"; then exit 0; fi
           case ",$LABELS," in *,contracts-change,*) echo "contracts-change label present: allowed"; exit 0;; esac
           echo "::error::ceap.domain public signatures changed; label the PR contracts-change after review"
+          exit 1
+
+  golden-change:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: Golden set edits need the golden-change label and owner sign-off (3E.1)
+        env:
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if ! git diff --name-only "$BASE"...HEAD | grep -qx tests/golden/golden_set.json; then exit 0; fi
+          case ",$LABELS," in *,golden-change,*) echo "golden-change label present: allowed"; exit 0;; esac
+          echo "::error::tests/golden/golden_set.json changed; label the PR golden-change and record the owner sign-off"
           exit 1

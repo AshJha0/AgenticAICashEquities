@@ -502,7 +502,7 @@ The signal and dataset are parsed from the question when omitted ("momentum" →
 `RS12`). `--dataset` picks the research scenario (R01–R07 templates, RS01–RS21 concrete).
 `--role` must have the `research` capability (`quant` or `admin`); `viewer`/`trader`/`engineer`
 do not. The proposal's VERDICT section carries `PROMOTE` or `REJECT` with any flags
-(`NO_ALPHA`, `OVERFIT`, `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`).
+(`NO_ALPHA`, `OOS_DECAY` (called `OVERFIT` before 0.4.0), `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`).
 
 ## 29. Run a research proposal from Python
 
@@ -675,3 +675,18 @@ curl -si localhost:8000/health -H "X-Request-ID: my-trace-1"     # echoed back; 
 python -c "from ceap.api.auth import hash_api_key; print(hash_api_key('a-long-random-key'))"
 CEAP_API_KEY_HASHES='sha256$...$...:auditor:2027-01-31' ceap serve   # optional expiry date
 ```
+
+## 42. Produce the evaluation report and record a release
+
+```bash
+ceap evaluation-report --quick                                          # smoke run, 3 scenarios per sweep
+ceap evaluation-report --json docs/evaluation/latest.json               # full run (about 20 minutes)
+ceap evaluation-report --json docs/evaluation/latest.json --append-history 0.6.0
+python scripts/check_docs.py                                            # docs numbers vs latest.json
+```
+
+Live-only metrics always print `UNKNOWN / NOT RUN LIVE`; a `--quick` run is refused by
+`--append-history`. After a full run, regenerate the table in `docs/evaluation/evaluation.md`
+(the block between the `evaluation-report` markers) from `latest.json`, or `check_docs.py` fails.
+Golden-set edits: `python scripts/build_golden_set.py`, bump `VERSION`, label the PR `golden-change`.
+

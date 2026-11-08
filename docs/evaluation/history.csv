@@ -1,0 +1,4 @@
+version,date,scenarios,primary_accuracy,coverage,false_positive_rate,research_verdict_accuracy,golden_primary_accuracy,golden_verdict_accuracy,safety_invariants_rate,cost_usd_estimate_per_investigation,source
+0.4.0,2026-11-07,50,1.00,1.00,0.02,,,,,,CHANGELOG 0.4.0 / R2T re-baseline table (recorded at the time; mock LLM)
+0.5.0,2026-11-08,50,0.98,0.98,0.06,,,,,,CHANGELOG R2T re-baseline table (recorded at the time; mock LLM)
+0.6.0,2026-11-08,50,0.98,0.98,0.06,0.9667,0.9667,1.00,1.00,0.1987,ceap evaluation-report (mock LLM)

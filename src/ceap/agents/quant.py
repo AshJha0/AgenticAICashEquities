@@ -35,12 +35,12 @@ class QuantAgent(BaseAgent):
 
     async def execute(self, context: AgentContext) -> AgentResult:
         w = self.window(context)
-        win_d, win_ev = await self.ensure(context, "execution.get_execution_metrics", w.window_args)
-        base_d, base_ev = await self.ensure(context, "execution.get_execution_metrics", w.baseline_args)
-        mkt_w, mw_ev = await self.ensure(context, "market_data.get_market_statistics", w.window_args)
-        mkt_b, mb_ev = await self.ensure(context, "market_data.get_market_statistics", w.baseline_args)
-        book_w, bw_ev = await self.ensure(context, "market_data.get_order_book_statistics", w.window_args)
-        book_b, bb_ev = await self.ensure(context, "market_data.get_order_book_statistics", w.baseline_args)
+        win_d, win_ev = await self.fetched(context, "execution.get_execution_metrics", w.window_args)
+        base_d, base_ev = await self.fetched(context, "execution.get_execution_metrics", w.baseline_args)
+        mkt_w, mw_ev = await self.fetched(context, "market_data.get_market_statistics", w.window_args)
+        mkt_b, mb_ev = await self.fetched(context, "market_data.get_market_statistics", w.baseline_args)
+        book_w, bw_ev = await self.fetched(context, "market_data.get_order_book_statistics", w.window_args)
+        book_b, bb_ev = await self.fetched(context, "market_data.get_order_book_statistics", w.baseline_args)
 
         window = execution_metrics_from_dict(win_d)
         baseline = execution_metrics_from_dict(base_d)

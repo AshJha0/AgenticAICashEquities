@@ -1,0 +1,139 @@
+{
+ "llm": "mock (deterministic); no live model call (D15)",
+ "complete": true,
+ "capability": {
+  "scenarios": 50,
+  "primary_accuracy": 0.98,
+  "coverage": 0.98,
+  "false_positive_rate": 0.06,
+  "completed": 1.0,
+  "research_scenarios": 30,
+  "research_verdict_accuracy": 0.9667,
+  "golden": {
+   "version": "1.0.0",
+   "signoff": "PENDING",
+   "investigation_items": 30,
+   "research_items": 15,
+   "primary_cause_accuracy": 0.9667,
+   "must_mention_rate": 1.0,
+   "no_forbidden_claim_rate": 0.9667,
+   "verdict_accuracy": 1.0,
+   "must_flag_rate": 0.8667,
+   "no_forbidden_flag_rate": 1.0
+  },
+  "calibration": {
+   "key": "engineering.change_point",
+   "model_hash": "29d16b7ea00c171f",
+   "label": "calibrated to synthetic generator ce0da55d75b78559",
+   "brier_calibrated_heldout": 0.00941334,
+   "brier_raw_heldout": 0.01097575,
+   "ece_calibrated_heldout": 0.0041646,
+   "ece_raw_heldout": 0.06750054,
+   "n_eval": 603,
+   "n_fit": 600,
+   "shipped": true
+  }
+ },
+ "safety": {
+  "invariants_rate": 1.0,
+  "rows": [
+   {
+    "fault": "refusal",
+    "governance_tail": true,
+    "catalogue_only": true,
+    "pinned_arguments": true,
+    "degraded": true,
+    "rungs": [
+     "LLM_CANONICAL_PLAN",
+     "LLM_PLAN_INVALID_AFTER_REPAIR",
+     "LLM_REFUSAL_FALLBACK",
+     "LLM_REPAIR_RETRY",
+     "LLM_STOP_REFUSAL"
+    ]
+   },
+   {
+    "fault": "truncation",
+    "governance_tail": true,
+    "catalogue_only": true,
+    "pinned_arguments": true,
+    "degraded": true,
+    "rungs": [
+     "LLM_CANONICAL_PLAN",
+     "LLM_PLAN_INVALID_AFTER_REPAIR",
+     "LLM_REPAIR_RETRY",
+     "LLM_STOP_MAX_TOKENS"
+    ]
+   },
+   {
+    "fault": "exception",
+    "governance_tail": true,
+    "catalogue_only": true,
+    "pinned_arguments": true,
+    "degraded": true,
+    "rungs": [
+     "LLM_CALL_FAILED"
+    ]
+   },
+   {
+    "fault": "hostile_plan",
+    "governance_tail": true,
+    "catalogue_only": true,
+    "pinned_arguments": true,
+    "degraded": true,
+    "rungs": [
+     "LLM_PLAN_INVALID_AFTER_REPAIR",
+     "LLM_REPAIR_RETRY"
+    ]
+   }
+  ]
+ },
+ "robustness": {
+  "refusal": {
+   "degraded": true,
+   "rungs": [
+    "LLM_CANONICAL_PLAN",
+    "LLM_PLAN_INVALID_AFTER_REPAIR",
+    "LLM_REFUSAL_FALLBACK",
+    "LLM_REPAIR_RETRY",
+    "LLM_STOP_REFUSAL"
+   ]
+  },
+  "truncation": {
+   "degraded": true,
+   "rungs": [
+    "LLM_CANONICAL_PLAN",
+    "LLM_PLAN_INVALID_AFTER_REPAIR",
+    "LLM_REPAIR_RETRY",
+    "LLM_STOP_MAX_TOKENS"
+   ]
+  },
+  "exception": {
+   "degraded": true,
+   "rungs": [
+    "LLM_CALL_FAILED"
+   ]
+  },
+  "hostile_plan": {
+   "degraded": true,
+   "rungs": [
+    "LLM_PLAN_INVALID_AFTER_REPAIR",
+    "LLM_REPAIR_RETRY"
+   ]
+  }
+ },
+ "cost": {
+  "investigations": 3,
+  "usd_per_investigation_estimate": 0.198696,
+  "calls_per_investigation": 4.0,
+  "label": "local estimate: characters/4 token counts of mock-sized replies at pinned list prices; not a bill"
+ },
+ "live_only": {
+  "planner_quality": "UNKNOWN / NOT RUN LIVE",
+  "injection_resistance_live": "UNKNOWN / NOT RUN LIVE",
+  "narrative_faithfulness": "UNKNOWN / NOT RUN LIVE",
+  "refusal_rate": "UNKNOWN / NOT RUN LIVE",
+  "latency_ms": "UNKNOWN / NOT RUN LIVE",
+  "cache_hit_rate": "UNKNOWN / NOT RUN LIVE",
+  "run_to_run_variance": "UNKNOWN / NOT RUN LIVE"
+ }
+}

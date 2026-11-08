@@ -1,0 +1,180 @@
+{
+  "disputes_keys": [
+    "checks",
+    "contradictions",
+    "critic_comments_are_model_text",
+    "recorded_without_check"
+  ],
+  "evidence_links": [
+    [
+      "44 ERROR log events were recorded in the window (e.g. venue timeout waiting for ack; retrying route; venue timeout waiting for ack; retrying route).",
+      [
+        "error_logs"
+      ]
+    ],
+    [
+      "Against the pre-trade estimate of +3.4 bps (fitted square-root model) the arrival shortfall -45.3 bps is a residual of -48.7 bps, -3.21 standard errors (SE 15.2 bps).",
+      [
+        "values.pretrade_estimate_bps"
+      ]
+    ],
+    [
+      "Average quoted spread (2.41 bps) was in line with the baseline (1.30x).",
+      [
+        "spread_ratio"
+      ]
+    ],
+    [
+      "Change-point detector: order-gateway ack_latency_p50 shifted up from about 805 to 6841 (peak robust z 26.2); change onset 14:00, alarm 14:00, 8 minutes after deployment CHG-40388; 3 other feature(s) also changed.",
+      [
+        "change_points.model_hash"
+      ]
+    ],
+    [
+      "Child-order reject rate was elevated at 12.5%.",
+      [
+        "values.reject_rate"
+      ]
+    ],
+    [
+      "Deployment CHG-40388 (smart-order-router 2.14.1: Routing latency budget and venue timeout changes) went live at 2026-09-18T13:52:00-04:00 - shortly before the window.",
+      []
+    ],
+    [
+      "Displayed liquidity was normal (97% of baseline depth).",
+      [
+        "depth_ratio"
+      ]
+    ],
+    [
+      "Execution VWAP 228.1369 versus interval VWAP 228.1000: slippage +1.6 bps (baseline +0.2 bps, delta +1.5 bps).",
+      [
+        "vwap_slippage_delta_bps"
+      ]
+    ],
+    [
+      "Fill rate was 73.2% of the parent quantity with participation of 4.5% of market volume.",
+      [
+        "values.fill_rate",
+        "values.participation_rate"
+      ]
+    ],
+    [
+      "Implementation shortfall by component: delay -3.5 bps, spread +0.6 bps, timing -21.4 bps, opportunity -24.7 bps, fees +0.1 bps (total -48.8 bps).",
+      [
+        "values.delay_cost_bps",
+        "values.fees_bps",
+        "values.opportunity_cost_bps",
+        "values.spread_cost_bps",
+        "values.timing_cost_bps"
+      ]
+    ],
+    [
+      "Implementation shortfall was -48.8 bps versus arrival 228.7850 (decreased by 45.1 bps relative to the baseline's -3.7 bps).",
+      [
+        "is_delta_bps"
+      ]
+    ],
+    [
+      "Market-data feed quality was normal (no stale runs or crossed quotes of note).",
+      [
+        "values.stale_quote_fraction"
+      ]
+    ],
+    [
+      "No venue was materially worse than its peers on fill rate or slippage.",
+      []
+    ],
+    [
+      "Observed participation 4.5% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook.",
+      [
+        "values.max_participation_rate",
+        "values.participation_rate"
+      ]
+    ],
+    [
+      "Order-gateway acknowledgement latency was 8.2x the baseline (p99 7482 us, SLO breached).",
+      [
+        "latency_ratio"
+      ]
+    ],
+    [
+      "Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 43,907 shares across 175 fills on 5 venues.",
+      []
+    ],
+    [
+      "Realised volatility rose to 9.33 bps/min, 3.3x the baseline.",
+      [
+        "volatility_ratio"
+      ]
+    ],
+    [
+      "Size-weighted effective spread +3.9 bps on aggressive fills, realised spread +13.0 bps at 5 min; markouts 1 s -1.0 bps, 60 s -2.8 bps, 5 min -6.3 bps (positive = price moved our way).",
+      []
+    ],
+    [
+      "The mid price drifted -92 bps across the window (open 228.78, close 226.68).",
+      [
+        "values.price_drift_bps"
+      ]
+    ],
+    [
+      "The parent order breached trading limits: max_position (518962.00 vs 500000.00).",
+      []
+    ]
+  ],
+  "hypotheses": {
+    "REFUTED": [
+      [
+        "WIDE_SPREADS",
+        "REFUTED"
+      ],
+      [
+        "LOW_LIQUIDITY",
+        "REFUTED"
+      ],
+      [
+        "VENUE_DEGRADATION",
+        "REFUTED"
+      ],
+      [
+        "MARKET_DATA_ANOMALY",
+        "REFUTED"
+      ],
+      [
+        "LARGE_ORDER_IMPACT",
+        "REFUTED"
+      ],
+      [
+        "PRICE_MOVEMENT",
+        "REFUTED"
+      ]
+    ],
+    "SUPPORTED": [
+      [
+        "MARKET_VOLATILITY",
+        "SUPPORTED"
+      ],
+      [
+        "TECHNOLOGY_LATENCY",
+        "SUPPORTED"
+      ]
+    ],
+    "UNTESTED": []
+  },
+  "keys": [
+    "disputes",
+    "evidence_links",
+    "hypotheses",
+    "pre_trade_diff",
+    "version"
+  ],
+  "pre_trade_diff_keys": [
+    "diff_bps",
+    "estimate_bps",
+    "estimate_source",
+    "metric",
+    "realised_bps"
+  ],
+  "version": 1
+}

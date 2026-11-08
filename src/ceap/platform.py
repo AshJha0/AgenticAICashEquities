@@ -38,6 +38,7 @@ from ceap.domain.tasks import Task, TaskPriority
 from ceap.domain.tools import ToolRegistry
 from ceap.harness.cancellation import CancellationToken
 from ceap.harness.engine import AgentHarness, HarnessResult
+from ceap.harness.memory import CaseMemory
 from ceap.llm.client import LLMClient
 from ceap.llm.router import build_router
 from ceap.mcp.client import MCPClient
@@ -103,6 +104,7 @@ class ResearchRequest:
     long_short: bool = True
     gross_notional: float = DEFAULT_GROSS_NOTIONAL
     stage_orders: bool = False
+    combine_signals: bool = False  # 2B.2: ridge combination of the signal family (alpha agent)
     principal: str = "anonymous"
     roles: frozenset[str] = frozenset({"quant"})
     priority: TaskPriority = TaskPriority.NORMAL
@@ -127,9 +129,12 @@ class Platform:
         knowledge: KnowledgeBase | None = None,
         history: HistoricalStore | None = None,
         db: Database | None = None,
+        case_memory: CaseMemory | None = None,
     ) -> None:
         self.settings = settings or load_settings()
         self.db = db or Database(self.settings.db_path)
+        # R3B 3B.7 (D10): harness-written, append-only, audited; evaluation passes enabled=False
+        self.case_memory = case_memory if case_memory is not None else CaseMemory(audit=self.audit)
         self.task_repo = TaskRepository(self.db)
         self.result_repo = ResultRepository(self.db)
         self.idempotency = IdempotencyRepository(self.db)
@@ -230,6 +235,7 @@ class Platform:
             tracer=tracer or InMemoryTracer(),
             approvals=self.approvals,
             settings=self.settings,
+            case_memory=self.case_memory,
         )
 
     def build_task(self, req: InvestigationRequest) -> Task:
@@ -244,6 +250,7 @@ class Platform:
                 "baseline_end": be.isoformat(),
                 "dataset": req.dataset or self.settings.default_dataset,
                 "timezone": str(LONDON),
+                **({"signoff": True} if req.attributes.get("signoff") else {}),
             },
             priority=req.priority,
             requested_by=req.principal,
@@ -270,6 +277,7 @@ class Platform:
                 "long_short": bool(req.long_short),
                 "gross_notional": float(req.gross_notional),
                 "stage_orders": bool(req.stage_orders),
+                "combine_signals": bool(req.combine_signals),
                 "universe": list(ds.symbols),
                 "timezone": "UTC",
             },

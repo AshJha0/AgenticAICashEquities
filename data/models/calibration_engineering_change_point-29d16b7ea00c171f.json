@@ -1,0 +1,43 @@
+{
+ "card": {
+  "created": "2026-11-08",
+  "description": "Isotonic map from the change-point finding's raw confidence to the held-out frequency of it being correct.",
+  "feature_reference": {},
+  "generator_hash": "ce0da55d75b78559",
+  "intended_use": "Confidence of the engineering agent's change-point finding.",
+  "kind": "isotonic",
+  "label": "calibrated to synthetic generator ce0da55d75b78559",
+  "limitations": "Outcome definition is synthetic (planted regime change, onset within 5 minutes).",
+  "metrics": {
+   "brier_calibrated_heldout": 0.00941334,
+   "brier_raw_heldout": 0.01097575,
+   "ece_calibrated_heldout": 0.0041646,
+   "ece_raw_heldout": 0.06750054,
+   "n_eval": 603,
+   "n_fit": 600,
+   "shipped": true
+  },
+  "model_hash": "29d16b7ea00c171f",
+  "name": "calibration_engineering_change_point",
+  "sklearn_version": "1.9.1",
+  "training_data_hash": "8f40301c6edfa5ec361f97dc0f460c3afe35f176762c981e3e22f863bb3c7730"
+ },
+ "params": {
+  "x": [
+   0.90774962,
+   0.91538081,
+   0.91559193,
+   0.9234136,
+   0.92341772,
+   0.94811174
+  ],
+  "y": [
+   0.94117647,
+   0.94117647,
+   0.99367089,
+   0.99367089,
+   1.0,
+   1.0
+  ]
+ }
+}

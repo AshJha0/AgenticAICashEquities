@@ -1,0 +1,30 @@
+{
+  "critic": {
+    "sha256": "f471e75077d3b8738b646774811d519d1f706735c8da0711ea78d1d4415d28af",
+    "version": "3"
+  },
+  "planner": {
+    "sha256": "8a5034b96237fd747815dd2fdd20e6e806bb4a5b6506eb6c0567b0cf2507fd44",
+    "version": "3"
+  },
+  "report": {
+    "sha256": "ebfaac4ca69da17afd6106c4ff7d4d345cfdc3bbfd6a2ce3108cc87eb079489a",
+    "version": "1"
+  },
+  "reporter_claims": {
+    "sha256": "a41258cb32832636cbaed3736874d820db5e06426d50b7a8ff50370c7cf57304",
+    "version": "1"
+  },
+  "reporter_prose": {
+    "sha256": "fc59d6a0e76a636355fc51e3abe1e7cccc2db2fd9b3b9259b06018058035c676",
+    "version": "1"
+  },
+  "research_planner": {
+    "sha256": "be03bc38e8b9dccab2d04248268aeaae3a5b0ba593e07ba2a6ed28f81d35acd7",
+    "version": "2"
+  },
+  "research_report": {
+    "sha256": "44b1a056a13ab62b98e449cf2a2f71d0aad7eb338d6396c887a3debef5c9c076",
+    "version": "1"
+  }
+}

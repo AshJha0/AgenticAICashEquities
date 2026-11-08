@@ -7,8 +7,8 @@ Contents: 1. [End-to-end investigation pipeline](#1-end-to-end-investigation-pip
 2. [Harness state machine](#2-harness-state-machine) · 3. [The path of one tool call](#3-the-path-of-one-tool-call) ·
 4. [Evidence and finding model](#4-evidence-and-finding-model) · 5. [MCP topology](#5-mcp-topology) ·
 6. [Investigation sequence](#6-investigation-sequence) · 7. [Attribution decision flow](#7-attribution-decision-flow) ·
-8. [Package dependencies](#8-package-dependencies) · 9. [Stage 2 extension](#9-stage-2-extension) ·
-10. [CI and the release gate](#10-ci-and-the-release-gate)
+8. [Package dependencies](#8-package-dependencies) · 9. [Stage 2 extension](#9-stage-2-research-workflow-realised-in-030) ·
+10. [CI and the release gate](#10-ci-and-the-release-gate) · 11. [LLM, RAG, ML and evaluation (0.6.0)](#11-llm-rag-ml-and-evaluation-060)
 
 ## 1. End-to-end investigation pipeline
 
@@ -22,23 +22,30 @@ flowchart TD
     PARSE --> H
 
     subgraph H["AGENT HARNESS — ceap.harness (control plane)"]
-        PLAN["Planner agent<br/>LLM proposes JSON plan → sanitised against tool catalogue<br/>canonical fallback"]
-        VAL["Plan validation<br/>structure · unknown tools/agents · policy pre-check<br/>governance steps appended"]
-        EXEC["Step execution<br/>TOOL_CALL batches (asyncio.TaskGroup) · AGENT_CALL"]
-        CRIT["Critic agent<br/>evidence resolves · corroboration · contradictions<br/>LLM may only lower confidence"]
-        EV["Evidence validation<br/>unresolved findings dropped"]
-        FIN["Reporter<br/>facts → LLM narrative → number + evidence-id audits"]
-        PLAN --> VAL --> EXEC --> CRIT --> EV --> FIN
+        MEM[("Case memory (D10)<br/>harness-written · append-only · per dataset<br/>OFF in evaluation")]
+        PLAN["Planner agent<br/>structured plan: agents · optional tools · baseline · ranked hypotheses<br/>inputs in data blocks · canonical fallback"]
+        VAL["Plan validation<br/>data steps for the chosen agents · governance tail appended<br/>windows pinned · policy pre-check"]
+        EXEC["Step execution<br/>TOOL_CALL batches (asyncio.TaskGroup) · AGENT_CALL<br/>one bounded re-plan on failure"]
+        CRIT["Critic agent<br/>evidence resolves · corroboration · contradictions<br/>model may only name a dispute check"]
+        DISP["Dispute checks<br/>alternative baseline / horizon via the policy path<br/>a contradiction caps confidence (max 3)"]
+        EV["Evidence validation<br/>unresolved ids · cited value at path · derived_from"]
+        HYP["Hypothesis table<br/>pre-registered deterministic tests<br/>supported · refuted · untested"]
+        SIGN["Optional human sign-off<br/>review payload · reason audited"]
+        FIN["Reporter (two calls)<br/>claims validated vs facts → prose with citations<br/>quote-span audit · number + evidence-id audits"]
+        MEM -. "3 nearest cases, read-only" .-> PLAN
+        PLAN --> VAL --> EXEC --> CRIT --> DISP --> EV --> HYP --> SIGN --> FIN
+        SIGN -. "case record" .-> MEM
     end
 
     EXEC --> MA["Market agent"] & XA["Execution agent"] & QA["Quant agent<br/>attribute_causes"] & RA["Risk agent"] & EA["Engineering agent"]
-    MA & XA & QA & RA & EA --> REG["ToolRegistry<br/>MCPToolAdapter → MCPClient"]
-    EXEC --> REG
+    MA & XA & QA & RA & EA -. "read plan-fetched data (fetched)<br/>typed AgentMessage envelopes" .-> EXEC
+    EXEC --> REG["ToolRegistry<br/>MCPToolAdapter → MCPClient"]
+    DISP --> REG
 
     REG --> MD["market_data MCP<br/>8 tools"] & EX["execution MCP<br/>6 tools · TCA inside"] & RK["risk MCP<br/>4 tools"] & EN["engineering MCP<br/>5 tools"] & KN["knowledge MCP<br/>3 tools · RAG"]
     MD & EX --> AN["Quant analytics — ceap.analytics<br/>VWAP · TWAP · IS · slippage · spread · impact<br/>volatility · liquidity · market statistics"]
     MD & EX & RK & EN --> DS["Synthetic dataset — ceap.data<br/>seeded · 50 scenarios · baseline + window"]
-    KN --> KB["Knowledge base<br/>8 docs · 34 chunks · hashed TF-IDF"]
+    KN --> KB["Knowledge base (R3C)<br/>10 versioned docs · 65 section chunks · BM25<br/>query built by code · role-filtered"]
 
     FIN --> REP["InvestigationReport<br/>findings · evidence · attribution · critique · trace"]
     REP --> API
@@ -286,7 +293,7 @@ approval and the single non-read-only tool, `execution.stage_orders` (paper orde
 flowchart LR
     RD["research_data<br/>universe · daily bars · regime"] --> RA["Research agent<br/>hypothesis · coverage"]
     AL["alpha.evaluate_signal<br/>rank IC · t-stat · turnover · decay"] --> AA["Alpha agent<br/>ALPHA / NO_ALPHA / ROBUST"]
-    BE["backtest.run_backtest<br/>event-driven · cost model · walk-forward"] --> BA["Backtest agent<br/>PROFITABLE / OVERFIT / COST_DRAG"]
+    BE["backtest.run_backtest<br/>event-driven · cost model · walk-forward"] --> BA["Backtest agent<br/>PROFITABLE / OOS_DECAY / COST_DRAG"]
     RK["risk.*portfolio*<br/>recomputed target · limits · stress"] --> PR["Portfolio risk agent<br/>LIMIT_BREACH / STRESS_LOSS"]
     RA --> CR
     AA --> CR
@@ -311,7 +318,7 @@ licences before anything is built.
 
 ```mermaid
 flowchart LR
-    PR["pull request"] --> L["lint<br/>ruff · mypy · banned words"]
+    PR["pull request"] --> L["lint<br/>ruff · mypy · banned words<br/>check_docs.py · drift monitors"]
     PR --> T["test 3.11 / 3.12<br/>xdist · coverage >= 80 %"]
     PR --> LF["lock-fresh<br/>uv --universal --generate-hashes"]
     PR --> A["audit<br/>pip-audit"]
@@ -319,10 +326,63 @@ flowchart LR
     PR --> D["docker<br/>build · ceap --help"]
     PR --> C["changelog<br/>or label no-changelog"]
     PR --> K["contracts<br/>or label contracts-change"]
-    L & T & LF & A & S & D & C & K --> M["merge to main<br/>CI re-runs on main"]
+    PR --> GC["golden-change<br/>label + owner sign-off"]
+    L & T & LF & A & S & D & C & K & GC --> M["merge to main<br/>CI re-runs on main"]
     M --> TAG["tag vX.Y.Z"]
     TAG --> G{"release_check.py<br/>checks green? versions agree?<br/>CHANGELOG section? banned words? licences?"}
     G -- no --> X["no release"]
     G -- yes --> P["build wheel, sdist, image<br/>gh release create"]
     N["nightly.yml<br/>all tiers · random order · 1000 examples"] -.-> M
 ```
+
+## 11. LLM, RAG, ML and evaluation (0.6.0)
+
+Rounds R3A, R3B, R3C, R2B and R3E. The model proposes; code validates, computes and audits. Every
+model-dependent path is exercised offline (mock client, cassettes, wire contract tests); no live
+model call was made (D15), so live quality is UNKNOWN / NOT RUN LIVE.
+
+```mermaid
+flowchart TD
+    subgraph LLM["LLM layer — ceap.llm (R3A)"]
+        PIN["model_pins.toml<br/>one pinned model per purpose"]
+        PRM["prompts/*.md<br/>versioned: planner@3 · critic@3 ·<br/>reporter_claims@1 · reporter_prose@1"]
+        CL["AnthropicLLMClient / MockLLMClient<br/>strict schemas · messages.parse() · cache_control"]
+        CAS[("cassettes<br/>scrubbed recorded wire traffic")]
+        PIN & PRM --> CL
+        CAS -. "replay in tests" .-> CL
+    end
+    subgraph AG["Agents within the boundary (R3B)"]
+        PL["Planner<br/>enumerated scope · ranked hypotheses"]
+        CR["Critic<br/>dispute only via a named check"]
+        RP["Reporter<br/>claims call → prose call with citations"]
+    end
+    subgraph RAG["Retrieval — ceap.rag (R3C)"]
+        Q["retrieval_query<br/>built by code, not the model"]
+        BM["BM25 over 65 chunks<br/>10 versioned, classified docs"]
+        POL["policy: knowledge-classification<br/>role-filtered"]
+        Q --> POL --> BM
+    end
+    subgraph ML["ML — deterministic, synthetic-labelled (R2B)"]
+        CP["CUSUM change points"]
+        RG["ridge signal combination<br/>purged CV · ledger trials"]
+        CAL["isotonic calibration<br/>held-out Brier / ECE"]
+        REG[("model registry<br/>load by content hash")]
+        CP & RG & CAL --> REG
+    end
+    subgraph EV["Evaluation (R3E)"]
+        GS[("golden set v1.0.0<br/>30 + 15 items · items hash")]
+        ER["ceap evaluation-report<br/>capability · safety · robustness · cost · live-only"]
+        OUT[("latest.json · history.csv")]
+        DR["drift monitors<br/>cassettes · RAG floors · golden · pins · SDK"]
+        CD["check_docs.py<br/>doc numbers = latest.json"]
+        GS --> ER --> OUT --> CD
+    end
+    CL --> PL & CR & RP
+    PL --> Q
+    BM -- "DOCUMENT evidence" --> RP
+    RP -- "quote-span audit → DOC evidence" --> REPT["InvestigationReport"]
+    REG -- "CALCULATION evidence" --> REPT
+    REPT --> ER
+    CAS & BM & GS --> DR
+```
+
