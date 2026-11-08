@@ -45,6 +45,29 @@ No live model call (D15); every live-only metric is printed `UNKNOWN / NOT RUN L
   `ResearchRequest.combine_signals`. Model cards relabelled to the R2T generator hash (model hashes
   unchanged). Report goldens regenerated; verdicts unchanged.
 
+### Round R3C (retrieval half: 3C.1, 3C.2, 3C.5)
+
+- **Breaking:** knowledge retrieval is Okapi BM25 (stdlib) instead of hashed TF-IDF;
+  `ceap.rag.embeddings` (`Embedder`, `HashingEmbedder`) is removed and `tokenize` moved to
+  `ceap.rag.text`. The knowledge tool no longer calls itself "semantic search". `KnowledgeBase`
+  takes `chunking` and `min_support` instead of an embedder; `search` gains `classifications` and
+  `min_support` and returns nothing when no chunk clears the support gate ("no policy found").
+- Chunks and hits carry document, section, version, effective date and classification; the
+  knowledge tool returns a SHA-256 `corpus_hash`.
+- Three chunking strategies (`section`, `sentence`, `fixed` with overlap) compared by a retrieval
+  eval (`data/reference/knowledge/eval.json`, 20 train / 10 held-out / 10 negative queries written
+  before tuning; `python -m ceap.rag.evaluation`). Held-out recall at 3 is 1.00 and MRR 1.000;
+  CI floor 0.80 / 0.70; all negatives empty.
+- Corpus growth: front-matter versioning on every knowledge document, a new
+  `09_attribution_thresholds.md` (kept equal to `Thresholds` defaults by a test) and
+  `docs/quant/quant.md` via `manifest.json`.
+
+- R2B (ML, D12): change-point detection on per-minute technology and feed metrics (robust z, CUSUM, PELT; `ml/anomaly.py`) with an alarm threshold fitted to a stated cost and ARL0 >= 20 sessions, consumed by the engineering and market agents as change-point findings that name the deployment lag.
+- R2B: ridge signal combination with purged, embargoed walk-forward CV; every penalty and single signal is a ledger trial; the out-of-sample deflated Sharpe is reported next to each signal (`analytics/ml_signals.py`, MCP tool `alpha.combine_signals`).
+- R2B: dynamic leakage tests (perturbation and shuffled-label) for every signal and feature; a planted look-ahead fails both (`analytics/leakage.py`).
+- R2B: held-out isotonic confidence calibration for the change-point finding: Brier 0.0110 raw vs 0.0094 calibrated on seeds 100-199, so it ships. Added the `BaseAgent.calibrated` hook; the other confidences are now documented as heuristic.
+- R2B: model registry and cards (`ml/registry.py`, `data/models/`, `docs/ml/`): loaded by hash, labelled "fitted to synthetic generator <hash>", PSI drift warning at load, and a nightly reproduction test across thread counts.
+
 ### R3C wiring: 3C.3 retrieval in the planner and policy, 3C.4 two-call reporter with citations
 
 Label: `contracts-change` (`domain/evidence.py`: `document_citation`; `LLMResponse.citations`;
@@ -282,29 +305,6 @@ Re-baseline (50 synthetic scenarios, mock LLM):
 
 The scenario numbers fall slightly because the generator is harder (U-shape, fees, delay, odd
 lots and late prints) and attribution now needs a statistically significant residual.
-
-### Round R3C (retrieval half: 3C.1, 3C.2, 3C.5)
-
-- **Breaking:** knowledge retrieval is Okapi BM25 (stdlib) instead of hashed TF-IDF;
-  `ceap.rag.embeddings` (`Embedder`, `HashingEmbedder`) is removed and `tokenize` moved to
-  `ceap.rag.text`. The knowledge tool no longer calls itself "semantic search". `KnowledgeBase`
-  takes `chunking` and `min_support` instead of an embedder; `search` gains `classifications` and
-  `min_support` and returns nothing when no chunk clears the support gate ("no policy found").
-- Chunks and hits carry document, section, version, effective date and classification; the
-  knowledge tool returns a SHA-256 `corpus_hash`.
-- Three chunking strategies (`section`, `sentence`, `fixed` with overlap) compared by a retrieval
-  eval (`data/reference/knowledge/eval.json`, 20 train / 10 held-out / 10 negative queries written
-  before tuning; `python -m ceap.rag.evaluation`). Held-out recall at 3 is 1.00 and MRR 1.000;
-  CI floor 0.80 / 0.70; all negatives empty.
-- Corpus growth: front-matter versioning on every knowledge document, a new
-  `09_attribution_thresholds.md` (kept equal to `Thresholds` defaults by a test) and
-  `docs/quant/quant.md` via `manifest.json`.
-
-- R2B (ML, D12): change-point detection on per-minute technology and feed metrics (robust z, CUSUM, PELT; `ml/anomaly.py`) with an alarm threshold fitted to a stated cost and ARL0 >= 20 sessions, consumed by the engineering and market agents as change-point findings that name the deployment lag.
-- R2B: ridge signal combination with purged, embargoed walk-forward CV; every penalty and single signal is a ledger trial; the out-of-sample deflated Sharpe is reported next to each signal (`analytics/ml_signals.py`, MCP tool `alpha.combine_signals`).
-- R2B: dynamic leakage tests (perturbation and shuffled-label) for every signal and feature; a planted look-ahead fails both (`analytics/leakage.py`).
-- R2B: held-out isotonic confidence calibration for the change-point finding: Brier 0.0110 raw vs 0.0094 calibrated on seeds 100-199, so it ships. Added the `BaseAgent.calibrated` hook; the other confidences are now documented as heuristic.
-- R2B: model registry and cards (`ml/registry.py`, `data/models/`, `docs/ml/`): loaded by hash, labelled "fitted to synthetic generator <hash>", PSI drift warning at load, and a nightly reproduction test across thread counts.
 
 ## [0.4.0] - 2026-11-07
 
