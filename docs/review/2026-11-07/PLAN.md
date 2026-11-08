@@ -255,6 +255,33 @@ was not run because Stooq serves a bot check to scripts (D2). Items 5.6 and 5.7 
 statistic was computed, and the pseudo-holdout is unspent. A future attempt needs delisting-aware
 prices and a new preregistration. See `docs/research/result_momentum_2026-11.md`.
 
+### RP: paper trading. Branch `rp-paper`. 0.7.0
+
+Requested by the owner on 2026-11-07. Needs R4 (persistence, approvals, audit log); the real feed
+comes from R5 at integration. Daily frequency, paper only: no broker, no order leaves the process, no
+paid data, no model in the daily job. Every output is labelled "paper, synthetic or free daily data,
+not trading". Detail and conventions: `RP_PLAN.md`.
+
+| Id | Item | Files | Effort | Decision | Done when |
+|---|---|---|---|---|---|
+| RP.1 | Simulated fill engine: next-session close (t+1), participation cap with working orders, imported backtest costs, rejects (missing price, non-member, SSR), splits | `paper/fills.py`, `paper/feed.py` | 6 h | none | Cap, carry, reject, SSR and split known answers; costs equal `CostModel` to 1e-12 |
+| RP.2 | Append-only hash-chained ledger (migration 0003), snapshots, reconciliation | `paper/ledger.py`, `migrations/0003_paper.sql` | 6 h | D7 | Hand two-name three-day ledger to 1e-9; tamper breaks the chain at that row |
+| RP.3 | `ceap paper run-day / backfill / report`, idempotent, one transaction per session, same approval gateway, `paper-auto` only in dev or with a flag | `paper/job.py`, `paper/cli.py`, `cli.py` | 7 h | D1 | Re-run no-op; crash then re-run equals uninterrupted; non-dev without flag writes nothing |
+| RP.4 | Forward record kept apart from backfill, Sharpe 95 % CI, minimum days, CSV with `schema_version`, disabled `paper-daily.yml` | `paper/forward.py`, `.github/workflows/paper-daily.yml` | 5 h | none | CI coverage 93 to 97 % over 400 series; workflow guarded by `PAPER_DAILY_ENABLED` |
+| RP.5 | Docs | README, LEARN, COOKBOOK, ARCHITECTURE, CHANGELOG | 2 h | R6 | Banned-word check clean |
+| RP.6 | Equivalence and invariants | `tests/` | 4 h | none | Replay of backtest fills equals backtest NAV within 1e-9 over 60 days; property test 200 examples |
+| RP.7 | Pre-trade risk checks (restricted, per-name, gross, % ADV, fat-finger band), blocked and audited | `paper/pretrade.py` | 5 h | none | One test per rule; HTB book never short |
+| RP.8 | Kill switch `CEAP_PAPER_HALT` | `paper/pretrade.py`, `paper/job.py` | 1 h | none | No staging, working orders cancelled, reason logged |
+| RP.9 | NYSE calendar, no run on non-sessions, half days flagged | `paper/job.py` | 1 h | none | Thanksgiving refused, next day `early_close` |
+| RP.10 | Borrow availability (hard-to-borrow rejects shorts) | `paper/pretrade.py`, `paper/fills.py` | 1 h | none | Short increase blocked at staging and fill |
+| RP.11 | End-of-day reconciliation and break report (ledger vs fills, target vs actual drift), fails loudly | `paper/job.py` | 3 h | none | Injected breaks raise, commit nothing, write the report |
+| RP.12 | Daily P&L attribution (signal, drift, financing, borrow, costs) | `paper/fills.py` | 2 h | none | Hand case; sums to the equity change |
+| RP.13 | Daily report artefact (markdown and JSON) per run | `paper/job.py` | 2 h | none | Written for every session, failed ones too |
+| RP.14 | Every order and fill traceable to staging and approval ids | `paper/fills.py`, `paper/job.py` | 1.5 h | none | Every fill resolves to an APPROVED approval |
+| RP.15 | Desk-control tests and docs | `tests/`, docs | 3 h | none | ruff and mypy clean |
+
+RP: 50 h, about 6 plan-days, 2.5 wall-clock days. Ships in the 0.7.0 combined PR with R5.
+
 ### R6: documentation pass per release (owner rule), not one pass at the end
 
 Every round PR includes its docs pass (README, LEARN, COOKBOOK, ARCHITECTURE, DIAGRAMS, threat model,
@@ -278,9 +305,10 @@ UNKNOWN for live metrics, real-data verdict). `scripts/check_docs.py` (3E.3) enf
 | R2B ML | 36 | 4.5 | 2 | 0.7.0 |
 | R3E evaluation | 24 | 3 | 1.5 | 0.7.0 |
 | R5 real data | 58 | 7 | 3 | 0.8.0 |
+| RP paper trading | 50 | 6 | 2.5 | 0.7.0 |
 | R6 docs (spread) | 31 | 4 | spread | all |
 | Rebase and conflict tax (10 %) | 64 | 8 | spread | all |
-| **Total** | **701.5** | **88** | **about 26 to 30 working days, 6 to 7 calendar weeks** | |
+| **Total** | **751.5** | **94** | **about 26 to 30 working days, 6 to 7 calendar weeks** | |
 
 Critical path: R0 → R1 → 0.4.0 → R3A → R3B → R3E → 0.7.0, about 32 serial plan-days. Beside it:
 R2 → R2T → 0.5.0 → R2B, and R4 → 0.6.0 → R5 → 0.8.0. At most two Claude sessions at once; the owner
@@ -299,6 +327,8 @@ extra usage.
 5. Two sessions: R3A, then R3B serially (session A); R3C after R3B's reporter change lands, and R2B
    after R2T (session B). Then R3E. Tag 0.7.0.
 6. R5 (one session). Tag 0.8.0.
+   RP (paper trading, `rp-paper`, based on `r4-platform`) runs beside R5 and ships with it in the
+   0.7.0 combined PR; its real-data feed plugs into R5's connector at integration.
 7. Update the memory note with what shipped and what did not.
 
 ## 5. File conflict map (why the order above)

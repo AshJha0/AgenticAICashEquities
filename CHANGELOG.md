@@ -8,6 +8,39 @@ refuses a tag whose version has no section.
 
 - `.gitleaks.toml`: allowlist the documented `dev-auditor-key` demo key added with the R4 `auditor` role.
 
+### RP: paper trading (docs/review/2026-11-07/RP_PLAN.md)
+
+paper, synthetic or free daily data, not trading. No order leaves the process; no model is called.
+
+#### Added
+- **Simulated fill engine** (`ceap.paper.fills`): staged orders fill at the next session's close (the
+  backtest's t+1 convention) with the backtest's own `CostModel`, `FinancingModel` and `PositionCaps`
+  imported, a 10 % ADV participation cap with carry-forward, rejects for missing prices, non-members and
+  SSR, order expiry, and splits applied to positions and open orders.
+- **Append-only ledger** (migration `0003_paper.sql`): hash-chained events, daily snapshots, a forward
+  log and a separate simulated log; UPDATE and DELETE refused by triggers; `ceap paper verify` checks
+  the chains and reconciles positions, cash and equity against the fills.
+- **Daily job**: `ceap paper run-day --date D` (idempotent, one transaction per session, catch-up),
+  `ceap paper backfill --from --to` (simulated log only), `ceap paper report`, `export`, `verify-csv`.
+  Staging goes through the same `QueuedApprovalGateway`; principal `paper-auto` decides only in
+  `CEAP_ENV=dev` or with `--allow-paper-auto`, audited.
+- **Forward record** from `forward_start` in `config/paper.json` (2026-11-09), with Sharpe and a 95 % CI,
+  the minimum days to distinguish it from the in-sample Sharpe, and a CSV export with `schema_version`.
+- `.github/workflows/paper-daily.yml`: scheduled after the US close, appends to branch `forward-log`;
+  disabled until the repository variable `PAPER_DAILY_ENABLED` is `true`.
+
+- **Desk controls (daily frequency).** Pre-trade checks on every staged order (restricted list,
+  per-name and gross limits, max 25 % of ADV per order, fat-finger price band at staging and at fill),
+  blocked and audited; kill switch `CEAP_PAPER_HALT`; hard-to-borrow names cannot increase a short;
+  NYSE calendar (no run on holidays, half days flagged); end-of-day reconciliation with a break report
+  (ledger vs fills, target vs actual drift) that fails the run (exit 4, nothing committed); daily P&L
+  attribution (signal, drift, financing, borrow, costs); a markdown and JSON artefact per session; every
+  order and fill carries its staging and approval ids.
+- Capped fills keep working at the cap until filled or replaced (the `rf-data` backtest convention).
+
+#### Changed
+- Schema version 3. `tests/unit/test_r4_persistence.py` now asserts `LATEST_VERSION >= 2`.
+
 ### R4: platform and persistence (PLAN section 2, items 4.1-4.9)
 
 #### Breaking / migration

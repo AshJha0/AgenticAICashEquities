@@ -350,6 +350,26 @@ subprocesses with the official `mcp` SDK; the test suite includes a real stdio r
 
 ---
 
+## Paper trading (RP)
+
+paper, synthetic or free daily data, not trading. Approved targets are staged as PAPER orders,
+filled by a simulator at the next session's close with the backtest's cost model, and booked in an
+append-only, hash-chained SQLite ledger. The forward record starts on the fixed date in
+`config/paper.json` and is never backfilled.
+
+```bash
+ceap paper run-day --date 2026-11-13 --db var/paper/paper.db
+ceap paper report --db var/paper/paper.db
+ceap paper backfill --from 2026-06-01 --to 2026-10-30 --db var/paper/paper.db
+```
+
+The feed is synthetic today (scenario R01, re-dated so its out-of-sample rows are the forward
+period). Desk controls run every session: pre-trade risk checks, a kill switch (`CEAP_PAPER_HALT`),
+borrow availability, the NYSE calendar, an end-of-day reconciliation that fails loudly, P&L
+attribution and a markdown/JSON artefact per run. A free daily feed plugs in through `ceap.paper.feed.register_feed`. The scheduled workflow
+`paper-daily.yml` is off until the owner sets `PAPER_DAILY_ENABLED=true`. See COOKBOOK recipe 42 and
+LEARN section 18a.
+
 ## Configuration
 
 | Variable | Default | Meaning |

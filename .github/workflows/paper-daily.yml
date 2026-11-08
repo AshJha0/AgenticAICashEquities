@@ -1,0 +1,79 @@
+name: paper-daily
+
+# Paper trading forward record (RP). paper, synthetic or free daily data, not trading.
+# DISABLED by default: the job runs only when the repository variable PAPER_DAILY_ENABLED is 'true'.
+# The owner turns it on (Settings > Secrets and variables > Actions > Variables). Nothing here places
+# an order anywhere, calls a model, or needs a secret beyond the default GITHUB_TOKEN.
+
+on:
+  schedule:
+    - cron: "30 21 * * 1-5" # 21:30 UTC, after the 16:00 New York close all year (EST and EDT)
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "session date (YYYY-MM-DD); default: today in UTC"
+        required: false
+
+permissions:
+  contents: write # push to the forward-log branch only
+
+concurrency:
+  group: paper-daily
+  cancel-in-progress: false
+
+jobs:
+  run-day:
+    if: ${{ vars.PAPER_DAILY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CEAP_ENV: ci
+      CEAP_LLM_PROVIDER: mock
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.lock
+      - name: Install (hashed lock)
+        run: |
+          python -m pip install --require-hashes -r requirements.lock
+          python -m pip install -e . --no-deps
+      - name: Check out the forward-log branch (create it on first run)
+        run: |
+          git config user.name "ceap-paper-bot"
+          git config user.email "ceap-paper-bot@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin forward-log >/dev/null; then
+            git worktree add forward-log origin/forward-log
+            git -C forward-log switch -c forward-log
+          else
+            git worktree add --detach forward-log
+            git -C forward-log switch --orphan forward-log
+          fi
+      - name: Run the session (paper-auto is allowed explicitly; audited in the ledger database)
+        id: run
+        run: |
+          D="${{ github.event.inputs.date }}"
+          D="${D:-$(date -u +%F)}"
+          set +e
+          ceap paper run-day --date "$D" --db forward-log/paper.db --allow-paper-auto --report-dir forward-log/reports
+          rc=$?
+          set -e
+          if [ "$rc" = "3" ]; then echo "not a session: nothing to record"; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0; fi
+          exit "$rc"
+      - name: Verify, export and report
+        if: steps.run.outputs.skip != '1'
+        run: |
+          ceap paper verify --db forward-log/paper.db
+          ceap paper export --db forward-log/paper.db --out forward-log/forward_log.csv
+          ceap paper report --db forward-log/paper.db > forward-log/REPORT.txt
+          ceap paper verify-csv --csv forward-log/forward_log.csv
+      - name: Append to the forward-log branch
+        if: steps.run.outputs.skip != '1'
+        run: |
+          cd forward-log
+          git add paper.db forward_log.csv REPORT.txt reports
+          git commit -m "paper: forward log $(tail -n 1 forward_log.csv | cut -d, -f1) (paper, not trading)" || exit 0
+          git push origin forward-log

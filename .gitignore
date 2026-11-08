@@ -40,7 +40,6 @@ var/
 *.db-wal
 *.db-shm
 
-
 # R5 real-data raw cache: vendor prices and downloads, NEVER committed
 data/real_cache/
 !data/reference/sp500_changes.csv
