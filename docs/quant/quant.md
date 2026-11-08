@@ -300,6 +300,24 @@ S&P 500 coverage was 75.1 % against a required 95 % (yfinance lacks most deliste
 second-vendor cross-check could not run. No test statistic was computed. See
 [`docs/research/result_momentum_2026-11.md`](../research/result_momentum_2026-11.md).
 
+## Real data (R5) and paper trading (RP), 0.7.0
+
+**R5, evidence class VOID.** Source: `docs/research/result_momentum_2026-11.md`. Point-in-time
+coverage 75.1 % against a required 95 % (worst month 53.9 %); the Stooq cross-check was not run. No
+test statistic was computed. Descriptive pipeline checks on the same deficient sample (not evidence
+about momentum): correlation with Ken French UMD 0.869 over 228 months, FF5 + UMD R² 0.77, 0 of 613
+series hard-failed the quality gate. The breakeven figure of -38 bps one way is disclosed there
+because it partly reveals the sign of gross returns. The pseudo-holdout (2024-01-01 to 2025-12-31)
+is unspent; R5 is rerun only under a new preregistration (D20).
+
+**RP, evidence class synthetic (forward log NOT RUN LIVE).** The paper book fills at the next
+close at `|x| p (h + 0.6 sigma sqrt(|x|/ADV)) / 1e4`, capped at 10 % of ADV, with the backtest's own
+cost, financing and position-cap code. The hand-checked two-name example in LEARN §18a (checked by
+`test_two_name_three_day_ledger_by_hand`) ends day two at equity $1,002,445.07. The feed is
+synthetic; the Stooq feed refuses rows up to 2025-12-31 and has no cached data, so the earliest
+real-price start is about January 2027. Distinguishing a Sharpe of 1 from 0 needs about 1980
+sessions (LEARN §18a), so the forward record tests operations and controls, not profitability.
+
 ## What is *not* here
 
 - **No portfolio optimiser.** Target weights come from a fixed top/bottom-tercile quantile
@@ -312,11 +330,12 @@ second-vendor cross-check could not run. No test statistic was computed. See
   there rf falls back to 0 and every backtest says so in `assumptions["risk_free"]`; the calendar
   regenerates from its rules and the hurdle falls back to the committed value shipped in code.
 - **No live market data, no OMS, no venue connectivity.** Every number above is computed on
-  synthetic data. `execution.stage_orders` (the one non-read-only tool in the whole platform)
+  synthetic data, except the R5 descriptive checks, which used free daily prices and are VOID. `execution.stage_orders` (the one non-read-only tool in the whole platform)
   builds *paper* orders from the recomputed target portfolio into an in-memory store; nothing
   routes anywhere.
-- **No machine learning.** See `docs/ai-agents/ai-agents.md` — the `ml` extra in `pyproject.toml`
-  is unused by any code path today.
+- **No ML trained on real data.** Since 0.6.0 (R2B) the deterministic models in `ceap.ml` and
+  `ceap.analytics` (change points, ridge combination, calibration) are fitted to the synthetic
+  generator only; see `docs/ml/README.md`.
 
 ## Further reading
 

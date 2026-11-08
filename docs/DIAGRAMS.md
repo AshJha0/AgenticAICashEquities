@@ -8,7 +8,8 @@ Contents: 1. [End-to-end investigation pipeline](#1-end-to-end-investigation-pip
 4. [Evidence and finding model](#4-evidence-and-finding-model) · 5. [MCP topology](#5-mcp-topology) ·
 6. [Investigation sequence](#6-investigation-sequence) · 7. [Attribution decision flow](#7-attribution-decision-flow) ·
 8. [Package dependencies](#8-package-dependencies) · 9. [Stage 2 extension](#9-stage-2-research-workflow-realised-in-030) ·
-10. [CI and the release gate](#10-ci-and-the-release-gate) · 11. [LLM, RAG, ML and evaluation (0.6.0)](#11-llm-rag-ml-and-evaluation-060)
+10. [CI and the release gate](#10-ci-and-the-release-gate) · 11. [LLM, RAG, ML and evaluation (0.6.0)](#11-llm-rag-ml-and-evaluation-060) ·
+12. [Paper trading and the R5 real-data path (0.7.0)](#12-paper-trading-and-the-r5-real-data-path-070)
 
 ## 1. End-to-end investigation pipeline
 
@@ -386,3 +387,33 @@ flowchart TD
     CAS & BM & GS --> DR
 ```
 
+## 12. Paper trading and the R5 real-data path (0.7.0)
+
+Today only the synthetic branch runs. The Stooq branch is written but disabled: no files are
+cached, and the feed refuses every row up to 2025-12-31 so the R5 pseudo-holdout stays unspent. The
+R5 study itself stopped at its coverage gate (VOID).
+
+```mermaid
+flowchart TD
+    subgraph R5["R5 real-data study (VOID)"]
+        PRE["preregistration<br/>prereg_lock.json (SHA-256)"] --> UNI["universe_pit<br/>point-in-time S&P 500"]
+        UNI --> LOAD["yfinance / Stooq loaders<br/>data/real_cache/ (gitignored)"]
+        LOAD --> QG["quality gate"]
+        QG --> G1{"gate 1: coverage >= 95 %?"}
+        G1 -- "75.1 %: no" --> VOID["VOID: no statistic,<br/>holdout 2024-2025 UNSPENT"]
+    end
+    subgraph RP["RP paper trading"]
+        SYN["feed: synthetic<br/>(config/paper.json, enabled)"] --> FEED["DailyFeed"]
+        STQ["feed: stooq<br/>ceap.paper.feeds_real (disabled)"] -. "refuses rows <= 2025-12-31" .-> FEED
+        FEED --> SIG["signal on rows <= D"] --> TGT["target -> deltas"]
+        TGT --> PTC["pre-trade checks<br/>restricted, limits, 25 % ADV, price band"]
+        PTC --> APR["QueuedApprovalGateway<br/>paper-auto, audited"]
+        APR --> FILL["simulate_day(D+1)<br/>next-close fills, 10 % ADV cap"]
+        HALT["CEAP_PAPER_HALT"] -. "blocks new orders" .-> PTC
+        FILL --> LED["paper_ledger<br/>hash chain, append-only"]
+        LED --> REC{"end-of-day reconciliation"}
+        REC -- "break: exit 4, nothing committed" --> BRK["break report"]
+        REC -- "clean" --> LOG["forward log / simulated log<br/>report, export CSV"]
+    end
+    LOAD -. "same cache, after the holdout only" .-> STQ
+```

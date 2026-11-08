@@ -46,6 +46,16 @@ The architectural boundary is enforced in code, not just described:
 | Authority | `ceap.policy` | – |
 | Auditability | `Evidence` / `Finding` | a finding without resolvable evidence survives validation |
 
+**What 0.7.0 adds** (details in `CHANGELOG.md`; the last planned release).
+
+- *Real-data study (R5): VOID.* A preregistered 12-1 momentum test on an approximately
+  point-in-time S&P 500 could not run: coverage was <!-- source: docs/research/result_momentum_2026-11.md --> 75.1 % against a required 95 %, and the Stooq
+  cross-check was not run because Stooq blocks scripted downloads. No test statistic was computed;
+  the pseudo-holdout (2024-01-01 to 2025-12-31) is unspent. See [below](#real-data-study-r5-void).
+- *Paper trading (RP):* simulated next-close fills with the backtest's cost model, an append-only
+  hash-chained ledger, desk controls and a daily forward record. It runs on **synthetic data**, not
+  real prices, and it is not enabled on a schedule yet. See [Paper trading](#paper-trading-rp).
+
 **What 0.6.0 adds** (details in `CHANGELOG.md`). Evidence class for everything below: offline only;
 no live model call was made (decision D15).
 
@@ -398,6 +408,23 @@ attribution and a markdown/JSON artefact per run. A free daily feed plugs in thr
 `paper-daily.yml` is off until the owner sets `PAPER_DAILY_ENABLED=true`. See COOKBOOK recipe 43 and
 LEARN section 18a.
 
+**What the forward log is, and what it is not.**
+
+- It runs on **SYNTHETIC data, not real prices** (evidence class: synthetic). `config/paper.json`
+  sets `"feed": "synthetic"` and `in_sample_sharpe` to null.
+- The real Stooq feed (`ceap.paper.feeds_real`, feed name `"stooq"`) exists but is **not enabled**:
+  no Stooq files are cached (Stooq blocks scripted downloads and the project does not bypass bot
+  checks), the R5 pseudo-holdout to 2025-12-31 must stay unspent so the feed refuses those rows,
+  and the 12-1 signal needs twelve months of history after the holdout. Roughly January 2027 is
+  therefore the earliest it could run on real prices.
+- It checks **operations and controls** every day (fills, ledger chains, reconciliation, risk
+  blocks, the calendar). It says **nothing about strategy profitability**.
+- By the formula in LEARN section 18a, telling a true Sharpe of 1 from 0 <!-- source: tests/unit/paper/test_forward_and_ledger.py --> (alpha 0.05, power 0.8)
+  needs about **1980 sessions**, roughly eight years.
+- Owner decisions: paper trading is enabled after the 0.7.0 tag (D22), by setting the repository
+  variable `PAPER_DAILY_ENABLED=true`; no 1.0.0-rc1 until 2 to 4 weeks of that log have been reviewed
+  (D21). Until then the workflow is off (NOT RUN LIVE).
+
 ## Configuration
 
 | Variable | Default | Meaning |
@@ -441,10 +468,11 @@ Site: **https://ashjha0.github.io/AgenticAICashEquities/** (landing page with me
 * [docs/architecture/overview.md](docs/architecture/overview.md) – components, data flow, design decisions
 * [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md) – how LLM/AI/ML/agents actually work in this project (and what doesn't)
 * [docs/quant/quant.md](docs/quant/quant.md) – the deterministic quant layer: TCA, attribution, Stage 2 signal research (and what doesn't)
-* [docs/DIAGRAMS.md](docs/DIAGRAMS.md) – Mermaid diagrams: pipeline, state machine, tool-call path, evidence model, MCP topology, sequence, attribution, research workflow, CI, LLM/RAG/ML/evaluation
+* [docs/DIAGRAMS.md](docs/DIAGRAMS.md) – Mermaid diagrams: pipeline, state machine, tool-call path, evidence model, MCP topology, sequence, attribution, research workflow, CI, LLM/RAG/ML/evaluation, paper trading and the R5 real-data path
 * [docs/ml/README.md](docs/ml/README.md) – the deterministic ML models (synthetic-labelled), model cards, calibration
 * [docs/threat-model/threat-model.md](docs/threat-model/threat-model.md) – assets, threats, controls, adversarial tests
 * [docs/evaluation/evaluation.md](docs/evaluation/evaluation.md) – scenarios, thresholds, metrics, results
+* [docs/research/README.md](docs/research/README.md) – the R5 real-data study (VOID) and its preregistration
 * [docs/api/api.md](docs/api/api.md) – endpoints, auth, schemas
 * [docs/INDEX.md](docs/INDEX.md) – everything above in one table
 
@@ -470,11 +498,12 @@ curl -s http://127.0.0.1:8000/research/<task_id>/report -H "X-API-Key: dev-quant
 
 One preregistered test of 12-1 momentum on an approximately point-in-time S&P 500, on free data
 only. The preregistration was hashed and committed before any data was read. The study is **VOID**:
-point-in-time coverage was 75.1 % against a required 95 %, because yfinance lacks history for most
+point-in-time coverage was <!-- source: docs/research/result_momentum_2026-11.md --> 75.1 % against a required 95 %, because yfinance lacks history for most
 delisted names, and the Stooq cross-check could not run without bypassing a bot check, which the
 project does not do. No test statistic was computed, no verdict is issued, and the pseudo-holdout is
 unspent. The pipeline itself replicated Ken French UMD at a correlation of 0.87. Details are in
-[`docs/research/`](docs/research/README.md).
+[`docs/research/`](docs/research/README.md). It stays VOID unless the owner downloads the Stooq bulk file
+by hand, and then only under a new preregistration (decision D20).
 
 ## License
 

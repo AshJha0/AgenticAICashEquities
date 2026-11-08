@@ -714,3 +714,8 @@ committed; the break report is printed).
 Outside `CEAP_ENV=dev`, add `--allow-paper-auto` to let the `paper-auto` principal approve the
 staging; the decision is written to the audit log either way. Change the signal, capital or costs in
 `config/paper.json`. Never move `forward_start` earlier.
+
+The feed is synthetic, so this record checks operations and controls, not profitability. The
+Stooq feed (`"feed": "stooq"`) needs a local cache under `data/real_cache/stooq/` (none exists; Stooq
+blocks scripted downloads), refuses rows up to 2025-12-31, and cannot produce a 12-1 signal before
+about January 2027. The scheduled workflow stays off until `PAPER_DAILY_ENABLED=true` (D22).

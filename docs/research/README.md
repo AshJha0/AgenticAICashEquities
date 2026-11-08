@@ -5,9 +5,14 @@ not run, so no test statistic was computed and no verdict is issued. Items 5.6 a
 run, and the pseudo-holdout is unspent. See [`result_momentum_2026-11.md`](result_momentum_2026-11.md).
 The sections below record the preparation (items 5.1 to 5.5) as it was done.
 
+**Rerun conditions (D20).** R5 stays VOID. It is rerun only if the owner downloads the Stooq bulk
+file by hand, and then under a new (v2) preregistration. The paper-trading Stooq feed
+(`ceap.paper.feeds_real`) refuses every row up to 2025-12-31, so the paper record cannot spend the
+pseudo-holdout either.
+
 One preregistered test of 12-1 momentum on an approximately point-in-time S&P 500, using free data
 only (D2). This page covers the preparation: items 5.1 to 5.5. The primary test (5.6) and the one
-look at the pseudo-holdout (5.7) run after 0.6.0. **No hypothesis-test statistic has been computed.**
+look at the pseudo-holdout (5.7) were planned for after 0.6.0 and were not run (the study is VOID; decision D20). **No hypothesis-test statistic has been computed.**
 
 ## 5.1 Preregistration (locked before any data was read)
 

@@ -43,9 +43,9 @@ Revised 2026-11-07 by owner instruction (maximum parallelism, one combined PR pe
 |---|---|---|
 | 0.4.0 | R0 foundations + R1 fail-closed + R2 quant correctness (combined, owner 2026-11-07) | shipped 2026-11-07 (PR #1) |
 | 0.5.0 | R2T TCA realism + R4 platform and persistence + Ken French rf series | shipped 2026-11-08 (PRs #2, #3) |
-| 0.6.0 | R3 AI (3A, 3B, 3C, 3E) + R2B ML | |
-| 0.7.0 | R5 real-data study (VOID under its preregistration: coverage 75.1 % < 95 %) + RP paper trading | |
-| 1.0.0-rc1 | only when API and database schema are frozen; not planned here | |
+| 0.6.0 | R3 AI (3A, 3B, 3C, 3E) + R2B ML | shipped 2026-11-08 (PR #4) |
+| 0.7.0 | R5 real-data study (VOID under its preregistration: coverage 75.1 % < 95 %) + RP paper trading | final planned release (combined PR) |
+| 1.0.0-rc1 | only when API and database schema are frozen; not planned here (D21) | |
 
 ## 2. Rounds, items, estimates
 
@@ -325,7 +325,7 @@ extra usage.
 4. Parallel lanes: R2T on `r2t-tca`, R4 on `r4-platform`, the Ken French rf series. One combined PR,
    tag 0.5.0 (shipped 2026-11-08, PRs #2, #3).
 5. Parallel lanes: R3A, then R3B (R3B builds on R3A); R3C after R3B's reporter change lands; R2B
-   after R2T. Then R3E. One combined PR, tag 0.6.0.
+   after R2T. Then R3E. One combined PR, tag 0.6.0 (shipped 2026-11-08, PR #4).
 6. R5 (VOID under its preregistration) and RP paper trading. Tag 0.7.0. RP (paper trading, `rp-paper`, based on `r4-platform`) ships with R5 in the 0.7.0
    combined PR; its real-data feed plugs into R5's connector at integration.
 7. Update the memory note with what shipped and what did not.
@@ -403,7 +403,7 @@ decision D15 changes.
 - **D13** reversed: no signal-prototyping agent, no sandboxed model-written code in 0.x. Reason: a subprocess with an import allowlist is not a sandbox (numpy and pandas are escape surfaces, no seccomp on Windows), it cannot be exercised without live calls, and it is the largest multiple-testing engine in the project.
 - **D14** (a): Opus 5.5 planner, Sonnet 5.5 narrative and critique, Haiku 5.5 reserved for judge paths, all as pinned configuration exercised only through cassettes and contract tests. Reason: the 0.3.1 live run showed planner quality drives outcomes.
 - **D15** (b): no live model calls. Every model-dependent path is proven offline by wire contract tests, adversarial fake clients, harness invariants and provenance-tagged cassettes; anything that needs a real model is labelled UNKNOWN / NOT RUN LIVE. Reason: owner constraint of zero spend. If the owner later funds a capped run, D15 becomes (a) and nothing else changes.
-- **D16** revised 2026-11-07 (owner: maximum parallelism, one combined PR per release): release train 0.4.0 (R0+R1+R2, shipped 2026-11-07), 0.5.0 (R2T+R4+Ken French rf, shipped 2026-11-08, PRs #2, #3), 0.6.0 (R3A, R3B, R3C, R3E, R2B), 0.7.0 (R5, VOID, + RP paper trading); 1.0.0-rc only when API and database schema are frozen. Reason: fifteen breaking changes in one 0.4.0 cannot be rolled back.
+- **D16** revised 2026-11-07 (owner: maximum parallelism, one combined PR per release): release train 0.4.0 (R0+R1+R2, shipped 2026-11-07), 0.5.0 (R2T+R4+Ken French rf, shipped 2026-11-08, PRs #2, #3), 0.6.0 (R3A, R3B, R3C, R3E, R2B, shipped 2026-11-08, PR #4), 0.7.0 (R5, VOID, + RP paper trading; the final planned release); 1.0.0-rc only when API and database schema are frozen. Reason: fifteen breaking changes in one 0.4.0 cannot be rolled back.
 - **D17** new: at most two Claude sessions in parallel. Reason: the owner reviews about two substantial diffs a day; three sessions outrun the reviewer and inflate the conflict tax. **Superseded** on 2026-11-07 by the owner's max-parallel instruction (as many lanes as useful, one combined PR per release).
 
 ### Owner decisions of 2026-11-08
