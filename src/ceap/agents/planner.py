@@ -39,7 +39,6 @@ from ceap.domain.common import new_id
 from ceap.domain.plans import Plan, PlanStep, StepType
 from ceap.domain.tools import ToolRequest
 from ceap.harness.cancellation import TaskCancelled
-from ceap.rag.query import allowed_classifications, retrieval_query
 from ceap.llm.client import LLMClient, canonical_plan
 from ceap.llm.models import (
     RUNG_DETERMINISTIC,
@@ -58,6 +57,7 @@ from ceap.llm.schemas import (
     plan_semantic_errors,
     validate_model,
 )
+from ceap.rag.query import allowed_classifications, retrieval_query
 
 log = logging.getLogger(__name__)
 
@@ -254,7 +254,8 @@ class PlannerAgent(BaseAgent):
                 )
             )
         # R3C 3C.3: the knowledge query and classifications are built here, never taken from the model
-        hypotheses, _ = rank_proposal(raw.get("hypotheses") if isinstance(raw.get("hypotheses"), list) else [])
+        proposed = raw.get("hypotheses")
+        hypotheses, _ = rank_proposal(proposed if isinstance(proposed, list) else [])
         knowledge_query = retrieval_query(task.description, facts, hypotheses)
         readable = ",".join(allowed_classifications(context.policy_context.roles))
         steps = _ground_knowledge_steps(steps, knowledge_query, readable)

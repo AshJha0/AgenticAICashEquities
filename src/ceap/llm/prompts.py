@@ -26,7 +26,15 @@ from importlib import resources
 from typing import Any
 
 _HEADER = re.compile(r"^<!-- prompt: (?P<id>[a-z_]+) \| version: (?P<version>\d+) -->\n")
-PROMPT_IDS = ("planner", "research_planner", "report", "research_report", "critic")
+PROMPT_IDS = (
+    "planner",
+    "research_planner",
+    "report",
+    "research_report",
+    "critic",
+    "reporter_claims",
+    "reporter_prose",
+)
 
 
 @dataclass(frozen=True)
@@ -72,6 +80,8 @@ RESEARCH_PLANNER_SYSTEM_PROMPT = get_prompt("research_planner").text
 REPORT_SYSTEM_PROMPT = get_prompt("report").text
 RESEARCH_REPORT_SYSTEM_PROMPT = get_prompt("research_report").text
 CRITIC_SYSTEM_PROMPT = get_prompt("critic").text
+REPORTER_CLAIMS_SYSTEM_PROMPT = get_prompt("reporter_claims").text  # R3C 3C.4 call 1
+REPORTER_PROSE_SYSTEM_PROMPT = get_prompt("reporter_prose").text  # R3C 3C.4 call 2
 
 
 # ------------------------------------------------------------------ injection hygiene (R3B 3B.5)

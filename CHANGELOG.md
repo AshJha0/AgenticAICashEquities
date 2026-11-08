@@ -6,6 +6,32 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### R3C wiring: 3C.3 retrieval in the planner and policy, 3C.4 two-call reporter with citations
+
+Label: `contracts-change` (`domain/evidence.py`: `document_citation`; `LLMResponse.citations`;
+the knowledge tools' input schema gains `classifications`). No live model call (D15).
+
+- **Breaking:** the knowledge query is built by `ceap.rag.query.retrieval_query` from the parsed
+  question (domain vocabulary only), symbol, window and cause candidates; the planner replaces
+  whatever query the model wrote and pins `classifications` to the principal's roles.
+  `KnowledgeBase.search` scores `"; "`-separated segments separately and merges them round-robin.
+- **Breaking:** `knowledge.search_documents` and `knowledge.get_document` take `classifications`
+  (comma-separated) and default to `public,internal`; a new policy rule
+  (`knowledge-classification`) denies a request for more than the roles allow. Viewers can no longer
+  read `restricted` documents (`04_trading_limits.md`).
+- **Breaking:** investigation reports are written in two calls: structured claims
+  (prompt **reporter_claims@1**), validated against facts, evidence ids and numbers; then prose with
+  citations (prompt **reporter_prose@1**) over one `document` block per retrieved chunk with
+  `cache_control` on the last. Each citation's quoted text must equal the chunk sent; verified
+  citations become `DOC` evidence with the narrative span, document version and corpus hash, a
+  fabricated quote is a blocking `NARRATIVE_UNTRACEABLE`. The narrative ends with the knowledge
+  corpus hash. New report fields under `critique.knowledge`.
+- `AnthropicLLMClient` returns `content_block_location` citations with their offsets in the joined
+  text (`LLMResponse.citations`); the mock and the hand-built cassettes cite verbatim.
+- Contract snapshots: `wire_request_claims.json`, `wire_request_prose.json` (new),
+  `mcp_tools.json`, `wire_request_planning.json` and the ten investigation cassettes regenerated.
+
+
 ### R3B: agents and agentic AI, within the boundary (PLAN section 2, items 3B.1-3B.9)
 
 No live model call anywhere (D15); no code-writing agent (D13); case memory per D10.

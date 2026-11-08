@@ -60,14 +60,20 @@ class MockLLMClient(LLMClient):
         self.calls.append(request)
         last = request.messages[-1]["content"] if request.messages else ""
         parsed: dict[str, Any] | None = None
+        citations: list[dict[str, Any]] = []
         if request.purpose == "planning":
             # Structured parameters arrive out-of-band; never parse them out of the prose,
             # which contains untrusted user text (a question containing "{}" must not win).
             facts = dict(request.metadata.get("parameters") or {})
             parsed = canonical_plan(facts)
             content = json.dumps(parsed)
+        elif request.purpose == "claims":
+            parsed = mock_claims(_own_payload(_last_text(last)))
+            content = json.dumps(parsed)
         elif request.purpose == "narrative":
-            content = _mock_narrative(_own_payload(last))
+            content = _mock_narrative(_own_payload(_last_text(last)))
+            if isinstance(last, list):  # R3C 3C.4 citations call: document blocks, then the text
+                citations = _mock_citations(last, content)
         elif request.purpose == "critique":
             parsed = _mock_critique(_own_payload(last))
             content = json.dumps(parsed)
@@ -76,14 +82,74 @@ class MockLLMClient(LLMClient):
         if request.output_model is None:
             parsed = None
         return LLMResponse(
+            citations=tuple(citations),
             parsed=parsed,
             content=content,
             tool_calls=[],
-            input_tokens=len(last) // 4,
+            input_tokens=len(str(last)) // 4,
             output_tokens=len(content) // 4,
             model=self.model,
             stop_reason="end_turn",
         )
+
+
+def _last_text(content: Any) -> str:
+    """The text of a message: a string, or the last ``text`` block of a block list."""
+    if isinstance(content, str):
+        return content
+    texts = [b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text"]
+    return texts[-1] if texts else ""
+
+
+def mock_claims(facts: dict[str, Any]) -> dict[str, Any]:
+    """R3C 3C.4 call 1 (mock): one claim per finding, plus one policy claim when policy was retrieved."""
+    claims: list[dict[str, Any]] = [
+        {
+            "section": "FINDINGS",
+            "text": str(f.get("statement", ""))[:500],
+            "fact_keys": ["findings"],
+            "evidence_ids": [str(e) for e in (f.get("evidence") or [])][:8],
+            "needs_policy_support": False,
+        }
+        for f in (facts.get("findings") or [])[:8]
+        if isinstance(f, dict) and f.get("evidence")
+    ]
+    policy = [p for p in (facts.get("policy_context") or []) if isinstance(p, dict)]
+    if policy:
+        claims.append(
+            {
+                "section": "CONCLUSION",
+                "text": f"The applicable policy is {policy[0].get('title')}: {policy[0].get('section')}.",
+                "fact_keys": ["policy_context"],
+                "evidence_ids": [str(e) for e in (policy[0].get("evidence") or [])][:8],
+                "needs_policy_support": True,
+            }
+        )
+    return {"claims": claims}
+
+
+def _mock_citations(blocks: list[Any], content: str) -> list[dict[str, Any]]:
+    """R3C 3C.4 call 2 (mock): cite each document's first content block verbatim, on the last line."""
+    docs = [b for b in blocks if isinstance(b, dict) and b.get("type") == "document"]
+    start = content.rfind("\n") + 1
+    out = []
+    for i, doc in enumerate(docs):
+        parts = (doc.get("source") or {}).get("content") or []
+        if parts:
+            out.append(
+                {
+                    "type": "content_block_location",
+                    "document_index": i,
+                    "document_title": doc.get("title"),
+                    "start_block_index": 0,
+                    "end_block_index": 1,
+                    "cited_text": parts[0].get("text", ""),
+                    "text": content[start:],
+                    "text_start": start,
+                    "text_end": len(content),
+                }
+            )
+    return out
 
 
 def canonical_plan(facts: dict[str, Any]) -> dict[str, Any]:
@@ -737,9 +803,15 @@ class AnthropicLLMClient(LLMClient):
         text_parts: list[str] = []
         tool_calls: list[dict[str, Any]] = []
         parsed: dict[str, Any] | None = None
+        citations: list[dict[str, Any]] = []
+        offset = 0
         for block in response.content:
             btype = getattr(block, "type", "")
             if btype == "text":
+                if text_parts:
+                    offset += 1  # the newline joining text parts below
+                citations.extend(_citations_of(block, offset))
+                offset += len(block.text)
                 text_parts.append(block.text)
                 out = getattr(block, "parsed_output", None)
                 if out is not None and parsed is None:
@@ -763,7 +835,29 @@ class AnthropicLLMClient(LLMClient):
             cache_read_tokens=int(getattr(usage, "cache_read_input_tokens", 0) or 0),
             cache_write_tokens=int(getattr(usage, "cache_creation_input_tokens", 0) or 0),
             request_id=getattr(response, "_request_id", None),
+            citations=tuple(citations),
         )
+
+
+_CITATION_FIELDS = (
+    "type",
+    "document_index",
+    "document_title",
+    "start_block_index",
+    "end_block_index",
+    "cited_text",
+)
+
+
+def _citations_of(block: Any, offset: int) -> list[dict[str, Any]]:
+    """R3C 3C.4: the citations of one text block, with the block's span in the joined content."""
+    out: list[dict[str, Any]] = []
+    for c in getattr(block, "citations", None) or ():
+        raw = c.model_dump(mode="json") if hasattr(c, "model_dump") else dict(c)
+        item = {k: raw.get(k) for k in _CITATION_FIELDS}
+        item.update({"text": block.text, "text_start": offset, "text_end": offset + len(block.text)})
+        out.append(item)
+    return out
 
 
 def strict_tool(tool: dict[str, Any]) -> dict[str, Any]:

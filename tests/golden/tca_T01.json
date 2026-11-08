@@ -328,6 +328,131 @@
       "UNTESTED": []
     },
     "incomplete_analysis": [],
+    "knowledge": {
+      "citation_warnings": [],
+      "citations": [
+        "DOC-00000072",
+        "DOC-00000073",
+        "DOC-00000074"
+      ],
+      "claims": [
+        {
+          "evidence_ids": [
+            "ORDER-00000035",
+            "TCA-0000003c"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 52,000 shares across 216 fills on 5 venues."
+        },
+        {
+          "evidence_ids": [
+            "TCA-0000003c",
+            "TCA-00000045",
+            "TCA-00000058"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Implementation shortfall was -18.2 bps versus arrival 229.6107 (decreased by 11.0 bps relative to the baseline's -7.2 bps)."
+        },
+        {
+          "evidence_ids": [
+            "TCA-0000003c",
+            "TCA-00000045",
+            "TCA-00000058"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Execution VWAP 229.2668 versus interval VWAP 229.2506: slippage +0.7 bps (baseline +1.2 bps, delta -0.5 bps)."
+        },
+        {
+          "evidence_ids": [
+            "TCA-0000003c",
+            "TCA-00000045",
+            "TCA-00000058"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Fill rate was 86.7% of the parent quantity with participation of 5.1% of market volume."
+        },
+        {
+          "evidence_ids": [
+            "TCA-0000003c",
+            "TCA-00000045",
+            "TCA-0000006c"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Execution quality did not materially deteriorate versus the baseline: implementation shortfall delta -11.0 bps, slippage-vs-VWAP delta -0.5 bps."
+        },
+        {
+          "evidence_ids": [
+            "EXEC-0000004a",
+            "DOC-0000004b",
+            "TCA-0000003c"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Observed participation 5.1% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook."
+        },
+        {
+          "evidence_ids": [
+            "ENG-00000047",
+            "TCA-00000061"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Execution latency remained within the normal range (0.98x baseline, p99 1002 us)."
+        },
+        {
+          "evidence_ids": [
+            "RISK-00000068",
+            "TCA-0000003c"
+          ],
+          "fact_keys": [
+            "findings"
+          ],
+          "needs_policy_support": false,
+          "section": "FINDINGS",
+          "text": "Trading limits were respected (peak utilisation 57%)."
+        },
+        {
+          "evidence_ids": [
+            "DOC-0000004b"
+          ],
+          "fact_keys": [
+            "policy_context"
+          ],
+          "needs_policy_support": true,
+          "section": "CONCLUSION",
+          "text": "The applicable policy is Execution Algorithm Documentation: Reading a report."
+        }
+      ],
+      "corpus_hash": "484bf03c03bde71eaaf8a91997b868a5c8c32447a3aaff8a456cd4d5961e0d28",
+      "dropped_claims": [],
+      "unsupported_policy_claims": []
+    },
     "llm_model": "mock-deterministic-v1",
     "llm_overall": "Findings are consistent with the deterministic evidence; confidence adjustments applied where evidence was thin.",
     "narrative_evidence_warnings": [],
@@ -796,21 +921,22 @@
     {
       "attributes": {
         "arguments": {
+          "classifications": "public,internal,restricted",
           "k": 4,
-          "query": "VWAP configuration participation ceiling behaviour under wide spreads and low liquidity; escalation policy"
+          "query": "execution implementation shortfall; AAPL 2026-09-18T14:00:00+01:00 2026-09-18T15:00:00+01:00; execution policy escalation deterioration threshold"
         },
         "correlation_id": "CORR-00000015",
-        "digest": "0ffb5643ff84e764",
+        "digest": "8549857724c20a5b",
         "step_id": "step-15",
         "task_id": "TASK-00000001",
         "tool_id": "knowledge.search_documents",
         "values": {
           "corpus_hash": "484bf03c03bde71eaaf8a91997b868a5c8c32447a3aaff8a456cd4d5961e0d28",
-          "count": 3,
-          "query": "VWAP configuration participation ceiling behaviour under wide spreads and low liquidity; escalation policy"
+          "count": 4,
+          "query": "execution implementation shortfall; AAPL 2026-09-18T14:00:00+01:00 2026-09-18T15:00:00+01:00; execution policy escalation deterioration threshold"
         }
       },
-      "description": "knowledge.search_documents(query=VWAP configuration participation, k=4) -> 3 records",
+      "description": "knowledge.search_documents(query=execution implementation shortfa, k=4, classifications=public,internal,restricted) -> 4 records",
       "id": "DOC-0000004b",
       "source": "knowledge.search_documents",
       "timestamp": "2026-01-01T00:00:00.102000+00:00",
@@ -1272,6 +1398,69 @@
       "source": "agent:critic",
       "timestamp": "2026-01-01T00:00:00.158000+00:00",
       "type": "CALCULATION"
+    },
+    {
+      "attributes": {
+        "chunk_id": "DOC-cda0f096#2",
+        "cited_sentence": "- TCA-00000070",
+        "cited_text": "## Reading a report\n\nExecution VWAP above interval VWAP for a buy means we paid more than the market average; the gap is the VWAP\nslippage. Implementation shortfall against arrival includes price drift, so a large IS with small VWAP\nslippage usually indicates a market move rather than poor scheduling.",
+        "corpus_hash": "484bf03c03bde71eaaf8a91997b868a5c8c32447a3aaff8a456cd4d5961e0d28",
+        "document": "08_execution_algorithm_documentation.md",
+        "effective_date": "2026-10-01",
+        "narrative_span": [
+          2985,
+          2999
+        ],
+        "section": "Reading a report",
+        "version": "1.0"
+      },
+      "description": "Execution Algorithm Documentation / Reading a report (version 1.0)",
+      "id": "DOC-00000072",
+      "source": "knowledge.citation",
+      "timestamp": null,
+      "type": "DOCUMENT"
+    },
+    {
+      "attributes": {
+        "chunk_id": "DOC-4f44a2f1#0",
+        "cited_sentence": "- TCA-00000070",
+        "cited_text": "# Attribution Threshold Tables\n\n## Why these deterioration thresholds\n\nAn investigation only looks for causes when the window has deteriorated against its baseline: implementation\nshortfall up by at least 1.5 bps. The threshold sits just above the noise of a one-hour VWAP-slippage estimate on\na liquid name, so ordinary hour-to-hour variation does not trigger an attribution, while the 5 bps escalation\nlevel in the execution policy is still caught with margin. Thresholds are a ratio against the baseline window\nso that one table works across names of different volatility and spread.",
+        "corpus_hash": "484bf03c03bde71eaaf8a91997b868a5c8c32447a3aaff8a456cd4d5961e0d28",
+        "document": "09_attribution_thresholds.md",
+        "effective_date": "2026-11-07",
+        "narrative_span": [
+          2985,
+          2999
+        ],
+        "section": "Why these deterioration thresholds",
+        "version": "1.0"
+      },
+      "description": "Attribution Threshold Tables / Why these deterioration thresholds (version 1.0)",
+      "id": "DOC-00000073",
+      "source": "knowledge.citation",
+      "timestamp": null,
+      "type": "DOCUMENT"
+    },
+    {
+      "attributes": {
+        "chunk_id": "DOC-cda0f096#0",
+        "cited_sentence": "- TCA-00000070",
+        "cited_text": "# Execution Algorithm Documentation\n\n## Strategies\n\n- VWAP: tracks interval VWAP using the historical volume profile (default).\n- TWAP: evenly spaced slices, used for illiquid names or when the volume profile is unreliable.\n- IS (Implementation Shortfall): front-loads execution to minimise arrival-price risk at the cost of impact.\n- POV (Percentage of Volume): follows realised volume at a fixed participation rate.",
+        "corpus_hash": "484bf03c03bde71eaaf8a91997b868a5c8c32447a3aaff8a456cd4d5961e0d28",
+        "document": "08_execution_algorithm_documentation.md",
+        "effective_date": "2026-10-01",
+        "narrative_span": [
+          2985,
+          2999
+        ],
+        "section": "Strategies",
+        "version": "1.0"
+      },
+      "description": "Execution Algorithm Documentation / Strategies (version 1.0)",
+      "id": "DOC-00000074",
+      "source": "knowledge.citation",
+      "timestamp": null,
+      "type": "DOCUMENT"
     }
   ],
   "execution_id": "RUN-00000003",
@@ -2021,7 +2210,7 @@
       }
     }
   },
-  "narrative": "AAPL EXECUTION INVESTIGATION 14:00-15:00 London\n\nEXECUTIVE SUMMARY\n\nExecution quality in the window was consistent with the baseline: implementation shortfall moved by -11.0 bps and slippage versus interval VWAP by -0.5 bps. No market, venue or technology anomaly of material size was identified.\n\nPRIMARY OBSERVATIONS\n\n1. Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 52,000 shares across 216 fills on 5 venues. [confidence 0.90]\n2. Implementation shortfall was -18.2 bps versus arrival 229.6107 (decreased by 11.0 bps relative to the baseline's -7.2 bps). [confidence 0.90]\n3. Execution VWAP 229.2668 versus interval VWAP 229.2506: slippage +0.7 bps (baseline +1.2 bps, delta -0.5 bps). [confidence 0.90]\n4. Fill rate was 86.7% of the parent quantity with participation of 5.1% of market volume. [confidence 0.90]\n5. Execution quality did not materially deteriorate versus the baseline: implementation shortfall delta -11.0 bps, slippage-vs-VWAP delta -0.5 bps. [confidence 0.90]\n6. Observed participation 5.1% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook. [confidence 0.85]\n7. Execution latency remained within the normal range (0.98x baseline, p99 1002 us). [confidence 0.85]\n8. Trading limits were respected (peak utilisation 57%). [confidence 0.85]\n\nEXECUTION\n\nVWAP: 229.2668 (market VWAP 229.2506)\nArrival price: 229.6107\nImplementation shortfall: -18.2 bps (baseline -7.2 bps)\nSlippage vs interval VWAP: +0.7 bps (baseline +1.2 bps)\nAverage spread: 1.85 bps\nFill rate: 86.7%\nParticipation rate: 5.1%\nMarket impact: -45.3 bps\n\nMARKET CONDITIONS\n\nVolatility: +2% vs baseline (3.35 bps/min)\nDisplayed depth: -2% vs baseline\nQuoted spread: -1% vs baseline\nPrice drift in window: -39.6 bps\nStale quotes: 0.2%; crossed quotes: 0\n\nTECHNOLOGY\n\nExecution latency: Normal (ratio 0.98 vs baseline)\nReject rate: Normal (0.0%)\nDeployments in scope: 0; error logs: 0\n\nCONCLUSION\n\nThe evidence does not indicate a material deterioration attributable to market conditions, venue behaviour or technology.\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the ranked causes above.\n\nPOLICY CONTEXT\n\n- Execution Policy / Escalation: ## Escalation\n- VWAP Execution Algorithm Runbook / Configuration in force: ## Configuration in force\n- Attribution Threshold Tables / Cause threshold table: | Cause | Metric | Threshold |\n\nCRITIC\n\nReviewed 17 findings: 17 supported by resolvable evidence, 0 unsupported. Confidence lowered on 1 finding(s). No cross-agent contradictions.\n\nEVIDENCE\n\n- CHANGE-00000048\n- DOC-0000004b\n- ENG-00000047\n- ENG-0000004f\n- EXEC-00000037\n- EXEC-0000004a\n- LOG-00000049\n- LOG-0000004c\n- MARKET-0000003a\n- MARKET-0000003b\n- ORDER-00000035\n- ORDER-00000036\n- RISK-00000050\n- RISK-00000068\n- TCA-00000038\n- TCA-00000039\n- TCA-0000003c\n- TCA-00000045\n- TCA-00000046\n- TCA-00000052\n- TCA-00000058\n- TCA-0000005d\n- TCA-00000061\n- TCA-0000006c\n- TCA-00000070\n\nHYPOTHESES\n\nSupported hypotheses: 0\nRefuted hypotheses: 8\n- MARKET_VOLATILITY: score 0.0 (evidence: TCA-0000006c)\n- WIDE_SPREADS: score 0.0 (evidence: TCA-0000006c)\n- LOW_LIQUIDITY: score 0.0 (evidence: TCA-0000006c)\n- VENUE_DEGRADATION: score 0.0 (evidence: TCA-0000006c)\n- TECHNOLOGY_LATENCY: score 0.0 (evidence: TCA-0000006c)\n- MARKET_DATA_ANOMALY: score 0.0 (evidence: TCA-0000006c)\n- LARGE_ORDER_IMPACT: score 0.0 (evidence: TCA-0000006c)\n- PRICE_MOVEMENT: score 0.0 (evidence: TCA-0000006c)\nUntested hypotheses: 0",
+  "narrative": "AAPL EXECUTION INVESTIGATION 14:00-15:00 London\n\nEXECUTIVE SUMMARY\n\nExecution quality in the window was consistent with the baseline: implementation shortfall moved by -11.0 bps and slippage versus interval VWAP by -0.5 bps. No market, venue or technology anomaly of material size was identified.\n\nPRIMARY OBSERVATIONS\n\n1. Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 52,000 shares across 216 fills on 5 venues. [confidence 0.90]\n2. Implementation shortfall was -18.2 bps versus arrival 229.6107 (decreased by 11.0 bps relative to the baseline's -7.2 bps). [confidence 0.90]\n3. Execution VWAP 229.2668 versus interval VWAP 229.2506: slippage +0.7 bps (baseline +1.2 bps, delta -0.5 bps). [confidence 0.90]\n4. Fill rate was 86.7% of the parent quantity with participation of 5.1% of market volume. [confidence 0.90]\n5. Execution quality did not materially deteriorate versus the baseline: implementation shortfall delta -11.0 bps, slippage-vs-VWAP delta -0.5 bps. [confidence 0.90]\n6. Observed participation 5.1% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook. [confidence 0.85]\n7. Execution latency remained within the normal range (0.98x baseline, p99 1002 us). [confidence 0.85]\n8. Trading limits were respected (peak utilisation 57%). [confidence 0.85]\n\nEXECUTION\n\nVWAP: 229.2668 (market VWAP 229.2506)\nArrival price: 229.6107\nImplementation shortfall: -18.2 bps (baseline -7.2 bps)\nSlippage vs interval VWAP: +0.7 bps (baseline +1.2 bps)\nAverage spread: 1.85 bps\nFill rate: 86.7%\nParticipation rate: 5.1%\nMarket impact: -45.3 bps\n\nMARKET CONDITIONS\n\nVolatility: +2% vs baseline (3.35 bps/min)\nDisplayed depth: -2% vs baseline\nQuoted spread: -1% vs baseline\nPrice drift in window: -39.6 bps\nStale quotes: 0.2%; crossed quotes: 0\n\nTECHNOLOGY\n\nExecution latency: Normal (ratio 0.98 vs baseline)\nReject rate: Normal (0.0%)\nDeployments in scope: 0; error logs: 0\n\nCONCLUSION\n\nThe evidence does not indicate a material deterioration attributable to market conditions, venue behaviour or technology.\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the ranked causes above.\n\nPOLICY CONTEXT\n\n- Execution Algorithm Documentation / Reading a report: ## Reading a report\n- Attribution Threshold Tables / Why these deterioration thresholds: # Attribution Threshold Tables\n- Execution Algorithm Documentation / Strategies: # Execution Algorithm Documentation\n\nCRITIC\n\nReviewed 17 findings: 17 supported by resolvable evidence, 0 unsupported. Confidence lowered on 1 finding(s). No cross-agent contradictions.\n\nEVIDENCE\n\n- CHANGE-00000048\n- DOC-0000004b\n- ENG-00000047\n- ENG-0000004f\n- EXEC-00000037\n- EXEC-0000004a\n- LOG-00000049\n- LOG-0000004c\n- MARKET-0000003a\n- MARKET-0000003b\n- ORDER-00000035\n- ORDER-00000036\n- RISK-00000050\n- RISK-00000068\n- TCA-00000038\n- TCA-00000039\n- TCA-0000003c\n- TCA-00000045\n- TCA-00000046\n- TCA-00000052\n- TCA-00000058\n- TCA-0000005d\n- TCA-00000061\n- TCA-0000006c\n- TCA-00000070\n\nHYPOTHESES\n\nSupported hypotheses: 0\nRefuted hypotheses: 8\n- MARKET_VOLATILITY: score 0.0 (evidence: TCA-0000006c)\n- WIDE_SPREADS: score 0.0 (evidence: TCA-0000006c)\n- LOW_LIQUIDITY: score 0.0 (evidence: TCA-0000006c)\n- VENUE_DEGRADATION: score 0.0 (evidence: TCA-0000006c)\n- TECHNOLOGY_LATENCY: score 0.0 (evidence: TCA-0000006c)\n- MARKET_DATA_ANOMALY: score 0.0 (evidence: TCA-0000006c)\n- LARGE_ORDER_IMPACT: score 0.0 (evidence: TCA-0000006c)\n- PRICE_MOVEMENT: score 0.0 (evidence: TCA-0000006c)\nUntested hypotheses: 0\n\nKnowledge corpus sha256:484bf03c03bde71eaaf8a91997b868a5c8c32447a3aaff8a456cd4d5961e0d28",
   "primary_observations": [
     "Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 52,000 shares across 216 fills on 5 venues.",
     "Implementation shortfall was -18.2 bps versus arrival 229.6107 (decreased by 11.0 bps relative to the baseline's -7.2 bps).",

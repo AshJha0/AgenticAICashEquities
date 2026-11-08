@@ -55,3 +55,6 @@ class LLMResponse:
     cache_read_tokens: int = 0
     cache_write_tokens: int = 0
     request_id: str | None = None
+    # R3C 3C.4: citations on text blocks (citations call only): document_index, start/end_block_index,
+    # cited_text, type, and the cited sentence with its [text_start, text_end) offsets in ``content``
+    citations: tuple[dict[str, Any], ...] = ()

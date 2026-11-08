@@ -354,6 +354,19 @@ escalation policy; the execution agent compares observed participation with the 
 ceiling and cites both the configuration tool output and the runbook; the report gets a
 POLICY CONTEXT section.
 
+
+**Retrieval you can audit (R3C).** Retrieval here is keyword search (BM25), measured on a held-out
+query set, not "semantic search". Three ideas carry over to any RAG system:
+
+- *Let code write the query.* The model plans; the harness builds the retrieval query from the
+  parsed question (domain words only), the symbol, the window and the cause candidates. A model
+  cannot steer retrieval, and an injected sentence cannot become a tool argument.
+- *Filter by who is asking, twice.* The planner pins the classifications a principal may read, and
+  the policy engine denies a request that asks for more. Defaults are least privilege.
+- *Check every quote.* The writer cites document blocks; code compares each quoted span with the
+  exact chunk that was sent and only then records it as evidence, with the document version and the
+  corpus hash. "No policy found" is a valid answer; a confident citation of nothing is not.
+
 ## 13. The synthetic market and the 50 scenarios
 
 `SyntheticMarketGenerator` builds a seeded dataset per scenario over 12:00–16:00 London:

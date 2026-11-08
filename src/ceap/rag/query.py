@@ -52,6 +52,22 @@ _CAUSE_TRIGGERS: dict[str, tuple[str, ...]] = {
     "LARGE_ORDER_IMPACT": ("participation", "size", "large"),
     "PRICE_MOVEMENT": ("drift", "move", "movement", "rally", "selloff"),
 }
+#: question words allowed into the query: the domain vocabulary only. Anything else in the question
+#: (including an injection attempt) never reaches a tool argument.
+DOMAIN_TERMS = frozenset(
+    tokenize(" ".join(CAUSE_PHRASES.values()))
+    + [t for ts in _CAUSE_TRIGGERS.values() for t in tokenize(" ".join(ts))]
+    + tokenize(
+        "vwap twap pov implementation shortfall slippage arrival benchmark impact permanent temporary "
+        "spread cost fill rate rejects reject child parent order orders algorithm strategy schedule "
+        "participation ceiling limit limits position notional breach stress escalation explanation "
+        "deterioration deteriorated threshold thresholds baseline window policy policies runbook "
+        "incident deployment change rollback router sor dark pool lit auction open close opening "
+        "closing intraday volume profile urgency passive aggressive tick ticks market data quote "
+        "quotes nbbo feed gap tca methodology attribution cause causes evidence best execution "
+        "approval promotion research backtest turnover drag out-of-sample capacity"
+    )
+)
 _INVESTIGATION_TAIL = "execution policy escalation deterioration threshold"
 _RESEARCH_TAIL = "research promotion criteria out-of-sample cost drag approval policy"
 
@@ -67,9 +83,9 @@ def cause_candidates(question: str, hypotheses: Iterable[str] = ()) -> list[str]
 
 
 def retrieval_query(question: str, facts: Mapping[str, Any], hypotheses: Iterable[str] = ()) -> str:
-    """Deterministic retrieval query: question terms, symbol and window, one segment per cause."""
+    """Deterministic retrieval query: domain terms of the question, symbol and window, one segment per cause."""
     research = facts.get("kind") == "research"
-    terms = list(dict.fromkeys(tokenize(question)))[:MAX_QUESTION_TERMS]
+    terms = [t for t in dict.fromkeys(tokenize(question)) if t in DOMAIN_TERMS][:MAX_QUESTION_TERMS]
     head = " ".join(terms)
     segments = [head] if head else []
     if not research:

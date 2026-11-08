@@ -11,6 +11,14 @@
     "sha256": "ebfaac4ca69da17afd6106c4ff7d4d345cfdc3bbfd6a2ce3108cc87eb079489a",
     "version": "1"
   },
+  "reporter_claims": {
+    "sha256": "a41258cb32832636cbaed3736874d820db5e06426d50b7a8ff50370c7cf57304",
+    "version": "1"
+  },
+  "reporter_prose": {
+    "sha256": "fc59d6a0e76a636355fc51e3abe1e7cccc2db2fd9b3b9259b06018058035c676",
+    "version": "1"
+  },
   "research_planner": {
     "sha256": "be03bc38e8b9dccab2d04248268aeaae3a5b0ba593e07ba2a6ed28f81d35acd7",
     "version": "2"

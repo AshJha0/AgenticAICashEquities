@@ -20,7 +20,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from ceap.llm.client import canonical_plan
+from ceap.llm.client import canonical_plan, mock_claims
 from ceap.llm.recording import purpose_of
 
 CASSETTE_DIR = Path(__file__).parent
@@ -72,6 +72,26 @@ def _message(text: str, model: str) -> dict[str, Any]:
     }
 
 
+def cited_message(body: dict[str, Any], text: str, sentence: str, model: str) -> dict[str, Any]:
+    """R3C 3C.4: prose whose last sentence cites every document block verbatim (content_block_location)."""
+    blocks = body["messages"][0]["content"]
+    docs = [b for b in blocks if isinstance(b, dict) and b.get("type") == "document"]
+    citations = [
+        {
+            "type": "content_block_location",
+            "document_index": i,
+            "document_title": d.get("title"),
+            "start_block_index": 0,
+            "end_block_index": 1,
+            "cited_text": d["source"]["content"][0]["text"],
+        }
+        for i, d in enumerate(docs)
+    ]
+    message = _message(text, model)
+    message["content"].append({"type": "text", "text": sentence, "citations": citations})
+    return message
+
+
 def golden_responder(body: dict[str, Any]) -> dict[str, Any]:
     purpose = purpose_of(body)
     user = body["messages"][0]["content"]
@@ -94,4 +114,13 @@ def golden_responder(body: dict[str, Any]) -> dict[str, Any]:
                 }
             )
         return _message(json.dumps({"assessments": assessments, "overall": "Hand-built critique."}), model)
+    if purpose == "reporter_prose":
+        return cited_message(
+            body,
+            "EXECUTIVE SUMMARY\n\nHand-built narrative (adapter equivalence only).",
+            "The retrieved policy applies.",
+            model,
+        )
+    if purpose == "reporter_claims":  # R3C 3C.4 call 1: the deterministic claims for these facts
+        return _message(json.dumps(mock_claims(_payload_after(user, '<data surface="evidence"'))), model)
     return _message("EXECUTIVE SUMMARY\n\nHand-built narrative (adapter equivalence only).", model)

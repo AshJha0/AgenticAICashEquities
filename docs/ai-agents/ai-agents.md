@@ -232,6 +232,32 @@ After the model writes the narrative, two audits run against it before it's trus
   .evidence._PREFIX`) — it used to also match the approval-request id, which was never meant to
   resolve as evidence and produced a false positive (fixed in 0.3.1).
 
+### Two calls and a span audit (R3C 3C.4)
+
+Investigation reports are written in two model calls.
+
+1. **Claims** (prompt `reporter_claims@1`, structured output `ClaimsOutput`): the model returns
+   `claims[{section, text, fact_keys, evidence_ids, needs_policy_support}]`. Code keeps a claim only
+   if every fact key resolves in the facts, every evidence id exists and every number traces to the
+   facts; a claim with neither fact keys nor evidence ids is dropped. Dropped claims stay in the
+   report with their reasons (`critique.knowledge.dropped_claims`).
+2. **Prose** (prompt `reporter_prose@1`, citations on, no structured output: the API does not allow
+   both in one call): each retrieved chunk is a `document` block of custom content with one content
+   block, wrapped as untrusted `rag` data, with `cache_control` on the last document (two
+   breakpoints in all, with the system block). The validated claims and facts follow in a text block.
+
+The client returns every `content_block_location` citation with the cited sentence and its offsets
+in the narrative. The reporter checks that each `cited_text` equals the text of the chunk sent at
+that `document_index`; only then does it mint `DOC` evidence (`domain.evidence.document_citation`:
+chunk id, document, section, version, effective date, the narrative span and the corpus hash). A
+fabricated quote, or a citation to a document that was not sent, mints nothing and is added to the
+narrative evidence warnings, so the run is `DEGRADED` with `NARRATIVE_UNTRACEABLE`. A claim that
+needs policy support but has no verified citation is listed in
+`critique.knowledge.unsupported_policy_claims`. The number audit still runs on the final prose, and
+the narrative ends with `Knowledge corpus sha256:<hash>`, so a reader can tell which revision of the
+policies the report cited. If the claims call fails the prose call still runs, from the facts
+alone (`LLM_CLAIMS_UNAVAILABLE`). Research reports keep the single narrative call.
+
 ## What running against a real model actually found
 
 Every number above was first proven against the offline mock. Running Stage 2 against
@@ -293,9 +319,30 @@ so the negatives are no longer a pure test of the gate and new negatives should 
 corpus growth. One train query ("How is implementation shortfall calculated?") misses: the quant
 document's overview outranks the TCA benchmarks section.
 
-Public API for the planner and reporter wiring (3C.3, 3C.4): `build_knowledge_base(directory,
-chunking)`, `KnowledgeBase.search(query, k, min_score, classifications, min_support)`,
-`KnowledgeBase.corpus_hash`, `RetrievalHit.to_dict()`; documented in `ceap.rag.retrieval`.
+Public API: `build_knowledge_base(directory, chunking)`, `KnowledgeBase.search(query, k,
+min_score, classifications, min_support)`, `KnowledgeBase.corpus_hash`, `RetrievalHit.to_dict()`;
+documented in `ceap.rag.retrieval`.
+
+**The query is built by code, not by the model (3C.3).** Whatever knowledge step the planner model
+writes, `PlannerAgent` replaces its arguments with `ceap.rag.query.retrieval_query`: the question's
+domain terms (only words from a fixed trading vocabulary, so text that is not about trading, an
+injection attempt included, never reaches a tool argument), the symbol and window, and one
+`"; "`-separated segment per cause candidate (the hypotheses the plan ranked, then causes the
+question names). `KnowledgeBase.search` scores each segment on its own and takes results
+round-robin, so one cause does not drown the others. Two different questions give two different
+queries; the same question always gives the same one.
+
+**Who may read what.** Every document has a classification (`public`, `internal`, `restricted`;
+`04_trading_limits.md` is restricted). The planner pins `classifications` to what the principal's
+roles allow (`allowed_classifications`: viewers read public and internal; trader, quant, engineer,
+approver, auditor and admin also read restricted). The knowledge server defaults to public and
+internal when the argument is missing, and the policy engine's `knowledge-classification` rule
+denies any `search_documents` or `get_document` call that asks for more than the roles allow, so a
+viewer cannot retrieve a restricted document by search, by id, or through an edited plan.
+
+**Citations in the report (3C.4).** See "The reporter's audits" above: the prose call sends each
+retrieved chunk as a citable document, and every citation is checked against the chunk text before
+it becomes `DOC` evidence.
 
 ## What is *not* here
 
