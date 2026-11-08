@@ -1,5 +1,15 @@
 # Specification — Agentic AI Cash Equities Platform
 
+> **Historical document: the original 0.3 specification.** It was written for 0.3.x and its status
+> lines were last updated then, with a few later touches. It does not describe what 0.4.0 to 0.7.1
+> added (fail-closed configuration, the SQLite platform and hash-chained audit log, the strict LLM
+> layer, BM25 retrieval with citations, deterministic ML, the evaluation report and golden set, the
+> R5 real-data study published VOID, and paper trading on synthetic data), and some statuses below
+> are out of date (for example, storage is now SQLite, not in-memory). For the current platform read
+> [../README.md](../README.md), [architecture/overview.md](architecture/overview.md),
+> [ai-agents/ai-agents.md](ai-agents/ai-agents.md), [evaluation/evaluation.md](evaluation/evaluation.md),
+> [quant/real-data-and-paper.md](quant/real-data-and-paper.md) and [../CHANGELOG.md](../CHANGELOG.md).
+
 The governing specification for the platform: what it must do, the architectural rules it
 must obey, the interfaces it must expose, and — for each requirement — where the repository
 realises it. Requirements are numbered `S-n`; every one has a status of **realised**,

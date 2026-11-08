@@ -12,8 +12,10 @@ and 337 of its 606 matching series start after 2004. The Stooq vs yfinance cross
 99.56 % within 10 bps. No v2 preregistration was locked, no statistic was computed, and the
 pseudo-holdout is still unspent. See [`result_momentum_2026-11-v2.md`](result_momentum_2026-11-v2.md).
 
-**Rerun conditions (D20).** R5 stays VOID. It is rerun only if the owner downloads the Stooq bulk
-file by hand, and then under a new (v2) preregistration. The paper-trading Stooq feed
+**Rerun conditions (D20).** R5 stays VOID. D20 allowed a rerun if the owner downloaded the Stooq
+bulk file by hand, under a new (v2) preregistration; that download happened and the v2 attempt above
+stopped at the coverage gate before any preregistration was locked. A further attempt would need a
+source that includes delisted names, and a new preregistration. The paper-trading Stooq feed
 (`ceap.paper.feeds_real`) refuses every row up to 2025-12-31, so the paper record cannot spend the
 pseudo-holdout either.
 

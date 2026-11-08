@@ -1,6 +1,6 @@
 <!-- Not part of the RAG knowledge corpus (data/reference/knowledge/manifest.json lists quant.md only),
      so release notes here never shift retrieval calibration. -->
-# Real data (R5) and paper trading (RP), 0.7.0
+# Real data (R5) and paper trading (RP), 0.7.0 and 0.7.1
 
 **R5, evidence class VOID.** Source: `docs/research/result_momentum_2026-11.md`. Point-in-time
 coverage 75.1 % against a required 95 % (worst month 53.9 %); the Stooq cross-check was not run. No
@@ -17,10 +17,13 @@ no delisted names and 337 of its 606 matching series start after 2004. The Stooq
 cross-check passed (99.56 % of 2,620,341 name-days within 10 bps). The attempt stopped before a v2
 preregistration; no statistic was computed and the pseudo-holdout is still unspent.
 
-**RP, evidence class synthetic (forward log NOT RUN LIVE).** The paper book fills at the next
+**RP, evidence class synthetic (no forward result yet: UNKNOWN).** The daily job was enabled on
+2026-11-08 (repository variable `PAPER_DAILY_ENABLED=true`) and the first forward session is
+2026-11-09. The paper book fills at the next
 close at `|x| p (h + 0.6 sigma sqrt(|x|/ADV)) / 1e4`, capped at 10 % of ADV, with the backtest's own
 cost, financing and position-cap code. The hand-checked two-name example in LEARN §18a (checked by
 `test_two_name_three_day_ledger_by_hand`) ends day two at equity $1,002,445.07. The feed is
-synthetic; the Stooq feed refuses rows up to 2025-12-31 and has no cached data, so the earliest
+synthetic; the Stooq feed refuses rows up to 2025-12-31 and is not configured (no Stooq data is in
+the repository), so the earliest
 real-price start is about January 2027. Distinguishing a Sharpe of 1 from 0 needs about 1980
 sessions (LEARN §18a), so the forward record tests operations and controls, not profitability.

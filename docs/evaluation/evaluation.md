@@ -265,8 +265,10 @@ Neither adds an evaluation metric. The R5 momentum study is **VOID** (coverage 7
 required 95 %; `docs/research/result_momentum_2026-11.md`), so it contributes no statistic. The
 paper forward record (LEARN §18a, COOKBOOK recipe 43) runs on **synthetic** data and checks
 operations and controls; it says nothing about profitability, and about 1980 sessions would be
-needed to tell a Sharpe of 1 from 0. Its scheduled run is NOT RUN LIVE until the owner enables it
-after the 0.7.0 tag (D22).
+needed to tell a Sharpe of 1 from 0. The owner enabled its scheduled run after the 0.7.0 tag (D22;
+repository variable `PAPER_DAILY_ENABLED=true`); the first forward session is 2026-11-09, so no
+forward result exists yet (UNKNOWN). The R5 v2 attempt on Stooq (0.7.1) was also VOID, at 74.9 %
+coverage (`docs/research/result_momentum_2026-11-v2.md`).
 
 ## Evaluating with a real model
 
