@@ -307,15 +307,15 @@ Regenerate with `python -m ceap.rag.evaluation`:
 | fixed (450 chars, 150 overlap) | 0.95 | 0.85 | 0.902 | 1.00 | 1.00 | 1.000 |
 
 Section and sentence chunking tie on train (MRR within 0.01); section wins the tie because it <!-- source: data/reference/knowledge/eval.json -->
-yields half the chunks and whole-section citations. With the gate (`DEFAULT_MIN_SUPPORT = 2.4`):
+yields half the chunks and whole-section citations. With the gate (`DEFAULT_MIN_SUPPORT = 2.5`, re-calibrated at 0.6.0 when the corpus grew; it was 2.4):
 held-out recall at 3 is 1.00, MRR 1.000, and 0 of 10 negatives return anything. CI floors
 (`tests/unit/test_rag_eval.py`) floor: held-out recall at 3 at least 0.80 and MRR at least 0.70 (with 10
 held-out queries one miss costs 0.10, so the floor tolerates two misses), train recall at 3 at least
 0.90, every negative empty.
 
 Honest caveats. The corpus is ten documents, so the three chunkings barely separate and the
-held-out score has wide error bars. The gate's margin is thin: the strongest negative scores 2.12
-support against a gate of 2.4. The first calibration rule (half the weakest train positive, 1.22)
+held-out score has wide error bars. The gate's margin is thin: the strongest negative scores 2.06
+support against a gate of 2.5. The first calibration rule (half the weakest train positive, 1.22)
 let one negative through; the rule was changed to the weakest train positive after seeing that,
 so the negatives are no longer a pure test of the gate and new negatives should be added with any
 corpus growth. One train query ("How is implementation shortfall calculated?") misses: the quant

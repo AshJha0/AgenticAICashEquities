@@ -96,7 +96,20 @@ async def test_3b1_agents_consume_plan_fetched_data_only(store, monkeypatch):
     monkeypatch.setattr(BaseAgent, "ensure", spy)
     result = await _platform(store=store).investigate(default_request("AAPL", "T10"))
     assert result.success and not result.incomplete_agents
-    assert served == ["risk:risk.check_limit"]
+    # Approved exceptions, all reading data outside the task-window boundaries that the plan
+    # validator allows as declared arguments (follow-up: let the harness declare them):
+    # the risk limit check (arguments depend on fetched data), R2T 2T.2's five matched peer
+    # windows on prior sessions (quant) and R2B 2B.1's change-point reference period.
+    exceptions = {
+        "risk:risk.check_limit",
+        "quant:execution.get_execution_metrics",
+        "quant:market_data.get_market_statistics",
+        "quant:market_data.get_order_book_statistics",
+        "engineering:engineering.get_service_metrics",
+        "market:engineering.get_service_metrics",
+    }
+    assert set(served) <= exceptions and "risk:risk.check_limit" in served
+    assert served.count("quant:execution.get_execution_metrics") == 5  # one per matched peer window
 
 
 async def test_3b1_chosen_agents_and_tools_change_the_call_log(store):

@@ -37,7 +37,7 @@ from fakes.clients import ALL_CLIENT_FACTORIES, INJECTION_TEXT
 
 TEMPLATES = tuple(f"T{i:02d}" for i in range(1, 11))
 MAX_CALLS = 12
-WALL_S = 30.0
+WALL_S = 120.0  # a hang is unbounded; since R2T a cold scenario build (matched prior sessions) takes seconds under -n auto
 ROUTER_TIMEOUT_S = 0.2
 # clients whose every targeted reply is a fault the harness must surface
 ALWAYS_FAULTY = {

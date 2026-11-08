@@ -41,7 +41,7 @@ def test_threshold_question_retrieves_thresholds_section_with_version(kb):
     top = kb.search("why this deterioration threshold", k=3)[0].to_dict()
     assert top["document"] == "09_attribution_thresholds.md"
     assert top["section"] == "Why these deterioration thresholds"
-    assert top["version"] == "1.0" and top["effective_date"] == "2026-11-07"
+    assert top["version"] == "1.1" and top["effective_date"] == "2026-11-08"
 
 
 def test_hit_dict_carries_metadata(kb):

@@ -92,15 +92,24 @@ def test_psi_hand_value():
 def test_shipped_models_load_and_carry_the_label():
     reg = ModelRegistry()
     cards = reg.list()
-    assert {c.name for c in cards} >= {"change_detector", "ridge_combination", "calibration_engineering_change_point"}
+    assert {c.name for c in cards} >= {
+        "change_detector",
+        "ridge_combination",
+        "calibration_engineering_change_point",
+    }
     for c in cards:
         m = reg.load(c.name, c.model_hash)
         assert m.card.label.endswith(f"synthetic generator {m.card.generator_hash}")
         assert m.card.training_data_hash and m.card.created
 
 
-def _refit_coef(threads: str) -> list[float]:
-    env = {**os.environ, "OMP_NUM_THREADS": threads, "OPENBLAS_NUM_THREADS": threads, "MKL_NUM_THREADS": threads}
+def _refit_coef(threads: str) -> list:
+    env = {
+        **os.environ,
+        "OMP_NUM_THREADS": threads,
+        "OPENBLAS_NUM_THREADS": threads,
+        "MKL_NUM_THREADS": threads,
+    }
     env.pop("ANTHROPIC_API_KEY", None)
     env["PYTHONPATH"] = str(ROOT / "src")
     code = (
@@ -111,7 +120,7 @@ def _refit_coef(threads: str) -> list[float]:
         "from ceap.data.research_scenarios import research_scenario_for\n"
         "ds = HistoricalGenerator().generate(research_scenario_for('momentum_premium'))\n"
         "r = combine_signals(ds, ledger=TrialLedger(path=None))\n"
-        "print(json.dumps([r.alpha, list(r.coef.values()), ds.dataset_hash]))\n"
+        "print(json.dumps([r.alpha, dict(r.coef), ds.dataset_hash]))\n"
     )
     out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True)
     return json.loads(out.stdout.strip().splitlines()[-1])
@@ -121,9 +130,12 @@ def _refit_coef(threads: str) -> list[float]:
 def test_ridge_reproduces_the_card_across_thread_counts_and_os():
     """Same seed, 1 and 4 BLAS threads, on whatever OS runs nightly: within 1e-8 of the stored card."""
     card = ModelRegistry().load("ridge_combination")
-    stored = list(card.params["coef"].values())
+    stored = dict(card.params["coef"])  # compared by signal name: the card is written with sorted keys
     for threads in ("1", "4"):
         alpha, coef, dh = _refit_coef(threads)
         assert dh == card.card.training_data_hash
         assert alpha == card.params["alpha"]
-        np.testing.assert_allclose(coef, stored, rtol=1e-6, atol=1e-8)
+        assert set(coef) == set(stored)
+        np.testing.assert_allclose(
+            [coef[k] for k in sorted(stored)], [stored[k] for k in sorted(stored)], rtol=1e-6, atol=1e-8
+        )

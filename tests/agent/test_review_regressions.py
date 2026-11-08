@@ -216,8 +216,12 @@ class SlowTool(Tool):
         return ToolResult(ToolStatus.SUCCESS)
 
 
-async def test_cancel_during_tool_batch_is_cancelled_not_failed(platform):
-    """H3: TaskCancelled inside a TaskGroup surfaced as an ExceptionGroup -> FAILED."""
+async def test_cancel_during_tool_batch_is_cancelled_not_failed(platform, dataset_t01):
+    """H3: TaskCancelled inside a TaskGroup surfaced as an ExceptionGroup -> FAILED.
+
+    ``dataset_t01`` warms the store: since R2T a cold T01 build (with its matched prior sessions)
+    takes seconds, which would hide what the duration bound measures.
+    """
     base = await platform.harness()
     if not base.tools.has("slow.tool"):
         base.tools.register(SlowTool())

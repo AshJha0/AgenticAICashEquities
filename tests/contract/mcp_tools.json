@@ -1,4 +1,27 @@
 {
+  "alpha.combine_signals": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Combine the three library signals with ridge regression: penalty chosen by purged and embargoed walk-forward cross-validation on the in-sample period (every penalty tried is a trial-ledger entry), then the out-of-sample deflated Sharpe ratio of the combination next to each single signal. Gross of costs; fitted to synthetic data only.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        },
+        "horizon_days": {
+          "default": 21,
+          "type": "integer"
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "name": "combine_signals"
+  },
   "alpha.evaluate_signal": {
     "annotations": {
       "readOnlyHint": true,

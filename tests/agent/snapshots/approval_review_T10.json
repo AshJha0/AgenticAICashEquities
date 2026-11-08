@@ -7,32 +7,37 @@
   ],
   "evidence_links": [
     [
-      "41 ERROR log events were recorded in the window (e.g. venue timeout waiting for ack; retrying route; order rejected reason=TOO_LATE_TO_ENTER count=1).",
+      "44 ERROR log events were recorded in the window (e.g. venue timeout waiting for ack; retrying route; venue timeout waiting for ack; retrying route).",
       [
         "error_logs"
       ]
     ],
     [
-      "Average quoted spread (2.42 bps) was in line with the baseline (1.30x).",
+      "Against the pre-trade estimate of +3.4 bps (fitted square-root model) the arrival shortfall -45.3 bps is a residual of -48.7 bps, -3.21 standard errors (SE 15.2 bps).",
+      [
+        "values.pretrade_estimate_bps"
+      ]
+    ],
+    [
+      "Average quoted spread (2.41 bps) was in line with the baseline (1.30x).",
       [
         "spread_ratio"
       ]
     ],
     [
-      "Child-order reject rate was elevated at 9.2%.",
+      "Change-point detector: order-gateway ack_latency_p50 shifted up from about 805 to 6841 (peak robust z 26.2); change onset 14:00, alarm 14:00, 8 minutes after deployment CHG-40388; 3 other feature(s) also changed.",
+      [
+        "change_points.model_hash"
+      ]
+    ],
+    [
+      "Child-order reject rate was elevated at 12.5%.",
       [
         "values.reject_rate"
       ]
     ],
     [
-      "Contributing anomaly: elevated market volatility (score 0.80; realised volatility ratio vs baseline = 2.87 (threshold 1.6)).",
-      [
-        "ranked.1.cause",
-        "ranked.1.score"
-      ]
-    ],
-    [
-      "Deployment CHG-40388 (smart-order-router 2.14.1: Routing latency budget and venue timeout changes) went live at 2026-09-18T13:52:00+01:00 - shortly before the window.",
+      "Deployment CHG-40388 (smart-order-router 2.14.1: Routing latency budget and venue timeout changes) went live at 2026-09-18T13:52:00-04:00 - shortly before the window.",
       []
     ],
     [
@@ -42,24 +47,30 @@
       ]
     ],
     [
-      "Execution VWAP 227.7065 versus interval VWAP 227.6663: slippage +1.8 bps (baseline +0.9 bps, delta +0.9 bps).",
+      "Execution VWAP 228.1369 versus interval VWAP 228.1000: slippage +1.6 bps (baseline +0.2 bps, delta +1.5 bps).",
       [
         "vwap_slippage_delta_bps"
       ]
     ],
     [
-      "Execution quality did not materially deteriorate versus the baseline: implementation shortfall delta -33.8 bps, slippage-vs-VWAP delta +0.9 bps.",
-      []
-    ],
-    [
-      "Fill rate was 79.0% of the parent quantity with participation of 4.6% of market volume.",
+      "Fill rate was 73.2% of the parent quantity with participation of 4.5% of market volume.",
       [
         "values.fill_rate",
         "values.participation_rate"
       ]
     ],
     [
-      "Implementation shortfall was -42.1 bps versus arrival 228.3483 (decreased by 33.8 bps relative to the baseline's -8.4 bps).",
+      "Implementation shortfall by component: delay -3.5 bps, spread +0.6 bps, timing -21.4 bps, opportunity -24.7 bps, fees +0.1 bps (total -48.8 bps).",
+      [
+        "values.delay_cost_bps",
+        "values.fees_bps",
+        "values.opportunity_cost_bps",
+        "values.spread_cost_bps",
+        "values.timing_cost_bps"
+      ]
+    ],
+    [
+      "Implementation shortfall was -48.8 bps versus arrival 228.7850 (decreased by 45.1 bps relative to the baseline's -3.7 bps).",
       [
         "is_delta_bps"
       ]
@@ -75,49 +86,40 @@
       []
     ],
     [
-      "Observed participation 4.6% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook.",
+      "Observed participation 4.5% was within the configured VWAP ceiling of 20% (target 8.0%) - behaviour consistent with the strategy configuration and runbook.",
       [
         "values.max_participation_rate",
         "values.participation_rate"
       ]
     ],
     [
-      "Order-gateway acknowledgement latency was 7.5x the baseline (p99 7530 us, SLO breached).",
+      "Order-gateway acknowledgement latency was 8.2x the baseline (p99 7482 us, SLO breached).",
       [
         "latency_ratio"
       ]
     ],
     [
-      "Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 47,400 shares across 202 fills on 5 venues.",
+      "Parent order P-AAPL-1400 (BUY 60,000 AAPL via VWAP) executed 43,907 shares across 175 fills on 5 venues.",
       []
     ],
     [
-      "Post-window gross exposure in AAPL was 50,279,814 USD (34% of the notional limit).",
-      [
-        "values.gross_exposure"
-      ]
-    ],
-    [
-      "Primary anomaly: technology latency / rejects in the execution path (score 0.93; execution latency ratio vs baseline = 8.23 (threshold 3.0); reject rate = 9.2%).",
-      [
-        "ranked.0.cause",
-        "ranked.0.score"
-      ]
-    ],
-    [
-      "Realised volatility rose to 9.50 bps/min, 2.9x the baseline.",
+      "Realised volatility rose to 9.33 bps/min, 3.3x the baseline.",
       [
         "volatility_ratio"
       ]
     ],
     [
-      "The mid price drifted -95 bps across the window (open 228.34, close 226.18).",
+      "Size-weighted effective spread +3.9 bps on aggressive fills, realised spread +13.0 bps at 5 min; markouts 1 s -1.0 bps, 60 s -2.8 bps, 5 min -6.3 bps (positive = price moved our way).",
+      []
+    ],
+    [
+      "The mid price drifted -92 bps across the window (open 228.78, close 226.68).",
       [
         "values.price_drift_bps"
       ]
     ],
     [
-      "Trading limits were respected (peak utilisation 56%).",
+      "The parent order breached trading limits: max_position (518962.00 vs 500000.00).",
       []
     ]
   ],

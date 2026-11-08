@@ -1,6 +1,6 @@
 ---
-version: 1.0
-effective_date: 2026-11-07
+version: 1.1
+effective_date: 2026-11-08
 classification: internal
 ---
 
@@ -12,7 +12,9 @@ An investigation only looks for causes when the window has deteriorated against 
 shortfall up by at least 1.5 bps. The threshold sits just above the noise of a one-hour VWAP-slippage estimate on
 a liquid name, so ordinary hour-to-hour variation does not trigger an attribution, while the 5 bps escalation
 level in the execution policy is still caught with margin. Thresholds are a ratio against the baseline window
-so that one table works across names of different volatility and spread.
+so that one table works across names of different volatility and spread. Since 0.5.0 the window must also be
+statistically worse than expected: the residual against the pre-trade estimate must reach z 1.96, where the standard
+error pools the model's execution noise (weight 4 pseudo-observations) with the dispersion of matched peers.
 
 ## Cause threshold table
 
@@ -21,7 +23,9 @@ the code in step.
 
 | Cause | Metric | Threshold |
 |-------|--------|-----------|
-| Deterioration gate | IS increase versus baseline | 1.5 bps |
+| Deterioration gate (fallback without a pre-trade estimate) | IS increase versus baseline | 1.5 bps |
+| Deterioration gate | residual z against the pre-trade estimate | 1.96 |
+| Deterioration gate | prior weight of model noise pooled with matched peers (pseudo-observations) | 4.0 |
 | Market volatility | realised volatility ratio | 1.6x |
 | Wide spreads | quoted spread ratio | 1.4x |
 | Low liquidity | displayed depth ratio | below 0.65x |
