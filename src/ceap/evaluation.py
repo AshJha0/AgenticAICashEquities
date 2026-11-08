@@ -335,10 +335,12 @@ def run_calibration_evaluation(recompute: bool = False) -> dict[str, Any]:
         **model.card.metrics,
     }
     if recompute:
+        import numpy as np
+
         from ceap.analytics.calibration import IsotonicMap
 
         p, y = change_point_samples(EVAL_SEEDS)
-        cal = IsotonicMap(tuple(model.params["x"]), tuple(model.params["y"]))(p)
+        cal = IsotonicMap(tuple(model.params["x"]), tuple(model.params["y"]))(np.asarray(p, dtype=float))
         out["recomputed"] = {
             "n_eval": len(p),
             "brier_raw": brier(p, y),
