@@ -6,6 +6,11 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+## [0.7.1] - 2026-11-08
+
+Patch release after 0.7.0: release-gate fix, golden-set owner sign-off and the R5 v2 write-up
+(AshJha0/AgenticAICashEquities#6, #7). No change to analytics, models or evaluation numbers.
+
 - Release gate: only the latest run of the `CI` workflow on the tagged commit decides
   (`scripts/release_check.py`, `GATING_WORKFLOWS`). It used to require every check run on the commit
   to be green, so the daily paper job (which also reports on main commits) could block a tag; the
