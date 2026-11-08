@@ -7,7 +7,7 @@ see [GITHUB_PAGES.md](GITHUB_PAGES.md)).
 |---|---|
 | [../README.md](../README.md) | overview, quick start, layout, configuration |
 | [../LEARN.md](../LEARN.md) | guided tour: concepts, how the repo implements them, real numbers, knowledge check |
-| [../COOKBOOK.md](../COOKBOOK.md) | 42 copy-pasteable recipes |
+| [../COOKBOOK.md](../COOKBOOK.md) | 43 copy-pasteable recipes |
 | [SPECIFICATION.md](SPECIFICATION.md) | the governing specification with realised / partial / roadmap status per requirement |
 | [architecture/overview.md](architecture/overview.md) | components, data flow, design decisions, extension points |
 | [ai-agents/ai-agents.md](ai-agents/ai-agents.md) | how LLM/AI/ML/agents actually work: the boundary, the agent roster, harness-owned governance, real-model findings, what is *not* here |

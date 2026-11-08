@@ -378,6 +378,26 @@ subprocesses with the official `mcp` SDK; the test suite includes a real stdio r
 
 ---
 
+## Paper trading (RP)
+
+paper, synthetic or free daily data, not trading. Approved targets are staged as PAPER orders,
+filled by a simulator at the next session's close with the backtest's cost model, and booked in an
+append-only, hash-chained SQLite ledger. The forward record starts on the fixed date in
+`config/paper.json` and is never backfilled.
+
+```bash
+ceap paper run-day --date 2026-11-13 --db var/paper/paper.db
+ceap paper report --db var/paper/paper.db
+ceap paper backfill --from 2026-06-01 --to 2026-10-30 --db var/paper/paper.db
+```
+
+The feed is synthetic today (scenario R01, re-dated so its out-of-sample rows are the forward
+period). Desk controls run every session: pre-trade risk checks, a kill switch (`CEAP_PAPER_HALT`),
+borrow availability, the NYSE calendar, an end-of-day reconciliation that fails loudly, P&L
+attribution and a markdown/JSON artefact per run. A free daily feed plugs in through `ceap.paper.feed.register_feed`. The scheduled workflow
+`paper-daily.yml` is off until the owner sets `PAPER_DAILY_ENABLED=true`. See COOKBOOK recipe 43 and
+LEARN section 18a.
+
 ## Configuration
 
 | Variable | Default | Meaning |
@@ -416,7 +436,7 @@ subprocesses with the official `mcp` SDK; the test suite includes a real stdio r
 Site: **https://ashjha0.github.io/AgenticAICashEquities/** (landing page with measured numbers; published from `docs/`, see [docs/GITHUB_PAGES.md](docs/GITHUB_PAGES.md)).
 
 * [LEARN.md](LEARN.md) – guided tour: concepts, how the repo implements them, real numbers, knowledge check
-* [COOKBOOK.md](COOKBOOK.md) – 42 copy-pasteable recipes
+* [COOKBOOK.md](COOKBOOK.md) – 43 copy-pasteable recipes
 * [docs/SPECIFICATION.md](docs/SPECIFICATION.md) – the governing specification with realised / partial / roadmap status per requirement
 * [docs/architecture/overview.md](docs/architecture/overview.md) – components, data flow, design decisions
 * [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md) – how LLM/AI/ML/agents actually work in this project (and what doesn't)
@@ -445,6 +465,16 @@ curl -s -X POST http://127.0.0.1:8000/approvals/<id> -H "X-API-Key: dev-approver
      -d '{"approved": true, "comment": "promote"}'
 curl -s http://127.0.0.1:8000/research/<task_id>/report -H "X-API-Key: dev-quant-key"   # kind=research, proposal.verdict
 ```
+
+## Real-data study (R5): VOID
+
+One preregistered test of 12-1 momentum on an approximately point-in-time S&P 500, on free data
+only. The preregistration was hashed and committed before any data was read. The study is **VOID**:
+point-in-time coverage was 75.1 % against a required 95 %, because yfinance lacks history for most
+delisted names, and the Stooq cross-check could not run without bypassing a bot check, which the
+project does not do. No test statistic was computed, no verdict is issued, and the pseudo-holdout is
+unspent. The pipeline itself replicated Ken French UMD at a correlation of 0.87. Details are in
+[`docs/research/`](docs/research/README.md).
 
 ## License
 

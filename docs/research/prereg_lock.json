@@ -1,0 +1,27 @@
+{
+  "prereg": "docs/research/prereg_momentum_2026-11.md",
+  "sha256": "7ce84a671ffe24484078a15f23cfbf8a4eb8c983982eaffe1b0cb7946a059da4",
+  "hash_rule": "sha256 of file bytes with CRLF normalised to LF",
+  "locked_on": "2026-11-07",
+  "price_data_read_before_lock": false,
+  "second_reader": "independent subagent review on 2026-11-07; six required fixes applied before the lock",
+  "windows": {
+    "warmup_start": "2003-11-01",
+    "eval_start": "2005-01-01",
+    "eval_end": "2023-12-31",
+    "holdout_start": "2024-01-01",
+    "holdout_end": "2025-12-31"
+  },
+  "status": {
+    "outcome": "VOID",
+    "decided_on": "2026-11-07",
+    "reason": "coverage 75.1 % < 95 % (gate 1); Stooq cross-check not run (gate 2)",
+    "test_statistic_computed": false,
+    "items_not_run": [
+      "5.6",
+      "5.7"
+    ],
+    "pseudo_holdout": "UNSPENT",
+    "result": "docs/research/result_momentum_2026-11.md"
+  }
+}

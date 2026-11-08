@@ -690,3 +690,27 @@ Live-only metrics always print `UNKNOWN / NOT RUN LIVE`; a `--quick` run is refu
 (the block between the `evaluation-report` markers) from `latest.json`, or `check_docs.py` fails.
 Golden-set edits: `python scripts/build_golden_set.py`, bump `VERSION`, label the PR `golden-change`.
 
+## 43. Paper-trade a signal and keep a forward record
+
+paper, synthetic or free daily data, not trading.
+
+```bash
+ceap paper run-day --date 2026-11-13 --db var/paper/paper.db   # processes 2026-11-09 .. 11-13
+ceap paper run-day --date 2026-11-13 --db var/paper/paper.db   # no-op: each day runs once
+ceap paper verify  --db var/paper/paper.db                      # hash chains + reconciliation
+ceap paper report  --db var/paper/paper.db                      # Sharpe, 95 % CI, minimum days
+ceap paper export  --db var/paper/paper.db --out forward_log.csv
+ceap paper backfill --from 2026-06-01 --to 2026-10-30 --db var/paper/paper.db  # simulated log only
+```
+
+Each session writes `var/paper/reports/<book>/<date>.md` and `.json`: P&L attribution (signal,
+drift, financing, borrow, costs), fills with their staging and approval ids, every reject, cancel and
+risk block, and the reconciliation. Stop all new orders with `CEAP_PAPER_HALT="reason" ceap paper
+run-day ...`: working orders are cancelled and the reason is logged. Limits (restricted and
+hard-to-borrow lists, per-name and gross caps, % ADV, price bands, drift tolerance) live under `risk` in
+`config/paper.json`. Exit codes: 3 not a session (holiday or weekend), 4 reconciliation break (nothing
+committed; the break report is printed).
+
+Outside `CEAP_ENV=dev`, add `--allow-paper-auto` to let the `paper-auto` principal approve the
+staging; the decision is written to the audit log either way. Change the signal, capital or costs in
+`config/paper.json`. Never move `forward_start` earlier.
