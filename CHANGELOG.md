@@ -6,6 +6,8 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+- `.gitleaks.toml`: allowlist the documented `dev-auditor-key` demo key added with the R4 `auditor` role.
+
 ### R4: platform and persistence (PLAN section 2, items 4.1-4.9)
 
 #### Breaking / migration
