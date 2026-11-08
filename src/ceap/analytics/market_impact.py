@@ -1,9 +1,10 @@
 """Market impact decomposition.
 
-* permanent (information) impact: move in the mid from arrival to a
-  post-trade reference, signed by side.
-* temporary impact: execution VWAP vs the post-trade mid - the part of the
-  cost that reverts once we stop trading.
+* ``market_impact_bps`` / ``temporary_impact_bps``: the single-order arrival-to-post drift and
+  VWAP-to-post reversion of v0.4. On one order these are dominated by price noise (sigma*sqrt(T)
+  is 15 to 25 bps an hour), so since 2T.5 the TCA reports the *expected* square-root impact
+  as ``market_impact_bps`` and measures realised impact with size-weighted, beta-adjusted
+  markouts (``ceap.analytics.slippage``). These helpers remain for callers that want the raw drift.
 """
 
 from __future__ import annotations
@@ -26,13 +27,15 @@ def temporary_impact_bps(side: Side, exec_vwap: float, post_trade_mid: float) ->
 
 
 def square_root_impact_estimate_bps(
-    participation_rate: float, daily_volatility_bps: float, coefficient: float = 0.6
+    order_quantity: float, adv_shares: float, daily_volatility_bps: float, coefficient: float = 0.6
 ) -> float:
-    """Almgren-style square-root impact model estimate: c * sigma * sqrt(Q/V).
+    """Square-root impact estimate ``c * sigma_daily * sqrt(Q / ADV)`` in bps (2T.5 unit fix).
 
-    Used as an *expectation* against which realised impact can be compared;
-    it is not a replacement for measured impact.
+    ``Q`` is the parent quantity and ``ADV`` the average *daily* volume, so the participation term
+    is on the same daily clock as ``sigma_daily``. v0.4 multiplied daily sigma by the square root
+    of the *interval* participation rate, which mixes clocks and overstates impact for any order
+    shorter than a day. Used as the pre-trade expectation the realised cost is compared against.
     """
-    if participation_rate < 0:
+    if order_quantity < 0 or adv_shares <= 0 or not np.isfinite(daily_volatility_bps):
         return float("nan")
-    return float(coefficient * daily_volatility_bps * np.sqrt(participation_rate))
+    return float(coefficient * daily_volatility_bps * np.sqrt(order_quantity / adv_shares))

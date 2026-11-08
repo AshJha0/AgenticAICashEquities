@@ -69,7 +69,7 @@ POST /investigations
 ```
 
 * `symbol` and the window are parsed from the question when omitted (ticker in the supported
-  universe; "between 14:00 and 15:00", "from 2pm to 3:30pm"). Naive times are Europe/London.
+  universe; "between 14:00 and 15:00", "from 2pm to 3:30pm"). Naive times are America/New_York (the US session clock).
 * `baseline_*` default to the window of equal length immediately before the investigation window.
 * `dataset` selects the scenario data (T01–T10 templates, S01–S50 concrete scenarios). The
   request is validated against the dataset's symbol and coverage before it is accepted (422).

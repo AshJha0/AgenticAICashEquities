@@ -10,7 +10,6 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from ceap.agents import (
     AlphaAgent,
@@ -32,6 +31,7 @@ from ceap.data.historical import RESEARCH_UNIVERSE, HistoricalDataset, Historica
 from ceap.data.repositories import DatasetStore
 from ceap.data.research_scenarios import get_research_scenario
 from ceap.data.scenarios import SYMBOLS
+from ceap.data.session import SESSION_TZ
 from ceap.domain.policy import PolicyContext
 from ceap.domain.research import DEFAULT_GROSS_NOTIONAL, DEFAULT_REBALANCE_DAYS, DEFAULT_SIGNAL
 from ceap.domain.tasks import Task, TaskPriority
@@ -57,7 +57,7 @@ from ceap.policy.engine import RulePolicyEngine
 from ceap.policy.permissions import capabilities_for
 from ceap.rag.retrieval import KnowledgeBase, build_knowledge_base
 
-LONDON = ZoneInfo("Europe/London")
+LONDON = SESSION_TZ  # desk session clock (America/New_York, 2T.1)
 DEFAULT_RESEARCH_DATASET = "R01"
 #: upper bound on a research request's gross notional (R4 item 4.4): 10 bn in the dataset currency
 MAX_GROSS_NOTIONAL = 1e10
@@ -243,7 +243,7 @@ class Platform:
                 "baseline_start": bs.isoformat(),
                 "baseline_end": be.isoformat(),
                 "dataset": req.dataset or self.settings.default_dataset,
-                "timezone": "Europe/London",
+                "timezone": str(LONDON),
             },
             priority=req.priority,
             requested_by=req.principal,

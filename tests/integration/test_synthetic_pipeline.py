@@ -37,8 +37,10 @@ def test_generation_is_deterministic():
 
 def test_dataset_shape(dataset_t01):
     ds = dataset_t01
-    assert len(ds.quotes) == 4 * 3600 and len(ds.order_books) == 4 * 360
-    assert len(ds.parent_orders) == 2 and all(o.strategy == "VWAP" for o in ds.parent_orders)
+    # scenario session 12:00-16:00 plus five matched reference segments 13:58-15:06 (2T.2)
+    assert len(ds.quotes) == 4 * 3600 + 5 * 68 * 60
+    assert len(ds.order_books) == 4 * 360 + 5 * 408
+    assert len(ds.parent_orders) == 2 + 5 and all(o.strategy == "VWAP" for o in ds.parent_orders)
     assert all(q.ask > q.bid for q in ds.quotes)  # no crossed quotes in the normal scenario
     assert all(o.status is not OrderStatus.REJECTED for o in ds.orders)
     assert all(e.latency_us and e.latency_us > 0 for e in ds.executions)
@@ -113,9 +115,9 @@ async def test_standard_analytics_on_generated_data(dataset_t01):
     assert math.isfinite(m.implementation_shortfall_bps) and math.isfinite(m.slippage_vs_vwap_bps)
     assert 0 < m.average_spread_bps < 5 and m.effective_spread_bps > 0
     assert abs(m.vwap - m.market_vwap) / m.market_vwap < 0.002
-    assert m.arrival_price == pytest.approx(
-        next(o.decision_price for o in ds.parent_orders if o.timestamp == s)
-    )
+    # 2T.3: arrival is the mid at the parent's arrival; the decision price is 90 s earlier
+    assert m.arrival_price == pytest.approx(next(q.mid for q in ds.quotes if q.timestamp == s))
+    assert math.isfinite(m.delay_cost_bps)
     assert set(m.venue_statistics) == {"XNAS", "ARCA", "BATS", "IEX", "DARK1"}
     assert all(0 <= v.fill_rate <= 1 for v in m.venue_statistics.values())
     assert m.reject_rate == 0.0 and 500 < m.average_latency_us < 1500

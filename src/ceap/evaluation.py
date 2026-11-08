@@ -176,3 +176,124 @@ def run_null_evaluation(n_seeds: int = 50, workers: int = 1) -> dict[str, Any]:
         "sweep_hash": sweep["sweep_hash"],
         "chosen_by_this_sweep": sweep["chosen"],
     }
+
+
+# ----------------------------------------------------------------------- TCA (R2T)
+def tca_attribution_for(spec: ScenarioSpec, generator: Any = None, matched: bool = True) -> dict[str, Any]:
+    """Deterministic TCA attribution for one scenario, computed offline (no agents, no model calls).
+
+    Mirrors what the quant agent computes from the MCP tools: window metrics, the same-day baseline,
+    the time-of-day-matched peer windows (2T.2) and the market statistics, then
+    :func:`attribute_causes`. Used by the seed sweeps behind the 2T.2 / 2T.4 acceptance numbers.
+    """
+    from datetime import timedelta
+
+    from ceap.analytics.attribution import PeerWindow, attribute_causes
+    from ceap.analytics.execution_metrics import StandardExecutionAnalytics
+    from ceap.analytics.market_statistics import calculate_market_statistics
+    from ceap.data.session import matched_windows
+    from ceap.data.synthetic import SyntheticMarketGenerator
+
+    ds = (generator or SyntheticMarketGenerator()).generate(spec)
+    ds.orders.sort(key=lambda o: o.timestamp)
+    ds.executions.sort(key=lambda x: x.timestamp)
+    analytics = StandardExecutionAnalytics()
+    post = timedelta(seconds=analytics.post_trade_horizon_seconds)
+
+    import bisect
+
+    keys: dict[int, list[float]] = {}
+
+    def between(items: list[Any], s: Any, e: Any) -> list[Any]:
+        # the generator returns every series sorted by timestamp, so slice by bisection
+        if id(items) not in keys:
+            keys[id(items)] = [x.timestamp.timestamp() for x in items]
+        k = keys[id(items)]
+        return items[bisect.bisect_left(k, s.timestamp()) : bisect.bisect_left(k, e.timestamp())]
+
+    def metrics(s: Any, e: Any) -> Any:
+        return analytics.calculate(
+            between(ds.orders, s, e),
+            between(ds.executions, s, e),
+            between(ds.quotes, s, e + post),
+            between(ds.trades, s, e),
+            s,
+            e,
+        )
+
+    def market(s: Any, e: Any) -> Any:
+        return calculate_market_statistics(
+            spec.symbol, s, e, between(ds.quotes, s, e), between(ds.trades, s, e), between(ds.order_books, s, e)
+        )
+
+    ws, we, bs, be = ds.window_start, ds.window_end, ds.baseline_start, ds.baseline_end
+    window, baseline = metrics(ws, we), metrics(bs, be)
+    peers = [PeerWindow(metrics(s, e), market(s, e)) for s, e in matched_windows(ws, we)] if matched else []
+    result = attribute_causes(
+        window, baseline, market(ws, we), market(bs, be), {"reject_rate": window.reject_rate}, peers=peers
+    )
+    material = sorted(c.cause.value for c in result.material)
+    return {
+        "scenario": spec.id,
+        "template": spec.template,
+        "seed": spec.seed,
+        "side": spec.side,
+        "truth": sorted(c.value for c in spec.ground_truth),
+        "deteriorated": result.deteriorated,
+        "basis": result.basis,
+        "residual_bps": result.residual_bps,
+        "residual_z": result.residual_z,
+        "primary": result.primary.value,
+        "material": material,
+        "is_bps": window.implementation_shortfall_bps,
+        "market_impact_bps": window.market_impact_bps,
+        "markout_300s_bps": window.markouts_bps.get("300s", float("nan")),
+    }
+
+
+def _seed_specs(template: str, n_seeds: int, offset: int = 10_000) -> list[ScenarioSpec]:
+    from dataclasses import replace
+
+    from ceap.data.scenarios import SYMBOLS, get_scenario
+
+    base = get_scenario(template)
+    return [
+        replace(
+            base,
+            id=f"{template}-s{k}",
+            symbol=SYMBOLS[k % 5],
+            seed=offset + 97 * k + base.seed,
+            side="SELL" if k % 2 else "BUY",
+        )
+        for k in range(n_seeds)
+    ]
+
+
+def run_tca_false_flag(n_seeds: int = 200, template: str = "T01", matched: bool = True) -> dict[str, Any]:
+    """Share of seeds of a benign template flagged as deteriorated, or given any material cause."""
+    rows = [tca_attribution_for(s, matched=matched) for s in _seed_specs(template, n_seeds)]
+    flagged = sum(r["deteriorated"] for r in rows)
+    caused = sum(bool(r["material"]) for r in rows)
+    return {
+        "template": template,
+        "seeds": n_seeds,
+        "matched_baseline": matched,
+        "deteriorated_rate": flagged / n_seeds,
+        "any_cause_rate": caused / n_seeds,
+        "mean_residual_z": sum(r["residual_z"] for r in rows) / n_seeds,
+        "mean_market_impact_bps": sum(r["market_impact_bps"] for r in rows) / n_seeds,
+        "rows": rows,
+    }
+
+
+def run_tca_cause_recall(
+    n_seeds: int = 200, templates: tuple[str, ...] = ("T05", "T06", "T07", "T08", "T09", "T10")
+) -> dict[str, Any]:
+    """Per template: share of seeds whose true causes all appear among the material causes."""
+    out: dict[str, Any] = {}
+    for t in templates:
+        rows = [tca_attribution_for(s) for s in _seed_specs(t, n_seeds)]
+        hit = sum(set(r["truth"]) <= set(r["material"]) for r in rows)
+        primary = sum(r["primary"] in r["truth"] for r in rows)
+        out[t] = {"seeds": n_seeds, "coverage": hit / n_seeds, "primary_accuracy": primary / n_seeds}
+    return out

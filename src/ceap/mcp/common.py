@@ -17,7 +17,7 @@ DEFAULT_RESEARCH_DATASET = "R01"
 def parse_ts(value: str | datetime) -> datetime:
     """Parse an ISO-8601 string (or pass through a datetime) as an aware datetime.
 
-    Naive inputs are interpreted as Europe/London - the desk's local time -
+    Naive inputs are interpreted as America/New_York - the desk session clock -
     which is what a trader means by "14:00".
     """
     if isinstance(value, datetime):

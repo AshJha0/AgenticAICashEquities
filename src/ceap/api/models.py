@@ -19,7 +19,7 @@ class InvestigationCreate(BaseModel):
     )
     symbol: str | None = Field(default=None, description="Ticker; parsed from the question when omitted")
     window_start: datetime | None = Field(
-        default=None, description="ISO-8601; naive values are Europe/London"
+        default=None, description="ISO-8601; naive values are America/New_York (the desk session clock)"
     )
     window_end: datetime | None = None
     baseline_start: datetime | None = None

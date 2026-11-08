@@ -35,15 +35,16 @@ Non-goals: live trading, OMS/EMS connectors, UI, SSO, paid data, any ML model tr
 any claim about live model quality. Models fitted on synthetic data are labelled "fitted to synthetic
 generator <hash>".
 
-Release train (decision D16). One minor version per round so each is small enough to roll back:
+Release train (decision D16). One minor version per round so each is small enough to roll back.
+
+Revised 2026-11-07 by owner instruction (maximum parallelism, one combined PR per release): R2 moved into 0.4.0, so later releases shift down one and RP paper trading joins 0.7.0.
 
 | Version | Rounds | Must ship by |
 |---|---|---|
-| 0.4.0 | R0 foundations + R1 fail-closed | 2026-11-29, before `claude-sonnet-4-5` retires on 2026-11-30 |
-| 0.5.0 | R2 quant correctness + R2T TCA realism | |
-| 0.6.0 | R4 platform and persistence | |
-| 0.7.0 | R3 AI (3A, 3B, 3C, 3E) + R2B ML | |
-| 0.8.0 | R5 real-data study | |
+| 0.4.0 | R0 foundations + R1 fail-closed + R2 quant correctness (combined, owner 2026-11-07) | shipped 2026-11-07 (PR #1) |
+| 0.5.0 | R2T TCA realism + R4 platform and persistence + Ken French rf series | |
+| 0.6.0 | R3 AI (3A, 3B, 3C, 3E) + R2B ML | |
+| 0.7.0 | R5 real-data study (VOID under its preregistration: coverage 75.1 % < 95 %) + RP paper trading | |
 | 1.0.0-rc1 | only when API and database schema are frozen; not planned here | |
 
 ## 2. Rounds, items, estimates

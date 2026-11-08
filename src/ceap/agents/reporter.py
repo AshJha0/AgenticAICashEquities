@@ -249,7 +249,7 @@ class ReportAgent(BaseAgent):
         engineering = outputs.get("engineering") or {}
         attribution = quant.get("attribution") or {}
         return {
-            "title": f"{w.symbol} EXECUTION INVESTIGATION {_short(w.start)}-{_short(w.end)} London",
+            "title": f"{w.symbol} EXECUTION INVESTIGATION {_short(w.start)}-{_short(w.end)} New York",
             "symbol": w.symbol,
             "window": {"start": w.start, "end": w.end},
             "baseline": {"start": w.baseline_start, "end": w.baseline_end},

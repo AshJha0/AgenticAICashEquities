@@ -1,0 +1,99 @@
+{
+  "algo_terms": {
+    "IS": [
+      -0.25985561353028314,
+      0.312849405296272
+    ],
+    "MOC": [
+      -3.000051623863977,
+      0.221388779547383
+    ],
+    "POV": [
+      1.228784192251807,
+      -0.15836659584203444
+    ],
+    "VWAP": [
+      0.7259694661709155,
+      0.10663104094724335
+    ]
+  },
+  "conformal_q": 1.6534236173676284,
+  "exec_noise_bps": 3.0800057845500595,
+  "generator_hash": "78d1f783d404",
+  "impact_coefficient": 0.37865333478353497,
+  "label": "fitted to synthetic generator 78d1f783d404",
+  "meta": {
+    "calibration_seeds": [
+      201,
+      202,
+      203
+    ],
+    "coverage_in_family_fresh_seed": {
+      "T01": 0.893125,
+      "T03": 0.895,
+      "T05": 0.8925,
+      "T07": 0.893125,
+      "T09": 0.875625
+    },
+    "coverage_shifted": {
+      "T02": 0.89875,
+      "T04": 0.905625,
+      "T06": 0.886875,
+      "T08": 0.859375,
+      "T10": 0.883125
+    },
+    "features": [
+      "spread_bps at arrival",
+      "sigma_daily_bps (reference)",
+      "Q/ADV",
+      "algo"
+    ],
+    "fit_seeds": [
+      101,
+      102
+    ],
+    "n_calibration": 12000,
+    "n_fit": 8000,
+    "target": "arrival shortfall bps (Perold IS minus delay leg, fees included)",
+    "test_families": [
+      "T02",
+      "T04",
+      "T06",
+      "T08",
+      "T10"
+    ],
+    "test_seeds": [
+      301,
+      302
+    ],
+    "train_families": [
+      "T01",
+      "T03",
+      "T05",
+      "T07",
+      "T09"
+    ],
+    "universe": {
+      "broker_gap_bps": 0.0,
+      "child_interval": 30,
+      "family": "T01",
+      "gap_broker": "BRK_C",
+      "luld": true,
+      "multi_session_fraction": 0.05,
+      "n_sessions": 20,
+      "parents_per_session": 40,
+      "symbols": [
+        "AAPL",
+        "MSFT",
+        "NVDA",
+        "AMZN",
+        "META",
+        "GOOGL"
+      ],
+      "u_shape": true
+    }
+  },
+  "model": "parametric_sqrt_impact_conformal_v1",
+  "nominal": 0.9,
+  "price_risk_inflation": 0.0843268115275958
+}

@@ -48,6 +48,8 @@ class Trade:
     quantity: int
     venue: str
     trade_id: str | None = None
+    # sale condition (2T.1): None = regular; "AUCTION_OPEN", "AUCTION_CLOSE", "LATE", "ODD_LOT"
+    condition: str | None = None
 
 
 @dataclass(frozen=True)

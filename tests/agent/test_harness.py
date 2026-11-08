@@ -137,8 +137,8 @@ async def _harness(platform: Platform, planner: Agent, agents=None, **kw) -> Age
 def _win_step(seq: int, tool: str, dataset: str = "T01", **extra) -> PlanStep:
     args = {
         "symbol": "AAPL",
-        "start": "2026-09-18T14:00:00+01:00",
-        "end": "2026-09-18T15:00:00+01:00",
+        "start": "2026-09-18T14:00:00-04:00",
+        "end": "2026-09-18T15:00:00-04:00",
         "dataset": dataset,
         **extra,
     }

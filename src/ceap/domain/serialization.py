@@ -36,7 +36,8 @@ def venue_statistics_from_dict(d: dict[str, Any]) -> VenueStatistics:
         average_latency_us=_f(d.get("average_latency_us")),
         reject_count=int(d.get("reject_count", 0)),
         reject_rate=_f(d.get("reject_rate"), 0.0),
-        volume_share=_f(d.get("volume_share")),
+        market_volume_participation=_f(d.get("market_volume_participation", d.get("volume_share"))),
+        fill_share=_f(d.get("fill_share")),
     )
 
 
@@ -69,7 +70,32 @@ def execution_metrics_from_dict(d: dict[str, Any]) -> ExecutionMetrics:
         venue_statistics={
             k: venue_statistics_from_dict(v) for k, v in (d.get("venue_statistics") or {}).items()
         },
+        delay_cost_bps=_f(d.get("delay_cost_bps")),
+        spread_cost_bps=_f(d.get("spread_cost_bps")),
+        timing_cost_bps=_f(d.get("timing_cost_bps")),
+        opportunity_cost_bps=_f(d.get("opportunity_cost_bps")),
+        fees_bps=_f(d.get("fees_bps")),
+        arrival_shortfall_bps=_f(d.get("arrival_shortfall_bps")),
+        pretrade_estimate_bps=_f(d.get("pretrade_estimate_bps")),
+        pretrade_interval_bps=_pair(d.get("pretrade_interval_bps")),
+        is_standard_error_bps=_f(d.get("is_standard_error_bps")),
+        is_price_risk_bps=_f(d.get("is_price_risk_bps")),
+        is_residual_bps=_f(d.get("is_residual_bps")),
+        is_residual_z=_f(d.get("is_residual_z")),
+        realised_spread_bps=_f(d.get("realised_spread_bps")),
+        price_improvement_bps=_f(d.get("price_improvement_bps")),
+        markouts_bps={str(k): _f(v) for k, v in (d.get("markouts_bps") or {}).items()},
+        venue_statistics_conditioned={
+            str(k): {str(a): _f(b) for a, b in (v or {}).items()}
+            for k, v in (d.get("venue_statistics_conditioned") or {}).items()
+        },
     )
+
+
+def _pair(value: Any) -> tuple[float, float]:
+    if isinstance(value, (list, tuple)) and len(value) == 2:
+        return (_f(value[0]), _f(value[1]))
+    return (float("nan"), float("nan"))
 
 
 def market_statistics_from_dict(d: dict[str, Any]) -> MarketStatistics:

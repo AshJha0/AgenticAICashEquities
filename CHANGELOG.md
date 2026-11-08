@@ -69,6 +69,40 @@ refuses a tag whose version has no section.
   longer echoes the key.
 - Span start times are late-bound to `time.perf_counter`, so an injected clock reaches them.
 
+### R2T - TCA realism (2T.1-2T.8)
+
+- Session clock is US regular hours (09:30-16:00 America/New_York, `ceap/data/session.py`) with a
+  U-shaped intraday profile; baselines are the same clock window on the 5 previous sessions.
+- Perold IS with delay, spread, timing, opportunity and fee legs (sum to total to 1e-9); IS
+  standard error from the schedule; deterioration is residual z >= 1.96 against a pre-trade
+  estimate (parametric square-root model with split-conformal 90 % intervals, `ceap/ml`).
+- Size-weighted effective/realised spreads, price improvement, markouts (1/10/60/300 s).
+- Peer-relative effects with bootstrap CI (no causal claim); multi-day TCA universe, broker/algo
+  comparison, four-eyes outlier queue and `ceap tca-report`.
+- **contracts-change:** `Order` gains `decision_time`, `adv_shares`, `sigma_daily_bps`, `broker`;
+  `ExecutionMetrics` gains IS components, pre-trade and markout fields (all defaulted);
+  `VenueStatistics.volume_share` renamed `market_volume_participation` (alias kept);
+  `Trade.condition` added.
+- Approved tz edits outside this lane: `platform.py` and `api/parsing.py` take the session tz from
+  `ceap.data.session`; `agents/reporter.py` report title says New York.
+
+Re-baseline (50 synthetic scenarios, mock LLM):
+
+| Metric | 0.4.0 | R2T |
+|---|---|---|
+| Primary-cause accuracy | 1.00 | 0.98 |
+| Cause coverage | 1.00 | 0.98 |
+| False-positive rate | 0.02 | 0.06 |
+| Completed | 1.00 | 1.00 |
+| Number-audit warnings | 0 | 0 |
+| T01 benign market impact | about -45 bps | 2.3 bps (mean, 200 seeds) |
+| T01 false-flag rate | n/a | 0.01 (200 seeds) |
+| Broker 3 bps gap power | n/a | 0.83 (100 seeds) |
+| Broker test size (no gap) | n/a | 0.05 (100 seeds) |
+
+The scenario numbers fall slightly because the generator is harder (U-shape, fees, delay, odd
+lots and late prints) and attribution now needs a statistically significant residual.
+
 ## [0.4.0] - 2026-11-07
 
 Rounds R0, R1 and R2 of the 2026-11-07 plan, shipped as one combined PR (AshJha0/AgenticAICashEquities#1).

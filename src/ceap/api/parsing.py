@@ -11,12 +11,12 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
 
 from ceap.analytics.signals import SIGNALS
 from ceap.data.scenarios import SYMBOLS
+from ceap.data.session import SESSION_TZ
 
-LONDON = ZoneInfo("Europe/London")
+LONDON = SESSION_TZ  # desk session clock (America/New_York, 2T.1)
 _SIGNAL_KEYWORDS: tuple[tuple[str, str], ...] = (
     ("momentum", "momentum_12_1"),
     ("mean reversion", "reversal_5"),
