@@ -61,6 +61,17 @@ capability / safety / robustness / cost / live-only table and the regression his
 recall floor, golden version, model pins, SDK version). `scripts/check_docs.py` ties every
 documented number to `docs/evaluation/latest.json`.
 
+ML (0.6.0, R2B; see `docs/ml/README.md`): deterministic models fitted to synthetic data only and
+labelled with the generator hash. `ceap.ml.anomaly` (CUSUM change points on engineering metrics),
+`ceap.analytics.ml_signals` (ridge combination of the three signals with purged walk-forward CV,
+every hyperparameter a ledger trial), `ceap.analytics.leakage` (leakage tests),
+`ceap.analytics.calibration` (held-out isotonic calibration; shipped only if held-out Brier does
+not get worse) and `ceap.ml.registry` (models loaded by content hash). None of these is an LLM.
+
+Performance (0.6.0): `_slice_by_time` builds each dataset's sorted series and timestamp keys once
+instead of on every tool call; one investigation went from about 10 s to about 3.4 s (measured
+locally by the maintainer on one machine; not a benchmark).
+
 **Stage 2** adds a parallel, equally deterministic set for signal research: `signals` (a small
 fixed library — momentum, reversal, low-vol), `signal_statistics` (rank IC via Spearman, t-stat,
 information ratio, rank-autocorrelation turnover, decay, quantile spread — the gate is the
@@ -166,9 +177,15 @@ queued (human decides through the API, with timeout) and deny.
 
 ### 3.9 RAG (`ceap.rag`)
 
-Markdown documents are chunked by heading and paragraph, embedded with a dependency-free hashed
-TF-IDF embedder and searched by cosine similarity. Exposed through the `knowledge` MCP server so
-retrieved passages become DOCUMENT evidence.
+Since 0.6.0 (R3C): ten versioned, classified documents (nine under `data/reference/knowledge/`
+plus `docs/quant/quant.md` via `manifest.json`) are chunked by a measured strategy (default
+`section`, 65 chunks) and searched with Okapi BM25 (`ceap.rag.bm25`, stdlib) behind a minimum
+support gate. `ceap.rag.query.retrieval_query` builds the query from the parsed question, symbol,
+window and cause candidates, so the model never writes it; the planner pins the principal's
+classifications and the policy rule `knowledge-classification` denies more. Retrieved passages are
+DOCUMENT evidence, and the reporter's citations are checked span by span (`DOC` evidence with
+document version and corpus hash). Held-out retrieval eval: `data/reference/knowledge/eval.json`,
+`ceap.rag.evaluation`. The hashed TF-IDF embedder of 0.5.x was removed.
 
 ### 3.10 Observability (`ceap.observability`)
 
@@ -265,4 +282,4 @@ never by the plan — see §3.6 and `docs/DIAGRAMS.md` §9.
   `Task.input["kind"] == "research"` selects the research planner prompt, canonical plan, agents and
   the governance tail with its approval gates. New signal: add a `SignalSpec` to
   `ceap.analytics.signals`; new research scenario: add a template with ground truth to
-  `ceap.data.research_scenarios` and it joins the 21-scenario evaluation.
+  `ceap.data.research_scenarios` and it joins the research evaluation (30 scenarios since 0.4.0).

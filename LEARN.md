@@ -356,11 +356,13 @@ reads everything and changes nothing.
 
 ## 12. RAG and enterprise knowledge
 
-Eight Markdown documents under `data/reference/knowledge/` — VWAP runbook, TCA methodology,
-venue configuration, trading limits, execution policy, market-data architecture, incident
-runbook, algorithm documentation — are chunked by heading and paragraph (34 chunks) and
-embedded with a dependency-free hashed TF-IDF embedder (feature hashing, sublinear TF, corpus
-IDF, L2-normalised). Retrieval is cosine similarity.
+Ten documents make up the corpus: nine Markdown files under `data/reference/knowledge/` (VWAP
+runbook, TCA methodology, venue configuration, trading limits, execution policy, market-data
+architecture, incident runbook, algorithm documentation, attribution thresholds) plus
+`docs/quant/quant.md` through `manifest.json`. Since 0.6.0 they are chunked by section (65 chunks
+with the default `section` strategy) and searched with Okapi BM25 from the standard library; each
+document carries a version and classification, and the corpus has one hash. The hashed TF-IDF
+embedder of 0.5.x and earlier is gone.
 
 The knowledge base is an MCP server, so a retrieved passage is a DOCUMENT evidence record
 like any other tool result. The canonical plan searches for the VWAP configuration and
@@ -583,6 +585,11 @@ call had been falling back to the mock without raising), and a narrative audit s
 real model's legitimate arithmetic. See `docs/evaluation/evaluation.md` and `CHANGELOG.md` 0.3.1
 for the numbers; the lesson generalises past this project: *an offline mock proves the control
 plane works, not that the model integration does — check both.*
+
+On the current 30-scenario set (0.4.0 re-baseline), with the mock model, `ceap evaluation-report`
+gives research verdict accuracy <!-- metric: capability.research_verdict_accuracy -->0.9667 (29/30; evidence class: mock,
+source `docs/evaluation/latest.json`). That number measures the deterministic pipeline; real-model
+verdict accuracy on this set is UNKNOWN / NOT RUN LIVE (D15).
 
 ## 19. Further reading
 

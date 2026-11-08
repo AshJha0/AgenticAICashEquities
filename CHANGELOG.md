@@ -6,6 +6,17 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+## [0.6.0] - 2026-11-08
+
+Rounds R3A, R3B, R3C, R2B and R3E of the 2026-11-07 plan, shipped as one combined PR; the CI run that
+gates the tag is linked from that PR. No live model call (D15): model-dependent results are labelled NOT RUN LIVE.
+
+- Release docs pass: README, LEARN, COOKBOOK, architecture overview, DIAGRAMS (new diagram 11: LLM layer,
+  agents, RAG, ML, evaluation), INDEX, SPECIFICATION, evaluation page; PLAN.md release mapping corrected and
+  owner decisions of 2026-11-08 recorded (D18-D22).
+- Performance: `_slice_by_time` caches the sorted series and timestamp keys once per dataset; one
+  investigation about 3.4 s instead of about 10 s (measured locally, one machine, not a benchmark).
+
 ### R3E: evaluation that measures what it can and labels the rest (3E.1-3E.4)
 
 No live model call (D15); every live-only metric is printed `UNKNOWN / NOT RUN LIVE`.

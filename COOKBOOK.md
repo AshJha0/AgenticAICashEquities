@@ -502,7 +502,7 @@ The signal and dataset are parsed from the question when omitted ("momentum" →
 `RS12`). `--dataset` picks the research scenario (R01–R07 templates, RS01–RS21 concrete).
 `--role` must have the `research` capability (`quant` or `admin`); `viewer`/`trader`/`engineer`
 do not. The proposal's VERDICT section carries `PROMOTE` or `REJECT` with any flags
-(`NO_ALPHA`, `OVERFIT`, `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`).
+(`NO_ALPHA`, `OOS_DECAY` (called `OVERFIT` before 0.4.0), `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`).
 
 ## 29. Run a research proposal from Python
 

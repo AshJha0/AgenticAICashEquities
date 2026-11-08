@@ -42,7 +42,7 @@ Revised 2026-11-07 by owner instruction (maximum parallelism, one combined PR pe
 | Version | Rounds | Must ship by |
 |---|---|---|
 | 0.4.0 | R0 foundations + R1 fail-closed + R2 quant correctness (combined, owner 2026-11-07) | shipped 2026-11-07 (PR #1) |
-| 0.5.0 | R2T TCA realism + R4 platform and persistence + Ken French rf series | |
+| 0.5.0 | R2T TCA realism + R4 platform and persistence + Ken French rf series | shipped 2026-11-08 (PRs #2, #3) |
 | 0.6.0 | R3 AI (3A, 3B, 3C, 3E) + R2B ML | |
 | 0.7.0 | R5 real-data study (VOID under its preregistration: coverage 75.1 % < 95 %) + RP paper trading | |
 | 1.0.0-rc1 | only when API and database schema are frozen; not planned here | |
@@ -83,7 +83,7 @@ R0: 42.5 h, about 5.5 plan-days, 2 wall-clock days. One session.
 
 R1: 45 h, about 5.5 plan-days, 2 wall-clock days. Tag 0.4.0 after R0 and R1 merge.
 
-### R2: signal-research quant correctness. Branch `r2-quant`. 0.5.0 part 1
+### R2: signal-research quant correctness. Branch `r2-quant`. 0.4.0 part 3
 
 Order inside the round matters: 2.1 → 2.9 (longer history) → 2.10 (null sweep) → choose hurdle → 2.11.
 
@@ -107,7 +107,7 @@ Order inside the round matters: 2.1 → 2.9 (longer history) → 2.10 (null swee
 R2: 81 h, about 10 plan-days, 4 wall-clock days. Second session re-derives every formula from the
 diff before merge (3 h).
 
-### R2T: TCA realism. Branch `r2t-tca`. 0.5.0 part 2
+### R2T: TCA realism. Branch `r2t-tca`. 0.5.0 part 1
 
 Runs after R2 merges (shares `execution_metrics.py` and `attribution.py` with nothing in R2, but the
 evaluation and golden numbers must settle once, not twice).
@@ -123,9 +123,9 @@ evaluation and golden numbers must settle once, not twice).
 | 2T.7 | TCA as desks use it: broker/algo/venue comparison normalised by pre-trade estimate; parent/child linkage across sessions; outlier review queue (residual beyond 2.5 SE, reason codes, second-principal sign-off through the approval gateway); a monthly best-execution style report labelled demonstration | `analytics/tca_aggregate.py`, `policy/approvals.py`, `agents/execution.py`, `cli.py` | 12 h | none | Report by one command; an outlier cannot be closed by the principal who raised it |
 | 2T.8 | Pre-trade cost model, parametric: fitted square-root model (sigma, participation, spread) with conformal intervals, trained on arrival-time features only, labelled "fitted to synthetic generator <hash>"; coverage tested under shift (fit on 5 scenario families, test on the other 5) | `ml/pretrade_cost.py`, `scripts/train_pretrade.py`, `analytics/execution_metrics.py` | 6 h | D11 | Coverage on shifted families within [85 %, 95 %] at nominal 90 %; model card committed |
 
-R2T: 76 h, about 9.5 plan-days, 4 wall-clock days. Tag 0.5.0 after R2 and R2T.
+R2T: 76 h, about 9.5 plan-days, 4 wall-clock days. Shipped in 0.5.0 with R4.
 
-### R4: platform and persistence. Branch `r4-platform`. 0.6.0
+### R4: platform and persistence. Branch `r4-platform`. 0.5.0 part 2
 
 Can run in parallel with R2 (disjoint files except `policy/approvals.py`, owned by R4 after R1 lands).
 
@@ -141,9 +141,9 @@ Can run in parallel with R2 (disjoint files except `policy/approvals.py`, owned 
 | 4.8 | Observability: Prometheus exposition fixed (`promtool check metrics` passes); HTTP latency and error metrics; one OpenTelemetry test | `observability/*.py`, `api/app.py` | 3 h | none | `promtool` passes; OTel span test green |
 | 4.9 | Property tests for analytics invariants with `hypothesis` (IS components sum, weights sum, cost >= 0, impact monotone in participation, VWAP within [low, high]); MCP schema contract tests; golden report snapshots (after R2T re-baseline) | `tests/properties/`, `tests/contract/`, `tests/golden/` | 8 h | none | Named invariants, 100 examples on PR, 1000 nightly, derandomised |
 
-R4: 69 h, about 8.5 plan-days, 3.5 wall-clock days. Tag 0.6.0.
+R4: 69 h, about 8.5 plan-days, 3.5 wall-clock days. Shipped in 0.5.0 (2026-11-08).
 
-### R3A: LLM layer, offline-provable. Branch `r3a-llm`. 0.7.0 part 1
+### R3A: LLM layer, offline-provable. Branch `r3a-llm`. 0.6.0 part 1
 
 Runs after 0.4.0. Everything here must be shown done with no live call.
 
@@ -160,7 +160,7 @@ Runs after 0.4.0. Everything here must be shown done with no live call.
 
 R3A: 59 h, about 7.5 plan-days, 3 wall-clock days.
 
-### R3B: agents and agentic AI, within the boundary. Branch `r3b-agents`. 0.7.0 part 2
+### R3B: agents and agentic AI, within the boundary. Branch `r3b-agents`. 0.6.0 part 2
 
 Runs after R3A (schemas) and after R2T (TCA numbers settled). Serial with R3A; touches every agent.
 
@@ -178,7 +178,7 @@ Runs after R3A (schemas) and after R2T (TCA numbers settled). Serial with R3A; t
 
 R3B: 86 h, about 11 plan-days, 5 wall-clock days.
 
-### R3C: RAG, grounded and measured. Branch `r3c-rag`. 0.7.0 part 3
+### R3C: RAG, grounded and measured. Branch `r3c-rag`. 0.6.0 part 3
 
 Parallel with R3B (disjoint files except `agents/reporter.py`, owned by R3B; R3C's reporter change is
 the two-call design and lands after R3B).
@@ -195,7 +195,7 @@ R3C: 30 h, about 4 plan-days, 1.5 wall-clock days. Local dense embeddings are de
 `sentence-transformers` pulls torch (multi-GB on Linux) into the lock and needs a weight download; not
 in 0.x.
 
-### R2B: ML, deterministic and labelled. Branch `r2b-ml`. 0.7.0 part 4
+### R2B: ML, deterministic and labelled. Branch `r2b-ml`. 0.6.0 part 4
 
 Runs after R2T (needs the multi-order TCA dataset and settled numbers). Each model: trained by a
 script, versioned by hash in a registry with a model card, loaded by hash, outputs are `CALCULATION`
@@ -213,7 +213,7 @@ R2B: 36 h, about 4.5 plan-days, 2 wall-clock days. Dependencies: `scikit-learn` 
 extra). The regime HMM (v1 2B.6) is cut: R04 changes only the premium, so an HMM on market returns
 cannot pass its own test. The GBM cost model (v1 2B.1) became the parametric model in 2T.8.
 
-### R3E: evaluation that measures what it can and labels the rest. Branch `r3e-eval`. 0.7.0 part 5
+### R3E: evaluation that measures what it can and labels the rest. Branch `r3e-eval`. 0.6.0 part 5
 
 Runs after R3A, R3B, R3C (request and response shapes settled).
 
@@ -224,14 +224,14 @@ Runs after R3A, R3B, R3C (request and response shapes settled).
 | 3E.3 | Regression history: results appended to `docs/evaluation/history.csv` per release; a release note must explain any metric that moved beyond its run-to-run band; `scripts/check_docs.py` verifies every number in the docs against the command output and every documented CLI command runs | `evaluation.py`, `docs/evaluation/history.csv`, `scripts/check_docs.py`, `ci.yml` | 6 h | none | CI fails on a docs number mismatch; history has one row per release from 0.4.0 |
 | 3E.4 | Drift monitors: cassette staleness (request hash), RAG recall floor, golden-set version, model pin file, SDK version vs cassettes (a Dependabot SDK bump fails replay until cassettes are re-authored) | `tests/contract/`, `ci.yml` | 4 h | none | Each monitor has a failing test fixture |
 
-R3E: 24 h, about 3 plan-days, 1.5 wall-clock days. Tag 0.7.0 after R3A, R3B, R3C, R2B, R3E.
+R3E: 24 h, about 3 plan-days, 1.5 wall-clock days. Tag 0.6.0 after R3A, R3B, R3C, R2B, R3E.
 
 Cut from v1 and not replaced: judge LLM (3E.3 v1), live report (3E.4 v1), red-team LLM agent (3B.8
 v1, replaced by `ObedientInjectionClient`), prompt-cache hit-rate test (3A.4 v1), batch runner (3A.7
 v1), Files API (3C.6 v1, wrong on the facts), mid-conversation system messages (3B.5 v1, every call is
 single-turn), signal-prototyping sandbox agent (3D v1, decision D13 reversed).
 
-### R5: one preregistered real-data study. Branch `r5-real-data`. 0.8.0
+### R5: one preregistered real-data study. Branch `r5-real-data`. 0.7.0 (VOID under its preregistration)
 
 Needs R2 (2.13 membership mask, 2.8 ledger), R4 (audit log). Free sources only. No CAPTCHA is ever
 bypassed; if Stooq bulk download requires one, the owner downloads by hand or the study uses yfinance
@@ -247,12 +247,12 @@ only and says so.
 | 5.6 | Run through the full CEAP research pipeline on dataset `X01` (no ground truth); publish net Sharpe with 95 % CI, UMD correlation, minimum detectable Sharpe, and the NULL if that is the result. Allowed claim: "Net Sharpe X, 95 % CI [a, b], 2005 to 2023, approximately point-in-time S&P 500, free data; UMD correlation Y; cannot detect Sharpe below 0.57." Forbidden: PROMOTE, alpha, tradable, any dollar capacity | `data/research_scenarios.py`, `evaluation.py`, `docs/research/result_momentum_2026-11.md` | 5 h | none | Result document shows the platform's own proposal output and the preregistration hash |
 | 5.7 | One look at the pseudo-holdout, descriptive only (sign agreement, CI overlap with the in-sample estimate); recorded SPENT; the code refuses to run on the holdout range again without a flag that writes to the audit log | `docs/research/result_momentum_2026-11.md`, `analytics/backtest.py` | 2 h | none | Holdout marked SPENT in the audit chain |
 
-R5: 58 h, about 7 plan-days, 3 wall-clock days plus download time. Tag 0.8.0.
+R5: 58 h, about 7 plan-days, 3 wall-clock days plus download time. Ships in 0.7.0 with RP paper trading.
 
 ### R6: documentation pass per release (owner rule), not one pass at the end
 
 Every round PR includes its docs pass (README, LEARN, COOKBOOK, ARCHITECTURE, DIAGRAMS, threat model,
-quant page, AI page, CHANGELOG), budgeted at 3 h per round: 27 h across nine rounds. The final 0.8.0
+quant page, AI page, CHANGELOG), budgeted at 3 h per round: 27 h across nine rounds. The final 0.7.0
 docs pass additionally works through the claims table in `REVIEW.md` section 5 (4 h) and replaces
 every landing-page number with the new honest set (power, false-positive rate, degraded count,
 UNKNOWN for live metrics, real-data verdict). `scripts/check_docs.py` (3E.3) enforces it.
@@ -263,22 +263,22 @@ UNKNOWN for live metrics, real-data verdict). `scripts/check_docs.py` (3E.3) enf
 |---|---|---|---|---|
 | R0 foundations | 42.5 | 5.5 | 2 | 0.4.0 |
 | R1 fail-closed | 45 | 5.5 | 2 | 0.4.0 |
-| R2 quant | 81 | 10 | 4 | 0.5.0 |
+| R2 quant | 81 | 10 | 4 | 0.4.0 |
 | R2T TCA | 76 | 9.5 | 4 | 0.5.0 |
-| R4 platform | 69 | 8.5 | 3.5 | 0.6.0 |
-| R3A LLM | 59 | 7.5 | 3 | 0.7.0 |
-| R3B agents | 86 | 11 | 5 | 0.7.0 |
-| R3C RAG | 30 | 4 | 1.5 | 0.7.0 |
-| R2B ML | 36 | 4.5 | 2 | 0.7.0 |
-| R3E evaluation | 24 | 3 | 1.5 | 0.7.0 |
-| R5 real data | 58 | 7 | 3 | 0.8.0 |
+| R4 platform | 69 | 8.5 | 3.5 | 0.5.0 |
+| R3A LLM | 59 | 7.5 | 3 | 0.6.0 |
+| R3B agents | 86 | 11 | 5 | 0.6.0 |
+| R3C RAG | 30 | 4 | 1.5 | 0.6.0 |
+| R2B ML | 36 | 4.5 | 2 | 0.6.0 |
+| R3E evaluation | 24 | 3 | 1.5 | 0.6.0 |
+| R5 real data | 58 | 7 | 3 | 0.7.0 |
 | R6 docs (spread) | 31 | 4 | spread | all |
 | Rebase and conflict tax (10 %) | 64 | 8 | spread | all |
 | **Total** | **701.5** | **88** | **about 26 to 30 working days, 6 to 7 calendar weeks** | |
 
-Critical path: R0 → R1 → 0.4.0 → R3A → R3B → R3E → 0.7.0, about 32 serial plan-days. Beside it:
-R2 → R2T → 0.5.0 → R2B, and R4 → 0.6.0 → R5 → 0.8.0. At most two Claude sessions at once; the owner
-reviews two diffs a day. CI: about 40 cycles at 8 to 12 min. API spend $0. External spend $0.
+Critical path: R0 → R1 (+ R2) → 0.4.0 → R3A → R3B → R3E → 0.6.0, about 32 serial plan-days. Beside it:
+R2T and R4 → 0.5.0 → R2B, and R5 + RP → 0.7.0. Originally at most two Claude sessions at once (D17);
+superseded on 2026-11-07 by the owner's max-parallel instruction (section 9). CI: about 40 cycles at 8 to 12 min. API spend $0. External spend $0.
 Usage: check `get_usage` at every round report; finish the branch in flight before pausing; never
 extra usage.
 
@@ -287,12 +287,12 @@ extra usage.
 1. Commit `docs/review/2026-11-07/` on main as a docs-only commit.
 2. R0 on `r0-foundations` (one session). Merge via PR once 0.5 is toggled by the owner; until then
    merge with `--merge` after CI green.
-3. R1 on `r1-fail-closed`. Merge. Tag 0.4.0 through `release.yml` before 2026-11-29.
-4. Two sessions: R2 on `r2-quant` and R4 on `r4-platform`. Merge R2, then R2T (same session), tag
-   0.5.0. Merge R4, tag 0.6.0.
-5. Two sessions: R3A, then R3B serially (session A); R3C after R3B's reporter change lands, and R2B
-   after R2T (session B). Then R3E. Tag 0.7.0.
-6. R5 (one session). Tag 0.8.0.
+3. R1 on `r1-fail-closed` and R2 on `r2-quant`, combined in one PR. Tag 0.4.0 (shipped 2026-11-07, PR #1).
+4. Parallel lanes: R2T on `r2t-tca`, R4 on `r4-platform`, the Ken French rf series. One combined PR,
+   tag 0.5.0 (shipped 2026-11-08, PRs #2, #3).
+5. Parallel lanes: R3A, then R3B (R3B builds on R3A); R3C after R3B's reporter change lands; R2B
+   after R2T. Then R3E. One combined PR, tag 0.6.0.
+6. R5 (VOID under its preregistration) and RP paper trading. Tag 0.7.0.
 7. Update the memory note with what shipped and what did not.
 
 ## 5. File conflict map (why the order above)
@@ -327,7 +327,7 @@ multiple testing across everything the agent can search (2.8, 2.10), power of th
 ## 7. What this plan will not deliver
 
 No alpha, no tradable strategy, no desk-ready product, no claim about live model quality. After
-0.8.0 the honest description is: a fail-closed, auditable, restart-safe research and TCA pipeline
+0.7.0 the honest description is: a fail-closed, auditable, restart-safe research and TCA pipeline
 whose harness guarantees are proven against adversarial fake models, whose quant is correct under
 realistic execution and whose hurdles come from measured null distributions, demonstrated on
 realistic synthetic data and one preregistered, power-analysed real-data test with free data. Live
@@ -355,7 +355,7 @@ decision D15 changes.
 
 - **D1** (a): new `approver` role; `admin` loses `approvals:decide`; staging approver must differ from proposal approver. Reason: clean separation in the audit trail; T17 becomes true.
 - **D2** (a): run the real-data study on Stooq and yfinance only, no sign-ups, no card, no CAPTCHA bypass, published whatever it says. Reason: the only route out of "demo that always says PROMOTE"; zero cost.
-- **D3** (a): all rounds, in the order of section 4, one minor release per round (see D16). Reason: owner asked for everything improved; smaller releases roll back.
+- **D3** (a): all rounds, in the order of section 4, one minor release per round (see D16; rounds were later combined per release by owner instruction). Reason: owner asked for everything improved; smaller releases roll back.
 - **D4** revised: the PROMOTE hurdle is not fixed at t >= 3. It is chosen from the null sweep (2.10) as the lowest t whose false-PROMOTE upper bound is at most 5 % over the full search the agent can run, with deflated Sharpe over ledger-counted trials. The single preregistered hypothesis in R5 uses a one-sided Newey-West t at alpha 0.05, because t >= 3 is a bar for factors mined from a zoo. Reason: v1 chose the hurdle before measuring and would have made PROMOTE unreachable at realistic premia over a 2-year in-sample window.
 - **D5** (a): scenarios that flip to REJECT under t+1 execution stay REJECT; ground truth comes from generator parameters. Reason: honest and non-circular.
 - **D6** revised: no dense embeddings in 0.x. BM25 with a measured chunking strategy and a held-out retrieval eval. Reason: torch in the lock and a weight download in CI are not worth it for twenty documents.
@@ -368,5 +368,13 @@ decision D15 changes.
 - **D13** reversed: no signal-prototyping agent, no sandboxed model-written code in 0.x. Reason: a subprocess with an import allowlist is not a sandbox (numpy and pandas are escape surfaces, no seccomp on Windows), it cannot be exercised without live calls, and it is the largest multiple-testing engine in the project.
 - **D14** (a): Opus 5.5 planner, Sonnet 5.5 narrative and critique, Haiku 5.5 reserved for judge paths, all as pinned configuration exercised only through cassettes and contract tests. Reason: the 0.3.1 live run showed planner quality drives outcomes.
 - **D15** (b): no live model calls. Every model-dependent path is proven offline by wire contract tests, adversarial fake clients, harness invariants and provenance-tagged cassettes; anything that needs a real model is labelled UNKNOWN / NOT RUN LIVE. Reason: owner constraint of zero spend. If the owner later funds a capped run, D15 becomes (a) and nothing else changes.
-- **D16** new: release train 0.4.0 (R0+R1, by 2026-11-29), 0.5.0 (R2+R2T), 0.6.0 (R4), 0.7.0 (R3A, R3B, R3C, R2B, R3E), 0.8.0 (R5); 1.0.0-rc only when API and database schema are frozen. Reason: fifteen breaking changes in one 0.4.0 cannot be rolled back.
-- **D17** new: at most two Claude sessions in parallel. Reason: the owner reviews about two substantial diffs a day; three sessions outrun the reviewer and inflate the conflict tax.
+- **D16** revised 2026-11-07 (owner: maximum parallelism, one combined PR per release): release train 0.4.0 (R0+R1+R2, shipped 2026-11-07), 0.5.0 (R2T+R4+Ken French rf, shipped 2026-11-08, PRs #2, #3), 0.6.0 (R3A, R3B, R3C, R3E, R2B), 0.7.0 (R5, VOID, + RP paper trading); 1.0.0-rc only when API and database schema are frozen. Reason: fifteen breaking changes in one 0.4.0 cannot be rolled back.
+- **D17** new: at most two Claude sessions in parallel. Reason: the owner reviews about two substantial diffs a day; three sessions outrun the reviewer and inflate the conflict tax. **Superseded** on 2026-11-07 by the owner's max-parallel instruction (as many lanes as useful, one combined PR per release).
+
+### Owner decisions of 2026-11-08
+
+- **D18** golden-set sign-off: the owner's sign-off of 10 sampled golden-set items is done after the 0.6.0 tag; until then `latest.json` reports it as PENDING.
+- **D19** no live-model run: D15 stays, zero spend. Every live-only metric stays UNKNOWN / NOT RUN LIVE.
+- **D20** R5 stays VOID. It is rerun only if the owner hand-downloads the Stooq bulk file, and then under a new (v2) preregistration.
+- **D21** no 1.0.0-rc1 yet. Fixes ship as 0.7.x; revisit after 2 to 4 weeks of paper-trading log.
+- **D22** paper trading is enabled after 0.7.0.

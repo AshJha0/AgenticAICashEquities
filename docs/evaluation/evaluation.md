@@ -229,7 +229,7 @@ the expected verdict, the flags that must be raised and those that must not. The
 a version plus the sha256 of its items. Any edit fails `tests/golden/test_golden_set.py` until the
 version is bumped and the hash updated, and CI's `golden-change` job requires the `golden-change`
 label on the PR. Owner sign-off of the ten `signoff_sample` items is recorded in the file's
-`signoff` field and in that PR; for version 1.0.0 it is **PENDING**. Regenerate deliberately with
+`signoff` field and in that PR; for golden-set version 1.0.0 it is **PENDING**; the owner signs off after the 0.6.0 tag (decision of 2026-11-08). Regenerate deliberately with
 `python scripts/build_golden_set.py`.
 
 ## Regression history (3E.3)

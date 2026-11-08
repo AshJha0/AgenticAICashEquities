@@ -253,7 +253,7 @@ shipped (roadmap).
 | MCP | Python MCP implementation | `mcp` SDK (FastMCP + stdio client); in-process fast path |
 | Quant | NumPy, Pandas, Polars, SciPy, PyArrow, DuckDB | NumPy + Pandas core; Polars/PyArrow/DuckDB/SciPy as the `quant` extra (CSV/Parquet export) |
 | ML | scikit-learn, XGBoost, PyTorch — only where deterministic analysis is insufficient | not needed for the MVP; `ml` extra reserved |
-| Storage | PostgreSQL, Parquet, DuckDB, object storage, vector DB | in-memory repositories + Parquet/CSV export; hashed TF-IDF vector index (dependency-free) — roadmap for Postgres/vector DB |
+| Storage | PostgreSQL, Parquet, DuckDB, object storage, vector DB | in-memory repositories + Parquet/CSV export; BM25 keyword index, dependency-free (hashed TF-IDF vector until 0.5.x) — roadmap for Postgres/vector DB |
 | LLM | provider-agnostic | `LLMClient` with Anthropic adapter and deterministic mock; router with fallback |
 | Observability | OpenTelemetry, Prometheus, Grafana | OTel-optional tracer, Prometheus text metrics; Grafana roadmap |
 
