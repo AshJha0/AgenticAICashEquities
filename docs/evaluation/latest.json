@@ -11,7 +11,7 @@
   "research_verdict_accuracy": 0.9667,
   "golden": {
    "version": "1.0.0",
-   "signoff": "PENDING",
+   "signoff": "SIGNED_OFF",
    "investigation_items": 30,
    "research_items": 15,
    "primary_cause_accuracy": 0.9667,
@@ -123,7 +123,7 @@
  },
  "cost": {
   "investigations": 3,
-  "usd_per_investigation_estimate": 0.198696,
+  "usd_per_investigation_estimate": 0.199488,
   "calls_per_investigation": 4.0,
   "label": "local estimate: characters/4 token counts of mock-sized replies at pinned list prices; not a bill"
  },

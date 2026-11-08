@@ -6,6 +6,16 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+- Release gate: only the latest run of the `CI` workflow on the tagged commit decides
+  (`scripts/release_check.py`, `GATING_WORKFLOWS`). It used to require every check run on the commit
+  to be green, so the daily paper job (which also reports on main commits) could block a tag; the
+  v0.7.0 gate was refused by a correctly refused paper session before the forward start. The gate job
+  gains `actions: read`.
+- Golden set v1.0.0 signed off: the repository owner checked the ten `signoff_sample` items on
+  2026-11-08, all OK. Recorded in `tests/golden/golden_set.json` (`signoff`), the evaluation page and
+  `docs/evaluation/latest.json` (regenerated: measured numbers unchanged; the labelled local cost
+  estimate moves from $0.1987 to $0.1995 per investigation because the 0.7.0 prompts changed).
+
 ## [0.7.0] - 2026-11-08
 
 R5 (real-data momentum study, published VOID) and RP (paper trading with desk controls) of the

@@ -16,9 +16,9 @@
   "G-RES-13"
  ],
  "signoff": {
-  "status": "PENDING",
-  "by": null,
-  "pr": null
+  "status": "SIGNED_OFF",
+  "by": "repository owner (AshJha0): all 10 sampled items OK, 2026-11-08",
+  "pr": 6
  },
  "items_sha256": "c9a28cc878191a85504562fe1d51ae6bc94f19c8b9e91f106c4d018efa3f6d09",
  "items": [
