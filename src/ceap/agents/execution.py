@@ -160,6 +160,47 @@ class ExecutionAgent(BaseAgent):
                 (*venue_ev, venue_calc.id),
             )
 
+        # 2T.3/2T.5: where the bps went (Perold components) and what happened after the fills
+        comps = {
+            k: win.get(k)
+            for k in ("delay_cost_bps", "spread_cost_bps", "timing_cost_bps", "opportunity_cost_bps", "fees_bps")
+        }
+        if all(finite(v) for v in comps.values()):
+            add(
+                "Implementation shortfall by component: delay {d}, spread {s}, timing {t}, opportunity {o}, fees {f} "
+                "(total {tot}).".format(
+                    d=_fmt_bps(comps["delay_cost_bps"]),
+                    s=_fmt_bps(comps["spread_cost_bps"]),
+                    t=_fmt_bps(comps["timing_cost_bps"]),
+                    o=_fmt_bps(comps["opportunity_cost_bps"]),
+                    f=_fmt_bps(comps["fees_bps"]),
+                    tot=_fmt_bps(is_w),
+                ),
+                0.9,
+                win_ev,
+                **{k: float(v) for k, v in comps.items()},
+            )
+        est, z = win.get("pretrade_estimate_bps"), win.get("is_residual_z")
+        if finite(est) and finite(z):
+            add(
+                f"Against the pre-trade estimate of {_fmt_bps(est)} (fitted square-root model) the arrival shortfall "
+                f"{_fmt_bps(win.get('arrival_shortfall_bps'))} is a residual of {_fmt_bps(win.get('is_residual_bps'))}, "
+                f"{float(z):+.2f} standard errors (SE {float(win.get('is_standard_error_bps') or 0):.1f} bps).",
+                0.85,
+                win_ev,
+                pretrade_estimate_bps=float(est),
+                residual_z=float(z),
+            )
+        mk = win.get("markouts_bps") or {}
+        if finite(mk.get("300s")) and finite(win.get("effective_spread_bps")):
+            add(
+                f"Size-weighted effective spread {_fmt_bps(win.get('effective_spread_bps'))} on aggressive fills, realised spread "
+                f"{_fmt_bps(win.get('realised_spread_bps'))} at 5 min; markouts 1 s {_fmt_bps(mk.get('1s'))}, "
+                f"60 s {_fmt_bps(mk.get('60s'))}, 5 min {_fmt_bps(mk.get('300s'))} (positive = price moved our way).",
+                0.8,
+                win_ev,
+            )
+
         # configuration / policy consistency (deterministic comparison, document-backed)
         config = self.output(
             context, "execution.get_strategy_configuration", symbol=w.symbol, strategy="VWAP"

@@ -6,6 +6,105 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+- `.gitleaks.toml`: allowlist the documented `dev-auditor-key` demo key added with the R4 `auditor` role.
+
+### R4: platform and persistence (PLAN section 2, items 4.1-4.9)
+
+#### Breaking / migration
+- **Database file.** Tasks, results, approvals, staged orders, LLM call records, the trial ledger,
+  idempotency keys and a hash-chained audit log now live in SQLite (`CEAP_DB_PATH`). Default:
+  `:memory:` when `CEAP_ENV=dev` (tests and demos leave no file), `var/ceap.db` everywhere else.
+  The schema migrates forward on start; a file at an older version is first copied to
+  `<db>.v<N>.bak` with the online backup API; a file newer than the code refuses to open. Mount
+  `var/` on a volume in containers. New commands: `ceap db status|migrate|backup|verify-chain|prune`.
+- **New `auditor` role** (`tasks:read-any`, `metrics:read`, read capabilities only). Reads are now
+  scoped to the owner: a viewer (or any role without `tasks:read-any`) gets 404 for another
+  principal's task, result, report or trace, and lists only its own. `auditor`, `approver` and
+  `admin` read everything. Dev key `dev-auditor-key` added.
+- **`Idempotency-Key` header** on `POST /investigations` and `POST /research`: scoped per
+  principal, persisted, 24 h TTL; the same key with the same body returns the first response
+  (same `task_id`), with a different body 422.
+- **`/health` is liveness only** (`status`, `version`). The previous fields moved to the
+  authenticated `GET /status` (`tools:read`). **`/metrics` needs a key** with `metrics:read`
+  (engineer, auditor, admin).
+- **Metric names in the exposition**: counters always end in `_total`; durations recorded in ms
+  are exported in seconds (`ceap_tool_latency_ms` -> `ceap_tool_latency_seconds`), and a summary's
+  maximum is a separate gauge `*_seconds_max`. Update dashboards.
+- **Request limits**: body over `CEAP_MAX_BODY_BYTES` (64 KiB) -> 413; `gross_notional` above 10 bn
+  -> 422; MCP `paginate` clamps `limit` to [1, 1000] and `offset` to the list.
+- `domain/common.py` (contracts-change): `utc_now()` and `new_id()` honour an injected clock / id
+  source held in context variables (`CLOCK`, `ID_SOURCE`); unset, behaviour is unchanged.
+
+#### Added
+- 4.1 `ceap.persistence`: stdlib `sqlite3` behind one writer thread (`Database.run` / `arun`),
+  WAL, `busy_timeout`, `PRAGMA user_version` forward-only migrations (`migrations/0001_initial.sql`,
+  `0002_platform.sql`), backup before migrate, audit hash chain over canonical bytes
+  (`ceap db verify-chain`), retention for results, traces and raw model I/O
+  (`CEAP_RETENTION_*_DAYS`) and a size bound (`CEAP_DB_MAX_BYTES`, oldest results pruned first; the
+  audit log is never pruned).
+- 4.2 Restart semantics: on start, tasks left `PENDING`/`RUNNING` become `INTERRUPTED` and pending
+  approvals `EXPIRED` (audited). A decision is a conditional `UPDATE ... WHERE status='PENDING'`:
+  of two concurrent decides exactly one wins; the loser and any late decide get 409 and an audit row.
+- 4.4 A task's concurrency slot is released while it waits for a human, so four tasks awaiting
+  approval no longer block a fifth; `CEAP_APPROVAL_TIMEOUT_S` (default 120).
+- 4.5 The staging approval carries `portfolio_hash` of the portfolio the approver saw; the harness
+  passes it to `execution.stage_orders` (`approved_portfolio_hash`), which recomputes the portfolio
+  and refuses on a mismatch (TOCTOU closed).
+- 4.6 API keys held as salted HMAC-SHA256 digests; `CEAP_API_KEY_HASHES` takes pre-hashed keys with
+  optional expiry (`sha256$salt$digest:role[:YYYY-MM-DD]`); raw keys never in reprs, logs or errors;
+  `X-Request-ID` correlation id on every response and every log line; one access-log line per request.
+- 4.7 Task replay bundles: `ceap replay BUNDLE --record --dataset T01` writes inputs, tool outputs,
+  redacted model I/O, prompt hashes, approval decisions and the clock seed; `ceap replay BUNDLE`
+  re-runs offline under an injected clock and checks the result byte for byte (exit 1 on drift,
+  naming the first differing path).
+- 4.8 Prometheus exposition passes `promtool check metrics` rules (HELP/TYPE, `_total`, base units);
+  HTTP metrics `ceap_http_requests_total`, `ceap_http_errors_total`,
+  `ceap_http_request_duration_seconds`; an OpenTelemetry span test.
+- 4.9 `tests/properties` (hypothesis: VWAP within [low, high], IS components sum, fully-filled IS =
+  execution cost, adverse cost >= 0, impact non-negative and monotone in participation, weights sum
+  to 1 and dollar-neutral; 100 derandomised examples on PR, 1000 nightly), `tests/contract` (MCP
+  schema contract + committed catalogue snapshot), `tests/golden` (research report goldens under the
+  replay clock; TCA goldens are regenerated at 0.5.0 integration after the R2T re-baseline).
+
+#### Fixed
+- `Settings` repr no longer prints `api_keys` or `ANTHROPIC_API_KEY`; the duplicate-key error no
+  longer echoes the key.
+- Span start times are late-bound to `time.perf_counter`, so an injected clock reaches them.
+
+### R2T - TCA realism (2T.1-2T.8)
+
+- Session clock is US regular hours (09:30-16:00 America/New_York, `ceap/data/session.py`) with a
+  U-shaped intraday profile; baselines are the same clock window on the 5 previous sessions.
+- Perold IS with delay, spread, timing, opportunity and fee legs (sum to total to 1e-9); IS
+  standard error from the schedule; deterioration is residual z >= 1.96 against a pre-trade
+  estimate (parametric square-root model with split-conformal 90 % intervals, `ceap/ml`).
+- Size-weighted effective/realised spreads, price improvement, markouts (1/10/60/300 s).
+- Peer-relative effects with bootstrap CI (no causal claim); multi-day TCA universe, broker/algo
+  comparison, four-eyes outlier queue and `ceap tca-report`.
+- **contracts-change:** `Order` gains `decision_time`, `adv_shares`, `sigma_daily_bps`, `broker`;
+  `ExecutionMetrics` gains IS components, pre-trade and markout fields (all defaulted);
+  `VenueStatistics.volume_share` renamed `market_volume_participation` (alias kept);
+  `Trade.condition` added.
+- Approved tz edits outside this lane: `platform.py` and `api/parsing.py` take the session tz from
+  `ceap.data.session`; `agents/reporter.py` report title says New York.
+
+Re-baseline (50 synthetic scenarios, mock LLM):
+
+| Metric | 0.4.0 | R2T |
+|---|---|---|
+| Primary-cause accuracy | 1.00 | 0.98 |
+| Cause coverage | 1.00 | 0.98 |
+| False-positive rate | 0.02 | 0.06 |
+| Completed | 1.00 | 1.00 |
+| Number-audit warnings | 0 | 0 |
+| T01 benign market impact | about -45 bps | 2.3 bps (mean, 200 seeds) |
+| T01 false-flag rate | n/a | 0.01 (200 seeds) |
+| Broker 3 bps gap power | n/a | 0.83 (100 seeds) |
+| Broker test size (no gap) | n/a | 0.05 (100 seeds) |
+
+The scenario numbers fall slightly because the generator is harder (U-shape, fees, delay, odd
+lots and late prints) and attribution now needs a statistically significant residual.
+
 ## [0.4.0] - 2026-11-07
 
 Rounds R0, R1 and R2 of the 2026-11-07 plan, shipped as one combined PR (AshJha0/AgenticAICashEquities#1).
@@ -56,6 +155,21 @@ Round R0 of the 2026-11-07 plan (`docs/review/2026-11-07/PLAN.md`): foundations 
   new workflow.
 
 ### R1: fail closed by default (PLAN section 2, items 1.1-1.11)
+
+- **Risk-free series committed** (`data/reference/rf.csv`, Ken French daily RF, 2000-01-03 to
+  2026-09-30, attribution header). The null sweep was re-run with it: the hurdle moved from
+  t = 0.65 (rf = 0, hash `dfdadabe...`) to **t = 0.40** (hash `ef474869...`), because long-only noise
+  configurations now pay rf and clear the Sharpe gates less often.
+- **Working orders.** A fill clipped by the 10 %-of-ADV cap now leaves a working order that is
+  traded on every following session at the cap until it completes or the next decision replaces
+  it (`working_order` events). Before, the residual waited for the next rebalance, so at 250-500 M
+  the book silently under-traded and its Sharpe flattened: with rf the 250 M and 500 M Sharpe
+  ratios tied within 0.002 (Spearman -0.943 against the plan's -1). The acceptance was not
+  changed; with the fix R03 is strictly monotone again (0.63 at 10 M to -0.84 at 500 M, gap 1.46
+  against two standard errors of 0.46), as are R01, R08 and R09.
+- **Installed wheel.** `data/` is not shipped: rf falls back to 0 (stated), the NYSE calendar is
+  regenerated from its rules, and the hurdle falls back to the committed value in code (a test
+  keeps it equal to the thresholds file).
 
 #### Breaking / migration
 
@@ -152,8 +266,8 @@ Implements items 2.1–2.14 of `docs/review/2026-11-07/PLAN.md`, in the binding 
   crash, volatility-dependent liquidity, listings/delistings; parameter-derived ground truth
   (`ceap.data.ground_truth`); power curve `docs/quant_power_curve.json`.
 - **2.10 Null sweep and hurdle.** `ceap evaluate --suite null`. 500 seeds × 24 configurations:
-  hurdle **t = 0.65** (15/500 false PROMOTEs, 3.0 %, band [1.7 %, 4.9 %]), sweep hash
-  `dfdadabefeb7682e71e86d3ca8dfc97e2811a48c3bf118bf75e94f07373fe5c0`, in
+  hurdle **t = 0.40** (15/500 false PROMOTEs, 3.0 %, band [1.7 %, 4.9 %]), sweep hash
+  `ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4`, in
   `data/reference/research_thresholds.json`.
 - **2.12 Risk.** Beta vs market ex-self with Vasicek shrinkage; factor, short-squeeze and
   liquidation stress; limits over the out-of-sample history with the worst date.

@@ -19,7 +19,7 @@ class InvestigationCreate(BaseModel):
     )
     symbol: str | None = Field(default=None, description="Ticker; parsed from the question when omitted")
     window_start: datetime | None = Field(
-        default=None, description="ISO-8601; naive values are Europe/London"
+        default=None, description="ISO-8601; naive values are America/New_York (the desk session clock)"
     )
     window_end: datetime | None = None
     baseline_start: datetime | None = None
@@ -84,7 +84,7 @@ class ResearchCreate(BaseModel):
     in_sample_end: date | None = Field(default=None, description="Walk-forward split (defaults to the dataset's)")
     rebalance_days: int | None = Field(default=None, ge=1, le=252, description="Defaults to the signal's")
     long_short: bool = True
-    gross_notional: float = Field(default=50_000_000.0, gt=0)
+    gross_notional: float = Field(default=50_000_000.0, gt=0, le=1e10, description="At most 10 bn (R4 4.4)")
     stage_orders: bool = Field(default=False, description="Stage paper orders after approval (admin only)")
 
 
@@ -149,6 +149,15 @@ class ToolOut(BaseModel):
 
 
 class HealthOut(BaseModel):
+    """Liveness only (R4 item 4.6): no topology, usage or counts for an unauthenticated caller."""
+
+    status: str
+    version: str
+
+
+class StatusOut(BaseModel):
+    """Readiness and topology; authenticated (``tools:read``)."""
+
     status: str
     version: str
     environment: str

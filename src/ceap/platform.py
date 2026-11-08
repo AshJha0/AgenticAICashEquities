@@ -10,7 +10,6 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from ceap.agents import (
     AlphaAgent,
@@ -32,6 +31,7 @@ from ceap.data.historical import RESEARCH_UNIVERSE, HistoricalDataset, Historica
 from ceap.data.repositories import DatasetStore
 from ceap.data.research_scenarios import get_research_scenario
 from ceap.data.scenarios import SYMBOLS
+from ceap.data.session import SESSION_TZ
 from ceap.domain.policy import PolicyContext
 from ceap.domain.research import DEFAULT_GROSS_NOTIONAL, DEFAULT_REBALANCE_DAYS, DEFAULT_SIGNAL
 from ceap.domain.tasks import Task, TaskPriority
@@ -43,13 +43,25 @@ from ceap.llm.router import build_router
 from ceap.mcp.client import MCPClient
 from ceap.mcp.registry import build_in_process_client, build_tool_registry
 from ceap.observability.tracing import ExecutionTracer, InMemoryTracer
+from ceap.persistence.db import Database
+from ceap.persistence.repositories import (
+    IdempotencyRepository,
+    ResultRepository,
+    RetentionPolicy,
+    SqlApprovalStore,
+    TaskRepository,
+    apply_retention,
+)
 from ceap.policy.approvals import ApprovalGateway, AutoApprovalGateway, QueuedApprovalGateway
 from ceap.policy.engine import RulePolicyEngine
 from ceap.policy.permissions import capabilities_for
 from ceap.rag.retrieval import KnowledgeBase, build_knowledge_base
 
-LONDON = ZoneInfo("Europe/London")
+LONDON = SESSION_TZ  # desk session clock (America/New_York, 2T.1)
 DEFAULT_RESEARCH_DATASET = "R01"
+#: upper bound on a research request's gross notional (R4 item 4.4): 10 bn in the dataset currency
+MAX_GROSS_NOTIONAL = 1e10
+RESTART_REASON = "process restarted while the task was in flight"
 
 
 @dataclass
@@ -114,15 +126,25 @@ class Platform:
         store: DatasetStore | None = None,
         knowledge: KnowledgeBase | None = None,
         history: HistoricalStore | None = None,
+        db: Database | None = None,
     ) -> None:
         self.settings = settings or load_settings()
+        self.db = db or Database(self.settings.db_path)
+        self.task_repo = TaskRepository(self.db)
+        self.result_repo = ResultRepository(self.db)
+        self.idempotency = IdempotencyRepository(self.db)
+        self.approval_store = SqlApprovalStore(self.db)
         self.store = store or DatasetStore()
         self.history = history or HistoricalStore()
         self.llm = llm or build_router(self.settings)
         self.knowledge = knowledge or build_knowledge_base(self.settings.knowledge_dir)
         self.mcp_client = mcp_client or build_in_process_client(self.store, self.knowledge, self.history)
         self.approvals = approvals or (
-            AutoApprovalGateway() if self.settings.auto_approve else QueuedApprovalGateway()
+            AutoApprovalGateway()
+            if self.settings.auto_approve
+            else QueuedApprovalGateway(
+                self.settings.approval_timeout_s, store=self.approval_store, audit=self.audit
+            )
         )
         self.policy = RulePolicyEngine(allowed_symbols=frozenset(SYMBOLS) | frozenset(RESEARCH_UNIVERSE))
         self._registry: ToolRegistry | None = None
@@ -130,6 +152,54 @@ class Platform:
         self.tasks: OrderedDict[str, Task] = OrderedDict()
         self.cancellations: dict[str, CancellationToken] = {}
         self.owners: dict[str, str] = {}
+        self.recovered: dict[str, list[str]] = self.recover()
+
+    # ------------------------------------------------------------ persistence
+    def audit(self, actor: str, action: str, subject: str, payload: dict[str, Any] | None = None) -> str:
+        """Append to the hash-chained audit log (``ceap db verify-chain`` checks it)."""
+        return self.db.append_audit(actor, action, subject, payload)
+
+    def recover(self) -> dict[str, list[str]]:
+        """Startup recovery (R4 item 4.2): nothing survives a restart as RUNNING or PENDING.
+
+        Tasks a previous process left in flight become ``INTERRUPTED``; approvals it left pending become
+        ``EXPIRED``, so a decision posted after the restart is refused with 409 rather than silently lost.
+        """
+        interrupted = self.task_repo.interrupt_in_flight()
+        expired = self.approval_store.expire_pending(RESTART_REASON)
+        for tid in interrupted:
+            self.audit("system", "task.interrupted", tid, {"reason": RESTART_REASON})
+        for aid in expired:
+            self.audit("system", "approval.expired", aid, {"reason": RESTART_REASON})
+        apply_retention(
+            self.db,
+            RetentionPolicy(
+                results_days=self.settings.retention_results_days or None,
+                traces_days=self.settings.retention_traces_days or None,
+                llm_io_days=self.settings.retention_llm_io_days or None,
+                max_bytes=self.settings.db_max_bytes,
+            ),
+        )
+        return {"interrupted": interrupted, "expired": expired}
+
+    def owner_of(self, task_id: str) -> str | None:
+        owner = self.owners.get(task_id)
+        if owner is None:
+            row = self.task_repo.get(task_id)
+            owner = row["owner"] if row else None
+        return owner
+
+    def _persist_task(self, task: Task, kind: str, owner: str) -> None:
+        self.owners[task.id] = owner
+        self.task_repo.upsert(task.id, kind, owner, task.description, dict(task.input), "PENDING")
+
+    def _persist_result(self, result: HarnessResult) -> None:
+        if self.task_repo.get(result.task_id) is None:
+            return  # a result for a task this platform never registered (direct harness use)
+        self.result_repo.save(result.task_id, result.status.value, result.to_dict(), result.trace)
+
+    def close(self) -> None:
+        self.db.close()
 
     async def registry(self) -> ToolRegistry:
         if self._registry is None:
@@ -173,13 +243,14 @@ class Platform:
                 "baseline_start": bs.isoformat(),
                 "baseline_end": be.isoformat(),
                 "dataset": req.dataset or self.settings.default_dataset,
-                "timezone": "Europe/London",
+                "timezone": str(LONDON),
             },
             priority=req.priority,
             requested_by=req.principal,
         )
         self.tasks[task.id] = task
         self.cancellations[task.id] = CancellationToken()
+        self._persist_task(task, "investigation", req.principal)
         self._evict()
         return task
 
@@ -207,6 +278,7 @@ class Platform:
         )
         self.tasks[task.id] = task
         self.cancellations[task.id] = CancellationToken()
+        self._persist_task(task, "research", req.principal)
         self._evict()
         return task
 
@@ -232,8 +304,8 @@ class Platform:
             raise ValueError("in_sample_end must fall strictly inside the research window")
         if not 1 <= int(req.rebalance_days) <= 252:
             raise ValueError("rebalance_days must be between 1 and 252")
-        if req.gross_notional <= 0:
-            raise ValueError("gross_notional must be positive")
+        if not 0 < req.gross_notional <= MAX_GROSS_NOTIONAL:
+            raise ValueError(f"gross_notional must be positive and at most {MAX_GROSS_NOTIONAL:,.0f}")
         caps = capabilities_for(req.roles)
         if "research" not in caps:
             raise RequestNotPermitted(f"roles {sorted(req.roles)} lack the research capability")
@@ -247,10 +319,16 @@ class Platform:
         task = task or self.build_research_task(req)
         self.tasks.setdefault(task.id, task)
         token = self.cancellations.setdefault(task.id, CancellationToken())
+        return await self._execute(task, self.policy_context(req, task), token)
+
+    async def _execute(self, task: Task, ctx: PolicyContext, token: CancellationToken) -> HarnessResult:
+        if self.task_repo.get(task.id) is not None:
+            await self.db.arun(lambda c: c.execute("UPDATE tasks SET status='RUNNING' WHERE id=?", (task.id,)))
         harness = await self.harness()
-        result = await harness.execute(task, self.policy_context(req, task), token)
+        result = await harness.execute(task, ctx, token)
         self.results[task.id] = result
         self.cancellations.pop(task.id, None)
+        self._persist_result(result)
         return result
 
     def policy_context(self, req: InvestigationRequest | ResearchRequest, task: Task) -> PolicyContext:
@@ -296,17 +374,14 @@ class Platform:
         task = task or self.build_task(req)
         self.tasks.setdefault(task.id, task)
         token = self.cancellations.setdefault(task.id, CancellationToken())
-        harness = await self.harness()
-        result = await harness.execute(task, self.policy_context(req, task), token)
-        self.results[task.id] = result
-        self.cancellations.pop(task.id, None)
-        return result
+        return await self._execute(task, self.policy_context(req, task), token)
 
     def record_failure(self, task_id: str, error: str) -> HarnessResult:
         """Record a terminal failure that happened outside the harness (setup, crash)."""
         result = HarnessResult.failed(task_id, error)
         self.results[task_id] = result
         self.cancellations.pop(task_id, None)
+        self._persist_result(result)
         return result
 
     def _evict(self) -> None:

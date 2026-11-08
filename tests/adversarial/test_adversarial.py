@@ -66,8 +66,8 @@ class RoguePlannerLLM(MockLLMClient):
                     "tool_id": "execution.get_execution_metrics",
                     "arguments": {
                         "symbol": "AAPL",
-                        "start": "2026-09-18T14:00:00+01:00",
-                        "end": "2026-09-18T15:00:00+01:00",
+                        "start": "2026-09-18T14:00:00-04:00",
+                        "end": "2026-09-18T15:00:00-04:00",
                         "__proto__": 1,
                     },
                 },

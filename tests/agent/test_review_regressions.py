@@ -35,8 +35,8 @@ from ceap.policy.approvals import QueuedApprovalGateway
 
 WIN = {
     "symbol": "AAPL",
-    "start": "2026-09-18T14:00:00+01:00",
-    "end": "2026-09-18T15:00:00+01:00",
+    "start": "2026-09-18T14:00:00-04:00",
+    "end": "2026-09-18T15:00:00-04:00",
     "dataset": "T01",
 }
 
@@ -117,7 +117,7 @@ async def test_plan_cannot_point_at_another_dataset_or_symbol(platform):
         1,
         StepType.TOOL_CALL,
         "x",
-        ToolRequest("execution.get_execution_metrics", {**WIN, "start": "2026-09-18T12:30:00+01:00"}),
+        ToolRequest("execution.get_execution_metrics", {**WIN, "start": "2026-09-18T12:30:00-04:00"}),
     )
     result = await (await _harness(platform, FixedPlanner([off_window]))).execute(
         task, platform.policy_context(req, task)

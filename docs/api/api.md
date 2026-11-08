@@ -12,7 +12,12 @@ defaults:
 | `dev-viewer-key` | viewer | `tools:read`, `investigate:read`, `research:read` |
 | `dev-trader-key` | trader | + `investigate`, `risk:medium` |
 | `dev-quant-key` | quant | + `research`, `data:export` |
-| `dev-admin-key` | admin | + `tools:write`, `risk:high`, `approvals:decide`, `trading:execute` |
+| `dev-admin-key` | admin | + `tools:write`, `risk:high`, `trading:execute`, `tasks:read-any`, `tasks:cancel-any`, `metrics:read` |
+| `dev-approver-key`, `dev-approver2-key` | approver | read + `approvals:decide`, `tasks:read-any` |
+| `dev-auditor-key` | auditor | read + `tasks:read-any`, `metrics:read`; no actions |
+
+Reads are scoped to the owner: without `tasks:read-any` another principal's task is a 404 (never a
+403, so ids cannot be probed) and listings show only your own tasks.
 
 `research` starts research tasks; `trading:execute` (with `tools:write`) is required to request
 paper order staging - the only non-read-only tool - and even then the harness asks a human first.
@@ -21,8 +26,9 @@ paper order staging - the only non-read-only tool - and even then the harness as
 
 | Method | Path | Capability | Description |
 |---|---|---|---|
-| GET | `/health` | – | version, environment, LLM client, MCP servers, tool count |
-| GET | `/metrics` | – | Prometheus text exposition |
+| GET | `/health` | – | liveness only: `status`, `version` |
+| GET | `/status` | `tools:read` | version, environment, LLM client, MCP servers, tool count, LLM usage, running tasks |
+| GET | `/metrics` | `metrics:read` | Prometheus text exposition (`text/plain; version=0.0.4`) |
 | GET | `/tools` | any key | discovered tool catalogue with read-only flag and risk level |
 | GET | `/scenarios?all=false` | – | scenario templates (or all 50 with `all=true`) |
 | POST | `/investigations` | `investigate` | start an investigation (202 Accepted) |
@@ -63,7 +69,7 @@ POST /investigations
 ```
 
 * `symbol` and the window are parsed from the question when omitted (ticker in the supported
-  universe; "between 14:00 and 15:00", "from 2pm to 3:30pm"). Naive times are Europe/London.
+  universe; "between 14:00 and 15:00", "from 2pm to 3:30pm"). Naive times are America/New_York (the US session clock).
 * `baseline_*` default to the window of equal length immediately before the investigation window.
 * `dataset` selects the scenario data (T01–T10 templates, S01–S50 concrete scenarios). The
   request is validated against the dataset's symbol and coverage before it is accepted (422).
@@ -133,6 +139,14 @@ Response: `task_id`, `status`, `signal`, `dataset`, `start`, `end`, `in_sample_e
 For research reports `metrics` holds `signal_statistics`, `backtest` and `risk` (exposure, limit
 checks, stress) and `attribution` is empty.
 
+## Headers
+
+| Header | Direction | Meaning |
+|---|---|---|
+| `X-API-Key` | request | the caller's key |
+| `Idempotency-Key` | request | on `POST /investigations` and `POST /research`; per principal, 24 h; same body returns the first response, a different body 422 |
+| `X-Request-ID` | both | correlation id; a safe incoming value (`[A-Za-z0-9._-]{1,64}`) is kept, otherwise generated; on every log line |
+
 ## Errors
 
 | Status | Meaning |
@@ -140,5 +154,6 @@ checks, stress) and `attribution` is empty.
 | 401 | missing or invalid API key |
 | 403 | role lacks the capability (incl. `stage_orders` without `trading:execute`) |
 | 404 | unknown investigation / research task / approval, or an id from the other namespace |
-| 409 | report requested while running; approvals automatic in this environment |
+| 409 | report requested while running; approvals automatic in this environment; approval no longer pending (already decided, expired, or the server restarted) |
+| 413 | request body larger than `CEAP_MAX_BODY_BYTES` |
 | 422 | request could not be understood or validated (symbol, window, dataset coverage; signal, research window); a failed task's report (e.g. a declined proposal) |

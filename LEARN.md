@@ -135,38 +135,50 @@ rebuilds `ExecutionMetrics` and `MarketStatistics` from that JSON on the agent s
 
 `src/ceap/analytics/` is pure functions over NumPy arrays with known-answer tests.
 
-**Implementation shortfall** (Perold) for a buy:
+**Implementation shortfall** (Perold, with a delay leg and fees since 0.5.0) for a buy, in bps
+of the decision notional `P_d · Q`; sells flip the sign so positive is always adverse:
 
 ```
-IS = [ Σ p_i q_i − P_d · Q_filled ]  +  [ (P_final − P_d) · Q_unfilled ]
-     ───────────────── execution ──────    ──────── opportunity ────────
-normalised by P_d · Q_target, in bps; sells flip the sign so positive is always adverse.
+delay        s (P_arr − P_d) · Q             decision → arrival (90 s in the generator)
+spread       s Σ q_i (p_i − m_i)             each fill against the mid prevailing at it
+timing       s Σ q_i (m_i − P_arr)           drift from arrival to each fill
+opportunity  s (P_end − P_arr) · Q_unfilled  priced when the order's life ends
+fees         Σ q_i f_i                       commission + access fee − maker rebate
 ```
 
-`implementation_shortfall_bps(Side.BUY, 100, [101], [100], 100) == 100.0`, and filling half
-at the decision price while the price rises 2 % costs `0.5 × 200 = 100 bps` of opportunity —
-both are unit tests.
+The legs sum to the total to 1e-9, and `implementation_shortfall_bps` (no delay or fees)
+is still the classic two-leg version; both are unit tests.
 
-**Slippage** against arrival and against interval VWAP; **effective spread** =
-`2 · sign · (fill − mid)/mid`; **market impact** split into permanent (mid at last fill vs
-arrival) and temporary (execution VWAP vs mid at last fill); **realised volatility** as the
-standard deviation of 1-second log returns scaled to a one-minute horizon in bps
-(`3.4 bps/min` is the baseline on the synthetic data); **liquidity** as mean displayed depth
-and top-of-book size; **feed quality** as the fraction of byte-identical consecutive quotes
-and the count of crossed quotes.
+**How noisy is one order?** For a linear schedule over `T` session-days the price-risk
+standard error is `σ_daily · sqrt(T/3)`, about 14 bps for one hour at 10 % annual volatility.
+The 1.5 bps deterioration trigger of v0.4 sat deep inside that noise. Now an order is
+*deteriorated* only when its shortfall exceeds a **pre-trade estimate** by 1.96 standard errors.
+The estimate comes from a fitted square-root model, `c0 + c1 · spread + b · σ · sqrt(Q/ADV)`,
+with conformal intervals and a model card (`docs/quant/pretrade_model_card.md`).
+
+**Slippage** against arrival and interval VWAP (auction and late prints excluded);
+**size-weighted effective and realised spreads**, with effective = realised + price impact;
+**price improvement** against the far touch; **markouts** at 1 s, 10 s, 60 s and 5 min
+(beta-adjusted against an index where one exists). `market_impact_bps` is the *expected*
+square-root impact `c · σ_daily · sqrt(Q/ADV)`: one order's drift is noise, not impact.
+**Realised volatility** is the standard deviation of 1-second log returns scaled to one minute;
+**liquidity** is mean displayed depth and top-of-book size; **feed quality** is the fraction of
+byte-identical consecutive quotes and the count of crossed quotes.
 
 `StandardExecutionAnalytics.calculate` composes them into `ExecutionMetrics`, including a
 per-venue table (fill rate on *accepted* quantity — rejects are a technology signal and are
 excluded so a venue is not blamed for a platform fault).
 
-Worked example (scenario T06, AAPL, 14:00–15:00): execution VWAP 230.4221 vs interval VWAP
-230.3858 → slippage +1.6 bps; arrival 230.8381 → IS −22.0 bps (the price fell, which is why
-IS alone would mislead); fill rate 81.7 %; participation 4.7 %; reject rate 10 %;
-mean ack latency 8,261 µs.
+Worked example: run `ceap investigate --dataset T06` and read the execution agent's findings.
+It prints the IS by leg, the pre-trade estimate and residual z, and the markouts.
+`ceap tca-report` runs the same analytics over a 20-session, 800-parent universe and compares
+brokers and algos on the residual against the pre-trade estimate, never on raw shortfall.
 
 ## 6. Cause attribution
 
-`attribute_causes` compares the window with its baseline and scores eight hypotheses. Each
+`attribute_causes` compares the window with its baseline and scores eight hypotheses. The
+baseline is the **same clock window on the previous five sessions**, because intraday
+volume and volatility are U-shaped and the hour before is not like the hour after. Each
 score is `1 − exp(−excess/scale)` of how far a signal sits beyond its threshold, so it
 saturates at 1 and is 0 below threshold; a score ≥ 0.35 is *material*.
 
@@ -186,8 +198,10 @@ rate is elevated the venue rule ignores rejects (otherwise random clustering of 
 DARK1 in the latency scenario), and a price move inside a high-volatility window is
 discounted because a sustained vol regime already explains the drift.
 
-The result carries `deteriorated` (IS *or* VWAP slippage worse by ≥ 1.5 bps), a ranked list
-with rationale strings, and `primary`/`secondary`. It is written to a CALCULATION evidence
+The result carries `deteriorated` (residual z ≥ 1.96 against the pre-trade estimate; the old
+1.5 bps delta is only a fallback), a ranked list with rationale strings, `primary`/`secondary`,
+a bps decomposition by Perold leg, and for each cause a peer-relative effect with a 90 %
+bootstrap CI. The peer effect measures how unusual the order is; it does not claim a cause. It is written to a CALCULATION evidence
 record so the report can cite it.
 
 ## 7. The harness as a control plane
@@ -322,6 +336,15 @@ transitions the harness to `AWAITING_APPROVAL`, resolved via `POST /approvals/{i
 timeout) and `DenyApprovalGateway`. A denied approval marks the step DENIED and the
 investigation continues without it.
 
+Since 0.5.0 every approval is a row in SQLite and a decision is one conditional statement,
+`UPDATE approvals SET status=? WHERE id=? AND status='PENDING'`. Whoever's update matches the row
+wins; the other approver, or anyone deciding after a timeout or a restart, matches nothing and gets
+409. That is the standard way to make "exactly one winner" hold across threads and processes
+without a lock. The staging approval also carries a hash of the portfolio the approver saw, and
+staging recomputes it and refuses on a mismatch: a time-of-check / time-of-use gap closed by
+binding the approval to content, not to a step name. Reads are owner-scoped; the `auditor` role
+reads everything and changes nothing.
+
 ## 12. RAG and enterprise knowledge
 
 Eight Markdown documents under `data/reference/knowledge/` — VWAP runbook, TCA methodology,
@@ -338,18 +361,21 @@ POLICY CONTEXT section.
 
 ## 13. The synthetic market and the 50 scenarios
 
-`SyntheticMarketGenerator` builds a seeded dataset per scenario over 12:00–16:00 London:
+`SyntheticMarketGenerator` builds a seeded dataset per scenario over 12:00 to 16:00
+America/New_York (regular session 09:30 to 16:00), plus the same 14:00 to 15:00 window on the
+five previous sessions:
 
-* mid price: GBM at 10 % annualised vol sampled every second (≈0.49 bps/s), with the
-  scenario's volatility multiplier, trend and participation-driven impact drift applied only
-  inside 14:00–15:00;
+* mid price: a log random walk at 10 % annualised volatility on a one-second grid, scaled by
+  a U-shaped intraday profile, with the scenario's volatility multiplier and trend inside
+  14:00 to 15:00 and a permanent impact drift `0.7 · σ · sqrt(Q/ADV)` for every parent;
 * NBBO: log-normal spread noise around a per-symbol base, tick-rounded, log-normal sizes;
-* prints: Poisson(1.5/s), log-normal sizes, five venues with fixed weights, our fills added;
-* books: five levels every 10 s scaling from top-of-book;
-* orders: a 60k VWAP parent in 13:00–14:00 (baseline) and one in 14:00–15:00 (window), 120
-  slices each, fills that cross the spread and walk the book by an amount driven by slice
-  size vs displayed liquidity, venue degradation and latency;
-* engineering: per-minute gateway/router/feed metrics, heartbeat and anomaly logs,
+* prints: U-shaped Poisson arrivals, odd lots flagged, a few late prints, a 16:00 closing
+  auction print, five venues, our fills added;
+* books: five levels every 10 s, scaling from top of book;
+* orders: 60k VWAP parents, BUY or SELL, decided 90 s before arrival; children are aggressive
+  (far touch, access fee) or passive (near touch, rebate), with odd lots and duplicate
+  timestamps;
+* engineering: per-minute gateway, router and feed metrics, heartbeat and anomaly logs,
   deployments; risk: positions and limits.
 
 Ten templates × five symbols with distinct seeds give 50 scenarios, each with structured
@@ -362,13 +388,13 @@ clean baseline — which is also how the attribution model is defined.
 
 ```
 scenarios            50
-primary_accuracy     1.00
-coverage             1.00
-false_positive_rate  0.02
+primary_accuracy     0.98
+coverage             0.98
+false_positive_rate  0.06
 completed            1.00
 unresolved_findings  0
 number_warnings      0
-mean_duration_ms     ~850
+mean_duration_ms     ~32000   (generates the matched prior sessions too)
 ```
 
 Things to be honest about:
@@ -392,10 +418,18 @@ Things to be honest about:
   under `/investigations/{id}/trace`. Set `OTEL_EXPORTER_OTLP_ENDPOINT` and the same spans
   mirror to OpenTelemetry.
 * `MetricsRegistry` exposes counters and histograms in Prometheus text format at `/metrics`
-  (`ceap_tool_calls_total{tool,status}`, `ceap_agent_duration_ms`, …).
+  (`ceap_tool_calls_total{tool,status}`, `ceap_agent_duration_seconds`, …; durations are exported in seconds).
 * Logging is JSON lines with task/execution/step/tool/agent ids.
 * `HarnessResult` carries the state history, policy log, step results and warnings, so a
   failed or degraded investigation explains itself.
+* Durable state is SQLite behind one writer thread (WAL, forward-only migrations, backup before
+  migrate). The audit log is a hash chain: each row's hash covers the previous hash and the row's
+  canonical bytes, so editing or deleting any row breaks `ceap db verify-chain` from that row on.
+* Every request gets an `X-Request-ID` that appears on every log line it causes. `/metrics`
+  follows Prometheus conventions (`_total` counters, seconds, HELP on every family) and needs a key.
+* A replay bundle captures everything a task consumed; `ceap replay` re-runs it with an injected
+  clock and id source and must reproduce the stored result byte for byte, which turns "it gave a
+  different answer yesterday" into a diff.
 
 ## 16. Ten pitfalls this platform is built to avoid
 

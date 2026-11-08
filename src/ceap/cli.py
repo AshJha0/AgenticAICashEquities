@@ -210,6 +210,22 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
+def _cmd_tca_report(args: argparse.Namespace) -> int:
+    """Monthly best-execution style report over the multi-day TCA universe (2T.7; demonstration)."""
+    from ceap.analytics.tca_aggregate import best_execution_report, render_report_markdown
+    from ceap.data.tca_universe import UniverseConfig, generate_tca_universe
+
+    cfg = UniverseConfig(n_sessions=args.sessions, broker_gap_bps=args.broker_gap_bps, family=args.family)
+    report = best_execution_report(generate_tca_universe(args.seed, cfg))
+    text = json.dumps(report, indent=2, default=str) if args.json else render_report_markdown(report)
+    if args.out:
+        Path(args.out).write_text(text, encoding="utf-8")
+        print(f"wrote {args.out}")
+    else:
+        print(text)
+    return 0
+
+
 def _cmd_generate(args: argparse.Namespace) -> int:
     from ceap.data.export import export_dataset
 
@@ -288,6 +304,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     ev.set_defaults(func=_cmd_evaluate)
 
+    tca = sub.add_parser("tca-report", help="monthly best-execution style TCA report (demonstration, synthetic)")
+    tca.add_argument("--seed", type=int, default=1)
+    tca.add_argument("--sessions", type=int, default=20)
+    tca.add_argument("--family", default="T01", help="scenario template whose regime holds for the month")
+    tca.add_argument("--broker-gap-bps", dest="broker_gap_bps", type=float, default=0.0)
+    tca.add_argument("--json", action="store_true")
+    tca.add_argument("--out", default=None)
+    tca.set_defaults(func=_cmd_tca_report)
+
     gen = sub.add_parser("generate-data", help="export a synthetic dataset to CSV/Parquet")
     gen.add_argument("--scenario", default="T01")
     gen.add_argument("--out", default="data")
@@ -298,6 +323,10 @@ def build_parser() -> argparse.ArgumentParser:
     sv.add_argument("--host", default="127.0.0.1")
     sv.add_argument("--port", type=int, default=8000)
     sv.set_defaults(func=_cmd_serve)
+
+    from ceap.persistence.cli import register as register_platform_commands
+
+    register_platform_commands(sub)  # ceap db ..., ceap replay ... (R4)
     return p
 
 

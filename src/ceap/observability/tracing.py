@@ -37,7 +37,7 @@ class Span:
     duration_ms: float | None = None
     status: str = "OK"
     error: str | None = None
-    _t0: float = field(default_factory=time.perf_counter, repr=False)
+    _t0: float = field(default_factory=lambda: time.perf_counter(), repr=False)  # late-bound: replay injects it
 
     def to_dict(self) -> dict[str, Any]:
         return {

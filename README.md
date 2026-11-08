@@ -110,7 +110,7 @@ or put in a prompt; see `src/ceap/util/redact.py`.
 ### Example output (scenario T06, technology latency)
 
 ```
-AAPL EXECUTION INVESTIGATION 14:00-15:00 London
+AAPL EXECUTION INVESTIGATION 14:00-15:00 New York
 
 EXECUTIVE SUMMARY
 
@@ -286,7 +286,7 @@ Each template runs across AAPL, MSFT, NVDA, AMZN and META with distinct seeds (S
 `ceap evaluate` reports primary-cause accuracy, ground-truth coverage, false-positive rate,
 completion rate, unresolved-evidence count and narrative number-audit warnings. The evaluation
 test asserts ≥90 % primary accuracy and coverage, 100 % completion and zero unresolved evidence;
-the current build scores 50/50 on primary cause.
+the current build scores 49/50 on primary cause (0.98 coverage, 0.06 false-positive rate).
 
 ### Research scenarios (Stage 2)
 
@@ -312,10 +312,11 @@ next session (`execution_lag_days=1`); 0.3.x filled at the same close, which was
 The PROMOTE hurdle is measured, not chosen: a null sweep over 500 pure-noise datasets x 24
 configurations picks the lowest in-sample IC t whose false-PROMOTE rate stays under 5 % with the
 other gates in place (deflated Sharpe over ledger-counted trials, out-of-sample IC t >= 1, net
-Sharpe >= 0.5, costs below half of gross). Result: t >= 0.65, false-PROMOTE 15/500 = 3.0 %
+Sharpe >= 0.5, costs below half of gross). Result: t >= 0.40, false-PROMOTE 15/500 = 3.0 %
 (95 % band 1.7 % to 4.9 %), stored with the sweep hash in `data/reference/research_thresholds.json`.
-The risk-free series is not yet committed, so Sharpe uses rf = 0 (stated in every backtest); this
-can only overstate false PROMOTEs.
+Sharpe is on excess returns over the Ken French daily risk-free rate (`data/reference/rf.csv`,
+with attribution); the hurdle was 0.65 with rf = 0 and fell to 0.40 once rf lowered long-only
+Sharpe ratios.
 
 `ceap evaluate --suite research` reports verdict accuracy, flag coverage, false-flag rate,
 completion and number-audit warnings. With the mock model the current build scores 29/30 verdicts
@@ -368,8 +369,14 @@ subprocesses with the official `mcp` SDK; the test suite includes a real stdio r
 | `CEAP_TASK_TIMEOUT_SECONDS` | `300` | per investigation |
 | `CEAP_MAX_RETRIES` | `2` | transient tool failures |
 | `CEAP_AUTO_APPROVE` | `true` in dev, else `false` | `false` queues approvals for `/approvals`; `true` outside dev refuses to start. A harness built without a gateway denies every approval |
-| `CEAP_API_KEYS` | dev keys (dev only) | `key:role,...` (roles: viewer, trader, quant, engineer, approver, admin; only `approver` decides approvals, and never one it requested or an earlier stage it approved); keys must be ≥ 8 characters. Research needs the `research` capability (quant, admin); order staging needs `trading:execute` (admin) |
-| `CEAP_MAX_CONCURRENT_INVESTIGATIONS` | `4` | background investigations run under a semaphore |
+| `CEAP_API_KEYS` | dev keys (dev only) | `key:role,...` (roles: viewer, trader, quant, engineer, approver, admin; only `approver` decides approvals, and never one it requested or an earlier stage it approved); keys must be ≥ 8 characters; held only as salted digests in memory, never logged. `auditor` reads every principal's tasks and `/metrics` but acts on nothing; every other reader sees only its own tasks. Research needs the `research` capability (quant, admin); order staging needs `trading:execute` (admin) |
+| `CEAP_MAX_CONCURRENT_INVESTIGATIONS` | `4` | background tasks run under a semaphore; a task waiting for a human approval gives its slot back |
+| `CEAP_DB_PATH` | `:memory:` in dev, else `var/ceap.db` | SQLite file for tasks, results, approvals, staged orders, idempotency keys and the audit log; migrated forward on start (backup first); see `ceap db --help` |
+| `CEAP_APPROVAL_TIMEOUT_S` | `120` | an unanswered approval expires (decided by `timeout`) |
+| `CEAP_RETENTION_RESULTS_DAYS` / `_TRACES_DAYS` / `_LLM_IO_DAYS` | `90` / `30` / `7` | retention applied on start and by `ceap db prune` (`0` keeps forever); the audit log is never pruned |
+| `CEAP_DB_MAX_BYTES` | 1 GiB | size bound: oldest results are pruned first |
+| `CEAP_MAX_BODY_BYTES` | `65536` | larger request bodies get 413 |
+| `CEAP_API_KEY_HASHES` | – | pre-hashed keys `sha256$salt$digest:role[:YYYY-MM-DD]` (expiry optional); generate with `ceap.api.auth.hash_api_key` |
 | `CEAP_MAX_RETAINED_RESULTS` | `200` | oldest investigation results are evicted beyond this |
 | `CEAP_KNOWLEDGE_DIR` | `data/reference/knowledge` | RAG corpus |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | – | mirrors harness spans to OpenTelemetry |

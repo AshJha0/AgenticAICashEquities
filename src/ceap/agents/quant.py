@@ -7,8 +7,12 @@ backed by a CALCULATION evidence record that stores the full score table.
 
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Any
+
 from ceap.agents.base import BaseAgent, finite
-from ceap.analytics.attribution import MATERIAL_SCORE, Cause, attribute_causes
+from ceap.analytics.attribution import MATERIAL_SCORE, Cause, PeerWindow, attribute_causes
+from ceap.data.session import matched_windows
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.findings import Finding
 from ceap.domain.serialization import execution_metrics_from_dict, market_statistics_from_dict
@@ -83,11 +87,14 @@ class QuantAgent(BaseAgent):
             lat = self.output(context, "engineering.get_latency_metrics", service="order-gateway")
             engineering["latency_ratio"] = (lat.data.get("latency_ratio") if lat else None) or float("nan")
 
-        result = attribute_causes(window, baseline, market_w, market_b, engineering)
-        source_ev = (*win_ev, *base_ev, *mw_ev, *mb_ev, *bw_ev, *bb_ev)
+        peers, peer_ev = await self._matched_baseline(context, w.symbol, w.start, w.end, w.dataset)
+        result = attribute_causes(window, baseline, market_w, market_b, engineering, peers=peers)
+        source_ev = (*win_ev, *base_ev, *mw_ev, *mb_ev, *bw_ev, *bb_ev, *peer_ev)
         calc = self.calc_evidence(
             context,
-            f"Cause attribution: primary={result.primary.value}, IS delta {result.is_delta_bps:+.1f} bps, VWAP-slippage delta {result.vwap_slippage_delta_bps:+.1f} bps",
+            f"Cause attribution: primary={result.primary.value}, IS residual {result.residual_bps:+.1f} bps "
+            f"(z {result.residual_z:+.2f} vs pre-trade estimate), IS delta {result.is_delta_bps:+.1f} bps, "
+            f"VWAP-slippage delta {result.vwap_slippage_delta_bps:+.1f} bps, baseline {result.baseline_kind}",
             result.to_dict(),
             source_ev,
         )
@@ -106,13 +113,24 @@ class QuantAgent(BaseAgent):
             )
 
         change = "deteriorated" if result.deteriorated else "did not materially deteriorate"
-        add(
-            f"Execution quality {change} versus the baseline: implementation shortfall delta {result.is_delta_bps:+.1f} bps, "
-            f"slippage-vs-VWAP delta {result.vwap_slippage_delta_bps:+.1f} bps.",
-            0.9,
-            (*win_ev, *base_ev, calc.id),
-            deteriorated=result.deteriorated,
-        )
+        if result.basis == "pretrade_residual":
+            add(
+                f"Execution quality {change}: arrival shortfall {window.arrival_shortfall_bps:+.1f} bps against a pre-trade "
+                f"estimate of {window.pretrade_estimate_bps:+.1f} bps, a residual of {result.residual_bps:+.1f} bps "
+                f"({result.residual_z:+.2f} standard errors; SE {result.residual_se_bps:.1f} bps).",
+                0.9,
+                (*win_ev, calc.id),
+                deteriorated=result.deteriorated,
+                residual_z=result.residual_z,
+            )
+        else:
+            add(
+                f"Execution quality {change} versus the baseline: implementation shortfall delta {result.is_delta_bps:+.1f} bps, "
+                f"slippage-vs-VWAP delta {result.vwap_slippage_delta_bps:+.1f} bps.",
+                0.9,
+                (*win_ev, *base_ev, calc.id),
+                deteriorated=result.deteriorated,
+            )
         material = result.material
         if result.primary is Cause.NORMAL:
             add(
@@ -126,7 +144,7 @@ class QuantAgent(BaseAgent):
             role = "primary" if rank == 0 else "contributing"
             conf = 0.55 + 0.4 * cs.score
             add(
-                f"{role.capitalize()} {noun}: {CAUSE_TEXT[cs.cause]} (score {cs.score:.2f}; {cs.rationale}).",
+                f"{role.capitalize()} {noun}: {CAUSE_TEXT[cs.cause]} (score {cs.score:.2f}; {cs.rationale}{_effect_text(cs.effect)}).",
                 conf,
                 (calc.id, *source_ev),
                 cause=cs.cause.value,
@@ -153,11 +171,66 @@ class QuantAgent(BaseAgent):
             output={
                 "attribution": result.to_dict(),
                 "attribution_evidence_id": calc.id,
+                "matched_baseline_windows": len(peers),
                 "metrics": {"window": win_d, "baseline": base_d},
-                "market": {"window": mkt_w, "baseline": mkt_b},
+                "market": {"window": mkt_w, "baseline": mkt_b, "ratios": _market_ratios(mkt_w, mkt_b)},
                 "engineering": engineering
                 if finite(engineering.get("latency_ratio"))
                 else {"reject_rate": window.reject_rate},
             },
             summary=f"primary={result.primary.value} ({', '.join(c.value for c in result.secondary) or 'no secondary'})",
         )
+
+
+    async def _matched_baseline(
+        self, context: AgentContext, symbol: str, start: str, end: str, dataset: str | None
+    ) -> tuple[list[PeerWindow], tuple[str, ...]]:
+        """The same clock window on previous sessions (2T.2): metrics and market statistics."""
+        try:
+            s, e = datetime.fromisoformat(start), datetime.fromisoformat(end)
+        except ValueError:
+            return [], ()
+        peers: list[PeerWindow] = []
+        evidence: list[str] = []
+        for ps, pe in matched_windows(s, e):
+            args: dict[str, Any] = {"symbol": symbol, "start": ps.isoformat(), "end": pe.isoformat(), "dataset": dataset}
+            m_d, m_ev = await self.ensure(context, "execution.get_execution_metrics", args)
+            if not m_d or not m_d.get("execution_count"):
+                continue
+            k_d, k_ev = await self.ensure(context, "market_data.get_market_statistics", args)
+            b_d, b_ev = await self.ensure(context, "market_data.get_order_book_statistics", args)
+            market = market_statistics_from_dict(
+                {**k_d, "average_displayed_depth": b_d.get("average_displayed_depth", k_d.get("average_displayed_depth"))}
+            )
+            peers.append(PeerWindow(execution_metrics_from_dict(m_d), market))
+            evidence.extend((*m_ev, *k_ev, *b_ev))
+        return peers, tuple(evidence)
+
+
+def _effect_text(effect: dict[str, Any]) -> str:
+    if not effect or not finite(effect.get("effect")) or not effect.get("n_peers"):
+        return ""
+    lo, hi = effect.get("ci") or (None, None)
+    if not (finite(lo) and finite(hi)):
+        return ""
+    return (
+        f"; versus {effect['n_peers']} matched peer windows the defining metric differs by {effect['effect']:+.2f} "
+        f"(90% CI {lo:+.2f} to {hi:+.2f})"
+    )
+
+
+def _market_ratios(window: dict[str, Any], baseline: dict[str, Any]) -> dict[str, float | None]:
+    """Window/baseline ratios against the baseline this agent actually used (matched windows)."""
+
+    def r(key: str) -> float | None:
+        a, b = window.get(key), baseline.get(key)
+        try:
+            return float(a) / float(b) if a is not None and b else None
+        except (TypeError, ValueError):
+            return None
+
+    return {
+        "volatility": r("realised_volatility_bps"),
+        "displayed_depth": r("average_displayed_depth"),
+        "spread": r("average_spread_bps"),
+    }

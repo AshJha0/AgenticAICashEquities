@@ -6,6 +6,13 @@ number of distinct label sets per metric is capped so an unbounded label
 (e.g. a tool id taken from a plan) cannot grow memory without limit.
 Swap for ``prometheus_client`` by replacing this module (the API only
 calls ``metrics.render()``).
+
+Exposition (R4 item 4.8) passes ``promtool check metrics``: every family has
+``# HELP`` and ``# TYPE``; counters end in ``_total``; durations recorded in
+milliseconds (``*_ms``) are exported in base units (``*_seconds``); a summary
+carries only ``_count`` and ``_sum``, and its maximum is a separate gauge
+family ``*_seconds_max``. Internal names (``inc``/``observe``/``snapshot``)
+are unchanged.
 """
 
 from __future__ import annotations
@@ -81,21 +88,60 @@ class MetricsRegistry:
         with self._lock:
             lines: list[str] = []
             for name in sorted(self._counters):
-                lines.append(f"# TYPE {name} counter")
+                family = name if name.endswith("_total") else f"{name}_total"
+                lines.append(f"# HELP {family} {_help(name)}")
+                lines.append(f"# TYPE {family} counter")
                 for labels, value in sorted(self._counters[name].items()):
-                    lines.append(f"{name}{_fmt(labels)} {value}")
+                    lines.append(f"{family}{_fmt(labels)} {_num(value)}")
             for name in sorted(self._summaries):
-                lines.append(f"# TYPE {name} summary")
-                for labels, s in sorted(self._summaries[name].items()):
-                    lines.append(f"{name}_count{_fmt(labels)} {float(s.count)}")
-                    lines.append(f"{name}_sum{_fmt(labels)} {s.total}")
-                    lines.append(f"{name}_max{_fmt(labels)} {s.maximum}")
+                family, scale = _base_unit(name)
+                series = sorted(self._summaries[name].items())
+                lines.append(f"# HELP {family} {_help(name)}")
+                lines.append(f"# TYPE {family} summary")
+                for labels, s in series:
+                    lines.append(f"{family}_count{_fmt(labels)} {_num(float(s.count))}")
+                    lines.append(f"{family}_sum{_fmt(labels)} {_num(s.total * scale)}")
+                lines.append(f"# HELP {family}_max Largest observation of {family}")
+                lines.append(f"# TYPE {family}_max gauge")
+                for labels, s in series:
+                    lines.append(f"{family}_max{_fmt(labels)} {_num(s.maximum * scale)}")
         return "\n".join(lines) + ("\n" if lines else "")
 
     def reset(self) -> None:
         with self._lock:
             self._counters.clear()
             self._summaries.clear()
+
+
+#: optional help text per internal metric name; anything else gets a generic line
+HELP: dict[str, str] = {
+    "ceap_http_requests_total": "HTTP requests by method, route template and status code",
+    "ceap_http_errors_total": "HTTP responses with status >= 400 by route template and status class",
+    "ceap_http_request_duration_seconds": "HTTP request latency",
+    "ceap_tool_calls_total": "MCP tool calls by tool and outcome",
+    "ceap_tool_latency_ms": "MCP tool call latency",
+    "ceap_agent_duration_ms": "Agent step duration",
+    "ceap_investigation_duration_ms": "End-to-end task duration",
+}
+
+
+def _help(name: str) -> str:
+    return HELP.get(name, f"CEAP metric {name}")
+
+
+def _base_unit(name: str) -> tuple[str, float]:
+    """Prometheus wants base units: ``foo_ms`` is exported as ``foo_seconds`` with values / 1000."""
+    if name.endswith("_ms"):
+        return name[:-3] + "_seconds", 0.001
+    return name, 1.0
+
+
+def _num(value: float) -> str:
+    if value != value:
+        return "NaN"
+    if value in (float("inf"), float("-inf")):
+        return "+Inf" if value > 0 else "-Inf"
+    return repr(float(value))
 
 
 def _escape(value: str) -> str:

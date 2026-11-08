@@ -45,7 +45,14 @@ class Thresholds:
     participation_rate: float = 0.20
     order_size_ratio: float = 4.0
     price_move_bps: float = 60.0
-    deterioration_bps: float = 1.5  # min IS increase before we look for causes
+    # legacy fallback only (no pre-trade estimate available): min IS increase vs the baseline
+    deterioration_bps: float = 1.5
+    # 2T.4: deteriorated when the IS residual against the pre-trade estimate exceeds this many
+    # standard errors (one-sided; 1.96 = 2.5 % false-flag rate if the SE is right)
+    deterioration_z: float = 1.96
+    # prior weight (in pseudo-observations) of the model's execution noise when pooling it with
+    # the dispersion of matched peers
+    peer_noise_prior: float = 4.0
 
 
 @dataclass(frozen=True)
@@ -54,6 +61,16 @@ class CauseScore:
     score: float  # 0..1
     rationale: str
     metrics: dict[str, Any] = field(default_factory=dict)
+    #: peer-relative effect of the cause's defining metric (2T.6): effect, CI, standardised effect
+    effect: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class PeerWindow:
+    """One matched-baseline observation: the same clock window on a previous session (2T.2)."""
+
+    metrics: ExecutionMetrics
+    market: MarketStatistics
 
 
 @dataclass(frozen=True)
@@ -64,6 +81,13 @@ class AttributionResult:
     ranked: tuple[CauseScore, ...]
     primary: Cause
     secondary: tuple[Cause, ...]
+    basis: str = "legacy_delta"  # "pretrade_residual" since 2T.4 when an estimate exists
+    residual_bps: float = float("nan")
+    residual_se_bps: float = float("nan")
+    residual_z: float = float("nan")
+    baseline_kind: str = "same_day"  # "time_of_day_matched" with peer windows (2T.2)
+    decomposition: dict[str, Any] = field(default_factory=dict)
+    peer_note: str = ""
 
     @property
     def material(self) -> tuple[CauseScore, ...]:
@@ -74,13 +98,137 @@ class AttributionResult:
             "deteriorated": self.deteriorated,
             "is_delta_bps": self.is_delta_bps,
             "vwap_slippage_delta_bps": self.vwap_slippage_delta_bps,
+            "basis": self.basis,
+            "residual_bps": self.residual_bps,
+            "residual_se_bps": self.residual_se_bps,
+            "residual_z": self.residual_z,
+            "baseline_kind": self.baseline_kind,
+            "decomposition": self.decomposition,
+            "peer_note": self.peer_note,
             "primary": self.primary.value,
             "secondary": [c.value for c in self.secondary],
             "ranked": [
-                {"cause": c.cause.value, "score": c.score, "rationale": c.rationale, "metrics": c.metrics}
+                {
+                    "cause": c.cause.value,
+                    "score": c.score,
+                    "rationale": c.rationale,
+                    "metrics": c.metrics,
+                    "effect": c.effect,
+                }
                 for c in self.ranked
             ],
         }
+
+
+#: IS component each cause works through, for the bps decomposition next to the scores
+CAUSE_COMPONENTS: dict[Cause, tuple[str, ...]] = {
+    Cause.MARKET_VOLATILITY: ("timing_cost_bps",),
+    Cause.WIDE_SPREADS: ("spread_cost_bps",),
+    Cause.LOW_LIQUIDITY: ("spread_cost_bps",),
+    Cause.VENUE_DEGRADATION: ("spread_cost_bps", "opportunity_cost_bps"),
+    Cause.TECHNOLOGY_LATENCY: ("spread_cost_bps", "opportunity_cost_bps"),
+    Cause.MARKET_DATA_ANOMALY: (),
+    Cause.LARGE_ORDER_IMPACT: ("timing_cost_bps",),
+    Cause.PRICE_MOVEMENT: ("timing_cost_bps",),
+}
+COMPONENT_FIELDS = (
+    "delay_cost_bps",
+    "spread_cost_bps",
+    "timing_cost_bps",
+    "opportunity_cost_bps",
+    "fees_bps",
+)
+
+
+def _cause_metric(cause: Cause, m: ExecutionMetrics, mkt: MarketStatistics) -> float:
+    """The defining metric of each cause, used for the peer-relative effect size."""
+    if cause is Cause.MARKET_VOLATILITY:
+        return _f(mkt.realised_volatility_bps)
+    if cause is Cause.WIDE_SPREADS:
+        return _f(mkt.average_spread_bps)
+    if cause is Cause.LOW_LIQUIDITY:
+        return _f(mkt.average_displayed_depth) if not math.isnan(_f(mkt.average_displayed_depth)) else _f(mkt.average_top_of_book_size)
+    if cause is Cause.VENUE_DEGRADATION:
+        rates = [v.fill_rate for v in m.venue_statistics.values() if v.child_orders >= 3 and not math.isnan(v.fill_rate)]
+        return min(rates) if rates else float("nan")
+    if cause is Cause.TECHNOLOGY_LATENCY:
+        return _f(m.average_latency_us)
+    if cause is Cause.MARKET_DATA_ANOMALY:
+        return _f(mkt.stale_quote_fraction) + _f(mkt.crossed_quote_count) / max(1.0, _f(mkt.quote_count) or 1.0)
+    if cause is Cause.LARGE_ORDER_IMPACT:
+        return _f(m.participation_rate)
+    return m.side.sign * _f(mkt.price_drift_bps)
+
+
+def pool_metrics(items: list[ExecutionMetrics]) -> ExecutionMetrics | None:
+    """Mean of the numeric fields over matched windows (the pooled time-of-day baseline)."""
+    if not items:
+        return None
+    from dataclasses import fields, replace
+
+    out: dict[str, Any] = {}
+    for f in fields(items[0]):
+        vals = [getattr(x, f.name) for x in items]
+        if all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in vals):
+            finite = [float(v) for v in vals if not math.isnan(float(v))]
+            mean = sum(finite) / len(finite) if finite else float("nan")
+            out[f.name] = int(round(mean)) if isinstance(vals[0], int) and finite else mean
+    return replace(items[0], **out)
+
+
+def pool_market(items: list[MarketStatistics]) -> MarketStatistics | None:
+    if not items:
+        return None
+    from dataclasses import fields, replace
+
+    out: dict[str, Any] = {}
+    for f in fields(items[0]):
+        vals = [getattr(x, f.name) for x in items]
+        if all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in vals):
+            finite = [float(v) for v in vals if not math.isnan(float(v))]
+            mean = sum(finite) / len(finite) if finite else float("nan")
+            out[f.name] = int(round(mean)) if isinstance(vals[0], int) and finite else mean
+    return replace(items[0], **out)
+
+
+def residual_standard_error(window: ExecutionMetrics, peers: list[PeerWindow], prior_weight: float) -> float:
+    """SE of the window's IS residual: analytic price risk plus pooled execution noise (2T.4).
+
+    ``SE^2 = sigma^2 T/3 + s_exec^2``. The model supplies ``s_exec`` (its calibrated non-price
+    dispersion); matched peers update it: ``s_exec^2 = (k s_model^2 + (n-1) s_peer^2) / (k + n - 1)``
+    where ``s_peer^2`` is the peer residual variance net of each peer's own price risk.
+    """
+    se_model = _f(window.is_standard_error_bps)
+    pr = _f(window.is_price_risk_bps)
+    if math.isnan(se_model) or math.isnan(pr):
+        return se_model
+    s_model2 = max(se_model**2 - pr**2, 0.0)
+    res = [(_f(p.metrics.is_residual_bps), _f(p.metrics.is_price_risk_bps)) for p in peers]
+    res = [(r, q) for r, q in res if not (math.isnan(r) or math.isnan(q))]
+    n = len(res)
+    if n >= 2:
+        mean = sum(r for r, _ in res) / n
+        var = sum((r - mean) ** 2 for r, _ in res) / (n - 1)
+        s_peer2 = max(var - sum(q * q for _, q in res) / n, 0.0)
+        s_exec2 = (prior_weight * s_model2 + (n - 1) * s_peer2) / (prior_weight + n - 1)
+    else:
+        s_exec2 = s_model2
+    return math.sqrt(pr**2 + s_exec2)
+
+
+def decompose(window: ExecutionMetrics, peers: list[PeerWindow]) -> dict[str, Any]:
+    """Window IS in bps by Perold component, each next to its matched-peer mean and effect size."""
+    from ceap.analytics.peers import peer_effect
+
+    comps: dict[str, Any] = {}
+    for k, name in enumerate(COMPONENT_FIELDS):
+        v = _f(getattr(window, name))
+        eff = peer_effect(v, [_f(getattr(p.metrics, name)) for p in peers], seed=k)
+        comps[name] = {"bps": v, **eff.as_dict()}
+    comps["total_bps"] = _f(window.implementation_shortfall_bps)
+    comps["pretrade_estimate_bps"] = _f(window.pretrade_estimate_bps)
+    comps["arrival_shortfall_bps"] = _f(window.arrival_shortfall_bps)
+    return comps
 
 
 def _f(value: Any) -> float:
@@ -121,19 +269,39 @@ def attribute_causes(
     baseline_market: MarketStatistics | None,
     engineering: dict[str, Any] | None = None,
     thresholds: Thresholds = Thresholds(),
+    peers: list[PeerWindow] | None = None,
 ) -> AttributionResult:
-    """Score candidate causes for the execution-quality change in ``window``."""
+    """Score candidate causes for the execution-quality change in ``window``.
+
+    With ``peers`` (the same clock window on previous sessions, 2T.2) the baseline is their pooled
+    mean, so intraday seasonality cannot masquerade as a cause; every cause also gets a
+    peer-relative effect with a bootstrap CI (2T.6). Deterioration is the IS residual against the
+    pre-trade estimate in standard errors (2T.4); the v0.4 1.5 bps delta remains only as the
+    fallback when no estimate is available.
+    """
     t = thresholds
     eng = engineering or {}
+    peers = [p for p in (peers or []) if p.metrics.execution_count > 0]
+    if peers:
+        baseline = pool_metrics([p.metrics for p in peers]) or baseline
+        baseline_market = pool_market([p.market for p in peers]) or baseline_market
     scores: list[CauseScore] = []
 
     base_is = baseline.implementation_shortfall_bps if baseline else 0.0
     is_delta = window.implementation_shortfall_bps - (base_is if not math.isnan(base_is) else 0.0)
     base_vs = baseline.slippage_vs_vwap_bps if baseline else 0.0
     vwap_delta = window.slippage_vs_vwap_bps - (base_vs if not math.isnan(base_vs) else 0.0)
-    # A VWAP algo is judged against interval VWAP (drift-neutral) as well as arrival (IS).
-    deltas = [d for d in (is_delta, vwap_delta) if not math.isnan(d)]
-    deteriorated = bool(deltas) and max(deltas) >= t.deterioration_bps
+    residual = _f(window.is_residual_bps)
+    se = residual_standard_error(window, peers, t.peer_noise_prior)
+    z = residual / se if not (math.isnan(residual) or math.isnan(se)) and se > 0 else float("nan")
+    if not math.isnan(z):
+        basis = "pretrade_residual"
+        deteriorated = z >= t.deterioration_z
+    else:
+        # legacy: a VWAP algo judged against interval VWAP (drift-neutral) as well as arrival (IS)
+        basis = "legacy_delta"
+        deltas = [d for d in (is_delta, vwap_delta) if not math.isnan(d)]
+        deteriorated = bool(deltas) and max(deltas) >= t.deterioration_bps
 
     # --- market volatility --------------------------------------------------
     vol_ratio = _ratio(
@@ -262,6 +430,21 @@ def attribute_causes(
         )
     )
 
+    if peers:
+        from dataclasses import replace as _replace
+
+        from ceap.analytics.peers import peer_effect
+
+        with_effects = []
+        for k, cs in enumerate(scores):
+            value = _cause_metric(cs.cause, window, window_market)
+            eff = peer_effect(value, [_cause_metric(cs.cause, p.metrics, p.market) for p in peers], seed=100 + k)
+            comp_bps = sum(_f(getattr(window, c)) for c in CAUSE_COMPONENTS.get(cs.cause, ()))
+            with_effects.append(
+                _replace(cs, effect={**eff.as_dict(), "components": list(CAUSE_COMPONENTS.get(cs.cause, ())), "component_bps": comp_bps})
+            )
+        scores = with_effects
+
     ranked = tuple(sorted(scores, key=lambda s: s.score, reverse=True))
     material = [s for s in ranked if s.score >= MATERIAL_SCORE]
     if not deteriorated and not material:
@@ -280,7 +463,20 @@ def attribute_causes(
         ranked=ranked,
         primary=primary,
         secondary=secondary,
+        basis=basis,
+        residual_bps=residual,
+        residual_se_bps=se,
+        residual_z=z,
+        baseline_kind="time_of_day_matched" if peers else "same_day",
+        decomposition=decompose(window, peers) if not math.isnan(_f(window.delay_cost_bps)) else {},
+        peer_note=_peer_note() if peers else "",
     )
+
+
+def _peer_note() -> str:
+    from ceap.analytics.peers import NO_CAUSAL_CLAIM
+
+    return NO_CAUSAL_CLAIM
 
 
 def _venue_degradation(window: ExecutionMetrics, t: Thresholds) -> tuple[float, str, dict[str, Any]]:

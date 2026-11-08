@@ -174,10 +174,30 @@ computed on Linux. `redact.py` removes emails, API keys, tokens and account-like
 question text before it reaches a log, the task store or a prompt, and scrubs recorded HTTP
 interactions (API key, request id, organisation id) before a cassette is committed.
 
+### 3.10b Persistence (`ceap.persistence`)
+
+SQLite from the standard library (decision D7). One `Database` owns one connection on one writer
+thread; async callers use `arun`, so the event loop never blocks on disk and SQLite never sees two
+writers. WAL and `busy_timeout` let `ceap db` read while the server writes. Schema versions are
+`PRAGMA user_version`; `migrations/NNNN_*.sql` apply forward only, each in its own transaction, after
+an online backup of the file. Tables: `tasks`, `results`, `approvals`, `staged_orders`, `audit_log`
+(v1); `llm_calls`, `trial_ledger`, `idempotency_keys` (v2). Repositories (`repositories.py`) are thin,
+one per table. Startup recovery turns in-flight tasks into `INTERRUPTED` and pending approvals into
+`EXPIRED`. The Postgres path stays open: repositories speak plain SQL and own no connection logic.
+
 ### 3.11 API (`ceap.api`)
 
-FastAPI application with API-key authentication, capability-based authorisation and asynchronous
-investigation execution. See `docs/api/api.md`.
+FastAPI application with API-key authentication (salted digests, optional expiry),
+capability-based authorisation with owner-scoped reads, `Idempotency-Key` handling, a pure-ASGI
+middleware for the correlation id, HTTP metrics and the body limit, and asynchronous task execution
+under a concurrency bound that a task releases while it waits for a human. See `docs/api/api.md`.
+
+### 3.12 Replay (`ceap.harness.replay`)
+
+A bundle records the request, tool outputs, redacted model I/O, approval decisions and a clock
+seed. Replay swaps in recording-backed MCP, LLM and approval clients and injects the clock and id
+source through context variables in `ceap.domain.common`, so the stored result is reproduced byte
+for byte.
 
 ## 4. Data flow for the MVP question
 

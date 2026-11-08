@@ -1,0 +1,1540 @@
+{
+  "alpha.evaluate_signal": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Compute rank-IC statistics of a signal against forward returns over the in-sample, out-of-sample and full periods: mean IC, IC t-statistic, information ratio, hit rate, turnover, decay and quantile spread.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "horizon_days": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "in_sample_end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rebalance_days": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "signal": {
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "signal"
+      ],
+      "type": "object"
+    },
+    "name": "evaluate_signal"
+  },
+  "alpha.list_signals": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "List the signals available for research, with their look-back and default horizons.",
+    "inputSchema": {
+      "properties": {},
+      "required": [],
+      "type": "object"
+    },
+    "name": "list_signals"
+  },
+  "backtest.run_backtest": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Backtest the signal's quantile portfolio from the enumerated search space: decide at the close, fill execution_lag_days later at the close or open, drift weights between fills, charge half-spread plus square-root impact, borrow by liquidity tier and financing; report per-period Sharpe on excess returns, costs by line, capped and blocked trades, delisting bounds, the profitability table with a capacity sweep, and this run's trial-ledger record (the trial count is read from the ledger, never supplied).",
+    "inputSchema": {
+      "properties": {
+        "capacity": {
+          "default": true,
+          "type": "boolean"
+        },
+        "cost_multiplier": {
+          "default": 1.0,
+          "type": "number"
+        },
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "execution_lag_days": {
+          "default": 1,
+          "type": "integer"
+        },
+        "fill": {
+          "default": "close",
+          "type": "string"
+        },
+        "gross_notional": {
+          "default": 50000000.0,
+          "type": "number"
+        },
+        "in_sample_end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "long_short": {
+          "default": true,
+          "type": "boolean"
+        },
+        "rebalance_days": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "signal": {
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "weighting": {
+          "default": "equal",
+          "type": "string"
+        }
+      },
+      "required": [
+        "signal"
+      ],
+      "type": "object"
+    },
+    "name": "run_backtest"
+  },
+  "backtest.trial_count": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Read the trial ledger for a dataset: how many distinct configurations have been backtested.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "name": "trial_count"
+  },
+  "engineering.get_deployments": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return deployments / configuration changes in the window, optionally filtered by service.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "service": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_deployments"
+  },
+  "engineering.get_latency_metrics": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Summarise service latency in a window and compare with a baseline window (p50/p99/max plus the window-over-baseline ratio).",
+    "inputSchema": {
+      "properties": {
+        "baseline_end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "baseline_start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "service": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "service",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_latency_metrics"
+  },
+  "engineering.get_service_metrics": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return time series of a service metric (all metrics of the service when metric is omitted).",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "service": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "service",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_service_metrics"
+  },
+  "engineering.get_services": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return the list of services in the trading stack and their owners.",
+    "inputSchema": {
+      "properties": {},
+      "required": [],
+      "type": "object"
+    },
+    "name": "get_services"
+  },
+  "engineering.search_logs": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Search structured logs by service, level and free-text query within a window; paginated.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "level": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "limit": {
+          "default": 200,
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "type": "integer"
+        },
+        "query": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "service": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "search_logs"
+  },
+  "execution.get_child_orders": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return child (slice) orders in the window, optionally filtered by parent order id; paginated.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "limit": {
+          "default": 500,
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "type": "integer"
+        },
+        "parent_order_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_child_orders"
+  },
+  "execution.get_execution_metrics": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Compute deterministic execution-quality metrics (TCA) for the window: fill rate, participation, VWAP, arrival price, implementation shortfall, slippage, spreads, market impact, latency, reject rate, per-venue stats.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_execution_metrics"
+  },
+  "execution.get_executions": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return executions (fills) in the window, optionally filtered by parent order id; paginated.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "limit": {
+          "default": 500,
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "type": "integer"
+        },
+        "parent_order_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_executions"
+  },
+  "execution.get_parent_orders": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return parent (algorithmic) orders for a symbol whose start time falls in the window.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_parent_orders"
+  },
+  "execution.get_staged_orders": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "List staged paper order sets, or return one by staging id.",
+    "inputSchema": {
+      "properties": {
+        "staging_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "name": "get_staged_orders"
+  },
+  "execution.get_strategy_configuration": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Describe the execution strategy configuration in force for the symbol (algo parameters).",
+    "inputSchema": {
+      "properties": {
+        "strategy": {
+          "default": "VWAP",
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ],
+      "type": "object"
+    },
+    "name": "get_strategy_configuration"
+  },
+  "execution.get_venue_statistics": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return per-venue fill rate, slippage, latency, reject rate and volume share for the window.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_venue_statistics"
+  },
+  "execution.stage_orders": {
+    "annotations": {
+      "readOnlyHint": false,
+      "requiredCapabilities": [
+        "trading:execute"
+      ],
+      "riskLevel": "HIGH"
+    },
+    "description": "Stage a PAPER order list that moves the book to the signal's recomputed target portfolio at as_of. Nothing is routed to a venue. Idempotent per (signal, dataset, as_of, gross_notional, long_short). Requires the trading:execute capability and human approval.",
+    "inputSchema": {
+      "properties": {
+        "approved_portfolio_hash": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        },
+        "gross_notional": {
+          "default": 50000000.0,
+          "type": "number"
+        },
+        "long_short": {
+          "default": true,
+          "type": "boolean"
+        },
+        "signal": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "signal"
+      ],
+      "type": "object"
+    },
+    "name": "stage_orders"
+  },
+  "knowledge.get_document": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return a whole document by id.",
+    "inputSchema": {
+      "properties": {
+        "document_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "document_id"
+      ],
+      "type": "object"
+    },
+    "name": "get_document"
+  },
+  "knowledge.list_documents": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "List the documents available in the knowledge base.",
+    "inputSchema": {
+      "properties": {},
+      "required": [],
+      "type": "object"
+    },
+    "name": "list_documents"
+  },
+  "knowledge.search_documents": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Semantic search over enterprise documents; returns the best matching sections with scores.",
+    "inputSchema": {
+      "properties": {
+        "k": {
+          "default": 4,
+          "type": "integer"
+        },
+        "query": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "type": "object"
+    },
+    "name": "search_documents"
+  },
+  "market_data.get_coverage": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "List symbols and the time span covered by the selected dataset.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "name": "get_coverage"
+  },
+  "market_data.get_market_statistics": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return deterministic market statistics for a window: VWAP, volume, spread, realised volatility, depth, drift, stale/crossed quote diagnostics and venue volume share.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_market_statistics"
+  },
+  "market_data.get_order_book": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return the order-book snapshot (5 levels each side) nearest to and not after the timestamp.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "timestamp"
+      ],
+      "type": "object"
+    },
+    "name": "get_order_book"
+  },
+  "market_data.get_order_book_statistics": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return order-book depth statistics (mean displayed depth / imbalance) over a window.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "start": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_order_book_statistics"
+  },
+  "market_data.get_quote": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return the prevailing NBBO quote for a symbol at a timestamp (ISO-8601, London local if naive).",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "symbol": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "timestamp"
+      ],
+      "type": "object"
+    },
+    "name": "get_quote"
+  },
+  "market_data.get_quotes": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return NBBO quotes between start and end (downsampled to max_points, full count reported).",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "max_points": {
+          "default": 600,
+          "type": "integer"
+        },
+        "start": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_quotes"
+  },
+  "market_data.get_reference_data": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return reference data for a symbol (listing venue, tick size, lot size, sector, reference price).",
+    "inputSchema": {
+      "properties": {
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ],
+      "type": "object"
+    },
+    "name": "get_reference_data"
+  },
+  "market_data.get_trades": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return trades (prints) between start and end, paginated.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "end": {
+          "type": "string"
+        },
+        "limit": {
+          "default": 500,
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "type": "integer"
+        },
+        "start": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_trades"
+  },
+  "research_data.get_daily_bars": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return daily bars (open, high, low, close, volume, 20-day ADV, quoted spread) for a symbol between two dates, downsampled to max_points (full count reported).",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        },
+        "end": {
+          "type": "string"
+        },
+        "max_points": {
+          "default": 120,
+          "type": "integer"
+        },
+        "start": {
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "start",
+        "end"
+      ],
+      "type": "object"
+    },
+    "name": "get_daily_bars"
+  },
+  "research_data.get_universe": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Describe the research universe of a dataset: symbols, liquidity tiers, prices and average liquidity.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "name": "get_universe"
+  },
+  "research_data.get_universe_summary": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Summarise a dataset's coverage and regime: liquidity, spreads and the equal-weight market's return and volatility for the in-sample, out-of-sample and full periods.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [],
+      "type": "object"
+    },
+    "name": "get_universe_summary"
+  },
+  "risk.calculate_portfolio_stress": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "MEDIUM"
+    },
+    "description": "P&L impact of an instantaneous market shock (bps) on the recomputed target portfolio: through its beta, through its net exposure and for the largest single name; plus a reversal of the signal's factor, a +20% short squeeze and the cost and days of liquidating at 10% of ADV.",
+    "inputSchema": {
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        },
+        "gross_notional": {
+          "default": 50000000.0,
+          "type": "number"
+        },
+        "long_short": {
+          "default": true,
+          "type": "boolean"
+        },
+        "shock_bps": {
+          "default": -500.0,
+          "type": "number"
+        },
+        "signal": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "signal"
+      ],
+      "type": "object"
+    },
+    "name": "calculate_portfolio_stress"
+  },
+  "risk.calculate_stress": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "MEDIUM"
+    },
+    "description": "Compute the P&L impact of an instantaneous price shock (bps) on the current position.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "shock_bps": {
+          "default": -200.0,
+          "type": "number"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ],
+      "type": "object"
+    },
+    "name": "calculate_stress"
+  },
+  "risk.check_limit": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Check an order quantity / participation rate against configured trading limits.",
+    "inputSchema": {
+      "properties": {
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "order_quantity": {
+          "type": "integer"
+        },
+        "participation_rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "side": {
+          "default": "BUY",
+          "type": "string"
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol",
+        "order_quantity"
+      ],
+      "type": "object"
+    },
+    "name": "check_limit"
+  },
+  "risk.check_portfolio_limits": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Check the recomputed target portfolio against portfolio limits: gross, net, single-name weight, beta, concentration and per-name ADV participation - as of the date and over every out-of-sample rebalance date, reporting the worst date per limit.",
+    "inputSchema": {
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        },
+        "gross_notional": {
+          "default": 50000000.0,
+          "type": "number"
+        },
+        "long_short": {
+          "default": true,
+          "type": "boolean"
+        },
+        "rebalance_days": {
+          "default": 21,
+          "type": "integer"
+        },
+        "signal": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "signal"
+      ],
+      "type": "object"
+    },
+    "name": "check_portfolio_limits"
+  },
+  "risk.get_exposure": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return notional exposure for a symbol at a timestamp using the prevailing mid.",
+    "inputSchema": {
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ],
+      "type": "object"
+    },
+    "name": "get_exposure"
+  },
+  "risk.get_portfolio_exposure": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Recompute a signal's target portfolio at as_of (never trusting a backtest) and return its positions, gross/net exposure, single-name concentration (HHI), market beta and ADV participation.",
+    "inputSchema": {
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dataset": {
+          "default": "R01",
+          "type": "string"
+        },
+        "gross_notional": {
+          "default": 50000000.0,
+          "type": "number"
+        },
+        "long_short": {
+          "default": true,
+          "type": "boolean"
+        },
+        "signal": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "signal"
+      ],
+      "type": "object"
+    },
+    "name": "get_portfolio_exposure"
+  },
+  "risk.get_position": {
+    "annotations": {
+      "readOnlyHint": true,
+      "requiredCapabilities": [],
+      "riskLevel": "LOW"
+    },
+    "description": "Return the start-of-day position for a symbol and the position after the window's executions.",
+    "inputSchema": {
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dataset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "symbol": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "symbol"
+      ],
+      "type": "object"
+    },
+    "name": "get_position"
+  }
+}

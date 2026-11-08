@@ -27,20 +27,62 @@ real numbers, versioned like code, in `ceap.analytics.attribution` and `ceap.ana
 
 ## Execution-quality analytics (Stage 1)
 
-`ceap.analytics`: VWAP, TWAP, implementation shortfall (Perold 1988, execution leg + opportunity
-leg for unfilled quantity, sign-flipped for sells so positive is always adverse), slippage
-(arrival / interval-VWAP / per-fill), effective spread, market impact split into permanent (mid
-at last fill vs arrival) and temporary (execution VWAP vs mid at last fill), a square-root impact
-*estimate* (Almgren-Chriss style — a benchmark to compare measured impact against, not a
-replacement for it), realised and annualised volatility, price drift and jump detection,
-displayed depth, order-book imbalance, and stale/crossed-quote feed-quality diagnostics.
-`StandardExecutionAnalytics.calculate` composes these into `ExecutionMetrics` including
-per-venue statistics (fill rate computed on *accepted* quantity — rejects are a technology
-signal, not a venue one, so a venue isn't blamed for a platform-wide fault).
+`ceap.analytics`: VWAP, TWAP, slippage (arrival / interval VWAP / per fill), realised volatility,
+drift, depth and feed-quality diagnostics, plus the R2T TCA layer below.
+`StandardExecutionAnalytics.calculate` composes them into `ExecutionMetrics`.
 
-**`attribute_causes`** scores 8 causes by comparing a window against its baseline; each score is
-`1 - exp(-excess/scale)` of how far a signal sits beyond threshold (saturates at 1, is 0 below
-threshold); a score ≥ 0.35 is *material*.
+**Implementation shortfall (Perold 1988, 2T.3).** In bps of the decision notional `P_d * Q`, with
+`s = +1` for buys and `-1` for sells so positive is always adverse:
+
+| Leg | Formula |
+|---|---|
+| delay | `s (P_arr - P_d) Q` (decision to arrival, on the whole order) |
+| spread | `s sum q_i (p_i - m_i)` (each fill against the mid prevailing at it) |
+| timing | `s sum q_i (m_i - P_arr)` (mid drift from arrival to each fill) |
+| opportunity | `s (P_end - P_arr) Q_unfilled` (priced at the end of the order's life) |
+| fees | `sum q_i f_i`: commission 0.10 c, access fee 0.30 c to remove, rebate 0.20 c to add |
+
+The legs sum to the total to 1e-9 (tested). `arrival_shortfall = total - delay` is what the
+pre-trade model predicts. Interval VWAP and market volume exclude auction and late prints by
+default (`interval_vwap`).
+
+**Noise model and deterioration (2T.4).** The price-risk standard error of a parent traded on a
+linear schedule over `T` session-days is `sigma_daily * sqrt(T/3)`: the remaining fraction
+`x(t) = 1 - t/T` gives `Var(int x dP) = sigma^2 T/3`. In general it is
+`sigma^2 * sum T_k (a_k^2 + a_k b_k + b_k^2) / 3` over linear segments (`schedule_price_variance`).
+That is about 14 bps for a one-hour order at 10 % annual volatility. The SE adds execution noise
+in quadrature. The model supplies a value, and the matched peers update it (pooled with a prior
+weight of 4). `deteriorated` is `z = (arrival IS - pre-trade estimate) / SE >= 1.96`. The v0.4
+rule (1.5 bps worse than the baseline) is kept only as a fallback when no estimate exists.
+
+**Markouts, spreads and venues (2T.5).** Size-weighted effective spread `2 s (p - m_t)/m_t` and
+realised spread `2 s (p - m_{t+h})/m_t` on aggressive fills (effective = realised + price impact).
+Price improvement is measured against the far touch. Markouts `s (m_{t+h} - p)/p` are taken at
+1 s, 10 s, 60 s and 5 min, beta-adjusted against the synthetic index where one exists (the
+multi-day universe), and NaN past the end of the data rather than clamped. Venue statistics are
+size-weighted and also conditioned on liquidity flag x size bucket.
+`VenueStatistics.volume_share` was renamed `market_volume_participation` (the old name remains as
+an alias), and `fill_share` was added. `market_impact_bps` is now the **expected** square-root
+impact `c * sigma_daily * sqrt(Q/ADV)`. The v0.4 helper mixed a daily sigma with an *interval*
+participation rate. Realised impact lives in the markouts: on T01 the old "permanent impact"
+read -45 bps of pure drift, and the new figure reads a few bps.
+
+**Pre-trade model (2T.8, decision D11).**
+`E[cost] = c0[algo] + c1[algo] * spread_bps + b * sigma_daily * sqrt(Q/ADV)` is fitted by
+weighted least squares on arrival-time features only. Intervals are split-conformal on
+normalised residuals, with scale `sqrt((1+kappa) sigma^2 V + s_exec^2)`; `kappa` and `s_exec`
+are median-matched. The model is fitted on five scenario families and its coverage tested on the
+other five. It is labelled `fitted to synthetic generator <hash>`; see
+[the model card](pretrade_model_card.md). There is no gradient boosting: on synthetic data a
+flexible learner memorises the generator.
+
+**Attribution (`attribute_causes`).** It scores 8 causes against a baseline. Each score is
+`1 - exp(-excess/scale)` of how far a signal sits beyond its threshold; a score >= 0.35 is
+*material*. Since 2T.2 the baseline is the **same clock window on the previous five sessions**
+(pooled), so U-shaped intraday volume and volatility cannot pass for a cause. Each cause also
+carries a **peer-relative effect** with a 90 % bootstrap CI over the matched windows (2T.6,
+`ceap.analytics.peers`), and the IS sits next to a bps decomposition by Perold leg. The output
+makes no causal claim: peers share the observable regime and nothing else is controlled for.
 
 | Cause | Signal | Threshold |
 |---|---|---|
@@ -49,13 +91,19 @@ threshold); a score ≥ 0.35 is *material*.
 | LOW_LIQUIDITY | min(depth ratio, top-of-book ratio) | < 0.65 |
 | VENUE_DEGRADATION | fill-rate gap / slippage excess / reject excess vs peers | 0.25 / 2 bps / 10 pp |
 | TECHNOLOGY_LATENCY | latency ratio / reject rate | > 3 / > 5 % |
-| MARKET_DATA_ANOMALY | stale-quote fraction / crossed quotes | > 3 % (and 3× baseline) / > 5 |
-| LARGE_ORDER_IMPACT | participation (+0.3 if parent ≥ 4× baseline) | > 20 % |
+| MARKET_DATA_ANOMALY | stale-quote fraction / crossed quotes | > 3 % (and 3x baseline) / > 5 |
+| LARGE_ORDER_IMPACT | participation (+0.3 if parent >= 4x baseline) | > 20 % |
 | PRICE_MOVEMENT | adverse drift, halved when volatility is elevated | > 60 bps |
 
-`deteriorated` is true when implementation shortfall *or* VWAP slippage worsens by ≥ 1.5 bps —
-using both matters because hourly IS alone carries ≈30 bps of price-drift noise at 10 %
-annualised volatility, which a VWAP algorithm cannot control.
+**TCA as desks use it (2T.7, `ceap.analytics.tca_aggregate`).** It runs over a multi-day
+universe of 20 sessions x 40 parents (`ceap.data.tca_universe`):
+
+- broker, algo and venue comparisons on the residual against the pre-trade estimate
+  (inverse-variance weighted, sandwich SE, Bonferroni);
+- parent/child linkage across sessions;
+- an outlier queue of residuals beyond 2.5 SE with reason codes, where closing an outlier needs a
+  second principal through the approval gateway (four-eyes);
+- `ceap tca-report`, a monthly best-execution style report labelled DEMONSTRATION.
 
 ## Signal-research analytics (Stage 2)
 
@@ -128,23 +176,24 @@ signal/horizon families (momentum at 21 days: 5.6 %), inside the [3.0 %, 7.5 %] 
 | Sweep (committed in `data/reference/research_thresholds.json`) | Value |
 |---|---|
 | Seeds x configurations | 500 x 24 |
-| Chosen in-sample IC t hurdle | **0.65** |
+| Chosen in-sample IC t hurdle | **0.40** (0.65 before rf was committed) |
 | False PROMOTEs at the hurdle | 15 / 500 = 3.0 %, 95 % band [1.7 %, 4.9 %] |
-| False PROMOTEs with no IC hurdle at all | 27 / 500 = 5.4 % (upper bound 7.8 %) |
-| Sweep hash | `dfdadabefeb7682e71e86d3ca8dfc97e2811a48c3bf118bf75e94f07373fe5c0` |
+| False PROMOTEs with no IC hurdle at all | 17 / 500 = 3.4 % (upper bound 5.4 %) |
+| Sweep hash | `ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4` |
 
 What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,
 out-of-sample IC t >= 1, out-of-sample net Sharpe >= 0.5, costs below half of gross) already hold
 the false-PROMOTE rate near 5 %, so the in-sample IC hurdle only has to remove the last few. A
 fixed `t >= 3` would have been chosen before measuring and would have rejected the realistic
-premia below. The rf series is not yet committed (rf = 0); for the long-only half of the search
-that can only *overstate* false PROMOTEs, so the hurdle is conservative.
+premia below. With the Ken French rf series committed, long-only books pay rf in their excess
+return, fewer noise configurations clear the Sharpe gates, and the hurdle fell from 0.65 (rf = 0)
+to 0.40 - the sweep was re-run, not the number edited.
 
 ### The assessment (`assess_research`)
 
 | Flag | Condition |
 |---|---|
-| `NO_ALPHA` | in-sample non-overlapping IC t < 0.65 (null-sweep hurdle), fewer than 30 periods, or deflated Sharpe < 0.5 |
+| `NO_ALPHA` | in-sample non-overlapping IC t < 0.40 (null-sweep hurdle), fewer than 30 periods, or deflated Sharpe < 0.5 |
 | `REGIME_BREAK` | out-of-sample IC t <= -2: the premium reversed |
 | `OOS_DECAY` | out-of-sample IC t < 1, or net out-of-sample Sharpe < 0.5 without a cost explanation (0.4 name `OVERFIT`: nothing is fitted) |
 | `COST_DRAG` | gross out-of-sample Sharpe >= 0.5 but net below it, or costs >= 50 % of gross |
@@ -255,9 +304,10 @@ recalibration and version control like any other code; R5 runs one preregistered
   solver.
 - **No commercial risk model.** No Barra-style factor risk model, no vendor covariance matrix —
   beta is an OLS regression against the equal-weight universe excluding the name, shrunk toward 1.
-- **No committed risk-free series yet.** `scripts/fetch_rf.py` builds `data/reference/rf.csv`
-  from the Ken French library (free, no sign-up); until it is committed rf = 0 and every
-  backtest says so in `assumptions["risk_free"]`.
+- **Risk-free series from the Ken French library** (`data/reference/rf.csv`, built by
+  `scripts/fetch_rf.py`, attribution in its header). An installed wheel does not ship `data/`:
+  there rf falls back to 0 and every backtest says so in `assumptions["risk_free"]`; the calendar
+  regenerates from its rules and the hurdle falls back to the committed value shipped in code.
 - **No live market data, no OMS, no venue connectivity.** Every number above is computed on
   synthetic data. `execution.stage_orders` (the one non-read-only tool in the whole platform)
   builds *paper* orders from the recomputed target portfolio into an in-memory store; nothing

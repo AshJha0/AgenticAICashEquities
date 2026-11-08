@@ -44,6 +44,10 @@ Contents:
 35. [Measure the PROMOTE hurdle (null sweep)](#35-measure-the-promote-hurdle-null-sweep)
 36. [Profitability table and capacity sweep](#36-profitability-table-and-capacity-sweep)
 37. [Backtest under different execution assumptions](#37-backtest-under-different-execution-assumptions)
+38. [Keep state across restarts (SQLite)](#38-keep-state-across-restarts-sqlite)
+39. [Replay a task byte for byte](#39-replay-a-task-byte-for-byte)
+40. [Scrape metrics and correlate logs](#40-scrape-metrics-and-correlate-logs)
+41. [Hold API keys as hashes only](#41-hold-api-keys-as-hashes-only)
 
 ---
 
@@ -54,7 +58,7 @@ ceap investigate "Why did our execution quality for AAPL deteriorate between 14:
 ```
 
 The symbol and window are parsed from the question ("between 14:00 and 15:00", "from 2pm to
-3:30pm"; naive times are Europe/London). `--dataset` picks the scenario (T01–T10 templates,
+3:30pm"; naive times are America/New_York, the desk session clock since 0.5.0). `--dataset` picks the scenario (T01–T10 templates,
 S01–S50 concrete). Add `--role quant|admin|viewer` to change the principal's role.
 
 ## 2. Run an investigation from Python
@@ -77,15 +81,14 @@ To build a request by hand:
 
 ```python
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from ceap.data.session import SESSION_TZ  # America/New_York
 from ceap.platform import InvestigationRequest
 
-LONDON = ZoneInfo("Europe/London")
 req = InvestigationRequest(
     question="Analyse MSFT VWAP execution and identify the main sources of slippage.",
     symbol="MSFT",
-    window_start=datetime(2026, 9, 18, 14, 0, tzinfo=LONDON),
-    window_end=datetime(2026, 9, 18, 15, 0, tzinfo=LONDON),
+    window_start=datetime(2026, 9, 18, 14, 0, tzinfo=SESSION_TZ),
+    window_end=datetime(2026, 9, 18, 15, 0, tzinfo=SESSION_TZ),
     dataset="S12",                           # MSFT / wide_spreads
     principal="quant.b", roles=frozenset({"quant"}),
 )
@@ -127,14 +130,16 @@ curl -s -X POST localhost:8000/investigations -H "X-API-Key: dev-trader-key" \
   -d '{"question":"Why did AAPL execution deteriorate between 14:00 and 15:00?","dataset":"T05"}'
 
 # poll, then read
-curl -s localhost:8000/investigations/TASK-xxxx           -H "X-API-Key: dev-viewer-key"
-curl -s localhost:8000/investigations/TASK-xxxx/report    -H "X-API-Key: dev-viewer-key"
-curl -s "localhost:8000/investigations/TASK-xxxx/result?include_trace=true" -H "X-API-Key: dev-viewer-key"
-curl -s localhost:8000/investigations/TASK-xxxx/trace     -H "X-API-Key: dev-viewer-key"
+curl -s localhost:8000/investigations/TASK-xxxx           -H "X-API-Key: dev-trader-key"
+curl -s localhost:8000/investigations/TASK-xxxx/report    -H "X-API-Key: dev-trader-key"
+curl -s "localhost:8000/investigations/TASK-xxxx/result?include_trace=true" -H "X-API-Key: dev-trader-key"
+curl -s localhost:8000/investigations/TASK-xxxx/trace     -H "X-API-Key: dev-auditor-key"
 ```
 
-Keys → roles come from `CEAP_API_KEYS=key:role,...`. Viewer can read; trader/quant/engineer
-can investigate; admin can decide approvals.
+Keys → roles come from `CEAP_API_KEYS=key:role,...`. Reads are scoped to the owner (another
+principal's task is a 404); `auditor`, `approver` and `admin` read everything. Trader, quant and
+engineer can investigate; only `approver` decides approvals. Retry a POST safely with
+`-H "Idempotency-Key: <your id>"` (same body: same `task_id`; different body: 422).
 
 ## 6. Turn on human approvals
 
@@ -151,8 +156,10 @@ curl -s -X POST localhost:8000/approvals/APR-xxxx -H "X-API-Key: dev-admin-key" 
   -H "Content-Type: application/json" -d '{"approved": true, "comment": "ok for TCA review"}'
 ```
 
-Unanswered approvals time out (120 s by default in `QueuedApprovalGateway`) and the step is
-marked DENIED; the investigation continues without it.
+Unanswered approvals expire after `CEAP_APPROVAL_TIMEOUT_S` (120 s) and the step is marked DENIED;
+the investigation continues without it. A decision posted after expiry, after a restart, or after
+another approver already decided gets 409 and an audit row. While a task waits, its concurrency
+slot is free for other work.
 
 ## 7. Use a real model
 
@@ -226,6 +233,9 @@ async def main():
     stats = calculate_market_statistics("AAPL", s, e, await mr.quotes("AAPL", s, e),
                                         await mr.trades("AAPL", s, e), await mr.order_books("AAPL", s, e))
     print(m.vwap, m.market_vwap, m.implementation_shortfall_bps, m.slippage_vs_vwap_bps)
+    # Perold legs (they sum to the IS), the pre-trade estimate and the residual in SEs
+    print(m.delay_cost_bps, m.spread_cost_bps, m.timing_cost_bps, m.opportunity_cost_bps, m.fees_bps)
+    print(m.pretrade_estimate_bps, m.is_residual_bps, m.is_residual_z, m.markouts_bps)
     print(stats.average_displayed_depth, stats.realised_volatility_bps)
 
 asyncio.run(main())
@@ -250,7 +260,30 @@ print(res.primary, [(c.cause.value, round(c.score, 2), c.rationale) for c in res
 ```
 
 Missing fields become `nan` and the corresponding cause scores 0 — attribution degrades
-gracefully rather than failing.
+gracefully rather than failing. Without `is_residual_bps` and `is_standard_error_bps` the
+deterioration test falls back to the v0.4 1.5 bps delta (`res.basis == "legacy_delta"`). Pass
+`peers=[PeerWindow(metrics, market), ...]`, the same clock window on previous sessions, for the
+time-of-day-matched baseline and a peer-relative effect with a CI on every cause.
+
+### TCA over many orders: the monthly report
+
+```bash
+ceap tca-report --sessions 20 --out best_ex.md        # labelled DEMONSTRATION (synthetic)
+ceap tca-report --broker-gap-bps 3 --json             # plant a 3 bps broker gap and look for it
+```
+
+```python
+from ceap.analytics.tca_aggregate import OutlierQueue, compare_groups, measure_universe
+from ceap.data.tca_universe import generate_tca_universe
+
+ms = measure_universe(generate_tca_universe(seed=1))
+print([(g.key, round(g.mean_residual_bps, 2), g.flagged) for g in compare_groups(ms, "broker")])
+queue = OutlierQueue.build(ms)          # residual beyond 2.5 SE, with reason codes
+# closing needs a second principal: await queue.close(order_id, "analyst.a", gateway)
+```
+
+Refit the pre-trade model after changing the generator: `python scripts/train_pretrade.py`
+(it rewrites `src/ceap/ml/pretrade_model.json` and `docs/quant/pretrade_model_card.md`).
 
 ## 12. Tune attribution thresholds
 
@@ -605,3 +638,40 @@ run_backtest(ds, "reversal_5", rebalance_days=5, fill="open")  # next open; lag 
 ```
 
 `lag=0` is the 0.3.x same-close look-ahead, kept only for comparison.
+
+## 38. Keep state across restarts (SQLite)
+
+```bash
+CEAP_DB_PATH=var/ceap.db ceap serve       # outside dev this is the default path
+ceap db status                             # schema version, size, audit-chain check
+ceap db backup var/ceap-2026-11-07.db      # online backup, then verifies the copy
+ceap db verify-chain                       # exit 1 if any audit row was edited or deleted
+ceap db prune                              # apply CEAP_RETENTION_* and CEAP_DB_MAX_BYTES
+```
+
+After a crash or `kill -9`, the next start marks in-flight tasks `INTERRUPTED` and pending approvals
+`EXPIRED`; their status and stored result stay readable (`GET /investigations/{id}`, `/result`).
+
+## 39. Replay a task byte for byte
+
+```bash
+ceap replay bundle.json --record --dataset T01   # run offline, write the bundle
+ceap replay bundle.json                          # exit 0 when the replay equals the stored result
+```
+
+The bundle holds the request, every tool output, redacted model I/O, prompt hashes, approval
+decisions and the clock seed. A mismatch prints the first differing JSON path.
+
+## 40. Scrape metrics and correlate logs
+
+```bash
+curl -s localhost:8000/metrics -H "X-API-Key: dev-auditor-key"   # needs metrics:read
+curl -si localhost:8000/health -H "X-Request-ID: my-trace-1"     # echoed back; on every log line
+```
+
+## 41. Hold API keys as hashes only
+
+```bash
+python -c "from ceap.api.auth import hash_api_key; print(hash_api_key('a-long-random-key'))"
+CEAP_API_KEY_HASHES='sha256$...$...:auditor:2027-01-31' ceap serve   # optional expiry date
+```

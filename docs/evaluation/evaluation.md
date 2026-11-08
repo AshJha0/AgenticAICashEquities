@@ -25,17 +25,28 @@ scenarios (`ceap scenarios --all`). Each `ScenarioSpec` carries its `ground_trut
 
 ## Synthetic market model
 
-* Mid price: GBM at 10 % annualised volatility sampled every second (≈0.49 bps/s, ≈3.8 bps/min),
-  with scenario-specific volatility multipliers, trends and participation-driven impact drift.
-* Quotes: log-normal spread noise around a per-symbol base (1.6–2.4 bps), tick-rounded; sizes
-  log-normal around a per-symbol top-of-book size.
-* Trades: Poisson(1.5/s) prints, log-normal sizes (mean 150), five venues with fixed weights; our
-  own fills are added to the tape.
-* Orders: a 60k-share VWAP buy parent in the baseline hour and in the window hour, 120 child slices
-  each; fills cross the spread and walk the book by an amount driven by slice size relative to
-  displayed liquidity, venue degradation and latency.
-* Engineering: per-minute gateway/router/market-data metrics, heartbeat and anomaly logs,
-  deployments.
+* **Session**: US regular hours, 09:30 to 16:00 America/New_York (v0.4 used Europe/London, which
+  put "14:00" at 09:00 ET). Each scenario covers 12:00 to 16:00 plus the same 14:00 to 15:00 window
+  (13:58 to 15:06 with lead and markout tail) on the five previous sessions, the
+  time-of-day-matched baseline.
+* **Mid price**: log random walk at 10 % annualised volatility on a one-second grid, scaled by a
+  U-shaped intraday profile `0.6 + 1.2 (2x - 1)^2` (mean 1). The scenario's volatility multiplier
+  and trend apply inside the window. Each parent adds a permanent linear drift of
+  `0.7 * sigma_daily * sqrt(Q/ADV)`, signed by side.
+* **Quotes**: log-normal spread noise around a per-symbol base (1.6 to 2.4 bps), tick-rounded;
+  sizes are log-normal around a per-symbol top-of-book size.
+* **Trades**: Poisson prints at 1.5/s times the U-shaped profile, with log-normal sizes. Odd lots
+  are flagged; 0.2 % are late prints carrying a 60 s stale price; there is a closing-auction print
+  at 16:00. Interval VWAP excludes auction and late prints by default.
+* **Orders**: 60k-share VWAP parents. BUY or SELL alternates across the 50 scenarios. The decision
+  is taken 90 s before arrival, which gives a delay cost. 65 % of children are aggressive (far
+  touch plus a Poisson book walk, paying the 0.30 c access fee) and the rest passive (near touch,
+  80 % fill, earning the 0.20 c rebate). There are odd-lot children and fills sharing a timestamp.
+* **TCA universe** (`ceap.data.tca_universe`): 20 sessions x 40 parents, six symbols, 3 brokers,
+  VWAP/POV/IS/MOC, a beta-loaded synthetic index, a LULD pause, and about 2 % of parents spanning
+  two sessions.
+* **Engineering**: per-minute gateway, router and market-data metrics, heartbeat and anomaly
+  logs, and deployments.
 
 ## Attribution thresholds (`ceap.analytics.attribution.Thresholds`)
 
@@ -50,8 +61,11 @@ scenarios (`ceap scenarios --all`). Each `ScenarioSpec` carries its `ground_trut
 | LARGE_ORDER_IMPACT | participation (+0.3 if parent ≥ 4x baseline) | > 20 % | scale 0.1 |
 | PRICE_MOVEMENT | adverse drift (halved when volatility is elevated) | > 60 bps | scale 40 |
 
-A cause is *material* when its score ≥ 0.35. `deteriorated` is true when IS or VWAP slippage
-worsened by ≥ 1.5 bps versus the baseline.
+A cause is *material* when its score ≥ 0.35. The baseline for the ratios is the pooled same clock
+window on the previous five sessions (2T.2). `deteriorated` is true when the IS residual against
+the pre-trade estimate is at least 1.96 standard errors (2T.4); see `docs/quant/quant.md`. The
+v0.4 rule (IS or VWAP slippage 1.5 bps worse than the baseline) applies only when no estimate
+exists.
 
 ## Metrics
 
@@ -68,14 +82,18 @@ worsened by ≥ 1.5 bps versus the baseline.
 
 ```
 scenarios            50
-primary_accuracy     1.00
-coverage             1.00
-false_positive_rate  0.02   (S50: a large drift inside a high-volatility window scored PRICE_MOVEMENT as secondary)
+primary_accuracy     0.98
+coverage             0.98
+false_positive_rate  0.06
 completed            1.00
 unresolved_findings  0
 number_warnings      0
-mean_duration_ms     ~850
+mean_duration_ms     ~32000   (generates the matched prior sessions too)
 ```
+
+TCA acceptance (R2T): T01 benign false-flag rate 0.01 on 200 seeds (bar 5 %), mean ex-ante
+impact 2.3 bps; broker 3 bps gap power 0.83 on 100 seeds (bar 0.80), size 0.05 (bar 0.10); pre-trade interval coverage
+under family shift 0.86-0.91 at nominal 90 %.
 
 ## Research evaluation (Stage 2)
 
@@ -102,8 +120,8 @@ Student-t shocks, latent premia the signal code never touches, delistings and la
 
 ### Gates
 
-Full chain in `docs/quant/quant.md`: IC t >= 0.65 (hurdle from the 500-seed null sweep, hash
-`dfdadabe...`), deflated Sharpe >= 0.5 over ledger-counted trials, out-of-sample IC t >= 1
+Full chain in `docs/quant/quant.md`: IC t >= 0.40 (hurdle from the 500-seed null sweep, hash
+`ef474869...`), deflated Sharpe >= 0.5 over ledger-counted trials, out-of-sample IC t >= 1
 (REGIME_BREAK at <= -2), out-of-sample net Sharpe >= 0.5, costs < 50 % of gross, concentration,
 and limits over the out-of-sample history.
 

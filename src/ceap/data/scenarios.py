@@ -34,6 +34,8 @@ class ScenarioSpec:
     symbol: str
     seed: int
     ground_truth: tuple[Cause, ...]
+    # parent side; the catalogue alternates BUY and SELL across symbols so TCA is validated on both
+    side: str = "BUY"
     # market regime inside the investigation window
     volatility_multiplier: float = 1.0
     spread_multiplier: float = 1.0
@@ -173,13 +175,17 @@ _EVAL_SYMBOLS = SYMBOLS[:5]
 
 
 def all_scenarios() -> list[ScenarioSpec]:
-    """50 concrete scenarios: every template across five symbols with distinct seeds."""
+    """50 concrete scenarios: every template across five symbols with distinct seeds.
+
+    Odd symbol positions trade SELL parents (2T.1), so every template is exercised on both sides.
+    """
     out: list[ScenarioSpec] = []
     n = 0
     for tmpl in SCENARIO_TEMPLATES:
         for k, sym in enumerate(_EVAL_SYMBOLS):
             n += 1
-            out.append(replace(tmpl, id=f"S{n:02d}", symbol=sym, seed=tmpl.seed * 100 + k))
+            side = "SELL" if k % 2 else "BUY"
+            out.append(replace(tmpl, id=f"S{n:02d}", symbol=sym, seed=tmpl.seed * 100 + k, side=side))
     return out
 
 
@@ -193,6 +199,13 @@ def get_scenario(scenario_id: str) -> ScenarioSpec:
     raise KeyError(f"Unknown scenario: {scenario_id}")
 
 
-def scenario_for(template: str, symbol: str, seed: int | None = None) -> ScenarioSpec:
+def scenario_for(
+    template: str, symbol: str, seed: int | None = None, side: str | None = None
+) -> ScenarioSpec:
     base = get_scenario(template)
-    return replace(base, symbol=symbol, seed=seed if seed is not None else base.seed)
+    return replace(
+        base,
+        symbol=symbol,
+        seed=seed if seed is not None else base.seed,
+        side=side if side is not None else base.side,
+    )

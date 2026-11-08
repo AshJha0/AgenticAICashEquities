@@ -304,6 +304,7 @@ class AgentHarness:
                         continue
                     kind = batch[0].type
                     if kind is StepType.TOOL_CALL:
+                        batch = [_bind_approved_portfolio(s, memory) for s in batch]
                         results = await self._run_tool_batch(batch, executor, run)
                         for step, result in zip(batch, results, strict=True):
                             step_results.append(_step_record(step, result))
@@ -861,6 +862,9 @@ class AgentHarness:
             warnings.append(
                 _w("APPROVAL_DECLINED", f"human approval declined at {step.id}: {decision.comment}", info=True)
             )
+        elif step.id == STAGE_APPROVAL_STEP_ID and request.arguments.get(PORTFOLIO_HASH_KEY):
+            # R4 4.5: staging must stage exactly the portfolio this approver saw
+            memory.scratch[APPROVED_PORTFOLIO_HASH] = request.arguments[PORTFOLIO_HASH_KEY]
         return decision.approved
 
     @staticmethod
@@ -903,6 +907,19 @@ def _is_subsequence(needle: list[Any], haystack: list[Any]) -> bool:
     return all(any(item == candidate for candidate in it) for item in needle)
 
 
+PORTFOLIO_HASH_KEY = "portfolio_hash"
+APPROVED_PORTFOLIO_HASH = "approved_portfolio_hash"
+
+
+def _bind_approved_portfolio(step: PlanStep, memory: InvestigationMemory) -> PlanStep:
+    """Attach the approved portfolio hash to the staging call so the tool can refuse a changed portfolio."""
+    approved = memory.scratch.get(APPROVED_PORTFOLIO_HASH)
+    if step.id != STAGE_STEP_ID or not approved or step.tool_request is None:
+        return step
+    request = replace(step.tool_request, arguments={**step.tool_request.arguments, APPROVED_PORTFOLIO_HASH: approved})
+    return replace(step, tool_request=request)
+
+
 def _approval_payload(step: PlanStep, memory: InvestigationMemory) -> dict[str, Any]:
     """What the approver sees: the critic's assessment and the recomputed target portfolio."""
     payload: dict[str, Any] = dict(step.metadata)
@@ -922,7 +939,12 @@ def _approval_payload(step: PlanStep, memory: InvestigationMemory) -> dict[str, 
             "max_adv_participation": exposure.get("max_adv_participation"),
         }
     elif step.id == STAGE_APPROVAL_STEP_ID:
+        from ceap.mcp.execution.staging import portfolio_hash
+
         payload["proposal"] = {"verdict": assessment.get("verdict"), "flags": assessment.get("flags")}
+        payload[PORTFOLIO_HASH_KEY] = portfolio_hash(
+            exposure.get("as_of"), ((p.get("symbol"), p.get("quantity") or 0) for p in positions)
+        )
         payload["orders_preview"] = [
             {
                 "symbol": p.get("symbol"),
