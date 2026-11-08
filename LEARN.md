@@ -614,7 +614,9 @@ Next day, at rf = 1 bp, cash earns $92.49 and the BBB borrow (10 % a year) costs
 
 **Where this leaves the forward record today.** The record runs on synthetic data (feed
 `synthetic` in `config/paper.json`), so it tests operations and controls, not profitability. The
-real Stooq feed is written but disabled: nothing is cached, it must refuse the unspent R5
+scheduled job is enabled (repository variable `PAPER_DAILY_ENABLED=true`, set 2026-11-08) and the
+first forward session is 2026-11-09. The real Stooq feed is written but disabled: `config/paper.json`
+stays on the synthetic feed, no Stooq data is in the repository (the cache is git-ignored), it must refuse the unspent R5
 pseudo-holdout (to 2025-12-31), and 12-1 momentum needs a year of history after that, so January
 2027 is the earliest real-price start. Even then, at 1980 sessions for S = 1, the record cannot
 settle a Sharpe question for years; read it for breaks, blocks and reconciliation, not for alpha.

@@ -330,7 +330,7 @@ flowchart LR
     PR --> GC["golden-change<br/>label + owner sign-off"]
     L & T & LF & A & S & D & C & K & GC --> M["merge to main<br/>CI re-runs on main"]
     M --> TAG["tag vX.Y.Z"]
-    TAG --> G{"release_check.py<br/>checks green? versions agree?<br/>CHANGELOG section? banned words? licences?"}
+    TAG --> G{"release_check.py<br/>latest CI workflow run green? versions agree?<br/>CHANGELOG section? banned words? licences?"}
     G -- no --> X["no release"]
     G -- yes --> P["build wheel, sdist, image<br/>gh release create"]
     N["nightly.yml<br/>all tiers · random order · 1000 examples"] -.-> M
@@ -389,9 +389,11 @@ flowchart TD
 
 ## 12. Paper trading and the R5 real-data path (0.7.0)
 
-Today only the synthetic branch runs. The Stooq branch is written but disabled: no files are
-cached, and the feed refuses every row up to 2025-12-31 so the R5 pseudo-holdout stays unspent. The
-R5 study itself stopped at its coverage gate (VOID).
+Today only the synthetic branch runs, daily since the owner enabled the scheduled job (forward
+record from 2026-11-09). The Stooq branch is written but disabled: `config/paper.json` stays on the
+synthetic feed, no Stooq data is in the repository, and the feed refuses every row up to 2025-12-31
+so the R5 pseudo-holdout stays unspent. The R5 study stopped at its coverage gate twice (VOID; the
+0.7.1 v2 attempt on Stooq also failed it).
 
 ```mermaid
 flowchart TD

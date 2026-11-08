@@ -166,24 +166,24 @@ slot is free for other work.
 ```bash
 pip install -e ".[llm]"
 export ANTHROPIC_API_KEY=sk-ant-...
-export CEAP_LLM_MODEL=claude-haiku-4-5             # optional, cheap narrator/critic
-export CEAP_LLM_PLANNING_MODEL=claude-sonnet-5     # recommended: a stronger planner
+export CEAP_LLM_PROVIDER=anthropic
+export CEAP_LLM_MODEL=claude-sonnet-5-5            # narrator/critic; must be pinned in src/ceap/llm/model_pins.toml
+export CEAP_LLM_PLANNING_MODEL=claude-opus-5-5     # the pinned planning model
 ceap investigate "..." --dataset T06
 ```
 
-`CEAP_LLM_PROVIDER=auto|mock|anthropic` overrides detection. If the model call fails the
-router falls back to the deterministic mock and counts it in `router.usage["fallbacks"]`.
-The planner's `rejected_steps` and the report's `narrative_number_warnings` tell you how the
-model behaved.
+`CEAP_LLM_PROVIDER` is `mock` or `anthropic` (`auto` was removed in 0.4.0). The layer fails closed:
+`anthropic` without a working client refuses to start instead of quietly using the mock, and a model
+id that is not in `model_pins.toml` is refused. Any fallback (the pinned fallback model after a
+refusal, a repair retry, a canonical plan, a templated narrative) is recorded as a warning and marks
+the result `DEGRADED`. The planner's `rejected_steps` and the report's `narrative_number_warnings`
+tell you how the model behaved. No result in this repository comes from a live model call: anything
+you measure this way is your own run, not a documented number.
 
-For Stage 2 research (`ceap research ...`), the planning model matters more than the narrator
-model: a weak planner alone (tested — `claude-haiku-4-5`) produced an incomplete plan on 5 of 21
-research scenarios; pairing it with `CEAP_LLM_PLANNING_MODEL=claude-sonnet-5` fixed all five (see
-CHANGELOG 0.3.1). `docs/evaluation/evaluation.md` has the full before/after numbers. This also
-caught two real bugs the offline mock had never exercised — check the installed `anthropic`
-package version if a "live" run's `llm_model` in the result keeps coming back as
-`mock-deterministic-v1` with no error: a stale SDK kwarg silently triggering the router's
-fallback is exactly what happened in 0.3.1.
+History: in 0.3.1, before the pins existed, a weak planner alone (`claude-haiku-4-5`) produced an
+incomplete plan on 5 of 21 research scenarios and a stronger planner fixed all five (CHANGELOG 0.3.1;
+pre-0.4.0 scenario set, not re-run). The same run found a stale SDK kwarg that made the old router
+fall back to the mock silently; that silent fallback is why the layer now fails closed.
 
 ## 8. Call an MCP tool directly (in-process)
 
@@ -604,8 +604,9 @@ the header of `requirements.lock` (uv is free: `pip install uv`). Commit both fi
 
 Releasing (maintainer only): bump the version in `pyproject.toml` and `src/ceap/__init__.py`, rename
 `## Unreleased` to `## [X.Y.Z] - date` in `CHANGELOG.md`, merge, wait for CI on `main` to go green,
-then push the tag `vX.Y.Z`. `release.yml` runs `scripts/release_check.py` and builds nothing if any
-check on that commit is red. Local dry run: `python scripts/release_check.py --tag vX.Y.Z --skip-checks`.
+then push the tag `vX.Y.Z`. `release.yml` runs `scripts/release_check.py` and builds nothing unless
+the latest run of the `CI` workflow on that commit is green (since 0.7.1 other workflows, such as the
+daily paper job, do not count). Local dry run: `python scripts/release_check.py --tag vX.Y.Z --skip-checks`.
 
 ## 35. Measure the PROMOTE hurdle (null sweep)
 
@@ -716,6 +717,8 @@ staging; the decision is written to the audit log either way. Change the signal,
 `config/paper.json`. Never move `forward_start` earlier.
 
 The feed is synthetic, so this record checks operations and controls, not profitability. The
-Stooq feed (`"feed": "stooq"`) needs a local cache under `data/real_cache/stooq/` (none exists; Stooq
-blocks scripted downloads), refuses rows up to 2025-12-31, and cannot produce a 12-1 signal before
-about January 2027. The scheduled workflow stays off until `PAPER_DAILY_ENABLED=true` (D22).
+Stooq feed (`"feed": "stooq"`) needs a local, git-ignored cache under `data/real_cache/stooq/` (Stooq
+blocks scripted downloads, so files must be placed by hand), refuses rows up to 2025-12-31, and cannot
+produce a 12-1 signal before about January 2027. The scheduled workflow runs because the owner set
+the repository variable `PAPER_DAILY_ENABLED=true` on 2026-11-08 (D22); the forward record starts on
+2026-11-09.
