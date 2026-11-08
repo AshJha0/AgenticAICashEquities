@@ -71,9 +71,22 @@ def _check_invariants(report: dict[str, Any]) -> None:
         assert report["proposal"]["verdict"] in {"PROMOTE", "REJECT", "INCONCLUSIVE", "MONITOR"}
 
 
+SIG_DIGITS = 9  # floats compared to 9 significant digits: last-ulp noise differs across OS/BLAS builds
+
+
+def _round_floats(v: Any) -> Any:
+    if isinstance(v, float):
+        return float(f"{v:.{SIG_DIGITS}g}") if math.isfinite(v) else v
+    if isinstance(v, dict):
+        return {k: _round_floats(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_round_floats(x) for x in v]
+    return v
+
+
 def _compare(name: str, report: dict[str, Any]) -> None:
     path = HERE / f"{name}.json"
-    text = json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    text = json.dumps(_round_floats(report), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     if UPDATE:
         path.write_text(text, encoding="utf-8", newline="\n")  # LF on every OS: byte-stable goldens
         return

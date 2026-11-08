@@ -4,82 +4,82 @@
     "baseline_kind": "time_of_day_matched",
     "basis": "pretrade_residual",
     "decomposition": {
-      "arrival_shortfall_bps": 32.20828768288385,
+      "arrival_shortfall_bps": 32.2082877,
       "delay_cost_bps": {
-        "bps": -1.6319449103868546,
+        "bps": -1.63194491,
         "ci": [
-          -1.9686570449981065,
-          0.4319670142734311
+          -1.96865704,
+          0.431967014
         ],
         "confidence": 0.9,
-        "effect": -0.7450272488760051,
+        "effect": -0.745027249,
         "excludes_zero": false,
         "n_peers": 5,
-        "peer_mean": -0.8869176615108495,
-        "standardised_effect": -0.40828726978326363,
-        "value": -1.6319449103868546
+        "peer_mean": -0.886917662,
+        "standardised_effect": -0.40828727,
+        "value": -1.63194491
       },
       "fees_bps": {
-        "bps": 0.07544029686102395,
+        "bps": 0.0754402969,
         "ci": [
-          -0.01513170984986062,
-          -0.003003897435274433
+          -0.0151317098,
+          -0.00300389744
         ],
         "confidence": 0.9,
-        "effect": -0.009536446855556338,
+        "effect": -0.00953644686,
         "excludes_zero": true,
         "n_peers": 5,
-        "peer_mean": 0.08497674371658029,
-        "standardised_effect": -1.0279271161303078,
-        "value": 0.07544029686102395
+        "peer_mean": 0.0849767437,
+        "standardised_effect": -1.02792712,
+        "value": 0.0754402969
       },
       "opportunity_cost_bps": {
-        "bps": 8.76790179356627,
+        "bps": 8.76790179,
         "ci": [
-          6.518754903819046,
-          9.152987350833413
+          6.5187549,
+          9.15298735
         ],
         "confidence": 0.9,
-        "effect": 7.913675986202358,
+        "effect": 7.91367599,
         "excludes_zero": true,
         "n_peers": 5,
-        "peer_mean": 0.8542258073639133,
-        "standardised_effect": 3.991692354189927,
-        "value": 8.76790179356627
+        "peer_mean": 0.854225807,
+        "standardised_effect": 3.99169235,
+        "value": 8.76790179
       },
-      "pretrade_estimate_bps": 3.191654223628481,
+      "pretrade_estimate_bps": 3.19165422,
       "spread_cost_bps": {
-        "bps": 0.9420080945045031,
+        "bps": 0.942008095,
         "ci": [
-          0.5472739860254541,
-          0.6319398128199952
+          0.547273986,
+          0.631939813
         ],
         "confidence": 0.9,
-        "effect": 0.5896068994227247,
+        "effect": 0.589606899,
         "excludes_zero": true,
         "n_peers": 5,
-        "peer_mean": 0.35240119508177836,
-        "standardised_effect": 8.821159662380666,
-        "value": 0.9420080945045031
+        "peer_mean": 0.352401195,
+        "standardised_effect": 8.82115966,
+        "value": 0.942008095
       },
       "timing_cost_bps": {
-        "bps": 22.42293749795205,
+        "bps": 22.4229375,
         "ci": [
-          16.320840599597776,
-          22.650300180073938
+          16.3208406,
+          22.6503002
         ],
         "confidence": 0.9,
-        "effect": 19.57885643241671,
+        "effect": 19.5788564,
         "excludes_zero": true,
         "n_peers": 5,
-        "peer_mean": 2.844081065535339,
-        "standardised_effect": 4.030923909728922,
-        "value": 22.42293749795205
+        "peer_mean": 2.84408107,
+        "standardised_effect": 4.03092391,
+        "value": 22.4229375
       },
-      "total_bps": 30.576342772496993
+      "total_bps": 30.5763428
     },
     "deteriorated": true,
-    "is_delta_bps": 27.32757562231023,
+    "is_delta_bps": 27.3275756,
     "peer_note": "Peer-relative comparison against matched orders (same symbol, side and size bucket, other sessions). It measures how unusual this order is; it does not identify a cause.",
     "primary": "VENUE_DEGRADATION",
     "ranked": [
@@ -87,56 +87,56 @@
         "cause": "VENUE_DEGRADATION",
         "effect": {
           "ci": [
-            -0.24460159377042068,
-            -0.14497611629231177
+            -0.244601594,
+            -0.144976116
           ],
-          "component_bps": 9.709909888070774,
+          "component_bps": 9.70990989,
           "components": [
             "spread_cost_bps",
             "opportunity_cost_bps"
           ],
           "confidence": 0.9,
-          "effect": -0.196873600794078,
+          "effect": -0.196873601,
           "excludes_zero": true,
           "n_peers": 5,
-          "peer_mean": 0.722777856113227,
-          "standardised_effect": -2.7582144507367397,
-          "value": 0.525904255319149
+          "peer_mean": 0.722777856,
+          "standardised_effect": -2.75821445,
+          "value": 0.525904255
         },
         "metrics": {
-          "fill_rate_gap": 0.33750885418889875,
-          "peer_fill_rate": 0.8634131095080477,
+          "fill_rate_gap": 0.337508854,
+          "peer_fill_rate": 0.86341311,
           "reject_excess_vs_peers": 0.0,
           "reject_rate": 0.0,
-          "slippage_excess_bps": 3.8831068993867444,
+          "slippage_excess_bps": 3.8831069,
           "venue": "ARCA",
-          "venue_fill_rate": 0.525904255319149
+          "venue_fill_rate": 0.525904255
         },
         "rationale": "venue ARCA: fill-rate gap vs peers = 0.34, slippage excess = 3.9 bps",
-        "score": 0.6099785142438001
+        "score": 0.609978514
       },
       {
         "cause": "MARKET_VOLATILITY",
         "effect": {
           "ci": [
-            0.037241794636880154,
-            0.0747569311984635
+            0.0372417946,
+            0.0747569312
           ],
-          "component_bps": 22.42293749795205,
+          "component_bps": 22.4229375,
           "components": [
             "timing_cost_bps"
           ],
           "confidence": 0.9,
-          "effect": 0.05589366054223044,
+          "effect": 0.0558936605,
           "excludes_zero": true,
           "n_peers": 5,
-          "peer_mean": 3.247296364509277,
-          "standardised_effect": 2.0724676080658218,
-          "value": 3.3031900250515074
+          "peer_mean": 3.24729636,
+          "standardised_effect": 2.07246761,
+          "value": 3.30319003
         },
         "metrics": {
-          "volatility_ratio": 1.0172123681574339,
-          "window_vol_bps": 3.3031900250515074
+          "volatility_ratio": 1.01721237,
+          "window_vol_bps": 3.30319003
         },
         "rationale": "realised volatility ratio vs baseline = 1.02 (threshold 1.6)",
         "score": 0.0
@@ -145,24 +145,24 @@
         "cause": "WIDE_SPREADS",
         "effect": {
           "ci": [
-            -0.014320277448608199,
-            -0.008831804445158742
+            -0.0143202774,
+            -0.00883180445
           ],
-          "component_bps": 0.9420080945045031,
+          "component_bps": 0.942008095,
           "components": [
             "spread_cost_bps"
           ],
           "confidence": 0.9,
-          "effect": -0.011362725943517171,
+          "effect": -0.0113627259,
           "excludes_zero": true,
           "n_peers": 5,
-          "peer_mean": 1.8556357920661513,
-          "standardised_effect": -2.8361329218151243,
-          "value": 1.844273066122634
+          "peer_mean": 1.85563579,
+          "standardised_effect": -2.83613292,
+          "value": 1.84427307
         },
         "metrics": {
-          "spread_ratio": 0.9938766400216578,
-          "window_spread_bps": 1.844273066122634
+          "spread_ratio": 0.99387664,
+          "window_spread_bps": 1.84427307
         },
         "rationale": "average spread ratio vs baseline = 0.99 (threshold 1.4)",
         "score": 0.0
@@ -171,24 +171,24 @@
         "cause": "LOW_LIQUIDITY",
         "effect": {
           "ci": [
-            -63.11111111111131,
-            25.255555555553656
+            -63.1111111,
+            25.2555556
           ],
-          "component_bps": 0.9420080945045031,
+          "component_bps": 0.942008095,
           "components": [
             "spread_cost_bps"
           ],
           "confidence": 0.9,
-          "effect": -12.055555555556566,
+          "effect": -12.0555556,
           "excludes_zero": false,
           "n_peers": 5,
-          "peer_mean": 9024.833333333334,
-          "standardised_effect": -0.1805830106062484,
-          "value": 9012.777777777777
+          "peer_mean": 9024.83333,
+          "standardised_effect": -0.180583011,
+          "value": 9012.77778
         },
         "metrics": {
-          "depth_ratio": 0.9986641797016872,
-          "top_of_book_ratio": 1.0094990590554709
+          "depth_ratio": 0.99866418,
+          "top_of_book_ratio": 1.00949906
         },
         "rationale": "displayed depth ratio vs baseline = 1.00 (threshold 0.65)",
         "score": 0.0
@@ -197,26 +197,26 @@
         "cause": "TECHNOLOGY_LATENCY",
         "effect": {
           "ci": [
-            16.19695787225794,
-            51.46746592698287
+            16.1969579,
+            51.4674659
           ],
-          "component_bps": 9.709909888070774,
+          "component_bps": 9.70990989,
           "components": [
             "spread_cost_bps",
             "opportunity_cost_bps"
           ],
           "confidence": 0.9,
-          "effect": 33.83221189962023,
+          "effect": 33.8322119,
           "excludes_zero": true,
           "n_peers": 5,
-          "peer_mean": 833.7313778439697,
-          "standardised_effect": 1.1918854104600987,
-          "value": 867.5635897435899
+          "peer_mean": 833.731378,
+          "standardised_effect": 1.19188541,
+          "value": 867.56359
         },
         "metrics": {
-          "latency_ratio": 1.0405792714520479,
+          "latency_ratio": 1.04057927,
           "reject_rate": 0.0,
-          "window_latency_us": 867.5635897435899
+          "window_latency_us": 867.56359
         },
         "rationale": "execution latency ratio vs baseline = 1.04 (threshold 3.0); reject rate = 0.0%",
         "score": 0.0
@@ -225,22 +225,22 @@
         "cause": "MARKET_DATA_ANOMALY",
         "effect": {
           "ci": [
-            0.0016671297582661851,
-            0.002222839677688247
+            0.00166712976,
+            0.00222283968
           ],
           "component_bps": 0,
           "components": [],
           "confidence": 0.9,
-          "effect": 0.001944984717977216,
+          "effect": 0.00194498472,
           "excludes_zero": true,
           "n_peers": 5,
-          "peer_mean": 0.0011114198388441235,
-          "standardised_effect": 4.949747468305833,
-          "value": 0.0030564045568213394
+          "peer_mean": 0.00111141984,
+          "standardised_effect": 4.94974747,
+          "value": 0.00305640456
         },
         "metrics": {
           "crossed_quotes": 0.0,
-          "stale_quote_fraction": 0.0030564045568213394
+          "stale_quote_fraction": 0.00305640456
         },
         "rationale": "stale quote fraction = 0.3% (baseline 0.1%); crossed quotes = 0",
         "score": 0.0
@@ -249,25 +249,25 @@
         "cause": "LARGE_ORDER_IMPACT",
         "effect": {
           "ci": [
-            -0.00631279913007389,
-            -0.0006944245119275758
+            -0.00631279913,
+            -0.000694424512
           ],
-          "component_bps": 22.42293749795205,
+          "component_bps": 22.4229375,
           "components": [
             "timing_cost_bps"
           ],
           "confidence": 0.9,
-          "effect": -0.0033277903493607944,
+          "effect": -0.00332779035,
           "excludes_zero": true,
           "n_peers": 5,
-          "peer_mean": 0.05257922524142442,
-          "standardised_effect": -0.7830357217086832,
-          "value": 0.04925143489206363
+          "peer_mean": 0.0525792252,
+          "standardised_effect": -0.783035722,
+          "value": 0.0492514349
         },
         "metrics": {
-          "market_impact_bps": 2.32718789725982,
-          "order_size_ratio": 0.9970089730807578,
-          "participation_rate": 0.04925143489206363
+          "market_impact_bps": 2.3271879,
+          "order_size_ratio": 0.997008973,
+          "participation_rate": 0.0492514349
         },
         "rationale": "participation rate = 4.9% (threshold 20%); order size ratio vs baseline = 1.0",
         "score": 0.0
@@ -276,34 +276,34 @@
         "cause": "PRICE_MOVEMENT",
         "effect": {
           "ci": [
-            27.18451382524175,
-            46.11059017733417
+            27.1845138,
+            46.1105902
           ],
-          "component_bps": 22.42293749795205,
+          "component_bps": 22.4229375,
           "components": [
             "timing_cost_bps"
           ],
           "confidence": 0.9,
-          "effect": 36.66769013620689,
+          "effect": 36.6676901,
           "excludes_zero": true,
           "n_peers": 5,
-          "peer_mean": 5.544670508883087,
-          "standardised_effect": 2.6849723536806227,
-          "value": 42.21236064508998
+          "peer_mean": 5.54467051,
+          "standardised_effect": 2.68497235,
+          "value": 42.2123606
         },
         "metrics": {
-          "adverse_drift_bps": 42.21236064508998,
+          "adverse_drift_bps": 42.2123606,
           "max_abs_move_bps": null
         },
         "rationale": "adverse price drift during window = 42.2 bps (threshold 60.0)",
         "score": 0.0
       }
     ],
-    "residual_bps": 29.016633459255367,
-    "residual_se_bps": 14.724934056552815,
-    "residual_z": 1.970578159998111,
+    "residual_bps": 29.0166335,
+    "residual_se_bps": 14.7249341,
+    "residual_z": 1.97057816,
     "secondary": [],
-    "vwap_slippage_delta_bps": -0.686678119741293
+    "vwap_slippage_delta_bps": -0.68667812
   },
   "conclusion": "The evidence indicates that venue degradation was the material contributor to the deterioration (venue ARCA: fill-rate gap vs peers = 0.34, slippage excess = 3.9 bps).\nTechnology metrics do not show a corresponding abnormality.",
   "critique": {
@@ -788,19 +788,19 @@
     {
       "attributes": {
         "crossed_quotes": 0,
-        "depth_ratio": 0.9687975874115434,
+        "depth_ratio": 0.968797587,
         "derived_from": [
           "TCA-00000023",
           "TCA-00000024",
           "MARKET-00000025",
           "MARKET-00000026"
         ],
-        "price_drift_bps": 42.21236064508998,
-        "spread_ratio": 0.9898511966589975,
-        "stale_quote_fraction": 0.0030564045568213394,
+        "price_drift_bps": 42.2123606,
+        "spread_ratio": 0.989851197,
+        "stale_quote_fraction": 0.00305640456,
         "task_id": "TASK-00000001",
-        "top_of_book_ratio": 1.0049903816666204,
-        "volatility_ratio": 1.1693173021681542
+        "top_of_book_ratio": 1.00499038,
+        "volatility_ratio": 1.1693173
       },
       "description": "Window vs baseline market ratios (volatility, spread, depth, top-of-book)",
       "id": "TCA-00000037",
@@ -814,12 +814,12 @@
           "TCA-00000027",
           "TCA-0000002f"
         ],
-        "fill_rate": 0.7933166666666667,
-        "is_delta_bps": 12.197879469360586,
-        "participation_rate": 0.04925143489206363,
+        "fill_rate": 0.793316667,
+        "is_delta_bps": 12.1978795,
+        "participation_rate": 0.0492514349,
         "reject_rate": 0.0,
         "task_id": "TASK-00000001",
-        "vwap_slippage_delta_bps": -0.9822463956416774
+        "vwap_slippage_delta_bps": -0.982246396
       },
       "description": "Window vs baseline execution deltas (IS, VWAP slippage, fill rate, participation)",
       "id": "TCA-0000003d",
@@ -832,9 +832,9 @@
         "derived_from": [
           "TCA-00000030"
         ],
-        "fill_gap": 0.33750885418889875,
-        "score": 1.9415534496933722,
-        "slippage_excess_bps": 3.8831068993867444,
+        "fill_gap": 0.337508854,
+        "score": 1.94155345,
+        "slippage_excess_bps": 3.8831069,
         "task_id": "TASK-00000001",
         "worst_venue": "ARCA"
       },
@@ -897,11 +897,11 @@
         ],
         "error_logs": 0,
         "feed_gap_count": 0.0,
-        "latency_ratio": 0.9915254237288137,
+        "latency_ratio": 0.991525424,
         "slo_breached": false,
         "task_id": "TASK-00000001",
         "warn_logs": 15,
-        "window_p99_us": 975.1009999999999
+        "window_p99_us": 975.101
       },
       "description": "Technology health summary for the window",
       "id": "TCA-0000004f",
@@ -914,7 +914,7 @@
         "arguments": {
           "dataset": "T05",
           "order_quantity": 60000,
-          "participation_rate": 0.04925143489206363,
+          "participation_rate": 0.0492514349,
           "symbol": "AAPL"
         },
         "correlation_id": "CORR-00000054",
@@ -1253,79 +1253,79 @@
         "baseline_kind": "time_of_day_matched",
         "basis": "pretrade_residual",
         "decomposition": {
-          "arrival_shortfall_bps": 32.20828768288385,
+          "arrival_shortfall_bps": 32.2082877,
           "delay_cost_bps": {
-            "bps": -1.6319449103868546,
+            "bps": -1.63194491,
             "ci": [
-              -1.9686570449981065,
-              0.4319670142734311
+              -1.96865704,
+              0.431967014
             ],
             "confidence": 0.9,
-            "effect": -0.7450272488760051,
+            "effect": -0.745027249,
             "excludes_zero": false,
             "n_peers": 5,
-            "peer_mean": -0.8869176615108495,
-            "standardised_effect": -0.40828726978326363,
-            "value": -1.6319449103868546
+            "peer_mean": -0.886917662,
+            "standardised_effect": -0.40828727,
+            "value": -1.63194491
           },
           "fees_bps": {
-            "bps": 0.07544029686102395,
+            "bps": 0.0754402969,
             "ci": [
-              -0.01513170984986062,
-              -0.003003897435274433
+              -0.0151317098,
+              -0.00300389744
             ],
             "confidence": 0.9,
-            "effect": -0.009536446855556338,
+            "effect": -0.00953644686,
             "excludes_zero": true,
             "n_peers": 5,
-            "peer_mean": 0.08497674371658029,
-            "standardised_effect": -1.0279271161303078,
-            "value": 0.07544029686102395
+            "peer_mean": 0.0849767437,
+            "standardised_effect": -1.02792712,
+            "value": 0.0754402969
           },
           "opportunity_cost_bps": {
-            "bps": 8.76790179356627,
+            "bps": 8.76790179,
             "ci": [
-              6.518754903819046,
-              9.152987350833413
+              6.5187549,
+              9.15298735
             ],
             "confidence": 0.9,
-            "effect": 7.913675986202358,
+            "effect": 7.91367599,
             "excludes_zero": true,
             "n_peers": 5,
-            "peer_mean": 0.8542258073639133,
-            "standardised_effect": 3.991692354189927,
-            "value": 8.76790179356627
+            "peer_mean": 0.854225807,
+            "standardised_effect": 3.99169235,
+            "value": 8.76790179
           },
-          "pretrade_estimate_bps": 3.191654223628481,
+          "pretrade_estimate_bps": 3.19165422,
           "spread_cost_bps": {
-            "bps": 0.9420080945045031,
+            "bps": 0.942008095,
             "ci": [
-              0.5472739860254541,
-              0.6319398128199952
+              0.547273986,
+              0.631939813
             ],
             "confidence": 0.9,
-            "effect": 0.5896068994227247,
+            "effect": 0.589606899,
             "excludes_zero": true,
             "n_peers": 5,
-            "peer_mean": 0.35240119508177836,
-            "standardised_effect": 8.821159662380666,
-            "value": 0.9420080945045031
+            "peer_mean": 0.352401195,
+            "standardised_effect": 8.82115966,
+            "value": 0.942008095
           },
           "timing_cost_bps": {
-            "bps": 22.42293749795205,
+            "bps": 22.4229375,
             "ci": [
-              16.320840599597776,
-              22.650300180073938
+              16.3208406,
+              22.6503002
             ],
             "confidence": 0.9,
-            "effect": 19.57885643241671,
+            "effect": 19.5788564,
             "excludes_zero": true,
             "n_peers": 5,
-            "peer_mean": 2.844081065535339,
-            "standardised_effect": 4.030923909728922,
-            "value": 22.42293749795205
+            "peer_mean": 2.84408107,
+            "standardised_effect": 4.03092391,
+            "value": 22.4229375
           },
-          "total_bps": 30.576342772496993
+          "total_bps": 30.5763428
         },
         "derived_from": [
           "TCA-00000027",
@@ -1351,7 +1351,7 @@
           "MARKET-00000089"
         ],
         "deteriorated": true,
-        "is_delta_bps": 27.32757562231023,
+        "is_delta_bps": 27.3275756,
         "peer_note": "Peer-relative comparison against matched orders (same symbol, side and size bucket, other sessions). It measures how unusual this order is; it does not identify a cause.",
         "primary": "VENUE_DEGRADATION",
         "ranked": [
@@ -1359,56 +1359,56 @@
             "cause": "VENUE_DEGRADATION",
             "effect": {
               "ci": [
-                -0.24460159377042068,
-                -0.14497611629231177
+                -0.244601594,
+                -0.144976116
               ],
-              "component_bps": 9.709909888070774,
+              "component_bps": 9.70990989,
               "components": [
                 "spread_cost_bps",
                 "opportunity_cost_bps"
               ],
               "confidence": 0.9,
-              "effect": -0.196873600794078,
+              "effect": -0.196873601,
               "excludes_zero": true,
               "n_peers": 5,
-              "peer_mean": 0.722777856113227,
-              "standardised_effect": -2.7582144507367397,
-              "value": 0.525904255319149
+              "peer_mean": 0.722777856,
+              "standardised_effect": -2.75821445,
+              "value": 0.525904255
             },
             "metrics": {
-              "fill_rate_gap": 0.33750885418889875,
-              "peer_fill_rate": 0.8634131095080477,
+              "fill_rate_gap": 0.337508854,
+              "peer_fill_rate": 0.86341311,
               "reject_excess_vs_peers": 0.0,
               "reject_rate": 0.0,
-              "slippage_excess_bps": 3.8831068993867444,
+              "slippage_excess_bps": 3.8831069,
               "venue": "ARCA",
-              "venue_fill_rate": 0.525904255319149
+              "venue_fill_rate": 0.525904255
             },
             "rationale": "venue ARCA: fill-rate gap vs peers = 0.34, slippage excess = 3.9 bps",
-            "score": 0.6099785142438001
+            "score": 0.609978514
           },
           {
             "cause": "MARKET_VOLATILITY",
             "effect": {
               "ci": [
-                0.037241794636880154,
-                0.0747569311984635
+                0.0372417946,
+                0.0747569312
               ],
-              "component_bps": 22.42293749795205,
+              "component_bps": 22.4229375,
               "components": [
                 "timing_cost_bps"
               ],
               "confidence": 0.9,
-              "effect": 0.05589366054223044,
+              "effect": 0.0558936605,
               "excludes_zero": true,
               "n_peers": 5,
-              "peer_mean": 3.247296364509277,
-              "standardised_effect": 2.0724676080658218,
-              "value": 3.3031900250515074
+              "peer_mean": 3.24729636,
+              "standardised_effect": 2.07246761,
+              "value": 3.30319003
             },
             "metrics": {
-              "volatility_ratio": 1.0172123681574339,
-              "window_vol_bps": 3.3031900250515074
+              "volatility_ratio": 1.01721237,
+              "window_vol_bps": 3.30319003
             },
             "rationale": "realised volatility ratio vs baseline = 1.02 (threshold 1.6)",
             "score": 0.0
@@ -1417,24 +1417,24 @@
             "cause": "WIDE_SPREADS",
             "effect": {
               "ci": [
-                -0.014320277448608199,
-                -0.008831804445158742
+                -0.0143202774,
+                -0.00883180445
               ],
-              "component_bps": 0.9420080945045031,
+              "component_bps": 0.942008095,
               "components": [
                 "spread_cost_bps"
               ],
               "confidence": 0.9,
-              "effect": -0.011362725943517171,
+              "effect": -0.0113627259,
               "excludes_zero": true,
               "n_peers": 5,
-              "peer_mean": 1.8556357920661513,
-              "standardised_effect": -2.8361329218151243,
-              "value": 1.844273066122634
+              "peer_mean": 1.85563579,
+              "standardised_effect": -2.83613292,
+              "value": 1.84427307
             },
             "metrics": {
-              "spread_ratio": 0.9938766400216578,
-              "window_spread_bps": 1.844273066122634
+              "spread_ratio": 0.99387664,
+              "window_spread_bps": 1.84427307
             },
             "rationale": "average spread ratio vs baseline = 0.99 (threshold 1.4)",
             "score": 0.0
@@ -1443,24 +1443,24 @@
             "cause": "LOW_LIQUIDITY",
             "effect": {
               "ci": [
-                -63.11111111111131,
-                25.255555555553656
+                -63.1111111,
+                25.2555556
               ],
-              "component_bps": 0.9420080945045031,
+              "component_bps": 0.942008095,
               "components": [
                 "spread_cost_bps"
               ],
               "confidence": 0.9,
-              "effect": -12.055555555556566,
+              "effect": -12.0555556,
               "excludes_zero": false,
               "n_peers": 5,
-              "peer_mean": 9024.833333333334,
-              "standardised_effect": -0.1805830106062484,
-              "value": 9012.777777777777
+              "peer_mean": 9024.83333,
+              "standardised_effect": -0.180583011,
+              "value": 9012.77778
             },
             "metrics": {
-              "depth_ratio": 0.9986641797016872,
-              "top_of_book_ratio": 1.0094990590554709
+              "depth_ratio": 0.99866418,
+              "top_of_book_ratio": 1.00949906
             },
             "rationale": "displayed depth ratio vs baseline = 1.00 (threshold 0.65)",
             "score": 0.0
@@ -1469,26 +1469,26 @@
             "cause": "TECHNOLOGY_LATENCY",
             "effect": {
               "ci": [
-                16.19695787225794,
-                51.46746592698287
+                16.1969579,
+                51.4674659
               ],
-              "component_bps": 9.709909888070774,
+              "component_bps": 9.70990989,
               "components": [
                 "spread_cost_bps",
                 "opportunity_cost_bps"
               ],
               "confidence": 0.9,
-              "effect": 33.83221189962023,
+              "effect": 33.8322119,
               "excludes_zero": true,
               "n_peers": 5,
-              "peer_mean": 833.7313778439697,
-              "standardised_effect": 1.1918854104600987,
-              "value": 867.5635897435899
+              "peer_mean": 833.731378,
+              "standardised_effect": 1.19188541,
+              "value": 867.56359
             },
             "metrics": {
-              "latency_ratio": 1.0405792714520479,
+              "latency_ratio": 1.04057927,
               "reject_rate": 0.0,
-              "window_latency_us": 867.5635897435899
+              "window_latency_us": 867.56359
             },
             "rationale": "execution latency ratio vs baseline = 1.04 (threshold 3.0); reject rate = 0.0%",
             "score": 0.0
@@ -1497,22 +1497,22 @@
             "cause": "MARKET_DATA_ANOMALY",
             "effect": {
               "ci": [
-                0.0016671297582661851,
-                0.002222839677688247
+                0.00166712976,
+                0.00222283968
               ],
               "component_bps": 0,
               "components": [],
               "confidence": 0.9,
-              "effect": 0.001944984717977216,
+              "effect": 0.00194498472,
               "excludes_zero": true,
               "n_peers": 5,
-              "peer_mean": 0.0011114198388441235,
-              "standardised_effect": 4.949747468305833,
-              "value": 0.0030564045568213394
+              "peer_mean": 0.00111141984,
+              "standardised_effect": 4.94974747,
+              "value": 0.00305640456
             },
             "metrics": {
               "crossed_quotes": 0.0,
-              "stale_quote_fraction": 0.0030564045568213394
+              "stale_quote_fraction": 0.00305640456
             },
             "rationale": "stale quote fraction = 0.3% (baseline 0.1%); crossed quotes = 0",
             "score": 0.0
@@ -1521,25 +1521,25 @@
             "cause": "LARGE_ORDER_IMPACT",
             "effect": {
               "ci": [
-                -0.00631279913007389,
-                -0.0006944245119275758
+                -0.00631279913,
+                -0.000694424512
               ],
-              "component_bps": 22.42293749795205,
+              "component_bps": 22.4229375,
               "components": [
                 "timing_cost_bps"
               ],
               "confidence": 0.9,
-              "effect": -0.0033277903493607944,
+              "effect": -0.00332779035,
               "excludes_zero": true,
               "n_peers": 5,
-              "peer_mean": 0.05257922524142442,
-              "standardised_effect": -0.7830357217086832,
-              "value": 0.04925143489206363
+              "peer_mean": 0.0525792252,
+              "standardised_effect": -0.783035722,
+              "value": 0.0492514349
             },
             "metrics": {
-              "market_impact_bps": 2.32718789725982,
-              "order_size_ratio": 0.9970089730807578,
-              "participation_rate": 0.04925143489206363
+              "market_impact_bps": 2.3271879,
+              "order_size_ratio": 0.997008973,
+              "participation_rate": 0.0492514349
             },
             "rationale": "participation rate = 4.9% (threshold 20%); order size ratio vs baseline = 1.0",
             "score": 0.0
@@ -1548,35 +1548,35 @@
             "cause": "PRICE_MOVEMENT",
             "effect": {
               "ci": [
-                27.18451382524175,
-                46.11059017733417
+                27.1845138,
+                46.1105902
               ],
-              "component_bps": 22.42293749795205,
+              "component_bps": 22.4229375,
               "components": [
                 "timing_cost_bps"
               ],
               "confidence": 0.9,
-              "effect": 36.66769013620689,
+              "effect": 36.6676901,
               "excludes_zero": true,
               "n_peers": 5,
-              "peer_mean": 5.544670508883087,
-              "standardised_effect": 2.6849723536806227,
-              "value": 42.21236064508998
+              "peer_mean": 5.54467051,
+              "standardised_effect": 2.68497235,
+              "value": 42.2123606
             },
             "metrics": {
-              "adverse_drift_bps": 42.21236064508998,
+              "adverse_drift_bps": 42.2123606,
               "max_abs_move_bps": null
             },
             "rationale": "adverse price drift during window = 42.2 bps (threshold 60.0)",
             "score": 0.0
           }
         ],
-        "residual_bps": 29.016633459255367,
-        "residual_se_bps": 14.724934056552815,
-        "residual_z": 1.970578159998111,
+        "residual_bps": 29.0166335,
+        "residual_se_bps": 14.7249341,
+        "residual_z": 1.97057816,
         "secondary": [],
         "task_id": "TASK-00000001",
-        "vwap_slippage_delta_bps": -0.686678119741293
+        "vwap_slippage_delta_bps": -0.68667812
       },
       "description": "Cause attribution: primary=VENUE_DEGRADATION, IS residual +29.0 bps (z +1.97 vs pre-trade estimate), IS delta +27.3 bps, VWAP-slippage delta -0.7 bps, baseline time_of_day_matched",
       "id": "TCA-0000008a",
@@ -1790,8 +1790,8 @@
     {
       "attributes": {
         "critic_notes": [],
-        "is_bps": 30.576342772496993,
-        "is_delta_bps": 12.197879469360586
+        "is_bps": 30.5763428,
+        "is_delta_bps": 12.1978795
       },
       "category": "EXECUTION",
       "confidence": 0.9,
@@ -1809,8 +1809,8 @@
     {
       "attributes": {
         "critic_notes": [],
-        "vwap_slippage_bps": -0.2887883315512288,
-        "vwap_slippage_delta_bps": -0.9822463956416774
+        "vwap_slippage_bps": -0.288788332,
+        "vwap_slippage_delta_bps": -0.982246396
       },
       "category": "EXECUTION",
       "confidence": 0.9,
@@ -1828,8 +1828,8 @@
     {
       "attributes": {
         "critic_notes": [],
-        "fill_rate": 0.7933166666666667,
-        "participation_rate": 0.04925143489206363
+        "fill_rate": 0.793316667,
+        "participation_rate": 0.0492514349
       },
       "category": "EXECUTION",
       "confidence": 0.9,
@@ -1868,7 +1868,7 @@
       "attributes": {
         "critic_notes": [],
         "deteriorated": true,
-        "residual_z": 1.970578159998111
+        "residual_z": 1.97057816
       },
       "category": "ATTRIBUTION",
       "confidence": 0.9,
@@ -1887,7 +1887,7 @@
         "consistent_with_configuration": true,
         "critic_notes": [],
         "max_participation_rate": 0.2,
-        "participation_rate": 0.04925143489206363
+        "participation_rate": 0.0492514349
       },
       "category": "EXECUTION",
       "confidence": 0.85,
@@ -1905,7 +1905,7 @@
     {
       "attributes": {
         "critic_notes": [],
-        "latency_ratio": 0.9915254237288137
+        "latency_ratio": 0.991525424
       },
       "category": "TECHNOLOGY",
       "confidence": 0.85,
@@ -1922,7 +1922,7 @@
     {
       "attributes": {
         "critic_notes": [],
-        "volatility_ratio": 1.1693173021681542
+        "volatility_ratio": 1.1693173
       },
       "category": "MARKET",
       "confidence": 0.8,
@@ -1940,7 +1940,7 @@
     {
       "attributes": {
         "critic_notes": [],
-        "spread_ratio": 0.9898511966589975
+        "spread_ratio": 0.989851197
       },
       "category": "MARKET",
       "confidence": 0.8,
@@ -1958,7 +1958,7 @@
     {
       "attributes": {
         "critic_notes": [],
-        "depth_ratio": 0.9687975874115434
+        "depth_ratio": 0.968797587
       },
       "category": "MARKET",
       "confidence": 0.8,
@@ -2029,7 +2029,7 @@
         "cause": "VENUE_DEGRADATION",
         "critic_notes": [],
         "role": "primary",
-        "score": 0.6099785142438001
+        "score": 0.609978514
       },
       "category": "ATTRIBUTION",
       "confidence": 0.794,
@@ -2066,7 +2066,7 @@
     {
       "attributes": {
         "critic_notes": [],
-        "stale_quote_fraction": 0.0030564045568213394
+        "stale_quote_fraction": 0.00305640456
       },
       "category": "MARKET",
       "confidence": 0.75,
@@ -2086,11 +2086,11 @@
         "critic_notes": [
           "single evidence record; confidence capped"
         ],
-        "delay_cost_bps": -1.6319449103868546,
-        "fees_bps": 0.07544029686102395,
-        "opportunity_cost_bps": 8.76790179356627,
-        "spread_cost_bps": 0.9420080945045031,
-        "timing_cost_bps": 22.42293749795205
+        "delay_cost_bps": -1.63194491,
+        "fees_bps": 0.0754402969,
+        "opportunity_cost_bps": 8.76790179,
+        "spread_cost_bps": 0.942008095,
+        "timing_cost_bps": 22.4229375
       },
       "category": "EXECUTION",
       "confidence": 0.7,
@@ -2108,8 +2108,8 @@
         "critic_notes": [
           "single evidence record; confidence capped"
         ],
-        "pretrade_estimate_bps": 3.191654223628481,
-        "residual_z": 1.912688344427169
+        "pretrade_estimate_bps": 3.19165422,
+        "residual_z": 1.91268834
       },
       "category": "EXECUTION",
       "confidence": 0.7,
@@ -2144,7 +2144,7 @@
         "critic_notes": [
           "single evidence record; confidence capped"
         ],
-        "gross_exposure": 110454651.45
+        "gross_exposure": 110454651.0
       },
       "category": "RISK",
       "confidence": 0.7,
@@ -2166,123 +2166,123 @@
       "deployments": 0,
       "error_logs": 0,
       "feed_gap_count": 0.0,
-      "latency_ratio": 0.9915254237288137,
+      "latency_ratio": 0.991525424,
       "slo_breached": false
     },
     "execution": {
       "baseline": {
-        "arrival_price": 230.67000000000002,
-        "arrival_shortfall_bps": 16.331831313584477,
-        "average_latency_us": 814.1152777777779,
-        "average_spread_bps": 1.863182135201261,
+        "arrival_price": 230.67,
+        "arrival_shortfall_bps": 16.3318313,
+        "average_latency_us": 814.115278,
+        "average_spread_bps": 1.86318214,
         "child_order_count": 120,
-        "delay_cost_bps": 2.0466319895519303,
-        "effective_spread_bps": 2.2703624499853072,
+        "delay_cost_bps": 2.04663199,
+        "effective_spread_bps": 2.27036245,
         "end": "2026-09-18T18:00:00+00:00",
         "executed_quantity": 51294,
         "execution_count": 216,
-        "fees_bps": 0.0828163274981196,
+        "fees_bps": 0.0828163275,
         "fill_rate": 0.8549,
-        "implementation_shortfall_bps": 18.378463303136407,
-        "is_price_risk_bps": 14.265349750363765,
-        "is_residual_bps": 13.093767302653465,
-        "is_residual_z": 0.8631013704464924,
-        "is_standard_error_bps": 15.170601914210733,
-        "market_impact_bps": 2.32718789725982,
-        "market_vwap": 231.04055431923655,
+        "implementation_shortfall_bps": 18.3784633,
+        "is_price_risk_bps": 14.2653498,
+        "is_residual_bps": 13.0937673,
+        "is_residual_z": 0.86310137,
+        "is_standard_error_bps": 15.1706019,
+        "market_impact_bps": 2.3271879,
+        "market_vwap": 231.040554,
         "markouts_bps": {
-          "10s": -0.431388675160884,
-          "1s": -0.42488791418752414,
-          "300s": 0.34853181696301566,
-          "60s": -0.15031192522023795
+          "10s": -0.431388675,
+          "1s": -0.424887914,
+          "300s": 0.348531817,
+          "60s": -0.150311925
         },
-        "opportunity_cost_bps": 1.9189559748646272,
-        "participation_rate": 0.07161126033807819,
-        "pretrade_estimate_bps": 3.2380640109310126,
+        "opportunity_cost_bps": 1.91895597,
+        "participation_rate": 0.0716112603,
+        "pretrade_estimate_bps": 3.23806401,
         "pretrade_interval_bps": [
-          -21.845367483707566,
-          28.32149550556959
+          -21.8453675,
+          28.3214955
         ],
-        "price_drift_bps": 13.222352278145333,
-        "price_improvement_bps": 0.5517201746147251,
-        "realised_spread_bps": 1.272493023048945,
-        "realised_volatility_bps": 2.8248876664415343,
+        "price_drift_bps": 13.2223523,
+        "price_improvement_bps": 0.551720175,
+        "realised_spread_bps": 1.27249302,
+        "realised_volatility_bps": 2.82488767,
         "reject_rate": 0.0,
         "side": "BUY",
-        "slippage_vs_arrival_bps": 16.75883351926964,
-        "slippage_vs_vwap_bps": 0.6934580640904486,
-        "spread_cost_bps": 0.3419436413052933,
+        "slippage_vs_arrival_bps": 16.7588335,
+        "slippage_vs_vwap_bps": 0.693458064,
+        "spread_cost_bps": 0.341943641,
         "start": "2026-09-18T17:00:00+00:00",
         "symbol": "AAPL",
         "target_quantity": 60000,
-        "temporary_impact_bps": 0.6362465115244725,
-        "timing_cost_bps": 13.988115369916436,
+        "temporary_impact_bps": 0.636246512,
+        "timing_cost_bps": 13.9881154,
         "venue_statistics": {
           "ARCA": {
             "average_latency_us": 773.548,
-            "average_slippage_bps": 0.04280298379553127,
+            "average_slippage_bps": 0.0428029838,
             "child_orders": 21,
             "executed_quantity": 9472,
             "executions": 50,
-            "fill_rate": 0.9318248893261191,
-            "fill_share": 0.1846609739930596,
-            "market_volume_participation": 0.013223805082900079,
+            "fill_rate": 0.931824889,
+            "fill_share": 0.184660974,
+            "market_volume_participation": 0.0132238051,
             "reject_count": 0,
             "reject_rate": 0.0,
             "routed_quantity": 10165,
             "venue": "ARCA"
           },
           "BATS": {
-            "average_latency_us": 702.046153846154,
-            "average_slippage_bps": 0.4769871054971528,
+            "average_latency_us": 702.046154,
+            "average_slippage_bps": 0.476987105,
             "child_orders": 23,
             "executed_quantity": 9953,
             "executions": 39,
-            "fill_rate": 0.8506837606837607,
-            "fill_share": 0.19403828907864468,
-            "market_volume_participation": 0.013895326434766098,
+            "fill_rate": 0.850683761,
+            "fill_share": 0.194038289,
+            "market_volume_participation": 0.0138953264,
             "reject_count": 0,
             "reject_rate": 0.0,
             "routed_quantity": 11700,
             "venue": "BATS"
           },
           "DARK1": {
-            "average_latency_us": 777.9851851851848,
-            "average_slippage_bps": 0.7739472186654301,
+            "average_latency_us": 777.985185,
+            "average_slippage_bps": 0.773947219,
             "child_orders": 16,
             "executed_quantity": 6908,
             "executions": 27,
-            "fill_rate": 0.7885844748858447,
-            "fill_share": 0.1346746208133505,
-            "market_volume_participation": 0.009644219331996806,
+            "fill_rate": 0.788584475,
+            "fill_share": 0.134674621,
+            "market_volume_participation": 0.00964421933,
             "reject_count": 0,
             "reject_rate": 0.0,
             "routed_quantity": 8760,
             "venue": "DARK1"
           },
           "IEX": {
-            "average_latency_us": 838.1000000000001,
-            "average_slippage_bps": 0.6524867927647677,
+            "average_latency_us": 838.1,
+            "average_slippage_bps": 0.652486793,
             "child_orders": 11,
             "executed_quantity": 4705,
             "executions": 20,
-            "fill_rate": 0.8254385964912281,
-            "fill_share": 0.09172612781221975,
-            "market_volume_participation": 0.006568623618564704,
+            "fill_rate": 0.825438596,
+            "fill_share": 0.0917261278,
+            "market_volume_participation": 0.00656862362,
             "reject_count": 0,
             "reject_rate": 0.0,
             "routed_quantity": 5700,
             "venue": "IEX"
           },
           "XNAS": {
-            "average_latency_us": 900.3012500000001,
-            "average_slippage_bps": 0.3411362842243493,
+            "average_latency_us": 900.30125,
+            "average_slippage_bps": 0.341136284,
             "child_orders": 49,
             "executed_quantity": 20256,
             "executions": 80,
-            "fill_rate": 0.8184573114065214,
-            "fill_share": 0.3948999883027255,
-            "market_volume_participation": 0.028279285869850505,
+            "fill_rate": 0.818457311,
+            "fill_share": 0.394899988,
+            "market_volume_participation": 0.0282792859,
             "reject_count": 0,
             "reject_rate": 0.0,
             "routed_quantity": 24749,
@@ -2293,163 +2293,163 @@
           "ARCA|ADD|odd": {
             "fills": 3.0,
             "shares": 254.0,
-            "slippage_vs_mid_bps": -0.865838347980875
+            "slippage_vs_mid_bps": -0.865838348
           },
           "ARCA|ADD|small": {
             "fills": 25.0,
             "shares": 4525.0,
-            "slippage_vs_mid_bps": -0.9950521227107142
+            "slippage_vs_mid_bps": -0.995052123
           },
           "ARCA|REMOVE|medium": {
             "fills": 1.0,
             "shares": 700.0,
-            "slippage_vs_mid_bps": 1.0813382642360643
+            "slippage_vs_mid_bps": 1.08133826
           },
           "ARCA|REMOVE|small": {
             "fills": 21.0,
             "shares": 3993.0,
-            "slippage_vs_mid_bps": 1.094672394991022
+            "slippage_vs_mid_bps": 1.09467239
           },
           "BATS|ADD|small": {
             "fills": 13.0,
             "shares": 2931.0,
-            "slippage_vs_mid_bps": -0.9101893834356853
+            "slippage_vs_mid_bps": -0.910189383
           },
           "BATS|REMOVE|medium": {
             "fills": 5.0,
             "shares": 2512.0,
-            "slippage_vs_mid_bps": 0.9074042136487178
+            "slippage_vs_mid_bps": 0.907404214
           },
           "BATS|REMOVE|small": {
             "fills": 21.0,
             "shares": 4510.0,
-            "slippage_vs_mid_bps": 1.1387623856269573
+            "slippage_vs_mid_bps": 1.13876239
           },
           "DARK1|ADD|medium": {
             "fills": 1.0,
             "shares": 700.0,
-            "slippage_vs_mid_bps": -0.8659508139929777
+            "slippage_vs_mid_bps": -0.865950814
           },
           "DARK1|ADD|small": {
             "fills": 2.0,
             "shares": 439.0,
-            "slippage_vs_mid_bps": -1.2985888667648313
+            "slippage_vs_mid_bps": -1.29858887
           },
           "DARK1|REMOVE|medium": {
             "fills": 1.0,
             "shares": 500.0,
-            "slippage_vs_mid_bps": 1.298701298701348
+            "slippage_vs_mid_bps": 1.2987013
           },
           "DARK1|REMOVE|small": {
             "fills": 23.0,
             "shares": 5269.0,
-            "slippage_vs_mid_bps": 1.11469402533592
+            "slippage_vs_mid_bps": 1.11469403
           },
           "IEX|ADD|medium": {
             "fills": 1.0,
             "shares": 500.0,
-            "slippage_vs_mid_bps": -0.8655011251506757
+            "slippage_vs_mid_bps": -0.865501125
           },
           "IEX|ADD|small": {
             "fills": 6.0,
             "shares": 605.0,
-            "slippage_vs_mid_bps": -0.8653516436959892
+            "slippage_vs_mid_bps": -0.865351644
           },
           "IEX|REMOVE|medium": {
             "fills": 2.0,
             "shares": 1100.0,
-            "slippage_vs_mid_bps": 1.00301705006212
+            "slippage_vs_mid_bps": 1.00301705
           },
           "IEX|REMOVE|small": {
             "fills": 11.0,
             "shares": 2500.0,
-            "slippage_vs_mid_bps": 1.1691679647605244
+            "slippage_vs_mid_bps": 1.16916796
           },
           "XNAS|ADD|medium": {
             "fills": 3.0,
             "shares": 1500.0,
-            "slippage_vs_mid_bps": -0.8659105849970251
+            "slippage_vs_mid_bps": -0.865910585
           },
           "XNAS|ADD|odd": {
             "fills": 2.0,
             "shares": 183.0,
-            "slippage_vs_mid_bps": -0.8653887759080192
+            "slippage_vs_mid_bps": -0.865388776
           },
           "XNAS|ADD|small": {
             "fills": 29.0,
             "shares": 6479.0,
-            "slippage_vs_mid_bps": -0.9575027856503013
+            "slippage_vs_mid_bps": -0.957502786
           },
           "XNAS|REMOVE|medium": {
             "fills": 6.0,
             "shares": 3204.0,
-            "slippage_vs_mid_bps": 1.1156721180841482
+            "slippage_vs_mid_bps": 1.11567212
           },
           "XNAS|REMOVE|small": {
             "fills": 40.0,
             "shares": 8890.0,
-            "slippage_vs_mid_bps": 1.2369331472015543
+            "slippage_vs_mid_bps": 1.23693315
           }
         },
-        "vwap": 231.056576012789
+        "vwap": 231.056576
       },
       "window": {
-        "arrival_price": 230.97500000000002,
-        "arrival_shortfall_bps": 32.20828768288385,
-        "average_latency_us": 867.5635897435899,
-        "average_spread_bps": 1.844273066122634,
+        "arrival_price": 230.975,
+        "arrival_shortfall_bps": 32.2082877,
+        "average_latency_us": 867.56359,
+        "average_spread_bps": 1.84427307,
         "child_order_count": 120,
-        "delay_cost_bps": -1.6319449103868546,
-        "effective_spread_bps": 3.7352290809504183,
+        "delay_cost_bps": -1.63194491,
+        "effective_spread_bps": 3.73522908,
         "end": "2026-09-18T19:00:00+00:00",
         "executed_quantity": 47599,
         "execution_count": 195,
-        "fees_bps": 0.07544029686102395,
-        "fill_rate": 0.7933166666666667,
-        "implementation_shortfall_bps": 30.576342772496993,
-        "is_price_risk_bps": 14.265349750363765,
-        "is_residual_bps": 29.016633459255367,
-        "is_residual_z": 1.912688344427169,
-        "is_standard_error_bps": 15.170601914210733,
-        "market_impact_bps": 2.32718789725982,
-        "market_vwap": 231.6620740670227,
+        "fees_bps": 0.0754402969,
+        "fill_rate": 0.793316667,
+        "implementation_shortfall_bps": 30.5763428,
+        "is_price_risk_bps": 14.2653498,
+        "is_residual_bps": 29.0166335,
+        "is_residual_z": 1.91268834,
+        "is_standard_error_bps": 15.1706019,
+        "market_impact_bps": 2.3271879,
+        "market_vwap": 231.662074,
         "markouts_bps": {
-          "10s": -1.0017338941139349,
-          "1s": -1.1841375500560594,
-          "300s": 2.028489837823275,
-          "60s": -0.5854505621830473
+          "10s": -1.00173389,
+          "1s": -1.18413755,
+          "300s": 2.02848984,
+          "60s": -0.585450562
         },
-        "opportunity_cost_bps": 8.76790179356627,
-        "participation_rate": 0.04925143489206363,
-        "pretrade_estimate_bps": 3.191654223628481,
+        "opportunity_cost_bps": 8.76790179,
+        "participation_rate": 0.0492514349,
+        "pretrade_estimate_bps": 3.19165422,
         "pretrade_interval_bps": [
-          -21.8917772710101,
-          28.275085718267057
+          -21.8917773,
+          28.2750857
         ],
-        "price_drift_bps": 42.21236064508998,
-        "price_improvement_bps": -0.28909587610878773,
-        "realised_spread_bps": -3.1395210306695374,
-        "realised_volatility_bps": 3.3031900250515074,
+        "price_drift_bps": 42.2123606,
+        "price_improvement_bps": -0.289095876,
+        "realised_spread_bps": -3.13952103,
+        "realised_volatility_bps": 3.30319003,
         "reject_rate": 0.0,
         "side": "BUY",
-        "slippage_vs_arrival_bps": 29.457038062012195,
-        "slippage_vs_vwap_bps": -0.2887883315512288,
-        "spread_cost_bps": 0.9420080945045031,
+        "slippage_vs_arrival_bps": 29.4570381,
+        "slippage_vs_vwap_bps": -0.288788332,
+        "spread_cost_bps": 0.942008095,
         "start": "2026-09-18T18:00:00+00:00",
         "symbol": "AAPL",
         "target_quantity": 60000,
-        "temporary_impact_bps": -1.5697605153347687,
-        "timing_cost_bps": 22.42293749795205,
+        "temporary_impact_bps": -1.56976052,
+        "timing_cost_bps": 22.4229375,
         "venue_statistics": {
           "ARCA": {
-            "average_latency_us": 942.6878048780488,
-            "average_slippage_bps": 4.259359628598377,
+            "average_latency_us": 942.687805,
+            "average_slippage_bps": 4.25935963,
             "child_orders": 35,
             "executed_quantity": 9887,
             "executions": 41,
-            "fill_rate": 0.525904255319149,
-            "fill_share": 0.20771444778251644,
-            "market_volume_participation": 0.010230234601101559,
+            "fill_rate": 0.525904255,
+            "fill_share": 0.207714448,
+            "market_volume_participation": 0.0102302346,
             "reject_count": 0,
             "reject_rate": 0.0,
             "routed_quantity": 18800,
@@ -2457,55 +2457,55 @@
           },
           "BATS": {
             "average_latency_us": 912.940625,
-            "average_slippage_bps": 0.5062506364537475,
+            "average_slippage_bps": 0.506250636,
             "child_orders": 19,
             "executed_quantity": 7675,
             "executions": 32,
-            "fill_rate": 0.782843737250102,
-            "fill_share": 0.16124288325384986,
-            "market_volume_participation": 0.007941443366385604,
+            "fill_rate": 0.782843737,
+            "fill_share": 0.161242883,
+            "market_volume_participation": 0.00794144337,
             "reject_count": 0,
             "reject_rate": 0.0,
             "routed_quantity": 9804,
             "venue": "BATS"
           },
           "DARK1": {
-            "average_latency_us": 831.553846153846,
-            "average_slippage_bps": 0.3210177032140061,
+            "average_latency_us": 831.553846,
+            "average_slippage_bps": 0.321017703,
             "child_orders": 20,
             "executed_quantity": 9695,
             "executions": 39,
-            "fill_rate": 0.8531326997536078,
-            "fill_share": 0.20368074959557975,
-            "market_volume_participation": 0.01003156917747341,
+            "fill_rate": 0.8531327,
+            "fill_share": 0.20368075,
+            "market_volume_participation": 0.0100315692,
             "reject_count": 0,
             "reject_rate": 0.0,
             "routed_quantity": 11364,
             "venue": "DARK1"
           },
           "IEX": {
-            "average_latency_us": 831.5970588235293,
-            "average_slippage_bps": 0.2432242457262145,
+            "average_latency_us": 831.597059,
+            "average_slippage_bps": 0.243224246,
             "child_orders": 17,
             "executed_quantity": 8236,
             "executions": 34,
-            "fill_rate": 0.9780311126944543,
-            "fill_share": 0.17302884514380554,
-            "market_volume_participation": 0.008521918901049098,
+            "fill_rate": 0.978031113,
+            "fill_share": 0.173028845,
+            "market_volume_participation": 0.0085219189,
             "reject_count": 0,
             "reject_rate": 0.0,
             "routed_quantity": 8421,
             "venue": "IEX"
           },
           "XNAS": {
-            "average_latency_us": 828.6877551020408,
-            "average_slippage_bps": 0.43451833145256197,
+            "average_latency_us": 828.687755,
+            "average_slippage_bps": 0.434518331,
             "child_orders": 29,
             "executed_quantity": 12106,
             "executions": 49,
-            "fill_rate": 0.839644888334027,
-            "fill_share": 0.2543330742242484,
-            "market_volume_participation": 0.012526268846053956,
+            "fill_rate": 0.839644888,
+            "fill_share": 0.254333074,
+            "market_volume_participation": 0.0125262688,
             "reject_count": 0,
             "reject_rate": 0.0,
             "routed_quantity": 14418,
@@ -2516,123 +2516,123 @@
           "ARCA|ADD|medium": {
             "fills": 2.0,
             "shares": 1400.0,
-            "slippage_vs_mid_bps": 3.0230417352382988
+            "slippage_vs_mid_bps": 3.02304174
           },
           "ARCA|ADD|small": {
             "fills": 9.0,
             "shares": 2261.0,
-            "slippage_vs_mid_bps": 3.1342408416328738
+            "slippage_vs_mid_bps": 3.13424084
           },
           "ARCA|REMOVE|medium": {
             "fills": 2.0,
             "shares": 1100.0,
-            "slippage_vs_mid_bps": 4.731079792042633
+            "slippage_vs_mid_bps": 4.73107979
           },
           "ARCA|REMOVE|odd": {
             "fills": 3.0,
             "shares": 271.0,
-            "slippage_vs_mid_bps": 4.975016763643835
+            "slippage_vs_mid_bps": 4.97501676
           },
           "ARCA|REMOVE|small": {
             "fills": 25.0,
             "shares": 4855.0,
-            "slippage_vs_mid_bps": 4.993016346342373
+            "slippage_vs_mid_bps": 4.99301635
           },
           "BATS|ADD|small": {
             "fills": 11.0,
             "shares": 2178.0,
-            "slippage_vs_mid_bps": -0.9267427550879144
+            "slippage_vs_mid_bps": -0.926742755
           },
           "BATS|REMOVE|medium": {
             "fills": 1.0,
             "shares": 500.0,
-            "slippage_vs_mid_bps": 0.8627011171983883
+            "slippage_vs_mid_bps": 0.862701117
           },
           "BATS|REMOVE|small": {
             "fills": 20.0,
             "shares": 4997.0,
-            "slippage_vs_mid_bps": 1.095170861870081
+            "slippage_vs_mid_bps": 1.09517086
           },
           "DARK1|ADD|medium": {
             "fills": 1.0,
             "shares": 600.0,
-            "slippage_vs_mid_bps": -0.6470118834510044
+            "slippage_vs_mid_bps": -0.647011883
           },
           "DARK1|ADD|odd": {
             "fills": 3.0,
             "shares": 263.0,
-            "slippage_vs_mid_bps": -0.6469281694095608
+            "slippage_vs_mid_bps": -0.646928169
           },
           "DARK1|ADD|small": {
             "fills": 12.0,
             "shares": 2837.0,
-            "slippage_vs_mid_bps": -0.898428876392197
+            "slippage_vs_mid_bps": -0.898428876
           },
           "DARK1|REMOVE|medium": {
             "fills": 3.0,
             "shares": 1600.0,
-            "slippage_vs_mid_bps": 1.0249423563594384
+            "slippage_vs_mid_bps": 1.02494236
           },
           "DARK1|REMOVE|small": {
             "fills": 20.0,
             "shares": 4395.0,
-            "slippage_vs_mid_bps": 1.0419910861057264
+            "slippage_vs_mid_bps": 1.04199109
           },
           "IEX|ADD|medium": {
             "fills": 2.0,
             "shares": 1100.0,
-            "slippage_vs_mid_bps": -0.6678954573170988
+            "slippage_vs_mid_bps": -0.667895457
           },
           "IEX|ADD|small": {
             "fills": 13.0,
             "shares": 2707.0,
-            "slippage_vs_mid_bps": -0.8957549382051339
+            "slippage_vs_mid_bps": -0.895754938
           },
           "IEX|REMOVE|medium": {
             "fills": 2.0,
             "shares": 1000.0,
-            "slippage_vs_mid_bps": 1.0821575835908634
+            "slippage_vs_mid_bps": 1.08215758
           },
           "IEX|REMOVE|small": {
             "fills": 17.0,
             "shares": 3429.0,
-            "slippage_vs_mid_bps": 1.1900061023564728
+            "slippage_vs_mid_bps": 1.1900061
           },
           "XNAS|ADD|small": {
             "fills": 15.0,
             "shares": 3820.0,
-            "slippage_vs_mid_bps": -0.9155121090276817
+            "slippage_vs_mid_bps": -0.915512109
           },
           "XNAS|REMOVE|medium": {
             "fills": 2.0,
             "shares": 1200.0,
-            "slippage_vs_mid_bps": 1.0800535751923743
+            "slippage_vs_mid_bps": 1.08005358
           },
           "XNAS|REMOVE|small": {
             "fills": 32.0,
             "shares": 7086.0,
-            "slippage_vs_mid_bps": 1.0529877062968684
+            "slippage_vs_mid_bps": 1.05298771
           }
         },
-        "vwap": 231.65538393663735
+        "vwap": 231.655384
       }
     },
     "market": {
       "baseline": {
-        "annualised_volatility": 0.08855921462147044,
-        "average_displayed_depth": 9303.055555555555,
-        "average_spread_bps": 1.863182135201261,
-        "average_top_of_book_size": 498.18055555555554,
+        "annualised_volatility": 0.0885592146,
+        "average_displayed_depth": 9303.05556,
+        "average_spread_bps": 1.86318214,
+        "average_top_of_book_size": 498.180556,
         "close_mid": 230.975,
         "crossed_quote_count": 0,
         "end": "2026-09-18T18:00:00+00:00",
         "high": 231.29,
         "low": 230.64,
-        "open_mid": 230.67000000000002,
-        "price_drift_bps": 13.222352278145333,
+        "open_mid": 230.67,
+        "price_drift_bps": 13.2223523,
         "quote_count": 3600,
-        "realised_volatility_bps": 2.8248876664415343,
-        "stale_quote_fraction": 0.0030564045568213394,
+        "realised_volatility_bps": 2.82488767,
+        "stale_quote_fraction": 0.00305640456,
         "start": "2026-09-18T17:00:00+00:00",
         "symbol": "AAPL",
         "trade_count": 3951,
@@ -2644,28 +2644,28 @@
           "IEX": 80015,
           "XNAS": 244836
         },
-        "vwap": 231.04050152204243
+        "vwap": 231.040502
       },
       "ratios": {
-        "displayed_depth": 0.9687975874115434,
-        "spread": 0.9898511966589975,
-        "volatility": 1.1693173021681542
+        "displayed_depth": 0.968797587,
+        "spread": 0.989851197,
+        "volatility": 1.1693173
       },
       "window": {
-        "annualised_volatility": 0.10355382192330836,
-        "average_displayed_depth": 9012.777777777777,
-        "average_spread_bps": 1.844273066122634,
-        "average_top_of_book_size": 500.6666666666667,
+        "annualised_volatility": 0.103553822,
+        "average_displayed_depth": 9012.77778,
+        "average_spread_bps": 1.84427307,
+        "average_top_of_book_size": 500.666667,
         "close_mid": 231.95,
         "crossed_quote_count": 0,
         "end": "2026-09-18T19:00:00+00:00",
         "high": 232.21,
         "low": 230.91,
-        "open_mid": 230.97500000000002,
-        "price_drift_bps": 42.21236064508998,
+        "open_mid": 230.975,
+        "price_drift_bps": 42.2123606,
         "quote_count": 3600,
-        "realised_volatility_bps": 3.3031900250515074,
-        "stale_quote_fraction": 0.0030564045568213394,
+        "realised_volatility_bps": 3.30319003,
+        "stale_quote_fraction": 0.00305640456,
         "start": "2026-09-18T18:00:00+00:00",
         "symbol": "AAPL",
         "trade_count": 5380,
@@ -2677,7 +2677,7 @@
           "IEX": 121516,
           "XNAS": 320256
         },
-        "vwap": 231.66208882683813
+        "vwap": 231.662089
       }
     }
   },
