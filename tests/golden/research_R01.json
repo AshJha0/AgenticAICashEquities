@@ -1,9 +1,7 @@
 {
-  "alternative_explanations": [
-    "Costs consume 33% of gross return; rebalancing less often would reduce the cost drag at the expense of signal freshness."
-  ],
+  "alternative_explanations": [],
   "attribution": {},
-  "conclusion": "PROMOTE\n- in-sample IC t-stat 4.37 clears 0.65, deflated Sharpe 1.00 over 1 trial(s), out-of-sample net Sharpe 1.40, costs 33% of gross return, limits respected",
+  "conclusion": "PROMOTE\n- in-sample IC t-stat 4.37 clears 0.40, deflated Sharpe 1.00 over 1 trial(s), out-of-sample net Sharpe 1.39, costs 28% of gross return, limits respected",
   "critique": {
     "assessments": [
       {
@@ -51,12 +49,12 @@
         "supported": true
       },
       {
-        "adjusted_confidence": 0.834,
+        "adjusted_confidence": 0.844,
         "finding_id": "F-0000002b",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
-        "llm_proposed_confidence": 0.834,
+        "llm_proposed_confidence": 0.844,
         "notes": [],
-        "original_confidence": 0.834,
+        "original_confidence": 0.844,
         "supported": true
       },
       {
@@ -91,12 +89,12 @@
         "supported": true
       },
       {
-        "adjusted_confidence": 0.731,
+        "adjusted_confidence": 0.729,
         "finding_id": "F-00000031",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
-        "llm_proposed_confidence": 0.731,
+        "llm_proposed_confidence": 0.729,
         "notes": [],
-        "original_confidence": 0.731,
+        "original_confidence": 0.729,
         "supported": true
       },
       {
@@ -308,7 +306,7 @@
           "start": "2007-09-07"
         },
         "correlation_id": "CORR-00000009",
-        "digest": "8131bd352470c754",
+        "digest": "ee3f3d2cf9196fa7",
         "step_id": "step-03",
         "task_id": "TASK-00000001",
         "tool_id": "backtest.run_backtest",
@@ -318,9 +316,9 @@
           "fill": "close",
           "gross_notional": 50000000.0,
           "long_short": true,
-          "pnl_concentration_top3": 0.2413461401396471,
+          "pnl_concentration_top3": 0.24126508301514635,
           "rebalance_days": 21,
-          "sharpe_ratio_oos_is": 2.3566254392497097,
+          "sharpe_ratio_oos_is": 2.334101120417447,
           "signal": "momentum_12_1"
         }
       },
@@ -440,12 +438,12 @@
           "query": "out-of-sample cost; research promotion criteria out-of-sample cost drag approval policy"
         },
         "correlation_id": "CORR-0000000d",
-        "digest": "e8969c024ceb8787",
+        "digest": "1b89a5aea5cc2a53",
         "step_id": "step-07",
         "task_id": "TASK-00000001",
         "tool_id": "knowledge.search_documents",
         "values": {
-          "corpus_hash": "484bf03c03bde71eaaf8a91997b868a5c8c32447a3aaff8a456cd4d5961e0d28",
+          "corpus_hash": "d1f2f91cd141950b328a3b3ff451d66b36ef97275930c5905591c78d29bf02cb",
           "count": 3,
           "query": "out-of-sample cost; research promotion criteria out-of-sample cost drag approval policy"
         }
@@ -573,24 +571,24 @@
             "gross_leverage": 1.0,
             "gross_leverage_limit": 2.0,
             "nan_policy": "held name with a missing price earns 0 and is logged",
-            "risk_free": "unavailable: rf = 0 (data/reference/rf.csv not committed)",
+            "risk_free": "Kenneth R. French data library, daily RF (see data/reference/rf.csv header)",
             "ssr": "no new short on a name down 10% intraday"
           },
           "cost_breakdown_bps_annual": {
-            "borrow": 189.974,
+            "borrow": 189.89,
             "financing": 0.0,
-            "impact": 39.563,
-            "spread": 19.387
+            "impact": 41.039,
+            "spread": 19.435
           },
           "dataset": "R01",
           "delisting_bounds": {
             "merger": {
-              "full_sharpe": 0.788074766234061,
-              "oos_sharpe": 1.3387434687924276
+              "full_sharpe": 0.7835801641213885,
+              "oos_sharpe": 1.3239037620243843
             },
             "performance": {
-              "full_sharpe": 0.8071375254851961,
-              "oos_sharpe": 1.404665224479977
+              "full_sharpe": 0.8025613849072802,
+              "oos_sharpe": 1.3896691851238514
             }
           },
           "equity_curve": [
@@ -600,106 +598,106 @@
             ],
             [
               "2008-07-07",
-              0.994735
+              1.019269
             ],
             [
               "2009-05-04",
-              1.011213
+              1.042313
             ],
             [
               "2010-03-02",
-              1.058234
+              1.090739
             ],
             [
               "2010-12-28",
-              1.136567
+              1.171439
             ],
             [
               "2011-10-24",
-              1.190432
+              1.226875
             ],
             [
               "2012-08-21",
-              1.267235
+              1.305982
             ],
             [
               "2013-06-21",
-              1.390672
+              1.433112
             ],
             [
               "2014-04-21",
-              1.370884
+              1.412642
             ],
             [
               "2015-02-17",
-              1.404747
+              1.44747
             ],
             [
               "2015-12-11",
-              1.453126
+              1.497275
             ],
             [
               "2016-10-10",
-              1.580224
+              1.628164
             ],
             [
               "2017-08-09",
-              1.535701
+              1.583344
             ],
             [
               "2018-06-07",
-              1.46704
+              1.52914
             ],
             [
               "2019-04-05",
-              1.432383
+              1.524263
             ],
             [
               "2020-02-03",
-              1.562686
+              1.6974
             ],
             [
               "2020-11-27",
-              1.757667
+              1.916493
             ],
             [
               "2021-09-27",
-              1.624513
+              1.770998
             ],
             [
               "2022-07-26",
-              1.801045
+              1.963189
             ],
             [
               "2023-05-23",
-              1.936632
+              2.179704
             ],
             [
               "2024-03-22",
-              2.340477
+              2.743684
             ],
             [
               "2025-01-22",
-              2.357853
+              2.876603
             ],
             [
               "2025-11-18",
-              2.563208
+              3.258796
             ],
             [
               "2026-09-18",
-              2.497916
+              3.266969
             ]
           ],
           "event_counts": {
             "delisting": 2,
-            "participation_cap": 5,
+            "participation_cap": 9,
             "ssr_blocked": 2
           },
           "events": [
             {
               "date": "2014-05-13",
-              "held": -0.044286,
+              "held": -0.044287,
               "kind": "ssr_blocked",
               "symbol": "DAL",
               "target": -0.05
@@ -713,25 +711,46 @@
               "symbol": "RIOT"
             },
             {
-              "allowed": 0.088853,
+              "allowed": 0.08624,
               "date": "2017-06-13",
               "kind": "participation_cap",
               "symbol": "SOFI",
               "wanted": -0.100856
             },
             {
-              "allowed": 0.047032,
+              "allowed": 0.046889,
+              "date": "2023-05-16",
+              "kind": "participation_cap",
+              "symbol": "SOFI",
+              "wanted": -0.05
+            },
+            {
+              "allowed": 0.039983,
               "date": "2024-04-17",
               "kind": "participation_cap",
               "symbol": "SOFI",
               "wanted": 0.05
             },
             {
-              "allowed": 0.044714,
+              "allowed": 0.037698,
               "date": "2024-06-17",
               "kind": "participation_cap",
               "symbol": "SOFI",
-              "wanted": -0.050614
+              "wanted": -0.050405
+            },
+            {
+              "allowed": 0.102436,
+              "date": "2025-02-19",
+              "kind": "participation_cap",
+              "symbol": "JOBY",
+              "wanted": -0.104825
+            },
+            {
+              "allowed": 0.044221,
+              "date": "2025-03-20",
+              "kind": "participation_cap",
+              "symbol": "SOFI",
+              "wanted": -0.05
             },
             {
               "bound": "performance",
@@ -742,22 +761,29 @@
               "symbol": "RKLB"
             },
             {
-              "allowed": 0.054462,
+              "allowed": 0.042661,
               "date": "2025-12-18",
               "kind": "participation_cap",
               "symbol": "OPEN",
-              "wanted": -0.054585
+              "wanted": -0.054361
             },
             {
-              "allowed": 0.044723,
+              "allowed": 0.049836,
+              "date": "2026-02-20",
+              "kind": "participation_cap",
+              "symbol": "OPEN",
+              "wanted": 0.055556
+            },
+            {
+              "allowed": 0.034339,
               "date": "2026-07-23",
               "kind": "participation_cap",
               "symbol": "OPEN",
-              "wanted": -0.051931
+              "wanted": -0.051738
             },
             {
               "date": "2026-08-21",
-              "held": -0.048595,
+              "held": -0.048104,
               "kind": "ssr_blocked",
               "symbol": "SOFI",
               "target": -0.055556
@@ -769,96 +795,96 @@
           "long_short": true,
           "periods": {
             "full": {
-              "ann_return": 0.050113151561746075,
-              "ann_vol": 0.06208750055527585,
-              "cagr": 0.049361545972036014,
-              "cost_drag_bps_annual": 248.923952895741,
+              "ann_return": 0.06424172920494105,
+              "ann_vol": 0.062070860467277666,
+              "cagr": 0.06429068925904469,
+              "cost_drag_bps_annual": 250.36508909755284,
               "end": "2026-09-18",
-              "excess_ann_return": 0.050113151561746075,
-              "gross_ann_return": 0.07500554685132017,
-              "gross_sharpe": 1.2087926587035824,
-              "hit_rate": 0.5215121136173768,
-              "kurtosis": 4.020328122433622,
-              "max_drawdown": 0.12360255217144078,
+              "excess_ann_return": 0.049799623941783173,
+              "gross_ann_return": 0.08927823811469633,
+              "gross_sharpe": 1.2067693349560946,
+              "hit_rate": 0.5258980785296575,
+              "kurtosis": 4.022805340663233,
+              "max_drawdown": 0.10728609663262412,
               "n_days": 4788,
               "n_rebalances": 228,
               "name": "full",
-              "rf_ann": 0.0,
-              "sharpe": 0.8071375254851961,
-              "skew": 0.01544713741271621,
-              "sortino": 1.1856625115361847,
+              "rf_ann": 0.0144421052631579,
+              "sharpe": 0.8025613849072802,
+              "skew": 0.01488084543869664,
+              "sortino": 1.1785437956676492,
               "start": "2007-09-07",
-              "turnover_annual": 4.591001327416595
+              "turnover_annual": 4.5979933405843125
             },
             "in_sample": {
-              "ann_return": 0.0371000132566459,
-              "ann_vol": 0.062243183296205734,
-              "cagr": 0.03578646620527404,
-              "cost_drag_bps_annual": 244.91797287816038,
+              "ann_return": 0.04326858593708565,
+              "ann_vol": 0.06222290428194315,
+              "cagr": 0.042195937367368375,
+              "cost_drag_bps_annual": 245.70369946678042,
               "end": "2021-09-10",
-              "excess_ann_return": 0.0371000132566459,
-              "gross_ann_return": 0.06159181054446194,
-              "gross_sharpe": 0.990275550665373,
-              "hit_rate": 0.5221088435374149,
-              "kurtosis": 3.94830461577216,
-              "max_drawdown": 0.12360255217144078,
+              "excess_ann_return": 0.037047157365657085,
+              "gross_ann_return": 0.0678389558837637,
+              "gross_sharpe": 0.9910041317920909,
+              "hit_rate": 0.5229591836734694,
+              "kurtosis": 3.9490836040802613,
+              "max_drawdown": 0.09432396891149564,
               "n_days": 3528,
               "n_rebalances": 168,
               "name": "in_sample",
-              "rf_ann": 0.0,
-              "sharpe": 0.596049419260783,
-              "skew": -0.04490754144304772,
-              "sortino": 0.8606780581261928,
+              "rf_ann": 0.006221428571428573,
+              "sharpe": 0.5953765982835024,
+              "skew": -0.044974216739375544,
+              "sortino": 0.8596555038291823,
               "start": "2007-09-07",
-              "turnover_annual": 4.677438538476951
+              "turnover_annual": 4.67887536399394
             },
             "out_of_sample": {
-              "ann_return": 0.08654993881602657,
-              "ann_vol": 0.06161606146978426,
-              "cagr": 0.08832574396773096,
-              "cost_drag_bps_annual": 260.1406969449661,
+              "ann_return": 0.12296653035493621,
+              "ann_vol": 0.06151685191361705,
+              "cagr": 0.1286797836488236,
+              "cost_drag_bps_annual": 263.41698006371485,
               "end": "2026-09-18",
-              "excess_ann_return": 0.08654993881602657,
-              "gross_ann_return": 0.11256400851052319,
-              "gross_sharpe": 1.8273275164357086,
-              "hit_rate": 0.5198412698412699,
-              "kurtosis": 4.197714784284997,
-              "max_drawdown": 0.06402966086895223,
+              "excess_ann_return": 0.08550653035493623,
+              "gross_ann_return": 0.1493082283613077,
+              "gross_sharpe": 1.8181139019833346,
+              "hit_rate": 0.5341269841269841,
+              "kurtosis": 4.206491589599126,
+              "max_drawdown": 0.053635953688411786,
               "n_days": 1260,
               "n_rebalances": 60,
               "name": "out_of_sample",
-              "rf_ann": 0.0,
-              "sharpe": 1.404665224479977,
-              "skew": 0.19212895273787775,
-              "sortino": 2.173477043224866,
+              "rf_ann": 0.03746000000000001,
+              "sharpe": 1.3896691851238514,
+              "skew": 0.19089236785130162,
+              "sortino": 2.147939987199538,
               "start": "2021-09-13",
-              "turnover_annual": 4.3489771364475995
+              "turnover_annual": 4.37152367503735
             }
           },
-          "pnl_concentration_top3": 0.2413461401396471,
+          "pnl_concentration_top3": 0.24126508301514635,
           "profitability": {
-            "breakeven_cost_bps_per_unit_turnover": 121.99550287053054,
+            "breakeven_cost_bps_per_unit_turnover": 121.45955812690703,
             "calendar_year_returns": {
-              "2007": -0.027356094021383837,
-              "2008": 0.003054030796898477,
-              "2009": 0.0915344586284379,
-              "2010": 0.06453836066199847,
-              "2011": 0.08454422465906286,
-              "2012": 0.04914492128979808,
-              "2013": 0.052780110223304755,
-              "2014": 0.002070074143418532,
-              "2015": 0.06434227705653917,
-              "2016": 0.0749760420633927,
-              "2017": -0.03186921054831726,
-              "2018": -0.040153427351844684,
-              "2019": 0.10763798813599612,
-              "2020": 0.08495209404430226,
-              "2021": -0.04392869652424147,
-              "2022": 0.18105136284823709,
-              "2023": 0.10837541166004017,
-              "2024": 0.08224078868178841,
-              "2025": 0.1038426472436147,
-              "2026": -0.039093981448227066
+              "2007": -0.016089511974619608,
+              "2008": 0.022084313000719114,
+              "2009": 0.0914804803756808,
+              "2010": 0.06449370458587578,
+              "2011": 0.08446767190766824,
+              "2012": 0.049092390651296336,
+              "2013": 0.052714426267416625,
+              "2014": 0.0019988182241261754,
+              "2015": 0.06430331763508224,
+              "2016": 0.07491712364482406,
+              "2017": -0.031234439588872065,
+              "2018": -0.015781787861784635,
+              "2019": 0.1355343614553457,
+              "2020": 0.09149561753551372,
+              "2021": -0.04413371933691057,
+              "2022": 0.1958451842995681,
+              "2023": 0.16436673834783355,
+              "2024": 0.1358354156544903,
+              "2025": 0.15952881900919147,
+              "2026": -0.016886018719754925
             },
             "capacity": {
               "breakeven_aum": null,
@@ -866,135 +892,135 @@
               "half_sharpe_aum": null,
               "rows": [
                 {
-                  "cost_drag_bps_annual": 227.3158897275078,
-                  "cost_share_of_gross": 0.3034066204175314,
+                  "cost_drag_bps_annual": 227.88822935066565,
+                  "cost_share_of_gross": 0.25533473628264486,
                   "gross_notional": 10000000.0,
-                  "gross_sharpe": 1.2076395184957271,
-                  "net_excess_ann_return": 0.05218961393794651,
-                  "net_sharpe": 0.8409810244960576,
+                  "gross_sharpe": 1.2065488641744744,
+                  "net_excess_ann_return": 0.05201984616504234,
+                  "net_sharpe": 0.838746264772853,
                   "participation_capped_trades": 0,
-                  "sharpe_se": 0.2295766437771004
+                  "sharpe_se": 0.22957579003129025
                 },
                 {
-                  "cost_drag_bps_annual": 237.61175423398896,
-                  "cost_share_of_gross": 0.31712092306764383,
+                  "cost_drag_bps_annual": 238.57707876930854,
+                  "cost_share_of_gross": 0.2672903243060924,
                   "gross_notional": 25000000.0,
-                  "gross_sharpe": 1.2076389804570675,
-                  "net_excess_ann_return": 0.05116663190494472,
-                  "net_sharpe": 0.8243125411390867,
+                  "gross_sharpe": 1.206548881333298,
+                  "net_excess_ann_return": 0.050957843076489324,
+                  "net_sharpe": 0.8214329593961273,
                   "participation_capped_trades": 0,
-                  "sharpe_se": 0.22957033055561854
+                  "sharpe_se": 0.22956925269348558
                 },
                 {
-                  "cost_drag_bps_annual": 248.923952895741,
-                  "cost_share_of_gross": 0.33187405911348233,
+                  "cost_drag_bps_annual": 250.36508909755284,
+                  "cost_share_of_gross": 0.28043238126620196,
                   "gross_notional": 50000000.0,
-                  "gross_sharpe": 1.2087926587035824,
-                  "net_excess_ann_return": 0.050113151561746075,
-                  "net_sharpe": 0.8071375254851961,
-                  "participation_capped_trades": 5,
-                  "sharpe_se": 0.22956395750947242
+                  "gross_sharpe": 1.2067693349560946,
+                  "net_excess_ann_return": 0.049799623941783173,
+                  "net_sharpe": 0.8025613849072802,
+                  "participation_capped_trades": 9,
+                  "sharpe_se": 0.2295622820738068
                 },
                 {
-                  "cost_drag_bps_annual": 261.9815989459698,
-                  "cost_share_of_gross": 0.34957488267487863,
+                  "cost_drag_bps_annual": 265.42240472975124,
+                  "cost_share_of_gross": 0.2973490473708654,
                   "gross_notional": 100000000.0,
-                  "gross_sharpe": 1.2095420626117916,
-                  "net_excess_ann_return": 0.04874475274870789,
-                  "net_sharpe": 0.7860756298231419,
-                  "participation_capped_trades": 65,
-                  "sharpe_se": 0.22955632511647728
+                  "gross_sharpe": 1.205834306273592,
+                  "net_excess_ann_return": 0.04827856163706799,
+                  "net_sharpe": 0.7774658918605594,
+                  "participation_capped_trades": 85,
+                  "sharpe_se": 0.22955326316113359
                 },
                 {
-                  "cost_drag_bps_annual": 273.09705446258187,
-                  "cost_share_of_gross": 0.37512721566888646,
+                  "cost_drag_bps_annual": 287.06620578415465,
+                  "cost_share_of_gross": 0.3202096719348868,
                   "gross_notional": 250000000.0,
-                  "gross_sharpe": 1.1869244586236363,
-                  "net_excess_ann_return": 0.04549147854025279,
-                  "net_sharpe": 0.7407379750339246,
-                  "participation_capped_trades": 308,
-                  "sharpe_se": 0.22954057961234126
+                  "gross_sharpe": 1.2115978217757593,
+                  "net_excess_ann_return": 0.0465007229241492,
+                  "net_sharpe": 0.7483450158929054,
+                  "participation_capped_trades": 285,
+                  "sharpe_se": 0.22954315628119198
                 },
                 {
-                  "cost_drag_bps_annual": 270.77689563859917,
-                  "cost_share_of_gross": 0.37069287038963633,
+                  "cost_drag_bps_annual": 304.55198982369035,
+                  "cost_share_of_gross": 0.3411991741807929,
                   "gross_notional": 500000000.0,
-                  "gross_sharpe": 1.2154971937277896,
-                  "net_excess_ann_return": 0.04596846731366103,
-                  "net_sharpe": 0.7637637363278142,
-                  "participation_capped_trades": 734,
-                  "sharpe_se": 0.22954845960154854
+                  "gross_sharpe": 1.2079152488430585,
+                  "net_excess_ann_return": 0.044361994389913485,
+                  "net_sharpe": 0.7156845445896938,
+                  "participation_capped_trades": 497,
+                  "sharpe_se": 0.2295322794071131
                 }
               ],
-              "spearman_notional_sharpe": -0.9428571428571428
+              "spearman_notional_sharpe": -1.0
             },
             "cost_breakdown_bps_annual": {
-              "borrow": 189.974,
+              "borrow": 189.89,
               "financing": 0.0,
-              "impact": 39.563,
-              "spread": 19.387
+              "impact": 41.039,
+              "spread": 19.435
             },
             "cost_share_by_aum": {
-              "100M": 0.34957488267487863,
-              "10M": 0.3034066204175314,
-              "250M": 0.37512721566888646,
-              "25M": 0.31712092306764383,
-              "500M": 0.37069287038963633,
-              "50M": 0.33187405911348233
+              "100M": 0.2973490473708654,
+              "10M": 0.25533473628264486,
+              "250M": 0.3202096719348868,
+              "25M": 0.2672903243060924,
+              "500M": 0.3411991741807929,
+              "50M": 0.28043238126620196
             },
             "dataset": "R01",
             "factor_model": {
-              "alpha_ann": 0.04926549952034287,
-              "alpha_t": 3.463430755718165,
-              "beta": 0.022962227371667622,
+              "alpha_ann": 0.04928668001144591,
+              "alpha_t": 3.4671645742476946,
+              "beta": 0.02282494208438475,
               "factor": "generator market factor m_t"
             },
             "gross_notional": 50000000.0,
-            "longest_drawdown_days": 707,
-            "max_drawdown": 0.12360255217144078,
-            "net_excess_ann_return": 0.050113151561746075,
-            "net_sharpe": 0.8071375254851961,
+            "longest_drawdown_days": 648,
+            "max_drawdown": 0.10728609663262412,
+            "net_excess_ann_return": 0.049799623941783173,
+            "net_sharpe": 0.8025613849072802,
             "signal": "momentum_12_1",
-            "trough_date": "2019-04-12",
-            "turnover_annual": 4.591001327416595,
+            "trough_date": "2021-11-05",
+            "turnover_annual": 4.5979933405843125,
             "worst_months": [
               {
                 "month": "2013-12",
-                "return": -0.0615169489550359
+                "return": -0.06152326814879283
+              },
+              {
+                "month": "2021-04",
+                "return": -0.030005726136611344
               },
               {
                 "month": "2007-12",
-                "return": -0.03192634944419914
-              },
-              {
-                "month": "2019-03",
-                "return": -0.031058317352401832
+                "return": -0.02993692597373221
               }
             ]
           },
           "rebalance_days": 21,
-          "sharpe_ratio_oos_is": 2.3566254392497097,
+          "sharpe_ratio_oos_is": 2.334101120417447,
           "signal": "momentum_12_1",
           "top_contributors": [
             [
               "JOBY",
-              0.176191
+              0.175872
             ],
             [
               "PLUG",
-              0.126234
-            ],
-            [
-              "UPST",
-              0.100222
+              0.125837
             ],
             [
               "MRNA",
-              0.100114
+              0.100515
+            ],
+            [
+              "UPST",
+              0.099995
             ],
             [
               "AFRM",
-              0.09725
+              0.097854
             ]
           ],
           "trial": {
@@ -1010,7 +1036,7 @@
         ],
         "task_id": "TASK-00000001"
       },
-      "description": "Backtest of momentum_12_1: net Sharpe in-sample 0.60, out-of-sample 1.40, cost drag 249 bps per year",
+      "description": "Backtest of momentum_12_1: net Sharpe in-sample 0.60, out-of-sample 1.39, cost drag 250 bps per year",
       "id": "TCA-00000030",
       "source": "agent:backtest",
       "timestamp": "2026-01-01T00:00:00.070000+00:00",
@@ -1024,7 +1050,7 @@
         ],
         "flags": [],
         "hypotheses": {
-          "correction": "null-sweep hurdle t>=0.65 (dfdadabefeb7) + deflated Sharpe",
+          "correction": "null-sweep hurdle t>=0.40 (ef474869e5fa) + deflated Sharpe",
           "rows": [
             {
               "n_obs": 167,
@@ -1036,8 +1062,8 @@
             {
               "n_obs": 3528,
               "name": "deflated_sharpe",
-              "p_value": 0.00011025157178035094,
-              "statistic": 0.9998897484282196,
+              "p_value": 0.00010908712005619492,
+              "statistic": 0.9998909128799438,
               "verdict": "PASS"
             },
             {
@@ -1050,8 +1076,8 @@
             {
               "n_obs": 1260,
               "name": "out_of_sample_sharpe_t",
-              "p_value": 0.000842070232294212,
-              "statistic": 3.1409269275672305,
+              "p_value": 0.0009437208582324663,
+              "statistic": 3.107394764173671,
               "verdict": "PASS"
             }
           ],
@@ -1059,27 +1085,27 @@
         },
         "metrics": {
           "breached_checks": 0.0,
-          "cost_share": 0.33187405911348233,
-          "deflated_sharpe": 0.9998897484282196,
+          "cost_share": 0.28043238126620196,
+          "deflated_sharpe": 0.9998909128799438,
           "deflated_sharpe_bar": 0.0,
-          "hurdle_t": 0.65,
+          "hurdle_t": 0.4,
           "is_ic_t_stat": 4.371584933999521,
           "is_ic_t_stat_nw": 5.746592350013695,
-          "is_sharpe": 0.596049419260783,
+          "is_sharpe": 0.5953765982835024,
           "max_adv_participation": 0.039175,
           "n_trials": 1.0,
-          "oos_gross_sharpe": 1.8273275164357086,
+          "oos_gross_sharpe": 1.8181139019833346,
           "oos_ic_t_stat": 4.484522151251202,
-          "oos_sharpe": 1.404665224479977,
-          "pnl_concentration_top3": 0.2413461401396471,
-          "sharpe_ratio_oos_is": 2.3566254392497097
+          "oos_sharpe": 1.3896691851238514,
+          "pnl_concentration_top3": 0.24126508301514635,
+          "sharpe_ratio_oos_is": 2.334101120417447
         },
         "rationale": [
-          "in-sample IC t-stat 4.37 clears 0.65, deflated Sharpe 1.00 over 1 trial(s), out-of-sample net Sharpe 1.40, costs 33% of gross return, limits respected"
+          "in-sample IC t-stat 4.37 clears 0.40, deflated Sharpe 1.00 over 1 trial(s), out-of-sample net Sharpe 1.39, costs 28% of gross return, limits respected"
         ],
         "scores": {
-          "alpha": 0.865,
-          "cost": 0.668,
+          "alpha": 0.879,
+          "cost": 0.72,
           "diversification": 0.759,
           "limits": 1.0,
           "robustness": 1.0
@@ -1141,12 +1167,12 @@
             "supported": true
           },
           {
-            "adjusted_confidence": 0.834,
+            "adjusted_confidence": 0.844,
             "finding_id": "F-0000002b",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
-            "llm_proposed_confidence": 0.834,
+            "llm_proposed_confidence": 0.844,
             "notes": [],
-            "original_confidence": 0.834,
+            "original_confidence": 0.844,
             "supported": true
           },
           {
@@ -1181,12 +1207,12 @@
             "supported": true
           },
           {
-            "adjusted_confidence": 0.731,
+            "adjusted_confidence": 0.729,
             "finding_id": "F-00000031",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
-            "llm_proposed_confidence": 0.731,
+            "llm_proposed_confidence": 0.729,
             "notes": [],
-            "original_confidence": 0.731,
+            "original_confidence": 0.729,
             "supported": true
           },
           {
@@ -1328,13 +1354,13 @@
     }
   ],
   "execution_id": "RUN-00000003",
-  "executive_summary": "Verdict: PROMOTE. In-sample IC t-statistic 4.37, out-of-sample net Sharpe 1.40, costs consume 33% of gross return. No flags were raised; the signal clears every promotion hurdle.",
+  "executive_summary": "Verdict: PROMOTE. In-sample IC t-statistic 4.37, out-of-sample net Sharpe 1.39, costs consume 28% of gross return. No flags were raised; the signal clears every promotion hurdle.",
   "findings": [
     {
       "attributes": {
         "claim": "ROBUST",
         "critic_notes": [],
-        "sharpe_ratio": 2.3566254392497097
+        "sharpe_ratio": 2.334101120417447
       },
       "category": "BACKTEST",
       "confidence": 0.94,
@@ -1342,7 +1368,7 @@
       "evidence_refs": [],
       "id": "F-00000032",
       "produced_by": "backtest",
-      "statement": "Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.36 (in-sample 0.60, out-of-sample 1.40).",
+      "statement": "Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.33 (in-sample 0.60, out-of-sample 1.39).",
       "supporting_evidence": [
         "TCA-00000030",
         "BT-0000001f"
@@ -1372,7 +1398,7 @@
         "ic_t_stat": 4.371584933999521
       },
       "category": "SIGNAL",
-      "confidence": 0.834,
+      "confidence": 0.844,
       "contradicting_evidence": [],
       "evidence_refs": [
         {
@@ -1383,7 +1409,7 @@
       ],
       "id": "F-0000002b",
       "produced_by": "alpha",
-      "statement": "The momentum_12_1 signal is predictive in-sample: mean 21-day rank IC 0.0636 with t-statistic 4.37 over 167 non-overlapping periods, clearing the 0.65 null-sweep hurdle (Newey-West t on overlapping periods 5.75; hit rate 60.5%).",
+      "statement": "The momentum_12_1 signal is predictive in-sample: mean 21-day rank IC 0.0636 with t-statistic 4.37 over 167 non-overlapping periods, clearing the 0.40 null-sweep hurdle (Newey-West t on overlapping periods 5.75; hit rate 60.5%).",
       "supporting_evidence": [
         "TCA-0000002a",
         "SIG-0000001e"
@@ -1409,7 +1435,7 @@
     },
     {
       "attributes": {
-        "cost_share": 0.33187405911348233,
+        "cost_share": 0.28043238126620196,
         "critic_notes": []
       },
       "category": "BACKTEST",
@@ -1418,7 +1444,7 @@
       "evidence_refs": [],
       "id": "F-00000033",
       "produced_by": "backtest",
-      "statement": "Transaction costs consume 33% of gross return (249 bps per year against gross 7.5%).",
+      "statement": "Transaction costs consume 28% of gross return (250 bps per year against gross 8.9%).",
       "supporting_evidence": [
         "TCA-00000030",
         "BT-0000001f"
@@ -1428,21 +1454,21 @@
       "attributes": {
         "claim": "PROFITABLE",
         "critic_notes": [],
-        "oos_sharpe": 1.404665224479977
+        "oos_sharpe": 1.3896691851238514
       },
       "category": "BACKTEST",
-      "confidence": 0.731,
+      "confidence": 0.729,
       "contradicting_evidence": [],
       "evidence_refs": [
         {
           "id": "TCA-00000030",
           "path": "backtest.delisting_bounds.performance.oos_sharpe",
-          "value": 1.404665224479977
+          "value": 1.3896691851238514
         }
       ],
       "id": "F-00000031",
       "produced_by": "backtest",
-      "statement": "The strategy is profitable out-of-sample: net Sharpe 1.40, CAGR 8.8%, maximum drawdown 6.4% over 1260 days.",
+      "statement": "The strategy is profitable out-of-sample: net Sharpe 1.39, CAGR 12.9%, maximum drawdown 5.4% over 1260 days.",
       "supporting_evidence": [
         "TCA-00000030",
         "BT-0000001f"
@@ -1565,7 +1591,7 @@
         "critic_notes": [
           "single evidence record; confidence capped"
         ],
-        "pnl_concentration_top3": 0.2413461401396471
+        "pnl_concentration_top3": 0.24126508301514635
       },
       "category": "BACKTEST",
       "confidence": 0.7,
@@ -1574,7 +1600,7 @@
         {
           "id": "TCA-00000030",
           "path": "backtest.pnl_concentration_top3",
-          "value": 0.2413461401396471
+          "value": 0.24126508301514635
         }
       ],
       "id": "F-00000034",
@@ -1587,10 +1613,10 @@
     {
       "attributes": {
         "cost_breakdown": {
-          "borrow": 189.974,
+          "borrow": 189.89,
           "financing": 0.0,
-          "impact": 39.563,
-          "spread": 19.387
+          "impact": 41.039,
+          "spread": 19.435
         },
         "critic_notes": [
           "single evidence record; confidence capped"
@@ -1602,7 +1628,7 @@
       "evidence_refs": [],
       "id": "F-00000035",
       "produced_by": "backtest",
-      "statement": "Execution: decision at the close, fill at the close 1 day(s) later; cost lines in bps per year: spread 19, impact 40, borrow 190, financing 0 (borrow alone 190).",
+      "statement": "Execution: decision at the close, fill at the close 1 day(s) later; cost lines in bps per year: spread 19, impact 41, borrow 190, financing 0 (borrow alone 190).",
       "supporting_evidence": [
         "TCA-00000030"
       ]
@@ -1614,7 +1640,7 @@
         ],
         "event_counts": {
           "delisting": 2,
-          "participation_cap": 5,
+          "participation_cap": 9,
           "ssr_blocked": 2
         }
       },
@@ -1624,7 +1650,7 @@
       "evidence_refs": [],
       "id": "F-00000036",
       "produced_by": "backtest",
-      "statement": "Trades clipped, blocked or adjusted inside the backtest (logged, never silently traded): delisting 2, participation_cap 5, ssr_blocked 2.",
+      "statement": "Trades clipped, blocked or adjusted inside the backtest (logged, never silently traded): delisting 2, participation_cap 9, ssr_blocked 2.",
       "supporting_evidence": [
         "TCA-00000030"
       ]
@@ -1636,12 +1662,12 @@
         ],
         "delisting_bounds": {
           "merger": {
-            "full_sharpe": 0.788074766234061,
-            "oos_sharpe": 1.3387434687924276
+            "full_sharpe": 0.7835801641213885,
+            "oos_sharpe": 1.3239037620243843
           },
           "performance": {
-            "full_sharpe": 0.8071375254851961,
-            "oos_sharpe": 1.404665224479977
+            "full_sharpe": 0.8025613849072802,
+            "oos_sharpe": 1.3896691851238514
           }
         }
       },
@@ -1651,7 +1677,7 @@
       "evidence_refs": [],
       "id": "F-00000037",
       "produced_by": "backtest",
-      "statement": "Delisting bounds: full-period net Sharpe merger 0.79, performance 0.81 (merger: last price; performance: -30% NYSE, -55% Nasdaq).",
+      "statement": "Delisting bounds: full-period net Sharpe merger 0.78, performance 0.80 (merger: last price; performance: -30% NYSE, -55% Nasdaq).",
       "supporting_evidence": [
         "TCA-00000030"
       ]
@@ -1659,7 +1685,7 @@
     {
       "attributes": {
         "breakeven_aum": null,
-        "breakeven_cost_bps": 121.99550287053054,
+        "breakeven_cost_bps": 121.45955812690703,
         "critic_notes": [
           "single evidence record; confidence capped"
         ]
@@ -1670,7 +1696,7 @@
       "evidence_refs": [],
       "id": "F-00000038",
       "produced_by": "backtest",
-      "statement": "Profitability: breakeven trading cost 122.0 bps per unit of turnover; maximum drawdown 12.4% lasting up to 707 days; alpha after the generator's market factor 4.93% a year (t 3.46); capacity: breakeven AUM net excess return positive at every AUM tested.",
+      "statement": "Profitability: breakeven trading cost 121.5 bps per unit of turnover; maximum drawdown 10.7% lasting up to 648 days; alpha after the generator's market factor 4.93% a year (t 3.47); capacity: breakeven AUM net excess return positive at every AUM tested.",
       "supporting_evidence": [
         "TCA-00000030"
       ]
@@ -1795,24 +1821,24 @@
         "gross_leverage": 1.0,
         "gross_leverage_limit": 2.0,
         "nan_policy": "held name with a missing price earns 0 and is logged",
-        "risk_free": "unavailable: rf = 0 (data/reference/rf.csv not committed)",
+        "risk_free": "Kenneth R. French data library, daily RF (see data/reference/rf.csv header)",
         "ssr": "no new short on a name down 10% intraday"
       },
       "cost_breakdown_bps_annual": {
-        "borrow": 189.974,
+        "borrow": 189.89,
         "financing": 0.0,
-        "impact": 39.563,
-        "spread": 19.387
+        "impact": 41.039,
+        "spread": 19.435
       },
       "dataset": "R01",
       "delisting_bounds": {
         "merger": {
-          "full_sharpe": 0.788074766234061,
-          "oos_sharpe": 1.3387434687924276
+          "full_sharpe": 0.7835801641213885,
+          "oos_sharpe": 1.3239037620243843
         },
         "performance": {
-          "full_sharpe": 0.8071375254851961,
-          "oos_sharpe": 1.404665224479977
+          "full_sharpe": 0.8025613849072802,
+          "oos_sharpe": 1.3896691851238514
         }
       },
       "equity_curve": [
@@ -1822,106 +1848,106 @@
         ],
         [
           "2008-07-07",
-          0.994735
+          1.019269
         ],
         [
           "2009-05-04",
-          1.011213
+          1.042313
         ],
         [
           "2010-03-02",
-          1.058234
+          1.090739
         ],
         [
           "2010-12-28",
-          1.136567
+          1.171439
         ],
         [
           "2011-10-24",
-          1.190432
+          1.226875
         ],
         [
           "2012-08-21",
-          1.267235
+          1.305982
         ],
         [
           "2013-06-21",
-          1.390672
+          1.433112
         ],
         [
           "2014-04-21",
-          1.370884
+          1.412642
         ],
         [
           "2015-02-17",
-          1.404747
+          1.44747
         ],
         [
           "2015-12-11",
-          1.453126
+          1.497275
         ],
         [
           "2016-10-10",
-          1.580224
+          1.628164
         ],
         [
           "2017-08-09",
-          1.535701
+          1.583344
         ],
         [
           "2018-06-07",
-          1.46704
+          1.52914
         ],
         [
           "2019-04-05",
-          1.432383
+          1.524263
         ],
         [
           "2020-02-03",
-          1.562686
+          1.6974
         ],
         [
           "2020-11-27",
-          1.757667
+          1.916493
         ],
         [
           "2021-09-27",
-          1.624513
+          1.770998
         ],
         [
           "2022-07-26",
-          1.801045
+          1.963189
         ],
         [
           "2023-05-23",
-          1.936632
+          2.179704
         ],
         [
           "2024-03-22",
-          2.340477
+          2.743684
         ],
         [
           "2025-01-22",
-          2.357853
+          2.876603
         ],
         [
           "2025-11-18",
-          2.563208
+          3.258796
         ],
         [
           "2026-09-18",
-          2.497916
+          3.266969
         ]
       ],
       "event_counts": {
         "delisting": 2,
-        "participation_cap": 5,
+        "participation_cap": 9,
         "ssr_blocked": 2
       },
       "events": [
         {
           "date": "2014-05-13",
-          "held": -0.044286,
+          "held": -0.044287,
           "kind": "ssr_blocked",
           "symbol": "DAL",
           "target": -0.05
@@ -1935,25 +1961,46 @@
           "symbol": "RIOT"
         },
         {
-          "allowed": 0.088853,
+          "allowed": 0.08624,
           "date": "2017-06-13",
           "kind": "participation_cap",
           "symbol": "SOFI",
           "wanted": -0.100856
         },
         {
-          "allowed": 0.047032,
+          "allowed": 0.046889,
+          "date": "2023-05-16",
+          "kind": "participation_cap",
+          "symbol": "SOFI",
+          "wanted": -0.05
+        },
+        {
+          "allowed": 0.039983,
           "date": "2024-04-17",
           "kind": "participation_cap",
           "symbol": "SOFI",
           "wanted": 0.05
         },
         {
-          "allowed": 0.044714,
+          "allowed": 0.037698,
           "date": "2024-06-17",
           "kind": "participation_cap",
           "symbol": "SOFI",
-          "wanted": -0.050614
+          "wanted": -0.050405
+        },
+        {
+          "allowed": 0.102436,
+          "date": "2025-02-19",
+          "kind": "participation_cap",
+          "symbol": "JOBY",
+          "wanted": -0.104825
+        },
+        {
+          "allowed": 0.044221,
+          "date": "2025-03-20",
+          "kind": "participation_cap",
+          "symbol": "SOFI",
+          "wanted": -0.05
         },
         {
           "bound": "performance",
@@ -1964,22 +2011,29 @@
           "symbol": "RKLB"
         },
         {
-          "allowed": 0.054462,
+          "allowed": 0.042661,
           "date": "2025-12-18",
           "kind": "participation_cap",
           "symbol": "OPEN",
-          "wanted": -0.054585
+          "wanted": -0.054361
         },
         {
-          "allowed": 0.044723,
+          "allowed": 0.049836,
+          "date": "2026-02-20",
+          "kind": "participation_cap",
+          "symbol": "OPEN",
+          "wanted": 0.055556
+        },
+        {
+          "allowed": 0.034339,
           "date": "2026-07-23",
           "kind": "participation_cap",
           "symbol": "OPEN",
-          "wanted": -0.051931
+          "wanted": -0.051738
         },
         {
           "date": "2026-08-21",
-          "held": -0.048595,
+          "held": -0.048104,
           "kind": "ssr_blocked",
           "symbol": "SOFI",
           "target": -0.055556
@@ -1991,96 +2045,96 @@
       "long_short": true,
       "periods": {
         "full": {
-          "ann_return": 0.050113151561746075,
-          "ann_vol": 0.06208750055527585,
-          "cagr": 0.049361545972036014,
-          "cost_drag_bps_annual": 248.923952895741,
+          "ann_return": 0.06424172920494105,
+          "ann_vol": 0.062070860467277666,
+          "cagr": 0.06429068925904469,
+          "cost_drag_bps_annual": 250.36508909755284,
           "end": "2026-09-18",
-          "excess_ann_return": 0.050113151561746075,
-          "gross_ann_return": 0.07500554685132017,
-          "gross_sharpe": 1.2087926587035824,
-          "hit_rate": 0.5215121136173768,
-          "kurtosis": 4.020328122433622,
-          "max_drawdown": 0.12360255217144078,
+          "excess_ann_return": 0.049799623941783173,
+          "gross_ann_return": 0.08927823811469633,
+          "gross_sharpe": 1.2067693349560946,
+          "hit_rate": 0.5258980785296575,
+          "kurtosis": 4.022805340663233,
+          "max_drawdown": 0.10728609663262412,
           "n_days": 4788,
           "n_rebalances": 228,
           "name": "full",
-          "rf_ann": 0.0,
-          "sharpe": 0.8071375254851961,
-          "skew": 0.01544713741271621,
-          "sortino": 1.1856625115361847,
+          "rf_ann": 0.0144421052631579,
+          "sharpe": 0.8025613849072802,
+          "skew": 0.01488084543869664,
+          "sortino": 1.1785437956676492,
           "start": "2007-09-07",
-          "turnover_annual": 4.591001327416595
+          "turnover_annual": 4.5979933405843125
         },
         "in_sample": {
-          "ann_return": 0.0371000132566459,
-          "ann_vol": 0.062243183296205734,
-          "cagr": 0.03578646620527404,
-          "cost_drag_bps_annual": 244.91797287816038,
+          "ann_return": 0.04326858593708565,
+          "ann_vol": 0.06222290428194315,
+          "cagr": 0.042195937367368375,
+          "cost_drag_bps_annual": 245.70369946678042,
           "end": "2021-09-10",
-          "excess_ann_return": 0.0371000132566459,
-          "gross_ann_return": 0.06159181054446194,
-          "gross_sharpe": 0.990275550665373,
-          "hit_rate": 0.5221088435374149,
-          "kurtosis": 3.94830461577216,
-          "max_drawdown": 0.12360255217144078,
+          "excess_ann_return": 0.037047157365657085,
+          "gross_ann_return": 0.0678389558837637,
+          "gross_sharpe": 0.9910041317920909,
+          "hit_rate": 0.5229591836734694,
+          "kurtosis": 3.9490836040802613,
+          "max_drawdown": 0.09432396891149564,
           "n_days": 3528,
           "n_rebalances": 168,
           "name": "in_sample",
-          "rf_ann": 0.0,
-          "sharpe": 0.596049419260783,
-          "skew": -0.04490754144304772,
-          "sortino": 0.8606780581261928,
+          "rf_ann": 0.006221428571428573,
+          "sharpe": 0.5953765982835024,
+          "skew": -0.044974216739375544,
+          "sortino": 0.8596555038291823,
           "start": "2007-09-07",
-          "turnover_annual": 4.677438538476951
+          "turnover_annual": 4.67887536399394
         },
         "out_of_sample": {
-          "ann_return": 0.08654993881602657,
-          "ann_vol": 0.06161606146978426,
-          "cagr": 0.08832574396773096,
-          "cost_drag_bps_annual": 260.1406969449661,
+          "ann_return": 0.12296653035493621,
+          "ann_vol": 0.06151685191361705,
+          "cagr": 0.1286797836488236,
+          "cost_drag_bps_annual": 263.41698006371485,
           "end": "2026-09-18",
-          "excess_ann_return": 0.08654993881602657,
-          "gross_ann_return": 0.11256400851052319,
-          "gross_sharpe": 1.8273275164357086,
-          "hit_rate": 0.5198412698412699,
-          "kurtosis": 4.197714784284997,
-          "max_drawdown": 0.06402966086895223,
+          "excess_ann_return": 0.08550653035493623,
+          "gross_ann_return": 0.1493082283613077,
+          "gross_sharpe": 1.8181139019833346,
+          "hit_rate": 0.5341269841269841,
+          "kurtosis": 4.206491589599126,
+          "max_drawdown": 0.053635953688411786,
           "n_days": 1260,
           "n_rebalances": 60,
           "name": "out_of_sample",
-          "rf_ann": 0.0,
-          "sharpe": 1.404665224479977,
-          "skew": 0.19212895273787775,
-          "sortino": 2.173477043224866,
+          "rf_ann": 0.03746000000000001,
+          "sharpe": 1.3896691851238514,
+          "skew": 0.19089236785130162,
+          "sortino": 2.147939987199538,
           "start": "2021-09-13",
-          "turnover_annual": 4.3489771364475995
+          "turnover_annual": 4.37152367503735
         }
       },
-      "pnl_concentration_top3": 0.2413461401396471,
+      "pnl_concentration_top3": 0.24126508301514635,
       "profitability": {
-        "breakeven_cost_bps_per_unit_turnover": 121.99550287053054,
+        "breakeven_cost_bps_per_unit_turnover": 121.45955812690703,
         "calendar_year_returns": {
-          "2007": -0.027356094021383837,
-          "2008": 0.003054030796898477,
-          "2009": 0.0915344586284379,
-          "2010": 0.06453836066199847,
-          "2011": 0.08454422465906286,
-          "2012": 0.04914492128979808,
-          "2013": 0.052780110223304755,
-          "2014": 0.002070074143418532,
-          "2015": 0.06434227705653917,
-          "2016": 0.0749760420633927,
-          "2017": -0.03186921054831726,
-          "2018": -0.040153427351844684,
-          "2019": 0.10763798813599612,
-          "2020": 0.08495209404430226,
-          "2021": -0.04392869652424147,
-          "2022": 0.18105136284823709,
-          "2023": 0.10837541166004017,
-          "2024": 0.08224078868178841,
-          "2025": 0.1038426472436147,
-          "2026": -0.039093981448227066
+          "2007": -0.016089511974619608,
+          "2008": 0.022084313000719114,
+          "2009": 0.0914804803756808,
+          "2010": 0.06449370458587578,
+          "2011": 0.08446767190766824,
+          "2012": 0.049092390651296336,
+          "2013": 0.052714426267416625,
+          "2014": 0.0019988182241261754,
+          "2015": 0.06430331763508224,
+          "2016": 0.07491712364482406,
+          "2017": -0.031234439588872065,
+          "2018": -0.015781787861784635,
+          "2019": 0.1355343614553457,
+          "2020": 0.09149561753551372,
+          "2021": -0.04413371933691057,
+          "2022": 0.1958451842995681,
+          "2023": 0.16436673834783355,
+          "2024": 0.1358354156544903,
+          "2025": 0.15952881900919147,
+          "2026": -0.016886018719754925
         },
         "capacity": {
           "breakeven_aum": null,
@@ -2088,135 +2142,135 @@
           "half_sharpe_aum": null,
           "rows": [
             {
-              "cost_drag_bps_annual": 227.3158897275078,
-              "cost_share_of_gross": 0.3034066204175314,
+              "cost_drag_bps_annual": 227.88822935066565,
+              "cost_share_of_gross": 0.25533473628264486,
               "gross_notional": 10000000.0,
-              "gross_sharpe": 1.2076395184957271,
-              "net_excess_ann_return": 0.05218961393794651,
-              "net_sharpe": 0.8409810244960576,
+              "gross_sharpe": 1.2065488641744744,
+              "net_excess_ann_return": 0.05201984616504234,
+              "net_sharpe": 0.838746264772853,
               "participation_capped_trades": 0,
-              "sharpe_se": 0.2295766437771004
+              "sharpe_se": 0.22957579003129025
             },
             {
-              "cost_drag_bps_annual": 237.61175423398896,
-              "cost_share_of_gross": 0.31712092306764383,
+              "cost_drag_bps_annual": 238.57707876930854,
+              "cost_share_of_gross": 0.2672903243060924,
               "gross_notional": 25000000.0,
-              "gross_sharpe": 1.2076389804570675,
-              "net_excess_ann_return": 0.05116663190494472,
-              "net_sharpe": 0.8243125411390867,
+              "gross_sharpe": 1.206548881333298,
+              "net_excess_ann_return": 0.050957843076489324,
+              "net_sharpe": 0.8214329593961273,
               "participation_capped_trades": 0,
-              "sharpe_se": 0.22957033055561854
+              "sharpe_se": 0.22956925269348558
             },
             {
-              "cost_drag_bps_annual": 248.923952895741,
-              "cost_share_of_gross": 0.33187405911348233,
+              "cost_drag_bps_annual": 250.36508909755284,
+              "cost_share_of_gross": 0.28043238126620196,
               "gross_notional": 50000000.0,
-              "gross_sharpe": 1.2087926587035824,
-              "net_excess_ann_return": 0.050113151561746075,
-              "net_sharpe": 0.8071375254851961,
-              "participation_capped_trades": 5,
-              "sharpe_se": 0.22956395750947242
+              "gross_sharpe": 1.2067693349560946,
+              "net_excess_ann_return": 0.049799623941783173,
+              "net_sharpe": 0.8025613849072802,
+              "participation_capped_trades": 9,
+              "sharpe_se": 0.2295622820738068
             },
             {
-              "cost_drag_bps_annual": 261.9815989459698,
-              "cost_share_of_gross": 0.34957488267487863,
+              "cost_drag_bps_annual": 265.42240472975124,
+              "cost_share_of_gross": 0.2973490473708654,
               "gross_notional": 100000000.0,
-              "gross_sharpe": 1.2095420626117916,
-              "net_excess_ann_return": 0.04874475274870789,
-              "net_sharpe": 0.7860756298231419,
-              "participation_capped_trades": 65,
-              "sharpe_se": 0.22955632511647728
+              "gross_sharpe": 1.205834306273592,
+              "net_excess_ann_return": 0.04827856163706799,
+              "net_sharpe": 0.7774658918605594,
+              "participation_capped_trades": 85,
+              "sharpe_se": 0.22955326316113359
             },
             {
-              "cost_drag_bps_annual": 273.09705446258187,
-              "cost_share_of_gross": 0.37512721566888646,
+              "cost_drag_bps_annual": 287.06620578415465,
+              "cost_share_of_gross": 0.3202096719348868,
               "gross_notional": 250000000.0,
-              "gross_sharpe": 1.1869244586236363,
-              "net_excess_ann_return": 0.04549147854025279,
-              "net_sharpe": 0.7407379750339246,
-              "participation_capped_trades": 308,
-              "sharpe_se": 0.22954057961234126
+              "gross_sharpe": 1.2115978217757593,
+              "net_excess_ann_return": 0.0465007229241492,
+              "net_sharpe": 0.7483450158929054,
+              "participation_capped_trades": 285,
+              "sharpe_se": 0.22954315628119198
             },
             {
-              "cost_drag_bps_annual": 270.77689563859917,
-              "cost_share_of_gross": 0.37069287038963633,
+              "cost_drag_bps_annual": 304.55198982369035,
+              "cost_share_of_gross": 0.3411991741807929,
               "gross_notional": 500000000.0,
-              "gross_sharpe": 1.2154971937277896,
-              "net_excess_ann_return": 0.04596846731366103,
-              "net_sharpe": 0.7637637363278142,
-              "participation_capped_trades": 734,
-              "sharpe_se": 0.22954845960154854
+              "gross_sharpe": 1.2079152488430585,
+              "net_excess_ann_return": 0.044361994389913485,
+              "net_sharpe": 0.7156845445896938,
+              "participation_capped_trades": 497,
+              "sharpe_se": 0.2295322794071131
             }
           ],
-          "spearman_notional_sharpe": -0.9428571428571428
+          "spearman_notional_sharpe": -1.0
         },
         "cost_breakdown_bps_annual": {
-          "borrow": 189.974,
+          "borrow": 189.89,
           "financing": 0.0,
-          "impact": 39.563,
-          "spread": 19.387
+          "impact": 41.039,
+          "spread": 19.435
         },
         "cost_share_by_aum": {
-          "100M": 0.34957488267487863,
-          "10M": 0.3034066204175314,
-          "250M": 0.37512721566888646,
-          "25M": 0.31712092306764383,
-          "500M": 0.37069287038963633,
-          "50M": 0.33187405911348233
+          "100M": 0.2973490473708654,
+          "10M": 0.25533473628264486,
+          "250M": 0.3202096719348868,
+          "25M": 0.2672903243060924,
+          "500M": 0.3411991741807929,
+          "50M": 0.28043238126620196
         },
         "dataset": "R01",
         "factor_model": {
-          "alpha_ann": 0.04926549952034287,
-          "alpha_t": 3.463430755718165,
-          "beta": 0.022962227371667622,
+          "alpha_ann": 0.04928668001144591,
+          "alpha_t": 3.4671645742476946,
+          "beta": 0.02282494208438475,
           "factor": "generator market factor m_t"
         },
         "gross_notional": 50000000.0,
-        "longest_drawdown_days": 707,
-        "max_drawdown": 0.12360255217144078,
-        "net_excess_ann_return": 0.050113151561746075,
-        "net_sharpe": 0.8071375254851961,
+        "longest_drawdown_days": 648,
+        "max_drawdown": 0.10728609663262412,
+        "net_excess_ann_return": 0.049799623941783173,
+        "net_sharpe": 0.8025613849072802,
         "signal": "momentum_12_1",
-        "trough_date": "2019-04-12",
-        "turnover_annual": 4.591001327416595,
+        "trough_date": "2021-11-05",
+        "turnover_annual": 4.5979933405843125,
         "worst_months": [
           {
             "month": "2013-12",
-            "return": -0.0615169489550359
+            "return": -0.06152326814879283
+          },
+          {
+            "month": "2021-04",
+            "return": -0.030005726136611344
           },
           {
             "month": "2007-12",
-            "return": -0.03192634944419914
-          },
-          {
-            "month": "2019-03",
-            "return": -0.031058317352401832
+            "return": -0.02993692597373221
           }
         ]
       },
       "rebalance_days": 21,
-      "sharpe_ratio_oos_is": 2.3566254392497097,
+      "sharpe_ratio_oos_is": 2.334101120417447,
       "signal": "momentum_12_1",
       "top_contributors": [
         [
           "JOBY",
-          0.176191
+          0.175872
         ],
         [
           "PLUG",
-          0.126234
-        ],
-        [
-          "UPST",
-          0.100222
+          0.125837
         ],
         [
           "MRNA",
-          0.100114
+          0.100515
+        ],
+        [
+          "UPST",
+          0.099995
         ],
         [
           "AFRM",
-          0.09725
+          0.097854
         ]
       ],
       "trial": {
@@ -2607,14 +2661,14 @@
       "universe_size": 30
     }
   },
-  "narrative": "MOMENTUM_12_1 RESEARCH PROPOSAL R01 2007-09-07 to 2026-09-18\n\nEXECUTIVE SUMMARY\n\nVerdict: PROMOTE. In-sample IC t-statistic 4.37, out-of-sample net Sharpe 1.40, costs consume 33% of gross return. No flags were raised; the signal clears every promotion hurdle.\n\nHYPOTHESIS\n\nTwelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.\nUniverse of 30 names, 4788 trading days from 2007-09-07 to 2026-09-18; in-sample period ends 2021-09-10.\n\nSIGNAL STATISTICS\n\nIn-sample: mean IC 0.0636, IC t-stat 4.37, IR 0.34, hit rate 60.5%, turnover n/a over 167 dates\nOut-of-sample: mean IC 0.1168, IC t-stat 4.48, IR 0.58, hit rate 69.5%, turnover n/a over 59 dates\nFull period: mean IC 0.0765, IC t-stat 5.99, IR 0.40, hit rate 62.6%, turnover n/a over 227 dates\n\nBACKTEST\n\nIn-sample: CAGR 3.6%, volatility 6.2%, net Sharpe 0.60 (gross 0.99), max drawdown 12.4%, cost drag 245 bps per year over 168 rebalances\nOut-of-sample: CAGR 8.8%, volatility 6.2%, net Sharpe 1.40 (gross 1.83), max drawdown 6.4%, cost drag 260 bps per year over 60 rebalances\nFull period: CAGR 4.9%, volatility 6.2%, net Sharpe 0.81 (gross 1.21), max drawdown 12.4%, cost drag 249 bps per year over 228 rebalances\nOut-of-sample to in-sample Sharpe ratio 2.36; top three names carry 24% of positive P&L.\n\nRISK\n\nTarget portfolio as of 2026-09-18: gross 100%, net 0%, max single-name weight 5.6%, beta -0.02, max ADV participation 3.9%.\nPortfolio limits respected.\nMarket shock of -500 bps: P&L through beta 38,000 USD, through net exposure -0 USD, worst single name -138,890 USD.\n\nVERDICT\n\nPROMOTE\n- in-sample IC t-stat 4.37 clears 0.65, deflated Sharpe 1.00 over 1 trial(s), out-of-sample net Sharpe 1.40, costs 33% of gross return, limits respected\n\nPRIMARY OBSERVATIONS\n\n1. Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.36 (in-sample 0.60, out-of-sample 1.40). [confidence 0.94]\n2. Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%). [confidence 0.85]\n3. The momentum_12_1 signal is predictive in-sample: mean 21-day rank IC 0.0636 with t-statistic 4.37 over 167 non-overlapping periods, clearing the 0.65 null-sweep hurdle (Newey-West t on overlapping periods 5.75; hit rate 60.5%). [confidence 0.83]\n4. Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates. [confidence 0.82]\n5. Transaction costs consume 33% of gross return (249 bps per year against gross 7.5%). [confidence 0.80]\n6. The strategy is profitable out-of-sample: net Sharpe 1.40, CAGR 8.8%, maximum drawdown 6.4% over 1260 days. [confidence 0.73]\n7. Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample. [confidence 0.70]\n8. Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10. [confidence 0.70]\n\nALTERNATIVE EXPLANATIONS\n\n- Costs consume 33% of gross return; rebalancing less often would reduce the cost drag at the expense of signal freshness.\n\nCRITIC\n\nReviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: PROMOTE (no flags).\n\nAPPROVAL\n\nApproved by auto-approver: auto-approved (dev mode)\n\nSTAGED ORDERS\n\nOrder staging was not requested.\n\nPOLICY CONTEXT\n\n- Quant in CEAP / The assessment (`assess_research`): ### The assessment (`assess_research`)\n- Quant in CEAP / Multiple testing (2.8, 2.10, decision D4): What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,\n- Quant in CEAP / Risk (`ceap.analytics.portfolio_risk`, 2.12): ### Risk (`ceap.analytics.portfolio_risk`, 2.12)\n\nEVIDENCE\n\n- BT-0000001f\n- DOC-00000023\n- MARKET-0000001d\n- RISK-00000020\n- RISK-00000021\n- RISK-00000022\n- SIG-0000001e\n- TCA-0000002a\n- TCA-00000030\n- TCA-00000040\n- TCA-00000041",
+  "narrative": "MOMENTUM_12_1 RESEARCH PROPOSAL R01 2007-09-07 to 2026-09-18\n\nEXECUTIVE SUMMARY\n\nVerdict: PROMOTE. In-sample IC t-statistic 4.37, out-of-sample net Sharpe 1.39, costs consume 28% of gross return. No flags were raised; the signal clears every promotion hurdle.\n\nHYPOTHESIS\n\nTwelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.\nUniverse of 30 names, 4788 trading days from 2007-09-07 to 2026-09-18; in-sample period ends 2021-09-10.\n\nSIGNAL STATISTICS\n\nIn-sample: mean IC 0.0636, IC t-stat 4.37, IR 0.34, hit rate 60.5%, turnover n/a over 167 dates\nOut-of-sample: mean IC 0.1168, IC t-stat 4.48, IR 0.58, hit rate 69.5%, turnover n/a over 59 dates\nFull period: mean IC 0.0765, IC t-stat 5.99, IR 0.40, hit rate 62.6%, turnover n/a over 227 dates\n\nBACKTEST\n\nIn-sample: CAGR 4.2%, volatility 6.2%, net Sharpe 0.60 (gross 0.99), max drawdown 9.4%, cost drag 246 bps per year over 168 rebalances\nOut-of-sample: CAGR 12.9%, volatility 6.2%, net Sharpe 1.39 (gross 1.82), max drawdown 5.4%, cost drag 263 bps per year over 60 rebalances\nFull period: CAGR 6.4%, volatility 6.2%, net Sharpe 0.80 (gross 1.21), max drawdown 10.7%, cost drag 250 bps per year over 228 rebalances\nOut-of-sample to in-sample Sharpe ratio 2.33; top three names carry 24% of positive P&L.\n\nRISK\n\nTarget portfolio as of 2026-09-18: gross 100%, net 0%, max single-name weight 5.6%, beta -0.02, max ADV participation 3.9%.\nPortfolio limits respected.\nMarket shock of -500 bps: P&L through beta 38,000 USD, through net exposure -0 USD, worst single name -138,890 USD.\n\nVERDICT\n\nPROMOTE\n- in-sample IC t-stat 4.37 clears 0.40, deflated Sharpe 1.00 over 1 trial(s), out-of-sample net Sharpe 1.39, costs 28% of gross return, limits respected\n\nPRIMARY OBSERVATIONS\n\n1. Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.33 (in-sample 0.60, out-of-sample 1.39). [confidence 0.94]\n2. Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%). [confidence 0.85]\n3. The momentum_12_1 signal is predictive in-sample: mean 21-day rank IC 0.0636 with t-statistic 4.37 over 167 non-overlapping periods, clearing the 0.40 null-sweep hurdle (Newey-West t on overlapping periods 5.75; hit rate 60.5%). [confidence 0.84]\n4. Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates. [confidence 0.82]\n5. Transaction costs consume 28% of gross return (250 bps per year against gross 8.9%). [confidence 0.80]\n6. The strategy is profitable out-of-sample: net Sharpe 1.39, CAGR 12.9%, maximum drawdown 5.4% over 1260 days. [confidence 0.73]\n7. Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample. [confidence 0.70]\n8. Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10. [confidence 0.70]\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the flags above.\n\nCRITIC\n\nReviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: PROMOTE (no flags).\n\nAPPROVAL\n\nApproved by auto-approver: auto-approved (dev mode)\n\nSTAGED ORDERS\n\nOrder staging was not requested.\n\nPOLICY CONTEXT\n\n- Quant in CEAP / The assessment (`assess_research`): ### The assessment (`assess_research`)\n- Quant in CEAP / Multiple testing (2.8, 2.10, decision D4): What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,\n- Quant in CEAP / Risk (`ceap.analytics.portfolio_risk`, 2.12): ### Risk (`ceap.analytics.portfolio_risk`, 2.12)\n\nEVIDENCE\n\n- BT-0000001f\n- DOC-00000023\n- MARKET-0000001d\n- RISK-00000020\n- RISK-00000021\n- RISK-00000022\n- SIG-0000001e\n- TCA-0000002a\n- TCA-00000030\n- TCA-00000040\n- TCA-00000041",
   "primary_observations": [
-    "Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.36 (in-sample 0.60, out-of-sample 1.40).",
+    "Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.33 (in-sample 0.60, out-of-sample 1.39).",
     "Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%).",
-    "The momentum_12_1 signal is predictive in-sample: mean 21-day rank IC 0.0636 with t-statistic 4.37 over 167 non-overlapping periods, clearing the 0.65 null-sweep hurdle (Newey-West t on overlapping periods 5.75; hit rate 60.5%).",
+    "The momentum_12_1 signal is predictive in-sample: mean 21-day rank IC 0.0636 with t-statistic 4.37 over 167 non-overlapping periods, clearing the 0.40 null-sweep hurdle (Newey-West t on overlapping periods 5.75; hit rate 60.5%).",
     "Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates.",
-    "Transaction costs consume 33% of gross return (249 bps per year against gross 7.5%).",
-    "The strategy is profitable out-of-sample: net Sharpe 1.40, CAGR 8.8%, maximum drawdown 6.4% over 1260 days.",
+    "Transaction costs consume 28% of gross return (250 bps per year against gross 8.9%).",
+    "The strategy is profitable out-of-sample: net Sharpe 1.39, CAGR 12.9%, maximum drawdown 5.4% over 1260 days.",
     "Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.",
     "Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10."
   ],
@@ -2641,11 +2695,11 @@
     "dataset": "R01",
     "flags": [],
     "rationale": [
-      "in-sample IC t-stat 4.37 clears 0.65, deflated Sharpe 1.00 over 1 trial(s), out-of-sample net Sharpe 1.40, costs 33% of gross return, limits respected"
+      "in-sample IC t-stat 4.37 clears 0.40, deflated Sharpe 1.00 over 1 trial(s), out-of-sample net Sharpe 1.39, costs 28% of gross return, limits respected"
     ],
     "scores": {
-      "alpha": 0.865,
-      "cost": 0.668,
+      "alpha": 0.879,
+      "cost": 0.72,
       "diversification": 0.759,
       "limits": 1.0,
       "robustness": 1.0

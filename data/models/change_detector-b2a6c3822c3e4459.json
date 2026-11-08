@@ -1,6 +1,6 @@
 {
  "card": {
-  "created": "2026-11-07",
+  "created": "2026-11-08",
   "description": "Robust z (median and MAD over a 60-minute reference) of seven per-minute technology and feed features, two-sided CUSUM with k = 1 and threshold h, PELT segments for the change picture. h minimises 30 analyst-minutes per false alarm against 10 per minute of incident delay (incident prior 5 %), subject to the 95 % Clopper-Pearson upper bound of the per-session false-alarm rate being at most 1/20 (ARL0 >= 20 sessions).",
   "feature_reference": {
    "ack_latency_p50": {
@@ -129,10 +129,10 @@
     ]
    }
   },
-  "generator_hash": "b71fd0ca78ba7d08",
+  "generator_hash": "ce0da55d75b78559",
   "intended_use": "Flag and time-stamp technology or market-data regime changes for the engineering and market agents.",
   "kind": "robust_z_cusum_pelt",
-  "label": "fitted to synthetic generator b71fd0ca78ba7d08",
+  "label": "fitted to synthetic generator ce0da55d75b78559",
   "limitations": "Fitted to the synthetic generator's metric law only; a real feed needs its own reference and threshold.",
   "metrics": {
    "calibration_arl0_sessions": null,
@@ -149,7 +149,7 @@
   "model_hash": "b2a6c3822c3e4459",
   "name": "change_detector",
   "sklearn_version": "1.9.1",
-  "training_data_hash": "02e917934c19428f82e88a6a8d62c1a04e301880d8f91643c94c26162b42d66a"
+  "training_data_hash": "fc4726bdf6c6ed4992052a12e44ed1b192c0f60a582b52b86cb7db88ca32a551"
  },
  "params": {
   "features": [

@@ -1,6 +1,6 @@
 {
  "card": {
-  "created": "2026-11-07",
+  "created": "2026-11-08",
   "description": "Ridge (no intercept) of the 21-day demeaned forward return on the three cross-sectional signal z-scores; penalty chosen by purged (21 days) and embargoed (5 days) walk-forward CV over five folds; every penalty and every single signal is a ledger trial.",
   "feature_reference": {
    "low_vol_60": {
@@ -79,10 +79,10 @@
     ]
    }
   },
-  "generator_hash": "b71fd0ca78ba7d08",
+  "generator_hash": "ce0da55d75b78559",
   "intended_use": "Reference combination for the alpha agent on the momentum-premium synthetic set.",
   "kind": "ridge_combination_v1",
-  "label": "fitted to synthetic generator b71fd0ca78ba7d08",
+  "label": "fitted to synthetic generator ce0da55d75b78559",
   "limitations": "Gross of costs; constant weights between rebalances; synthetic premium only.",
   "metrics": {
    "cv_sharpe_daily": {

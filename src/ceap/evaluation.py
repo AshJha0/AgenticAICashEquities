@@ -308,3 +308,42 @@ def run_tca_cause_recall(
         primary = sum(r["primary"] in r["truth"] for r in rows)
         out[t] = {"seeds": n_seeds, "coverage": hit / n_seeds, "primary_accuracy": primary / n_seeds}
     return out
+
+
+# ---------------------------------------------------------------------- calibration (2B.4)
+def run_calibration_evaluation(recompute: bool = False) -> dict[str, Any]:
+    """Held-out calibration of finding confidences: Brier and ECE on seeds 100-199 (fit on 0-99).
+
+    Reads the registered calibration card; ``recompute`` re-derives the held-out numbers from the
+    generator with the registered detector and map (minutes, not seconds).
+    """
+    from ceap.analytics.calibration import (
+        CHANGE_POINT_KEY,
+        EVAL_SEEDS,
+        brier,
+        calibration_model_name,
+        change_point_samples,
+        ece,
+    )
+    from ceap.ml.registry import ModelRegistry
+
+    model = ModelRegistry().load(calibration_model_name(CHANGE_POINT_KEY))
+    out: dict[str, Any] = {
+        "key": CHANGE_POINT_KEY,
+        "model_hash": model.model_hash,
+        "label": model.card.label,
+        **model.card.metrics,
+    }
+    if recompute:
+        from ceap.analytics.calibration import IsotonicMap
+
+        p, y = change_point_samples(EVAL_SEEDS)
+        cal = IsotonicMap(tuple(model.params["x"]), tuple(model.params["y"]))(p)
+        out["recomputed"] = {
+            "n_eval": len(p),
+            "brier_raw": brier(p, y),
+            "brier_calibrated": brier(cal, y),
+            "ece_raw": ece(p, y),
+            "ece_calibrated": ece(cal, y),
+        }
+    return out

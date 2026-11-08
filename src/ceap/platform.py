@@ -104,6 +104,7 @@ class ResearchRequest:
     long_short: bool = True
     gross_notional: float = DEFAULT_GROSS_NOTIONAL
     stage_orders: bool = False
+    combine_signals: bool = False  # 2B.2: ridge combination of the signal family (alpha agent)
     principal: str = "anonymous"
     roles: frozenset[str] = frozenset({"quant"})
     priority: TaskPriority = TaskPriority.NORMAL
@@ -276,6 +277,7 @@ class Platform:
                 "long_short": bool(req.long_short),
                 "gross_notional": float(req.gross_notional),
                 "stage_orders": bool(req.stage_orders),
+                "combine_signals": bool(req.combine_signals),
                 "universe": list(ds.symbols),
                 "timezone": "UTC",
             },
