@@ -14,6 +14,10 @@ gates the tag is linked from that PR. No live model call (D15): model-dependent 
 - Release docs pass: README, LEARN, COOKBOOK, architecture overview, DIAGRAMS (new diagram 11: LLM layer,
   agents, RAG, ML, evaluation), INDEX, SPECIFICATION, evaluation page; PLAN.md release mapping corrected and
   owner decisions of 2026-11-08 recorded (D18-D22).
+- Cassette match keys are OS-stable: `request_sha256` rounds floats, and long decimal literals inside
+  prompt text, to 9 significant digits before hashing (stored bodies and wire requests stay exact).
+  Found by Linux CI: Windows-recorded cassettes differed only in last-ulp digits of TCA metrics.
+  Regression test `tests/contract/test_cassette_match_os_stable.py`.
 - Performance: `_slice_by_time` caches the sorted series and timestamp keys once per dataset; one
   investigation about 3.4 s instead of about 10 s (measured locally, one machine, not a benchmark).
 
