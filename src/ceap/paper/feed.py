@@ -8,8 +8,8 @@ close from :meth:`MarketPanel.adjusted_close`.
 * :class:`SyntheticFeed` (now): a research scenario from :mod:`ceap.data.historical`, re-dated onto
   the committed NYSE calendar so that its first out-of-sample row falls on the forward start date.
   The forward record therefore runs on rows the in-sample Sharpe never saw.
-* Real daily data (R5, at integration): an adapter builds a ``MarketPanel`` from R5's Stooq connector
-  and calls :func:`register_feed`. Nothing in this module imports R5.
+* Real daily data (R5): :mod:`ceap.paper.feeds_real` builds a ``MarketPanel`` from R5's local Stooq
+  cache and registers ``"stooq"``. This module imports it only when that feed is requested.
 """
 
 from __future__ import annotations
@@ -188,6 +188,8 @@ def register_feed(kind: str, factory: FeedFactory) -> None:
 
 
 def get_feed(kind: str, **kwargs: Any) -> DailyFeed:
+    if kind == "stooq" and kind not in _FEEDS:
+        import ceap.paper.feeds_real  # noqa: F401  (registers itself; imports R5 only when asked for)
     try:
         factory = _FEEDS[kind]
     except KeyError as exc:

@@ -38,6 +38,11 @@ paper, synthetic or free daily data, not trading. No order leaves the process; n
   order and fill carries its staging and approval ids.
 - Capped fills keep working at the cap until filled or replaced (the `rf-data` backtest convention).
 
+- **R5 feed shim** (`ceap.paper.feeds_real`, registered as feed `"stooq"`): builds the paper panel from
+  the local Stooq cache with R5 point-in-time membership, lagged 20-day ADV and the 5.4 spread schedule.
+  It refuses any row inside the unspent R5 pseudo-holdout (to 2025-12-31). `config/paper.json` stays on
+  the synthetic feed with `in_sample_sharpe` null, because no Stooq files are cached and R5 is VOID.
+
 #### Changed
 - Schema version 3. `tests/unit/test_r4_persistence.py` now asserts `LATEST_VERSION >= 2`.
 

@@ -2,6 +2,7 @@
   "_comment": "Paper trading (RP). paper, synthetic or free daily data, not trading. forward_start is fixed: never move it earlier, never backfill into the forward record.",
   "forward_start": "2026-11-09",
   "feed": "synthetic",
+  "_comment_feed": "\"stooq\" (ceap.paper.feeds_real) reads data/real_cache/stooq/ after the R5 holdout. It stays synthetic until a person places Stooq files there; in_sample_sharpe stays null because R5 is VOID and computed no Sharpe.",
   "scenario": "R01",
   "signal": "momentum_12_1",
   "rebalance_days": null,
