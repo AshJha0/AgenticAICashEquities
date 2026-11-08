@@ -5,6 +5,13 @@ not run, so no test statistic was computed and no verdict is issued. Items 5.6 a
 run, and the pseudo-holdout is unspent. See [`result_momentum_2026-11.md`](result_momentum_2026-11.md).
 The sections below record the preparation (items 5.1 to 5.5) as it was done.
 
+**v2 attempt (2026-11-08): VOID before registration.** The owner hand-downloaded Stooq's bulk US
+file and the two data gates were re-run in-sample with Stooq as primary. Coverage was 74.9 %
+(Stooq only; 75.1 % with yfinance as fallback) against 95 %, because Stooq also lacks delisted names
+and 337 of its 606 matching series start after 2004. The Stooq vs yfinance cross-check passed at
+99.56 % within 10 bps. No v2 preregistration was locked, no statistic was computed, and the
+pseudo-holdout is still unspent. See [`result_momentum_2026-11-v2.md`](result_momentum_2026-11-v2.md).
+
 **Rerun conditions (D20).** R5 stays VOID. It is rerun only if the owner downloads the Stooq bulk
 file by hand, and then under a new (v2) preregistration. The paper-trading Stooq feed
 (`ceap.paper.feeds_real`) refuses every row up to 2025-12-31, so the paper record cannot spend the

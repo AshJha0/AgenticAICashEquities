@@ -15,6 +15,12 @@ refuses a tag whose version has no section.
   2026-11-08, all OK. Recorded in `tests/golden/golden_set.json` (`signoff`), the evaluation page and
   `docs/evaluation/latest.json` (regenerated: measured numbers unchanged; the labelled local cost
   estimate moves from $0.1987 to $0.1995 per investigation because the 0.7.0 prompts changed).
+- R5 v2 attempt, published VOID before registration (`docs/research/result_momentum_2026-11-v2.md`).
+  With the hand-downloaded Stooq bulk file as primary vendor, in-sample point-in-time coverage was
+  74.9 % against the required 95 % (Stooq lacks delisted names; 337 of 606 series start after 2004).
+  The Stooq vs yfinance cross-check passed at 99.56 % within 10 bps. No v2 preregistration was
+  locked, no test statistic was computed, and the 2024-2025 pseudo-holdout is unspent. New script
+  `scripts/r5v2_insample_checks.py` writes `docs/research/v2/`.
 
 ## [0.7.0] - 2026-11-08
 
