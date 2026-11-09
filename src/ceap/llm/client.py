@@ -161,6 +161,15 @@ def _claims_block(text: str) -> list[dict[str, Any]]:
     return [c for c in value if isinstance(c, dict)] if isinstance(value, list) else []
 
 
+def _policy_section_end(content: str) -> int:
+    """Offset just after the last line of POLICY CONTEXT (or before CRITIC / EVIDENCE when it is absent)."""
+    for header in ("\n\nCRITIC\n", "\n\nEVIDENCE\n"):
+        at = content.find(header)
+        if at >= 0:
+            return at
+    return len(content)
+
+
 def _mock_cited_prose(blocks: list[Any], content: str) -> tuple[str, list[dict[str, Any]]]:
     """R3C 3C.4 call 2 (mock): write each policy claim on its own line and cite a document there.
 
@@ -174,8 +183,10 @@ def _mock_cited_prose(blocks: list[Any], content: str) -> tuple[str, list[dict[s
         if not docs:
             break
         sentence = str(claim.get("text", ""))
-        start = len(content) + 2
-        content = f"{content}\n\n{sentence}"
+        # the claim belongs at the end of POLICY CONTEXT, the section it cites: before CRITIC/EVIDENCE
+        at = _policy_section_end(content)
+        start = at + 1
+        content = f"{content[:at]}\n{sentence}{content[at:]}"
         for i, doc in enumerate(docs):
             parts = (doc.get("source") or {}).get("content") or []
             if parts:
