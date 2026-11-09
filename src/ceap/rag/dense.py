@@ -19,7 +19,7 @@ Worked example: with ``k = 60`` a chunk ranked 1st by BM25 and 3rd by dense gets
 Every model output goes through a content-addressed cache (``sha256(model, role, text)``), stored
 as a JSON file under ``data/rag/``. The committed caches hold every chunk and every eval query, so
 the eval and CI run without the model or ``fastembed`` installed; a cache miss with no backend
-raises :class:`ModelUnavailable`. BM25 stays the production default (see
+raises :class:`ModelUnavailableError`. BM25 stays the production default (see
 ``docs/ai-agents/rag-hybrid-0.9.0.md`` for the measured comparison).
 """
 
@@ -45,7 +45,7 @@ CACHE_DIR = Path(__file__).resolve().parents[3] / "data" / "rag"
 VARIANTS = ("bm25", "dense", "rrf", "bm25_rerank", "rrf_rerank")
 
 
-class ModelUnavailable(RuntimeError):
+class ModelUnavailableError(RuntimeError):
     """A text is not in the cache and no local model backend is installed."""
 
 
@@ -87,7 +87,7 @@ class Embedder:
             try:
                 from fastembed import TextEmbedding  # type: ignore[import-not-found]
             except ImportError as exc:  # pragma: no cover - depends on the optional package
-                raise ModelUnavailable(f"{self.model}: not cached and fastembed is not installed") from exc
+                raise ModelUnavailableError(f"{self.model}: not cached and fastembed is not installed") from exc
             self._backend = TextEmbedding(self.model)  # pragma: no cover
         return self._backend  # pragma: no cover
 
@@ -129,7 +129,7 @@ class Reranker:
                         TextCrossEncoder,
                     )
                 except ImportError as exc:  # pragma: no cover
-                    raise ModelUnavailable(f"{self.model}: not cached and fastembed is not installed") from exc
+                    raise ModelUnavailableError(f"{self.model}: not cached and fastembed is not installed") from exc
                 self._backend = TextCrossEncoder(self.model)  # pragma: no cover
             scores = list(self._backend.rerank(query, [p for p, _ in missing], batch_size=4))  # pragma: no cover
             for (_, k), s in zip(missing, scores, strict=True):  # pragma: no cover
