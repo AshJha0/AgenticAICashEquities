@@ -172,8 +172,9 @@ class PaperLedger:
         prev = self._head(conn, "SELECT hash FROM paper_ledger WHERE book=? ORDER BY seq DESC LIMIT 1", (book,))
         for e in events:
             price = e.get("price")
-            money = {"cash_delta": to_micros(e.get("cash_delta", 0.0)), "cost": to_micros(e.get("cost", 0.0)),
-                     "price": None if price is None else to_micros(price)}
+            cash_u, cost_u = to_micros(e.get("cash_delta", 0.0)), to_micros(e.get("cost", 0.0))
+            price_u = None if price is None else to_micros(price)
+            money = {"cash_delta": cash_u, "cost": cost_u, "price": price_u}
             detail = dict(e.get("detail", {}))
             if MONEY_KEY in detail:
                 raise ValueError(f"event detail may not carry the reserved key {MONEY_KEY!r}")
@@ -181,8 +182,8 @@ class PaperLedger:
             row = {
                 "book": book, "date": date, "kind": e["kind"], "order_id": e.get("order_id"),
                 "symbol": e.get("symbol"), "quantity": e.get("quantity"),
-                "price": None if price is None else money["price"] / MICROS,
-                "cash_delta": money["cash_delta"] / MICROS, "cost": money["cost"] / MICROS,
+                "price": None if price_u is None else price_u / MICROS,
+                "cash_delta": cash_u / MICROS, "cost": cost_u / MICROS,
                 "payload_json": canonical_json(detail).decode("utf-8"),
             }
             digest, alg = self._link(conn, prev, _ledger_body(row))
