@@ -22,7 +22,7 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GOLDEN_SET_PATH = REPO_ROOT / "tests" / "golden" / "golden_set.json"
-# 0.10 D1/D4 research items on the recalibrated templates; PENDING owner sign-off, separate from the signed set
+# 0.10 D1/D4 research items on the recalibrated templates; signed by the owner 2026-11-09 (option A), separate from the signed set
 GOLDEN_RESEARCH_V11_PATH = REPO_ROOT / "tests" / "golden" / "golden_set_research_v1_1.json"
 
 
