@@ -64,6 +64,7 @@ CRITIC_REPAIR_INSTRUCTION = (
 )
 
 SINGLE_EVIDENCE_CAP = 0.7
+CAP_FLAG = "single_evidence_cap"  # the cap alone is not a detected fault (critic_planted)
 RESEARCH_KIND = "research"
 _RESEARCH_FLAGS = {f.value for f in ResearchFlag}
 
