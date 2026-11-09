@@ -19,12 +19,25 @@ Four-eyes binds to a person, not a key (A13). Map each key to a named subject, e
 (``<principal label>=<name>,...``, where the label is the key's ``role:xxxxxxxx`` form). A mapped
 key's principal is ``user:<name>``, so the same person holding a trader key and an approver key
 is one principal and cannot approve their own request. An unmapped key stays its own principal.
+
+Key strength and key ids (0.9.0, H11). Outside dev, every raw key in ``CEAP_API_KEYS`` must carry at
+least :data:`MIN_KEY_ENTROPY_BITS` (256 bits, i.e. 32 bytes) of *estimated* entropy, or the app
+refuses to start (:func:`check_key_strength`, called from ``lifespan``). The estimate is
+``length x log2(pool)``, where the pool is the sum of the character classes present (26 lower, 26
+upper, 10 digits, 32 symbols), and at least 16 distinct characters are required so a long run of one
+character does not pass. It is an upper bound on the true entropy: a key that fails is certainly
+too weak, a key that passes is only as good as its generator. ``secrets.token_urlsafe(32)`` gives
+43 characters from four classes: ``43 x log2(94) = 281.8`` bits, which passes; the old dev-style
+``prodkey-123456`` (14 characters, 3 classes) gives ``14 x log2(68) = 85.2`` bits, which fails.
+A ``CEAP_API_KEY_HASHES`` entry may carry ``id=<name>``; its principal is then labelled
+``<role>:<name>`` (for audit rows and ``CEAP_API_KEY_SUBJECTS``) instead of ``<role>:xxxxxxxx``.
 """
 
 from __future__ import annotations
 
 import hashlib
 import hmac
+import math
 import os
 import re
 from collections.abc import Awaitable, Callable
@@ -42,6 +55,9 @@ _UNAUTHORISED_HEADERS = {"WWW-Authenticate": "ApiKey"}
 
 
 SUBJECTS_ENV = "CEAP_API_KEY_SUBJECTS"
+MIN_KEY_ENTROPY_BITS = 256
+MIN_KEY_DISTINCT_CHARS = 16
+_KEY_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$")
 _SUBJECT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._@-]{0,63}$")
 
 
@@ -63,6 +79,7 @@ class KeyRecord:
     role: str
     expires: date | None = None
     subject: str | None = None
+    key_id: str | None = None  # H11: explicit, non-secret key name from ``id=<name>``
 
     def matches(self, presented: str) -> bool:
         candidate = hmac.new(self.salt, presented.encode(), hashlib.sha256).hexdigest()
@@ -78,8 +95,34 @@ def hash_api_key(api_key: str, salt: bytes | None = None) -> str:
     return f"sha256${salt.hex()}${hmac.new(salt, api_key.encode(), hashlib.sha256).hexdigest()}"
 
 
-def principal_label(role: str, api_key: str) -> str:
-    return f"{role}:{hashlib.sha256(api_key.encode()).hexdigest()[:8]}"
+def principal_label(role: str, api_key: str, key_id: str | None = None) -> str:
+    """``<role>:<key id>`` when the key has an explicit id (H11), else ``<role>:<8 hex of sha256>``."""
+    return f"{role}:{key_id}" if key_id else f"{role}:{hashlib.sha256(api_key.encode()).hexdigest()[:8]}"
+
+
+def key_entropy_bits(key: str) -> float:
+    """Estimated entropy of a key (an upper bound; see the module docstring)."""
+    pool = 0
+    pool += 26 if any(c.islower() for c in key) else 0
+    pool += 26 if any(c.isupper() for c in key) else 0
+    pool += 10 if any(c.isdigit() for c in key) else 0
+    pool += 32 if any(not c.isalnum() for c in key) else 0
+    return len(key) * math.log2(pool) if pool else 0.0
+
+
+def check_key_strength(settings: Settings) -> None:
+    """Refuse weak raw keys outside dev (H11). The message never contains the key."""
+    if settings.is_dev:
+        return
+    for key, role in settings.api_keys.items():
+        bits = key_entropy_bits(key)
+        if bits < MIN_KEY_ENTROPY_BITS or len(set(key)) < MIN_KEY_DISTINCT_CHARS:
+            raise SettingsError(
+                f"an API key for role {role!r} is too weak ({bits:.0f} estimated bits, "
+                f"{len(set(key))} distinct characters; need {MIN_KEY_ENTROPY_BITS} bits and "
+                f"{MIN_KEY_DISTINCT_CHARS} distinct): generate one with "
+                'python -c "import secrets; print(secrets.token_urlsafe(32))"'
+            )
 
 
 def subject_name(subject: str) -> str:
@@ -100,8 +143,9 @@ def parse_subjects(raw: str) -> dict[str, str]:
         if not entry:
             continue
         label, sep, subject = entry.partition("=")
-        if not sep or not re.match(r"^[a-z]+:[0-9a-f]{8}$", label.strip()):
-            raise SettingsError(f"{SUBJECTS_ENV} entries must be role:xxxxxxxx=subject")
+        role, _, kid = label.strip().partition(":")
+        if not sep or not re.match(r"^[a-z]+$", role) or not _KEY_ID_RE.match(kid):
+            raise SettingsError(f"{SUBJECTS_ENV} entries must be role:<key id or xxxxxxxx>=subject")
         out[label.strip()] = _check_subject(subject.strip())
     return out
 
@@ -113,12 +157,18 @@ def parse_key_hashes(raw: str) -> list[KeyRecord]:
         if not entry:
             continue
         parts = entry.split(":")
-        subject = None
-        if len(parts) >= 3 and parts[-1].startswith("subject="):
-            subject = _check_subject(parts.pop()[len("subject=") :])
+        subject = key_id = None
+        while len(parts) >= 3 and parts[-1].startswith(("subject=", "id=")):
+            name, _, value = parts.pop().partition("=")
+            if name == "subject":
+                subject = _check_subject(value)
+            elif _KEY_ID_RE.match(value):
+                key_id = value
+            else:
+                raise SettingsError("API key ids must be 1-32 characters of letters, digits and ._-")
         if len(parts) not in (2, 3):
             raise SettingsError(
-                "CEAP_API_KEY_HASHES entries must be sha256$salt$digest:role[:YYYY-MM-DD][:subject=NAME]"
+                "CEAP_API_KEY_HASHES entries must be sha256$salt$digest:role[:YYYY-MM-DD][:id=NAME][:subject=NAME]"
             )
         algo, _, rest = parts[0].partition("$")
         salt_hex, _, digest = rest.partition("$")
@@ -127,7 +177,7 @@ def parse_key_hashes(raw: str) -> list[KeyRecord]:
         if parts[1] not in valid_roles:
             raise SettingsError(f"unknown role {parts[1]!r} in CEAP_API_KEY_HASHES")
         expires = date.fromisoformat(parts[2]) if len(parts) == 3 else None
-        records.append(KeyRecord(bytes.fromhex(salt_hex), digest, parts[1], expires, subject))
+        records.append(KeyRecord(bytes.fromhex(salt_hex), digest, parts[1], expires, subject, key_id))
     return records
 
 
@@ -168,7 +218,7 @@ async def current_principal(request: Request, api_key: str | None = Depends(api_
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid API key", headers=_UNAUTHORISED_HEADERS)
     if record.expired():
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "API key expired", headers=_UNAUTHORISED_HEADERS)
-    label = principal_label(record.role, api_key)
+    label = principal_label(record.role, api_key, record.key_id)
     subject = record.subject or _subjects(request).get(label)
     name = subject_name(subject) if subject else label
     return Principal(name=name, roles=frozenset({record.role}), subject=subject)

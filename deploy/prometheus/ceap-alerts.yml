@@ -1,0 +1,75 @@
+# Prometheus alert rules for the CEAP API (0.9.0, G9). Every alert names its RUNBOOK section.
+# Metric names are the exported ones (``*_ms`` summaries are exported as ``*_seconds``; see
+# ceap/observability/metrics.py). Thresholds are starting points, chosen before any production data,
+# and are meant to be tuned per deployment; the reasoning for each is in docs/RUNBOOK.md.
+# Check with: promtool check rules deploy/prometheus/ceap-alerts.yml
+groups:
+  - name: ceap
+    rules:
+      - alert: CeapDown
+        expr: up{job="ceap"} == 0
+        for: 2m
+        labels: {severity: page}
+        annotations:
+          summary: "CEAP API is not answering scrapes"
+          runbook: "docs/RUNBOOK.md#restart"
+
+      - alert: CeapEventLoopLag
+        # mean loop lag over 5 minutes; a blocked loop delays every request and every approval
+        expr: >
+          rate(ceap_event_loop_lag_seconds_sum[5m]) / clamp_min(rate(ceap_event_loop_lag_seconds_count[5m]), 1e-9)
+          > 0.25
+        for: 5m
+        labels: {severity: ticket}
+        annotations:
+          summary: "Event loop lag above 250 ms on average"
+          runbook: "docs/RUNBOOK.md#event-loop-lag"
+
+      - alert: CeapHttp5xx
+        expr: >
+          sum(rate(ceap_http_errors_total{status_class="5xx"}[10m]))
+          / clamp_min(sum(rate(ceap_http_requests_total[10m])), 1e-9) > 0.05
+        for: 10m
+        labels: {severity: page}
+        annotations:
+          summary: "More than 5% of requests fail with 5xx"
+          runbook: "docs/RUNBOOK.md#stuck-task"
+
+      - alert: CeapInvestigationsFailing
+        expr: >
+          rate(ceap_investigations_failed_total[30m])
+          / clamp_min(rate(ceap_investigations_total[30m]), 1e-9) > 0.2
+        for: 15m
+        labels: {severity: ticket}
+        annotations:
+          summary: "More than 20% of investigations fail"
+          runbook: "docs/RUNBOOK.md#stuck-task"
+
+      - alert: CeapStuckTasks
+        # tasks started but neither completed, failed nor cancelled for 30 minutes
+        expr: >
+          increase(ceap_investigations_total[30m])
+          - increase(ceap_investigations_completed_total[30m])
+          - increase(ceap_investigations_failed_total[30m])
+          - increase(ceap_investigations_cancelled_total[30m]) > 3
+        for: 30m
+        labels: {severity: ticket}
+        annotations:
+          summary: "Investigations are starting and not finishing"
+          runbook: "docs/RUNBOOK.md#stuck-task"
+
+      - alert: CeapApprovalsSwept
+        # the TTL sweep expired orphaned approvals: a waiter died without a restart
+        expr: increase(ceap_approvals_swept_total[1h]) > 0
+        labels: {severity: ticket}
+        annotations:
+          summary: "Pending approvals were expired by the TTL sweep"
+          runbook: "docs/RUNBOOK.md#stuck-approval"
+
+      - alert: CeapToolRetriesHigh
+        expr: sum(rate(ceap_tool_retries_total[15m])) > 0.5
+        for: 15m
+        labels: {severity: ticket}
+        annotations:
+          summary: "MCP tools are being retried more than once every 2 s"
+          runbook: "docs/RUNBOOK.md#stuck-task"

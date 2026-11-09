@@ -123,7 +123,7 @@ class RecordingMCPClient(MCPClient):
     async def invoke(self, server: str, tool: str, arguments: dict[str, Any]) -> Any:
         try:
             out = await self.inner.invoke(server, tool, arguments)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - recorded, then re-raised unchanged
             self.calls.append(
                 {
                     "key": _key(server, tool, arguments),

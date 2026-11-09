@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       date:
-        description: "session date (YYYY-MM-DD); default: today in UTC"
+        description: "session date (YYYY-MM-DD); default: today in New York (G12)"
         required: false
 
 permissions:
@@ -57,7 +57,7 @@ jobs:
         id: run
         run: |
           D="${{ github.event.inputs.date }}"
-          D="${D:-$(date -u +%F)}"
+          D="${D:-$(TZ=America/New_York date +%F)}"
           set +e
           ceap paper run-day --date "$D" --db forward-log/paper.db --allow-paper-auto --report-dir forward-log/reports
           rc=$?

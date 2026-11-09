@@ -16,6 +16,8 @@ from fastapi import FastAPI
 
 from ceap import __version__
 from ceap.api import ratelimit
+from ceap.api.auth import check_key_strength
+from ceap.api.loopmon import LoopLagMonitor, approval_sweeper, sweep_interval_s
 from ceap.api.middleware import RequestContextMiddleware
 from ceap.api.routes import router
 from ceap.mcp.cpu_pool import default_pool, enable_process_pool, shutdown_default_pool
@@ -33,6 +35,8 @@ class AppState:
         self.running: dict[str, asyncio.Task[object]] = {}
         self.semaphore = asyncio.Semaphore(platform.settings.max_concurrent_investigations)
         self.prewarm: asyncio.Task[None] | None = None
+        self.loop_lag = LoopLagMonitor()  # G9
+        self.background: list[asyncio.Task[None]] = []  # G8 sweep, G9 lag monitor
         self.rate_limiter = ratelimit.from_env()  # per-principal token bucket (A10)
 
 
@@ -62,6 +66,7 @@ def create_app(platform: Platform | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
         p = platform or Platform()
         p.settings.validate_for_serving()
+        check_key_strength(p.settings)  # H11: outside dev, refuse keys under 256 estimated bits
         state = AppState(p)
         app.state.platform = p
         app.state.ceap = state
@@ -75,6 +80,10 @@ def create_app(platform: Platform | None = None) -> FastAPI:
         warm = _prewarm_datasets()
         if warm:  # G1: generate in a worker thread so /health answers while the cache fills
             state.prewarm = asyncio.create_task(_prewarm(p, warm), name="dataset-prewarm")
+        state.background = [
+            asyncio.create_task(state.loop_lag.run(), name="event-loop-lag"),
+            asyncio.create_task(approval_sweeper(p, sweep_interval_s()), name="approval-sweep"),
+        ]
         if not p.settings.is_dev:
             log.warning(
                 "serving with CEAP_ENV=%s: auto_approve=%s, %d API keys",
@@ -83,6 +92,10 @@ def create_app(platform: Platform | None = None) -> FastAPI:
                 len(p.settings.api_keys),
             )
         yield
+        for bg in state.background:
+            bg.cancel()
+        if state.background:
+            await asyncio.gather(*state.background, return_exceptions=True)
         if state.prewarm is not None and not state.prewarm.done():
             state.prewarm.cancel()
         pending = [t for t in state.running.values() if not t.done()]
