@@ -1049,7 +1049,24 @@ class AgentHarness:
         elif step.id == STAGE_APPROVAL_STEP_ID and request.arguments.get(PORTFOLIO_HASH_KEY):
             # R4 4.5: staging must stage exactly the portfolio this approver saw
             memory.scratch[APPROVED_PORTFOLIO_HASH] = request.arguments[PORTFOLIO_HASH_KEY]
+        if decision.approved and step.id == STAGE_APPROVAL_STEP_ID:
+            self._grant_staging(run, step, memory)
         return decision.approved
+
+    def _grant_staging(self, run: RunContext, step: PlanStep, memory: InvestigationMemory) -> None:
+        """A4: the four-eyes staging approval is the human approval of the HIGH-risk staging call.
+
+        The grant covers exactly the arguments the staging step will send (those in the approval
+        payload plus the bound portfolio hash), once, for this task; anything else asks again.
+        """
+        grant = getattr(self.policy, "grant_approved", None)
+        tool_id, arguments = step.metadata.get("tool_id"), step.metadata.get("arguments")
+        if grant is None or not isinstance(tool_id, str) or not isinstance(arguments, dict):
+            return
+        final = dict(arguments)
+        if memory.scratch.get(APPROVED_PORTFOLIO_HASH):
+            final[APPROVED_PORTFOLIO_HASH] = memory.scratch[APPROVED_PORTFOLIO_HASH]
+        grant(run.task_id, tool_id, final)
 
     @staticmethod
     def _validate_evidence(
