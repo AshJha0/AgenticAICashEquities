@@ -12,6 +12,7 @@ venv/
 .mypy_cache/
 htmlcov/
 .coverage
+.coverage.*
 
 # environment
 .env
