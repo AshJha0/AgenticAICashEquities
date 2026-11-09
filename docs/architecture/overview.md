@@ -130,6 +130,12 @@ a run. The 0.3.x generator survives as `legacy_v03` for regression tests only.
 canonical plan for planning requests, a templated narrative rendered from structured facts for
 report requests, and a rule-based critique. `AnthropicLLMClient` adapts the Anthropic SDK.
 `LLMRouter` selects a model per purpose and falls back to the mock if the primary client fails.
+Since 0.8.0 the router also holds the per-task caps (calls, tokens, USD), on by default: each call
+reserves its upper-bound local estimate under a lock before it is sent and settles to the actual
+cost afterwards, so concurrent calls of one task cannot pass a check that only one of them fits. A
+circuit breaker skips the primary model for a cooldown after N consecutive failures. The API adds a
+per-principal token bucket (`ceap.api.ratelimit`, 429 with `Retry-After`) in front of the endpoints
+that start tasks.
 Prompts live in `prompts.py` and state the boundary explicitly.
 
 ### 3.6 Harness (`ceap.harness`)
@@ -139,6 +145,14 @@ Prompts live in `prompts.py` and state the boundary explicitly.
 approval when required, retry with exponential backoff, per-step timeout bounded by the task
 deadline, metrics and tracing, then `InvestigationMemory.record_tool`. Agents receive a
 `HarnessToolInvoker` so their own tool calls take the same path.
+
+The per-step timeout is an `asyncio.wait_for`, which only fires if the event loop is free. CPU work
+therefore stays off the loop (0.8.0): request validation and dataset generation run in a worker
+thread (`DatasetStore` locks per scenario key), and tools declared `cpu_bound=True` run their heavy
+part in `ceap.mcp.cpu_pool`, a process pool whose workers are terminated when the awaiting step is
+cancelled or times out. A CPU-heavy tool that does not declare `cpu_bound` would block the loop and
+defeat both the timeout and cancellation, so new tools that compute for more than a few hundred
+milliseconds should declare it.
 
 Governance is enforced by the harness regardless of the plan: a critic step, an evidence
 validation step and a finalise step are appended if absent; the critic is forced before

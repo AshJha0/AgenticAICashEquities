@@ -6,6 +6,7 @@ Both the API and the CLI build a :class:`Platform` and call
 
 from __future__ import annotations
 
+import asyncio
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -323,7 +324,7 @@ class Platform:
             )
 
     async def research(self, req: ResearchRequest, task: Task | None = None) -> HarnessResult:
-        self.validate_research_request(req)
+        await asyncio.to_thread(self.validate_research_request, req)
         task = task or self.build_research_task(req)
         self.tasks.setdefault(task.id, task)
         token = self.cancellations.setdefault(task.id, CancellationToken())
@@ -378,7 +379,7 @@ class Platform:
             )
 
     async def investigate(self, req: InvestigationRequest, task: Task | None = None) -> HarnessResult:
-        self.validate_request(req)
+        await asyncio.to_thread(self.validate_request, req)  # off the loop (G1)
         task = task or self.build_task(req)
         self.tasks.setdefault(task.id, task)
         token = self.cancellations.setdefault(task.id, CancellationToken())

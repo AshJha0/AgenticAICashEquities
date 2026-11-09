@@ -49,6 +49,7 @@ class ToolMetadata:
     required_capabilities: frozenset[str] = frozenset()
     input_schema: dict[str, Any] = field(default_factory=dict)
     server: str | None = None
+    cpu_bound: bool = False  # heavy work runs in a killable worker process (G3)
 
 
 @dataclass(frozen=True)

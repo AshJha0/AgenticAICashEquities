@@ -140,6 +140,39 @@ refuses a tag whose version has no section.
   body hash. `ceap.eval.corpus` fails on unpinned or unbumped edits and future dates, and warns on
   stale documents and on release-note wording in corpus files.
 - `ceap evaluation-report` gains agents, sensitivity, ood, retrieval and corpus sections.
+- G1: CPU work is off the event loop. `validate_request` and `validate_research_request` run in a
+  worker thread (`asyncio.to_thread`) from the API and from `Platform.investigate`/`research`;
+  `DatasetStore` holds one lock per scenario key instead of one global lock (same key generates once,
+  different keys in parallel) and gains `aget`; `CEAP_PREWARM_DATASETS` generates datasets at start-up
+  off the loop (the Docker image pre-warms `T01`). A cold T01 took 30 s on this machine (77 s under
+  load in the review) inside the request, and `/health` waited behind it; `/health` now answers
+  while a dataset generates (`tests/integration/test_r080_offloop.py`).
+- G3: CPU-bound MCP tools declare `cpu_bound=True` (annotation `cpuBound`, `ToolMetadata.cpu_bound`)
+  and run their heavy part in a killable process pool (`ceap.mcp.cpu_pool`, `CEAP_CPU_TOOL_PROCESSES`,
+  default 2). A step or task timeout, or a cancel, now terminates the worker; before, `wait_for` could
+  not interrupt `run_backtest`. `run_backtest` and `evaluate_signal` use it; research datasets are
+  regenerated in the worker from their scenario (content hash checked) rather than pickled.
+  `combine_signals` runs in a thread because it writes to the in-process trial ledger.
+- A10: the LLM budget is on by default and race-free. Every call reserves its upper-bound estimate
+  before it is sent and settles after; per-task caps on calls, tokens (`CEAP_TASK_TOKEN_BUDGET`,
+  default 400000) and USD (`CEAP_TASK_BUDGET_USD`, default 2.00; `off` removes it). A circuit
+  breaker skips the primary model after 5 consecutive failures for 60 s. A per-principal token bucket
+  (`CEAP_RATE_LIMIT_PER_MINUTE` 60, `CEAP_RATE_LIMIT_BURST` 20) answers 429 with `Retry-After` on the
+  task-starting endpoints.
+- G6: paper dead-man's switch. `paper-daily.yml` opens or updates a `paper-failure` issue when a run
+  fails (`issues: write`); the new weekly `paper-staleness.yml` fails and opens a `paper-stale` issue
+  when the `forward-log` head is more than 2 NYSE sessions old
+  (`scripts/check_forward_log_staleness.py`). README points to the last recorded session and asks the
+  owner to protect `forward-log` against force-push (not changed here: rulesets are the owner's).
+- H2: CI and nightly measure branch coverage (`--cov-branch`); the floor is the measured total
+  rounded down (85 %), target 90 %.
+- H5: repository-integrity tests (those reading `scripts/`, `docs/`, committed data or `.github/`)
+  moved from `tests/unit` to `tests/repo`, which resolves the root explicitly (`tests/repo/repo_root.py`,
+  `CEAP_REPO_ROOT`); `tests/unit` reads nothing outside `src` and `tests`.
+- H8: `pytest-timeout` (dev dependency, lock regenerated): 120 s per test by default, 600 s for
+  `slow` and 1800 s for `nightly` unless a test sets its own; `--durations=20` on every run.
+- H9: one definition each for the `slow` and `nightly` markers. Nightly-marked sweeps skip unless
+  `CEAP_NIGHTLY=1`, which `nightly.yml` did not set, so they never ran in CI; it now sets it.
 
 ## [0.7.1] - 2026-11-08
 
