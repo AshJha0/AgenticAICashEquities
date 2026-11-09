@@ -6,6 +6,263 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+## [0.9.0] - Unreleased
+
+Final planned release, built as six parallel lanes (`docs/review/2026-11-09/PLAN.md`) and integrated
+on `int-090`. Lane notes are merged below with their numbers and disclosures; the coordinator
+polishes this section before the tag.
+
+### Coordinator decisions (integration)
+
+- Golden v1.1 signed by the owner, option A: template `mixed` stays REJECT.
+- E1: the crash during the holdout opening and its re-run are accepted; disclosed in the ledger.
+- G2: the generator stays bit-identical at 1.18x over 0.8.0, against the 50x target (a miss, stated).
+- Retrieval: BM25 stays the default under the a-priori rule; the reranker (+0.065 R@3) is opt-in.
+- Near-miss abstention not adopted; the leak stays 3/25.
+- L5: the idle event-loop-lag bound was dropped as machine-dependent; the block-detection bar is kept.
+- D5: test bar 490 -> 466, derived from the scaled delisting rule (500 names minus 17 mergers and
+  17 performance delistings), not from a result.
+
+### Integration fixes
+
+- `mypy src`: 0 errors. The harness mixins share a typed `HarnessBase` (`ceap/harness/base.py`);
+  `warn_return_any` is now on for `ceap.api.*` (the three remaining sites are annotated).
+- B7 wired: the approval payload and `GET /approvals/{id}` carry an advisory `challenger` block from
+  `approver_challenger_view` only when a challenger plan is present (off by default).
+- H12: every broad `except Exception` in library code states its reason; a test enforces it.
+- `ceap.rag.dense.ModelUnavailable` renamed `ModelUnavailableError` (ruff N818).
+- `docs/api/openapi.json` regenerated.
+
+### Lane L1: research (WS-E E1, E2)
+
+- E1: preregistered, hash-locked 49-industry momentum study on free Ken French data
+  (`docs/research/e1/`, `src/ceap/studies/industry_momentum.py`, `scripts/fetch_kf_industries.py`,
+  `scripts/run_e1_industry_momentum.py`). Holdout 1990-2015 opened once: **NULL** (net 10 bps NW
+  t 1.16 < 1.645; net Sharpe 0.23, CI [-0.12, 0.59]). In-sample t 1.86; ETF gate PASS (0.94);
+  replication gate NOT RUN. One crash during the opening, ledgered and disclosed.
+- E2: `docs/research/e2_why_r5_could_not_pass.md`, why stock-level R5 was predictably VOID on free data.
+
+### Lane L2: AI evaluation (WS-B: local model, injection corpus, judge, challenger, AI SLOs)
+
+#### Added
+- **B1** `ceap.llm.ollama.OllamaLLMClient`: a local open-weight model (pinned: `qwen2.5:7b-instruct`
+  primary, `llama3.1:8b-instruct-q4_K_M` challenger) behind `LLMClient`, using Ollama's JSON-schema
+  `format` for structured output and the same Pydantic validation as the hosted adapter. Answers carry
+  `provenance = local_model`. `LocalCassette` / `LocalCassetteClient` record and replay runs keyed by
+  the canonical request hash (nonces masked), so CI scores the recorded replies with no Ollama.
+  Live calls need `CEAP_LOCAL_MODEL=1`. Runner: `python -m ceap.eval.local_model --seeds 1 2 3`.
+- **B4** `ceap.eval.injection`: 200 locally written attacks (4 surfaces x 10 styles x 5 goals,
+  `injection_corpus_v1.json`, sha256-pinned), canary-based obey rate per surface with Wilson CIs;
+  full sweep is `nightly` and needs `CEAP_LOCAL_MODEL=1`.
+- **B5** `ceap.eval.judge`: rubric judge for the `judge` purpose (faithful, complete, hedged),
+  50-item hand-built reference set (`judge_reference_v1.json`), Cohen's kappa per dimension; a
+  dimension is enabled only when kappa > 0.6 (`enabled_dimensions()`).
+- **B7** `ceap.eval.challenger.approver_challenger_view(primary_plan, challenger_plan)`: isolated
+  approver-view hook (Jaccard, order agreement, tools only one model chose); `plan_agreement_eval`.
+- **B8** `ceap.observability.ai_slo.AISLOMonitor`: per-purpose rolling plan-valid, repair, fallback,
+  untraceable-number rate and p95 latency against objectives, Shewhart p-chart / log-latency SPC
+  alerts, OTel GenAI span attributes and `gen_ai_client_*` metrics. `LLMRouter.slo` (or
+  `ai_slo.default_monitor`) receives every routed call.
+
+#### Results
+See `docs/evaluation/local_model/README.md` (numbers, CIs, compute budget fixed before the runs).
+
+### Lane L3: retrieval and critic
+
+- **C2 hybrid retrieval (opt-in):** `ceap.rag.dense` adds bge-small-en-v1.5 embeddings, reciprocal
+  rank fusion with BM25 and an ms-marco-MiniLM-L-6-v2 cross-encoder reranker, all local CPU models
+  through the optional `fastembed`. Model outputs go to a hashed cache (`data/rag/`), so CI needs no
+  model. Rerank variants beat BM25 on R@3 (rrf_rerank 116/124 vs 108/124, paired Δ +0.065
+  [+0.016, +0.113]). BM25 stays the default because the reranker needs a model at query time
+  (pre-registered rule). Details: `docs/ai-agents/rag-hybrid-0.9.0.md`.
+- **Near-miss abstention: not fixed.** An abstain rule chosen on dev leaked 6/12 near-miss
+  negatives on held-out, against 1/12 for the 0.8.0 gate, so it was not adopted. Still open at
+  3/25.
+- **Critic:** new deterministic statement-versus-evidence checks (`ceap.agents.critic_checks`) for
+  contradictions, number mismatches and direction mismatches. Planted-fault detection went from
+  6/15 to 15/15 on the existing set and on a new held-out set
+  (`data/eval/critic_planted_heldout_v1.json`, committed before the change), with 0/10 false
+  alarms on each. `assessment["flags"]` is new. Scorer: `python -m ceap.agents.critic_planted`.
+- **Research clear-case accuracy:** a re-run on this branch (mock LLM, deterministic pipeline,
+  critic change included) gave 23/24 clear verdicts, not 21/24. The one miss is RS02, a strong
+  momentum premium rejected for COST_DRAG, the same kind of draw as the documented 0.7.1 miss. No
+  bug was found in the verdict code, so nothing was changed. RS17 and RS18 got the right verdict
+  but INCOMPLETE_ANALYSIS flags because the backtest step timed out (about 180 s each, machine
+  under load from the other lanes); recheck them on an idle machine. Near-threshold accuracy was
+  2/6 (bar 1/3).
+
+### Lane L4: paper, execution, research data
+
+Deferred items D5, D10, F5 (paper half), F10, F11 (paper-execution part), F12 (rest), F13, G2 from
+`docs/review/2026-11-09/PLAN.md`. Everything new in the paper engine is off by default, so the
+paper/backtest equivalence test and the daily forward-log job behave as in 0.8.0 unless
+`config/paper.json` turns a feature on. Two defaults do change: ledger bodies (F10) and halts (F12).
+
+#### Added
+- **D5, 500-name synthetic universe.** `ceap.data.generator_params.RESEARCH_UNIVERSE_500` (names
+  `X<tier><4 digits>`, tiers A/B/C at 40/40/20 %, every other name on NASDAQ), `synthetic_universe(n)`,
+  `tier_of`, `is_nasdaq` and `UNIVERSES = {"core30", "synthetic500"}`. Use
+  `HistoricalGenerator(symbols=RESEARCH_UNIVERSE_500)`. A decile is 50 names instead of 3. The 30-name
+  universe and every existing dataset hash are unchanged. For any universe larger than 30 names, the
+  membership events scale by `m / 30` and are drawn from a separate random stream. For 500 names that
+  is 50 late listings, 17 mergers and 17 performance delistings. A test pins two 30-name dataset
+  hashes computed before this change.
+- **D10, delisting sensitivity on the real-data momentum book** (`ceap.data.real.momentum`).
+  `build_months(..., delisting="shumway", perf_delist_return=-0.30, keep_missing_close=True)` and
+  `delisting_band(...)` over a grid of 0, -30 %, -55 % and -100 %. The exit type is inferred from the
+  path (last close below $1, or down 30 % or more over 60 sessions, means `performance`; anything
+  else is a `merger` at 0 %), because free daily data carry no delisting codes. `Month.delisted`
+  records each exit. The defaults reproduce the preregistered book exactly. The other settings are
+  sensitivity analyses and never the primary test. Sources: Shumway (1997, J. Finance 52(1)) and
+  Shumway and Warther (1999, J. Finance 54(6)), cited from memory.
+- **F5, paper MOC at the closing auction** (`FillParams.moc_auction`). One session fills at most
+  `auction_max_fraction * auction_share * ADV` (10 % of a 6 % auction, so 0.6 % of ADV). The cost
+  is our order's impact on a seeded synthetic auction book (`ceap.execution.auction`), floored at 0.
+  **Limit alignment:** `RiskLimits.max_work_sessions` makes the pre-trade check clip an order to that
+  many sessions of fills at the per-session cap (`FillParams.session_cap_fraction()`).
+  `fills.limit_alignment(params)` reports how many sessions the 25 % pre-trade limit needs at the
+  10 % fill cap (3), and whether the order TTL lets the order finish.
+- **F10, lots.** With `FillParams.lot_size` set, fills are whole lots. The fractional part stays on
+  the order and gets a `lot_residual` event. An order smaller than one lot is cancelled with the
+  reason `below_lot`. The default of 0 keeps fractional fills.
+- **F11, LOB engine for paper fills** (`FillParams.engine = "lob"`, `ceap.paper.lob_exec`). The
+  cost of each fill is measured on the seeded `LOBSimulator`. The order is cut into 10 market slices
+  over 30 s, and the cost is the slippage of each slice against the mid just before that slice was
+  sent. Fills stay at the close, so the daily equity identity still holds. Measured: about 0.3-0.4
+  bps on a $200 name at every participation from 0.1 % to 50 %. The stylised book (300 shares a
+  level) does not scale impact with size, and this limit is stated in the module.
+- **F12, sigma fat-finger band and halts** (`ceap.paper.pretrade`). `price_band_sigma` (0 = off;
+  6.0 is the plan's setting) with `price_band_cap` (10 %) and `sigma_window` (20) blocks a decision
+  close that moved more than `min(cap, k * sigma_daily)`. **Halts (on by default,
+  `block_halted`):** a member with no print gets no new order (rule `halted`), and a fill reject on a
+  missing print now carries `halted: true`.
+- **F13, dividends as cash events.** `ceap.paper.feed.Dividend(symbol, ex_date, amount)` and
+  `MarketPanel.dividends`. A long receives `q * d` and a short pays it (the short dividend cost),
+  booked after financing on the ex-date. The snapshot and the attribution gain a `dividends` key.
+  The identity is now `d equity = mark_pnl + financing - borrow - costs + dividends`. No feed
+  supplies dividends by default.
+- **F13 data, dividend source (opt-in, default off)** (`ceap.paper.dividends`). The source is Yahoo
+  Finance through the optional `yfinance` package: free, no sign-up, and not a project dependency
+  (it is imported only for a download). Series are cached under `data/real_cache/dividends/`. Each
+  fetched series is hashed with SHA-256, and a record goes to `revisions.jsonl` with
+  `revised: true` when the vendor restates a series. The panel's `meta` carries the hashes in use.
+  Enable it with `execution.dividends: true`; `execution.dividend_download: true` refreshes the cache
+  first. Yahoo dividends are split-adjusted, which matches the split-adjusted Stooq closes.
+  `config/paper.json` is unchanged.
+- `PaperConfig.execution` (JSON block `execution`) carries `moc_auction`, `auction_share`,
+  `auction_max_fraction`, `lot_size`, `engine` and `lob_window_s`. Unknown keys are refused.
+
+#### Changed
+- **F10, money in ledger bodies.** Every new `paper_ledger` row records `cash_delta`, `cost` and
+  `price` as integer micro-dollars under `payload.money_v2`, and the HMAC (or SHA-256) link covers
+  those integers plus `body_version: 2`. The REAL columns hold exactly `micros / 1e6`. A column
+  edited without its integer breaks the hash on purpose. Rows without `money_v2` (written by 0.8.0)
+  are hashed exactly as before, so an existing `var/paper/paper.db` verifies unchanged and the
+  forward job just goes on appending version-2 rows. `reconcile` sums version-2 cash in integers.
+  Day rows are in body v2 too. The snapshot JSON carries `money_v2 = {equity, cash}` in
+  micro-dollars, the hash covers the equity integer, and the `equity` column is exactly
+  `micros / 1e6`. 0.8.0 day rows verify unchanged; a test covers a chain with mixed v1 and v2
+  rows. When every ledger row is v2, `reconcile` also compares ledger cash with the day's recorded
+  cash in integers. The allowed gap is half a micro-dollar of rounding per event.
+- **G2, `SyntheticMarketGenerator._trades`.** Per-trade columns are built as arrays: prices by
+  fancy indexing, timestamps in one datetime64 pass with the session's UTC offset looked up once,
+  and `Trade` objects filled through `__dict__`. Output is bit-identical (the v0.7.1 digest test
+  passes). **Measured on the dev machine** (6 calls, 49,766 trades, best of 5, same process): 0.8.0
+  0.307 s, 0.9.0 0.260 s, v0.7 1.10 s. That is **1.18x over 0.8.0 and 4.2x over v0.7**, not the 50x
+  target. About two thirds of the remaining time is the per-second loop of `rng.lognormal` and
+  `rng.random` calls, kept to preserve the random stream. A 50x path needs a new stream (one bulk
+  draw per column), which would move every generator golden, including the owner-signed
+  `golden_set.json`. Owner decision, not taken here.
+
+#### Tests
+- New: `tests/unit/paper/test_r090_l4_dividends.py` (dividend source, fixtures only, no network),
+  `tests/unit/test_r090_l4_universe.py` (D5), `tests/unit/test_r090_l4_delisting.py` (D10),
+  `tests/unit/paper/test_r090_l4_paper.py` (F5, F10, F11, F12, F13, ledger v2 on a v1 chain).
+- Updated: `tests/integration/test_paper_controls.py` expects the new `dividends` attribution key.
+- No golden moved.
+
+### Lane L5: platform (harness, API, persistence, operations)
+
+#### Changed
+- **H6 harness split.** `ceap/harness/engine.py` (1,532 lines) is now a facade of 443 lines holding
+  `AgentHarness.__init__` and `execute`; the rest moved without change into mixins
+  `planning.py` (plan validation, governance tail, scoping, re-plan), `dispatch.py` (tool batches,
+  agent runs), `approvals.py` (human gates, staging grants), `evidence.py` (evidence validation,
+  disputes, hypotheses, case memory) and `common.py` (constants, `HarnessResult`, helpers).
+  Every name `engine` used to define is re-exported, so `from ceap.harness.engine import ...` keeps
+  working. The split is its own commit with no behaviour change.
+- **G13 Docker.** Two-stage image: the build stage installs the hashed lock into `/opt/ceap`; the
+  runtime stage copies that environment and removes pip, so nothing can be installed at run time.
+  `deploy/compose/` is a reverse-proxy example (Caddy terminates TLS, adds security headers, keeps
+  `/metrics` internal).
+- **G12.** A manual `paper-daily` dispatch without a date now uses the New York date
+  (`TZ=America/New_York`), not UTC. The NYSE calendar already raises outside 2000-2030; a test now
+  pins that it fails loudly for 2031.
+- **H11 API keys.** Outside dev, a raw key must have at least 256 bits of estimated entropy and 16
+  distinct characters or the app refuses to start; the message never contains the key. A hashed key
+  entry may carry `id=<name>`, and its principal is then `role:<name>`. Breaking for deployments
+  using short raw keys outside dev: generate keys with `secrets.token_urlsafe(32)`.
+
+#### Added
+- **G5 durable runs** (`ceap/harness/durable.py`, migration `0005_run_journal.sql`). Each tool call
+  has an idempotency key `sha256(task | step | tool | canonical args)`. With a journal, a completed
+  call is written at the step boundary and a re-run of the same task id reads it back instead of
+  calling the tool; a human decision for the same content hash is reused (resumable approvals).
+  Opt-in in the platform with `CEAP_DURABLE_RUNS=1`; journal rows follow the results retention.
+- **G8 approval TTL sweep** in the API `lifespan` (`ceap/api/loopmon.py`): every
+  `CEAP_APPROVAL_SWEEP_S` seconds (default 60) PENDING approvals older than timeout + interval with
+  no live waiter are expired, audited and counted (`ceap_approvals_swept_total`).
+- **G9 operations.** `docs/RUNBOOK.md` (restart, stuck task, stuck approval, event-loop lag, audit
+  chain break, disk full, API keys, replay gate); `deploy/prometheus/ceap-alerts.yml` (7 rules, each
+  naming its runbook section); event-loop lag summary `ceap_event_loop_lag_seconds`.
+- **G10 chaos tests** (`tests/unit/test_r090_chaos.py`): kill -9 in the middle of `run_day`
+  converges to the uninterrupted ledger; kill -9 in the middle of an investigation resumes from the
+  journal; an injected `disk I/O error` rolls back whole and the next write succeeds. The kill tests
+  are `slow`.
+- **G11 paper-day replay gate** (`ceap/harness/paper_gate.py`): replays the forward book into a fresh
+  database and diffs `paper_days` (equity to 1e-6, state and snapshot as JSON); `render_status_page`
+  writes the forward-log status page for Pages. Nothing is pushed.
+- **H12.** Test that library code does not `print` (entry points and `evaluation.py`'s verbose
+  console table excepted); `except Exception` in `harness/replay.py` now states why it is broad.
+
+### Lane L6: engineering and docs (H1, H3, H4, H7, H10, H13-H15, I1, I2, I5)
+
+#### Changed
+- **H1 mypy.** No global `ignore_missing_imports`: untyped third-party packages are named one by one
+  (jsonschema, yaml, pandas, sklearn). `ceap.domain` and `ceap.analytics` are type-checked with the
+  full strict flag set (per-module override; mypy cannot set `strict` per module). Eight
+  `no-any-return` sites in analytics got typed locals (annotation only, no behaviour change).
+  `ceap.api` has every strict flag except `warn_return_any`: three sites remain
+  (`api/routes.py:68`, `api/routes.py:662`, `api/middleware.py`), left for the API lane.
+  `mypy src`: 0 errors in 207 files.
+- **H3 NaN final price.** `implementation_shortfall_bps` now treats a non-finite `final_price` like
+  `None` (no opportunity leg) instead of returning NaN, matching `shortfall_components`.
+
+#### Added
+- **H3** `tests/properties/test_r090_mutation_gaps.py`: kills the two 0.8.0 surviving mutants
+  (non-positive fill mids, NaN final price) and widens the Hypothesis domain (prices 1e-2 to 1e5,
+  quantities 1e-3 to 1e9). Nightly `mutation` job: mutmut 3.8.1 on analytics and domain with a
+  surviving-mutant ratchet (`scripts/mutation_ratchet.py`, `tests/mutation/baseline.json`; the
+  ceiling is `null` until the first Linux nightly measures it).
+- **H4** `test-windows` CI job (windows-latest, fast tier, no coverage).
+- **H7** `.github/dependabot.yml` (pip and actions, grouped, weekly); `codeql.yml`; `scorecard.yml`;
+  release job now writes a CycloneDX SBOM, a build-provenance attestation and cosign keyless
+  signature bundles for the wheel, sdist and SBOM. All actions pinned to commit SHAs.
+- **H10** CI gate: modifying or deleting files under `tests/cassettes/`, `tests/agent/snapshots/` or
+  `tests/contract/snapshots/` needs the `snapshot-change` label (new files are allowed).
+- **H13** Coverage measured on Python 3.12 only. `benchmarks/` (pytest-benchmark 5.3.1) with a PR
+  gate: base and head on the same runner, fail if any mean is more than 25 % slower.
+- **H14** `.pre-commit-config.yaml`: ruff, mypy, banned words, docs check, OpenAPI freshness.
+- **H15** `docs/api/openapi.json` checked in (`scripts/export_openapi.py`), diffed in the `contracts`
+  job; nightly `api-fuzz` job runs Schemathesis 4.33.1 on the GET operations.
+- **I1** `docs/adr/` 0001-0005. **I2** CI `api-reference` job (pdoc 16.0.0 for analytics and domain).
+- **I5** learning path in LEARN.md; `docs/glossary.md`, `docs/how-to-extend.md`,
+  `docs/exercises.md`, `docs/testing/test-pyramid.md`; metamorphic tests
+  (`tests/properties/test_r090_metamorphic.py`) and CLI tests (`tests/unit/cli/`).
+
+Job-only tools (mutmut, pytest-benchmark, schemathesis, pdoc, cyclonedx-bom, pre-commit) are pinned
+in their jobs and kept out of `requirements.lock` (ADR 0003).
+
 ## [0.8.0] - 2026-11-09
 
 The safety, research-realism, execution and AI-evaluation release: steps from the two-round review of
