@@ -260,73 +260,8 @@
       "description": "research_data.get_universe_summary(dataset=R01, start=2007-09-07, end=2026-09-18) -> object with keys: dataset, template, symbols, coverage, mean_adv_shares, mean_adv_notional",
       "id": "MARKET-0000001d",
       "source": "research_data.get_universe_summary",
-      "timestamp": "2026-01-01T00:00:00.044000+00:00",
-      "type": "MARKET_DATA"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "R01",
-          "end": "2026-09-18",
-          "in_sample_end": "2021-09-10",
-          "rebalance_days": 21,
-          "signal": "momentum_12_1",
-          "start": "2007-09-07"
-        },
-        "correlation_id": "CORR-00000008",
-        "digest": "<digest>",
-        "step_id": "step-02",
-        "task_id": "TASK-00000001",
-        "tool_id": "alpha.evaluate_signal",
-        "values": {
-          "dataset": "R01",
-          "horizon_days": 21,
-          "signal": "momentum_12_1",
-          "universe_size": 30
-        }
-      },
-      "description": "alpha.evaluate_signal(signal=momentum_12_1, dataset=R01, start=2007-09-07, end=2026-09-18, in_sample_end=2021-09-10, rebalance_days=21) -> object with keys: signal, dataset, horizon_days, universe_size, periods",
-      "id": "SIG-0000001e",
-      "source": "alpha.evaluate_signal",
-      "timestamp": "2026-01-01T00:00:00.045000+00:00",
-      "type": "SIGNAL"
-    },
-    {
-      "attributes": {
-        "arguments": {
-          "dataset": "R01",
-          "end": "2026-09-18",
-          "execution_lag_days": 1,
-          "fill": "close",
-          "gross_notional": 50000000.0,
-          "in_sample_end": "2021-09-10",
-          "long_short": true,
-          "rebalance_days": 21,
-          "signal": "momentum_12_1",
-          "start": "2007-09-07"
-        },
-        "correlation_id": "CORR-00000009",
-        "digest": "<digest>",
-        "step_id": "step-03",
-        "task_id": "TASK-00000001",
-        "tool_id": "backtest.run_backtest",
-        "values": {
-          "dataset": "R01",
-          "execution_lag_days": 1,
-          "fill": "close",
-          "gross_notional": 50000000.0,
-          "long_short": true,
-          "pnl_concentration_top3": 0.241265083,
-          "rebalance_days": 21,
-          "sharpe_ratio_oos_is": 2.33410112,
-          "signal": "momentum_12_1"
-        }
-      },
-      "description": "backtest.run_backtest(signal=momentum_12_1, dataset=R01, start=2007-09-07, end=2026-09-18, in_sample_end=2021-09-10, rebalance_days=21, long_short=True, gross_notional=50000000.0, execution_lag_days=1, fill=close) -> object with keys: signal, dataset, rebalance_days, long_short, gross_notional, periods",
-      "id": "BT-0000001f",
-      "source": "backtest.run_backtest",
       "timestamp": "2026-01-01T00:00:00.046000+00:00",
-      "type": "BACKTEST"
+      "type": "MARKET_DATA"
     },
     {
       "attributes": {
@@ -359,7 +294,7 @@
         }
       },
       "description": "risk.get_portfolio_exposure(signal=momentum_12_1, dataset=R01, as_of=2026-09-18, long_short=True, gross_notional=50000000.0) -> object with keys: signal, dataset, as_of, long_short, gross_notional, positions",
-      "id": "RISK-00000020",
+      "id": "RISK-0000001e",
       "source": "risk.get_portfolio_exposure",
       "timestamp": "2026-01-01T00:00:00.047000+00:00",
       "type": "RISK"
@@ -387,7 +322,7 @@
         }
       },
       "description": "risk.check_portfolio_limits(signal=momentum_12_1, dataset=R01, as_of=2026-09-18, long_short=True, gross_notional=50000000.0) -> object with keys: signal, dataset, as_of, any_breached, breached_symbols, checks",
-      "id": "RISK-00000021",
+      "id": "RISK-0000001f",
       "source": "risk.check_portfolio_limits",
       "timestamp": "2026-01-01T00:00:00.048000+00:00",
       "type": "RISK"
@@ -425,7 +360,7 @@
         }
       },
       "description": "risk.calculate_portfolio_stress(signal=momentum_12_1, dataset=R01, as_of=2026-09-18, long_short=True, gross_notional=50000000.0) -> object with keys: signal, dataset, as_of, gross_notional, beta, net",
-      "id": "RISK-00000022",
+      "id": "RISK-00000020",
       "source": "risk.calculate_portfolio_stress",
       "timestamp": "2026-01-01T00:00:00.049000+00:00",
       "type": "RISK"
@@ -449,15 +384,80 @@
         }
       },
       "description": "knowledge.search_documents(query=out-of-sample cost; research pro, k=4, classifications=public,internal,restricted) -> 3 records",
-      "id": "DOC-00000023",
+      "id": "DOC-00000021",
       "source": "knowledge.search_documents",
       "timestamp": "2026-01-01T00:00:00.050000+00:00",
       "type": "DOCUMENT"
     },
     {
       "attributes": {
+        "arguments": {
+          "dataset": "R01",
+          "end": "2026-09-18",
+          "in_sample_end": "2021-09-10",
+          "rebalance_days": 21,
+          "signal": "momentum_12_1",
+          "start": "2007-09-07"
+        },
+        "correlation_id": "CORR-00000008",
+        "digest": "<digest>",
+        "step_id": "step-02",
+        "task_id": "TASK-00000001",
+        "tool_id": "alpha.evaluate_signal",
+        "values": {
+          "dataset": "R01",
+          "horizon_days": 21,
+          "signal": "momentum_12_1",
+          "universe_size": 30
+        }
+      },
+      "description": "alpha.evaluate_signal(signal=momentum_12_1, dataset=R01, start=2007-09-07, end=2026-09-18, in_sample_end=2021-09-10, rebalance_days=21) -> object with keys: signal, dataset, horizon_days, universe_size, periods",
+      "id": "SIG-00000022",
+      "source": "alpha.evaluate_signal",
+      "timestamp": "2026-01-01T00:00:00.056000+00:00",
+      "type": "SIGNAL"
+    },
+    {
+      "attributes": {
+        "arguments": {
+          "dataset": "R01",
+          "end": "2026-09-18",
+          "execution_lag_days": 1,
+          "fill": "close",
+          "gross_notional": 50000000.0,
+          "in_sample_end": "2021-09-10",
+          "long_short": true,
+          "rebalance_days": 21,
+          "signal": "momentum_12_1",
+          "start": "2007-09-07"
+        },
+        "correlation_id": "CORR-00000009",
+        "digest": "<digest>",
+        "step_id": "step-03",
+        "task_id": "TASK-00000001",
+        "tool_id": "backtest.run_backtest",
+        "values": {
+          "dataset": "R01",
+          "execution_lag_days": 1,
+          "fill": "close",
+          "gross_notional": 50000000.0,
+          "long_short": true,
+          "pnl_concentration_top3": 0.241265083,
+          "rebalance_days": 21,
+          "sharpe_ratio_oos_is": 2.33410112,
+          "signal": "momentum_12_1"
+        }
+      },
+      "description": "backtest.run_backtest(signal=momentum_12_1, dataset=R01, start=2007-09-07, end=2026-09-18, in_sample_end=2021-09-10, rebalance_days=21, long_short=True, gross_notional=50000000.0, execution_lag_days=1, fill=close) -> object with keys: signal, dataset, rebalance_days, long_short, gross_notional, periods",
+      "id": "BT-00000023",
+      "source": "backtest.run_backtest",
+      "timestamp": "2026-01-01T00:00:00.058000+00:00",
+      "type": "BACKTEST"
+    },
+    {
+      "attributes": {
         "derived_from": [
-          "SIG-0000001e"
+          "SIG-00000022"
         ],
         "signal_statistics": {
           "dataset": "R01",
@@ -547,7 +547,7 @@
       "description": "Signal statistics for momentum_12_1: in-sample IC t-stat 4.37, out-of-sample IC t-stat 4.48",
       "id": "TCA-0000002a",
       "source": "agent:alpha",
-      "timestamp": "2026-01-01T00:00:00.065000+00:00",
+      "timestamp": "2026-01-01T00:00:00.067000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -1033,14 +1033,14 @@
           }
         },
         "derived_from": [
-          "BT-0000001f"
+          "BT-00000023"
         ],
         "task_id": "TASK-00000001"
       },
       "description": "Backtest of momentum_12_1: net Sharpe in-sample 0.60, out-of-sample 1.39, cost drag 250 bps per year",
       "id": "TCA-00000030",
       "source": "agent:backtest",
-      "timestamp": "2026-01-01T00:00:00.070000+00:00",
+      "timestamp": "2026-01-01T00:00:00.072000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -1119,7 +1119,7 @@
       "description": "Research assessment: PROMOTE (no flags)",
       "id": "TCA-00000040",
       "source": "agent:critic",
-      "timestamp": "2026-01-01T00:00:00.080000+00:00",
+      "timestamp": "2026-01-01T00:00:00.082000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -1352,7 +1352,7 @@
       "description": "Critic assessment of findings",
       "id": "TCA-00000041",
       "source": "agent:critic",
-      "timestamp": "2026-01-01T00:00:00.081000+00:00",
+      "timestamp": "2026-01-01T00:00:00.083000+00:00",
       "type": "CALCULATION"
     }
   ],
@@ -1374,7 +1374,7 @@
       "statement": "Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.33 (in-sample 0.60, out-of-sample 1.39).",
       "supporting_evidence": [
         "TCA-00000030",
-        "BT-0000001f"
+        "BT-00000023"
       ]
     },
     {
@@ -1390,8 +1390,8 @@
       "produced_by": "portfolio_risk",
       "statement": "Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%).",
       "supporting_evidence": [
-        "RISK-00000021",
-        "RISK-00000020"
+        "RISK-0000001f",
+        "RISK-0000001e"
       ]
     },
     {
@@ -1409,7 +1409,7 @@
       "statement": "Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates.",
       "supporting_evidence": [
         "TCA-0000002a",
-        "SIG-0000001e"
+        "SIG-00000022"
       ]
     },
     {
@@ -1426,7 +1426,7 @@
       "statement": "Transaction costs consume 28% of gross return (250 bps per year against gross 8.9%).",
       "supporting_evidence": [
         "TCA-00000030",
-        "BT-0000001f"
+        "BT-00000023"
       ]
     },
     {
@@ -1450,7 +1450,7 @@
       "statement": "The strategy is profitable out-of-sample: net Sharpe 1.39, CAGR 12.9%, maximum drawdown 5.4% over 1260 days.",
       "supporting_evidence": [
         "TCA-00000030",
-        "BT-0000001f"
+        "BT-00000023"
       ]
     },
     {
@@ -1719,7 +1719,7 @@
       "produced_by": "portfolio_risk",
       "statement": "Target portfolio as of 2026-09-18: 18 names, gross 100%, net 0%, maximum single-name weight 5.6%, beta -0.02, effective names 18.0.",
       "supporting_evidence": [
-        "RISK-00000020"
+        "RISK-0000001e"
       ]
     },
     {
@@ -1737,7 +1737,7 @@
       "produced_by": "portfolio_risk",
       "statement": "A -500 bps market shock moves the portfolio by 38,000.00 USD through beta and -0.00 USD through net exposure; the worst single name loses -138,890.00 USD.",
       "supporting_evidence": [
-        "RISK-00000022"
+        "RISK-00000020"
       ]
     },
     {
@@ -1754,17 +1754,17 @@
       "contradicting_evidence": [],
       "evidence_refs": [
         {
-          "id": "RISK-00000022",
+          "id": "RISK-00000020",
           "path": "values.pnl_factor",
           "value": -2878749.43
         },
         {
-          "id": "RISK-00000022",
+          "id": "RISK-00000020",
           "path": "values.pnl_short_squeeze",
           "value": -5000040.0
         },
         {
-          "id": "RISK-00000022",
+          "id": "RISK-00000020",
           "path": "values.liquidation_cost",
           "value": 222203.28
         }
@@ -1773,7 +1773,7 @@
       "produced_by": "portfolio_risk",
       "statement": "Tail scenarios: a reversal of the signal's factor moves the book by -2,878,749.43 USD, a +20% short squeeze by -5,000,040.00 USD; liquidating at 10% of ADV costs 222,203.28 USD over 0.4 day(s).",
       "supporting_evidence": [
-        "RISK-00000022"
+        "RISK-00000020"
       ]
     },
     {
@@ -1797,11 +1797,11 @@
       "statement": "The momentum_12_1 signal is predictive in-sample: mean 21-day rank IC 0.0636 with t-statistic 4.37 over 167 non-overlapping periods, clearing the 3.00 null-sweep hurdle (Newey-West t on overlapping periods 4.96; hit rate 60.5%).",
       "supporting_evidence": [
         "TCA-0000002a",
-        "SIG-0000001e"
+        "SIG-00000022"
       ]
     }
   ],
-  "generated_at": "2026-01-01T00:00:00.099000+00:00",
+  "generated_at": "2026-01-01T00:00:00.101000+00:00",
   "hypotheses": null,
   "kind": "research",
   "metrics": {
@@ -2665,7 +2665,7 @@
       "universe_size": 30
     }
   },
-  "narrative": "MOMENTUM_12_1 RESEARCH PROPOSAL R01 2007-09-07 to 2026-09-18\n\nEXECUTIVE SUMMARY\n\nVerdict: PROMOTE. In-sample IC t-statistic 4.37, out-of-sample net Sharpe 1.39, costs consume 28% of gross return. No flags were raised; the signal clears every promotion hurdle.\n\nHYPOTHESIS\n\nTwelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.\nUniverse of 30 names, 4788 trading days from 2007-09-07 to 2026-09-18; in-sample period ends 2021-09-10.\n\nSIGNAL STATISTICS\n\nIn-sample: mean IC 0.0636, IC t-stat 4.37, IR 0.34, hit rate 60.5%, turnover n/a over 167 dates\nOut-of-sample: mean IC 0.1168, IC t-stat 4.48, IR 0.58, hit rate 69.5%, turnover n/a over 59 dates\nFull period: mean IC 0.0765, IC t-stat 5.99, IR 0.40, hit rate 62.6%, turnover n/a over 227 dates\n\nBACKTEST\n\nIn-sample: CAGR 4.2%, volatility 6.2%, net Sharpe 0.60 (gross 0.99), max drawdown 9.4%, cost drag 246 bps per year over 168 rebalances\nOut-of-sample: CAGR 12.9%, volatility 6.2%, net Sharpe 1.39 (gross 1.82), max drawdown 5.4%, cost drag 263 bps per year over 60 rebalances\nFull period: CAGR 6.4%, volatility 6.2%, net Sharpe 0.80 (gross 1.21), max drawdown 10.7%, cost drag 250 bps per year over 228 rebalances\nOut-of-sample to in-sample Sharpe ratio 2.33; top three names carry 24% of positive P&L.\n\nRISK\n\nTarget portfolio as of 2026-09-18: gross 100%, net 0%, max single-name weight 5.6%, beta -0.02, max ADV participation 3.9%.\nPortfolio limits respected.\nMarket shock of -500 bps: P&L through beta 38,000 USD, through net exposure -0 USD, worst single name -138,890 USD.\n\nVERDICT\n\nPROMOTE\n- in-sample IC t-stat 4.37 clears 3.00, deflated Sharpe 0.96 over 24 trial(s), out-of-sample net Sharpe 1.39, costs 28% of gross return, limits respected\n\nPRIMARY OBSERVATIONS\n\n1. Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.33 (in-sample 0.60, out-of-sample 1.39). [confidence 0.94]\n2. Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%). [confidence 0.85]\n3. Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates. [confidence 0.82]\n4. Transaction costs consume 28% of gross return (250 bps per year against gross 8.9%). [confidence 0.80]\n5. The strategy is profitable out-of-sample: net Sharpe 1.39, CAGR 12.9%, maximum drawdown 5.4% over 1260 days. [confidence 0.73]\n6. Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample. [confidence 0.70]\n7. Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10. [confidence 0.70]\n8. Regime: the equal-weight market returned 75.621% in-sample and -10.018% out-of-sample, with annualised volatility 15.727% versus 16.168%. [confidence 0.70]\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the flags above.\n\nCRITIC\n\nReviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: PROMOTE (no flags).\n\nAPPROVAL\n\nApproved by auto-approver: auto-approved (dev mode)\n\nSTAGED ORDERS\n\nOrder staging was not requested.\n\nPOLICY CONTEXT\n\n- Quant in CEAP / The assessment (`assess_research`): ### The assessment (`assess_research`)\n- Quant in CEAP / Multiple testing (2.8, 2.10, decision D4): What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,\n- Quant in CEAP / Risk (`ceap.analytics.portfolio_risk`, 2.12): ### Risk (`ceap.analytics.portfolio_risk`, 2.12)\n\nEVIDENCE\n\n- BT-0000001f\n- DOC-00000023\n- MARKET-0000001d\n- RISK-00000020\n- RISK-00000021\n- RISK-00000022\n- SIG-0000001e\n- TCA-0000002a\n- TCA-00000030\n- TCA-00000040\n- TCA-00000041",
+  "narrative": "MOMENTUM_12_1 RESEARCH PROPOSAL R01 2007-09-07 to 2026-09-18\n\nEXECUTIVE SUMMARY\n\nVerdict: PROMOTE. In-sample IC t-statistic 4.37, out-of-sample net Sharpe 1.39, costs consume 28% of gross return. No flags were raised; the signal clears every promotion hurdle.\n\nHYPOTHESIS\n\nTwelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.\nUniverse of 30 names, 4788 trading days from 2007-09-07 to 2026-09-18; in-sample period ends 2021-09-10.\n\nSIGNAL STATISTICS\n\nIn-sample: mean IC 0.0636, IC t-stat 4.37, IR 0.34, hit rate 60.5%, turnover n/a over 167 dates\nOut-of-sample: mean IC 0.1168, IC t-stat 4.48, IR 0.58, hit rate 69.5%, turnover n/a over 59 dates\nFull period: mean IC 0.0765, IC t-stat 5.99, IR 0.40, hit rate 62.6%, turnover n/a over 227 dates\n\nBACKTEST\n\nIn-sample: CAGR 4.2%, volatility 6.2%, net Sharpe 0.60 (gross 0.99), max drawdown 9.4%, cost drag 246 bps per year over 168 rebalances\nOut-of-sample: CAGR 12.9%, volatility 6.2%, net Sharpe 1.39 (gross 1.82), max drawdown 5.4%, cost drag 263 bps per year over 60 rebalances\nFull period: CAGR 6.4%, volatility 6.2%, net Sharpe 0.80 (gross 1.21), max drawdown 10.7%, cost drag 250 bps per year over 228 rebalances\nOut-of-sample to in-sample Sharpe ratio 2.33; top three names carry 24% of positive P&L.\n\nRISK\n\nTarget portfolio as of 2026-09-18: gross 100%, net 0%, max single-name weight 5.6%, beta -0.02, max ADV participation 3.9%.\nPortfolio limits respected.\nMarket shock of -500 bps: P&L through beta 38,000 USD, through net exposure -0 USD, worst single name -138,890 USD.\n\nVERDICT\n\nPROMOTE\n- in-sample IC t-stat 4.37 clears 3.00, deflated Sharpe 0.96 over 24 trial(s), out-of-sample net Sharpe 1.39, costs 28% of gross return, limits respected\n\nPRIMARY OBSERVATIONS\n\n1. Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.33 (in-sample 0.60, out-of-sample 1.39). [confidence 0.94]\n2. Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%). [confidence 0.85]\n3. Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates. [confidence 0.82]\n4. Transaction costs consume 28% of gross return (250 bps per year against gross 8.9%). [confidence 0.80]\n5. The strategy is profitable out-of-sample: net Sharpe 1.39, CAGR 12.9%, maximum drawdown 5.4% over 1260 days. [confidence 0.73]\n6. Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample. [confidence 0.70]\n7. Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10. [confidence 0.70]\n8. Regime: the equal-weight market returned 75.621% in-sample and -10.018% out-of-sample, with annualised volatility 15.727% versus 16.168%. [confidence 0.70]\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the flags above.\n\nCRITIC\n\nReviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: PROMOTE (no flags).\n\nAPPROVAL\n\nApproved by auto-approver: auto-approved (dev mode)\n\nSTAGED ORDERS\n\nOrder staging was not requested.\n\nPOLICY CONTEXT\n\n- Quant in CEAP / The assessment (`assess_research`): ### The assessment (`assess_research`)\n- Quant in CEAP / Multiple testing (2.8, 2.10, decision D4): What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,\n- Quant in CEAP / Risk (`ceap.analytics.portfolio_risk`, 2.12): ### Risk (`ceap.analytics.portfolio_risk`, 2.12)\n\nEVIDENCE\n\n- BT-00000023\n- DOC-00000021\n- MARKET-0000001d\n- RISK-0000001e\n- RISK-0000001f\n- RISK-00000020\n- SIG-00000022\n- TCA-0000002a\n- TCA-00000030\n- TCA-00000040\n- TCA-00000041",
   "primary_observations": [
     "Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.33 (in-sample 0.60, out-of-sample 1.39).",
     "Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%).",
@@ -2690,7 +2690,7 @@
     "approval": {
       "approved": true,
       "comment": "auto-approved (dev mode)",
-      "decided_at": "2026-01-01T00:00:00.090000+00:00",
+      "decided_at": "2026-01-01T00:00:00.092000+00:00",
       "decided_by": "auto-approver",
       "request_id": "APR-00000042",
       "step_id": "gov-approval",

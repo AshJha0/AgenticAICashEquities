@@ -26,7 +26,8 @@ async def test_thirty_research_scenarios_against_parameter_derived_truth(platfor
     assert summary["number_warnings"] == 0
     assert summary["clear_verdict_accuracy"] >= 0.85, misses
     assert sum(r["flags_coverage"] for r in clear) / len(clear) >= 0.85, misses
-    assert summary["near_threshold_accuracy"] >= 0.5
+    # 0.10 D4: near-threshold rows can now land on any of three verdicts; the bar is chance among three (was 0.5)
+    assert summary["near_threshold_accuracy"] >= 1 / 3
     assert not any(r["staged"] for r in rows)
     # every template is recognised at least once
     by_template: dict[str, list[bool]] = {}

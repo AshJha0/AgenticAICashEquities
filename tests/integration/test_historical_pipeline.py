@@ -151,5 +151,10 @@ def test_deterministic_pipeline_matches_scenario_ground_truth(history):
     assert len(rows) == 30 and len(clear) >= 15
     assert sum(r["hit"] for r in clear) / len(clear) >= 0.85, misses
     assert sum(r["covered"] for r in clear) / len(clear) >= 0.85, misses
-    assert sum(r["hit"] for r in rows) / len(rows) >= 0.85, misses
+    # 0.10 D1/D4: six of the thirty scenarios are near-threshold (two realistic-premium momentum seeds and the
+    # mixed template), whose realised verdict is luck among three outcomes; the all-rows bar is 0.8 (was 0.85
+    # with two outcomes), clear rows keep 0.85 and near rows must beat chance among three verdicts
+    assert sum(r["hit"] for r in rows) / len(rows) >= 0.8, misses
+    near = [r for r in rows if r["near"]]
+    assert sum(r["hit"] for r in near) / len(near) >= 1 / 3, misses
 
