@@ -17,6 +17,22 @@ HMAC-SHA256 keyed outside the database (:mod:`ceap.persistence.chainkey`), recor
 and simulated logs stay plain SHA-256 on purpose: they are exported as a public CSV that anyone must be
 able to verify without a key (``ceap paper verify-csv``), and their integrity rests on the git history
 of the forward-log branch and the anchored head (:mod:`ceap.persistence.anchor`).
+
+Money in ledger bodies (0.9.0, item F10). Plain idea: a float such as ``0.1 + 0.2`` is not the
+number a person reads, so a hash over floats pins an artefact of binary arithmetic. From 0.9.0 every
+new ledger row records its money as integer micro-dollars and the hash covers those integers.
+
+Formal statement. A version-2 row carries ``{"money_v2": {"cash_delta": c, "cost": k, "price": p}}``
+in its payload, each an ``int`` equal to ``round(x * 1e6)`` (``price`` may be null); the REAL columns
+hold exactly ``c / 1e6`` etc. The hashed body is the version-1 body with those three fields replaced
+by the integers and ``"body_version": 2`` added. A row whose REAL column disagrees with its integer
+gets a marker in the body, so its hash no longer verifies: the columns cannot be edited on their own.
+Version-1 rows (no ``money_v2``) are hashed exactly as before, so a database written by 0.8.0, which
+the daily forward-log job keeps appending to, verifies unchanged and simply continues in version 2.
+
+Worked example. A fill of 150 shares at 187.123456789 with cost 2.5 dollars has
+``cash_delta = -28071.01851835...``; the row stores ``money_v2.cash_delta = -28071018518`` and the
+column ``-28071.018518``. Summing the integers over the ledger reproduces cash to the micro-dollar.
 """
 
 from __future__ import annotations
@@ -36,6 +52,14 @@ from ceap.util.canonical import canonical_json
 FORWARD_BOOK = "forward"
 LOG_SCHEMA_VERSION = 1
 LEDGER_FIELDS = ("book", "date", "kind", "order_id", "symbol", "quantity", "price", "cash_delta", "cost")
+LEDGER_BODY_VERSION = 2
+MONEY_KEY = "money_v2"
+MICROS = 1_000_000
+
+
+def to_micros(x: float) -> int:
+    """Dollars to integer micro-dollars, round half to even (``round`` on the scaled float)."""
+    return int(round(float(x) * MICROS))
 
 
 def chain_hash(prev_hash: str, body: dict[str, Any]) -> str:
@@ -48,9 +72,26 @@ def _day_body(book: str, d: dict[str, Any]) -> dict[str, Any]:
             "ledger_head": d["ledger_head"], "equity": d["equity"]}
 
 
+def _money(row: dict[str, Any]) -> dict[str, Any] | None:
+    payload = row.get("payload_json")
+    if not payload or MONEY_KEY not in payload:
+        return None
+    m = json.loads(payload).get(MONEY_KEY)
+    return m if isinstance(m, dict) else None
+
+
 def _ledger_body(row: dict[str, Any]) -> dict[str, Any]:
     body = {k: row[k] for k in LEDGER_FIELDS}
     body["payload"] = row["payload_json"]
+    m = _money(row)
+    if m is None:
+        return body  # version 1 (0.8.0 and earlier): hashed exactly as written then
+    body["body_version"] = LEDGER_BODY_VERSION
+    for k in ("cash_delta", "cost", "price"):
+        col, u = row[k], m.get(k)
+        body[k] = u
+        if (u is None) != (col is None) or (u is not None and float(col) != u / MICROS):
+            body.setdefault("column_mismatch", []).append(k)  # breaks the hash on purpose
     return body
 
 
@@ -130,11 +171,19 @@ class PaperLedger:
     def append_events(self, conn: sqlite3.Connection, book: str, date: str, events: list[dict[str, Any]]) -> str:
         prev = self._head(conn, "SELECT hash FROM paper_ledger WHERE book=? ORDER BY seq DESC LIMIT 1", (book,))
         for e in events:
+            price = e.get("price")
+            money = {"cash_delta": to_micros(e.get("cash_delta", 0.0)), "cost": to_micros(e.get("cost", 0.0)),
+                     "price": None if price is None else to_micros(price)}
+            detail = dict(e.get("detail", {}))
+            if MONEY_KEY in detail:
+                raise ValueError(f"event detail may not carry the reserved key {MONEY_KEY!r}")
+            detail[MONEY_KEY] = money
             row = {
                 "book": book, "date": date, "kind": e["kind"], "order_id": e.get("order_id"),
-                "symbol": e.get("symbol"), "quantity": e.get("quantity"), "price": e.get("price"),
-                "cash_delta": float(e.get("cash_delta", 0.0)), "cost": float(e.get("cost", 0.0)),
-                "payload_json": canonical_json(e.get("detail", {})).decode("utf-8"),
+                "symbol": e.get("symbol"), "quantity": e.get("quantity"),
+                "price": None if price is None else money["price"] / MICROS,
+                "cash_delta": money["cash_delta"] / MICROS, "cost": money["cost"] / MICROS,
+                "payload_json": canonical_json(detail).decode("utf-8"),
             }
             digest, alg = self._link(conn, prev, _ledger_body(row))
             if alg is None:
@@ -254,11 +303,17 @@ class PaperLedger:
         if state is None:
             return {"ok": True, "days": 0, "breaks": []}
         pos: dict[str, float] = {}
-        cash = state.capital
+        cash_u = 0  # version-2 rows: exact integer micro-dollars
+        cash_f = 0.0  # version-1 rows: the float column
         for e in self.events(book):
-            cash += e["cash_delta"]
+            m = _money(e)
+            if m is not None:
+                cash_u += int(m["cash_delta"])
+            else:
+                cash_f += e["cash_delta"]
             if e["kind"] in ("fill", "split", "delist") and e["quantity"] is not None:
                 pos[e["symbol"]] = pos.get(e["symbol"], 0.0) + e["quantity"]
+        cash = state.capital + cash_f + cash_u / MICROS
         breaks = []
         for sym in sorted(set(pos) | set(state.positions)):
             a, b = pos.get(sym, 0.0), state.positions.get(sym, 0.0)
