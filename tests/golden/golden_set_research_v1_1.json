@@ -4,9 +4,11 @@
  "authored_from": "0.10 recalibrated scenario specifications (ground truth); not from platform output",
  "change_policy": "owner sign-off required before this file counts; edits only in a PR labelled golden-change",
  "signoff": {
-  "status": "PENDING",
-  "by": null,
-  "pr": null
+  "status": "SIGNED",
+  "by": "owner (AshJha0)",
+  "date": "2026-11-09",
+  "pr": "0.9.0 combined PR",
+  "decision": "Option A: the three v1.1 items accepted as written; G-RES-10/11 (mixed) stay REJECT in golden_set.json 1.0.0; the 13/15 is a platform defect to diagnose, not a relabel"
  },
  "items_sha256": "8ad63574c7317aacf4e6a1ee839816dd0ef05b93478e5e915c227492c9f86e96",
  "items": [
