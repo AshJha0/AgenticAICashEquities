@@ -1,0 +1,194 @@
+{
+ "signal": "momentum_12_1",
+ "rebalance_days": 21,
+ "hurdles": [
+  1.645,
+  3.0
+ ],
+ "oos_ic_t_min": 1.0,
+ "seeds_per_point": 8,
+ "detection": "in-sample IC t >= hurdle and out-of-sample IC t >= oos_ic_t_min",
+ "note": "market_corr detections are market exposure, so they count as false positives at every premium",
+ "rows": [
+  {
+   "family": "drift",
+   "premium_bps": 0.0,
+   "seeds": 8,
+   "kind": "false_positive_rate",
+   "rate_single_test": 0.0,
+   "rate_mined": 0.0,
+   "mean_t_is": 0.3352
+  },
+  {
+   "family": "drift",
+   "premium_bps": 600.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.0,
+   "rate_mined": 0.0,
+   "mean_t_is": 0.8873
+  },
+  {
+   "family": "drift",
+   "premium_bps": 1100.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.5,
+   "rate_mined": 0.125,
+   "mean_t_is": 2.2955
+  },
+  {
+   "family": "drift",
+   "premium_bps": 2400.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 1.0,
+   "rate_mined": 1.0,
+   "mean_t_is": 8.0115
+  },
+  {
+   "family": "hidden_factor",
+   "premium_bps": 0.0,
+   "seeds": 8,
+   "kind": "false_positive_rate",
+   "rate_single_test": 0.0,
+   "rate_mined": 0.0,
+   "mean_t_is": 0.3352
+  },
+  {
+   "family": "hidden_factor",
+   "premium_bps": 600.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.0,
+   "rate_mined": 0.0,
+   "mean_t_is": 0.5849
+  },
+  {
+   "family": "hidden_factor",
+   "premium_bps": 1100.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.125,
+   "rate_mined": 0.0,
+   "mean_t_is": 1.2155
+  },
+  {
+   "family": "hidden_factor",
+   "premium_bps": 2400.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.875,
+   "rate_mined": 0.75,
+   "mean_t_is": 3.9037
+  },
+  {
+   "family": "regime_switch",
+   "premium_bps": 0.0,
+   "seeds": 8,
+   "kind": "false_positive_rate",
+   "rate_single_test": 0.0,
+   "rate_mined": 0.0,
+   "mean_t_is": 0.3352
+  },
+  {
+   "family": "regime_switch",
+   "premium_bps": 600.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.0,
+   "rate_mined": 0.0,
+   "mean_t_is": 0.5131
+  },
+  {
+   "family": "regime_switch",
+   "premium_bps": 1100.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.125,
+   "rate_mined": 0.0,
+   "mean_t_is": 1.1912
+  },
+  {
+   "family": "regime_switch",
+   "premium_bps": 2400.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.625,
+   "rate_mined": 0.5,
+   "mean_t_is": 3.9443
+  },
+  {
+   "family": "garch_jumps",
+   "premium_bps": 0.0,
+   "seeds": 8,
+   "kind": "false_positive_rate",
+   "rate_single_test": 0.0,
+   "rate_mined": 0.0,
+   "mean_t_is": 0.249
+  },
+  {
+   "family": "garch_jumps",
+   "premium_bps": 600.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.0,
+   "rate_mined": 0.0,
+   "mean_t_is": 0.5808
+  },
+  {
+   "family": "garch_jumps",
+   "premium_bps": 1100.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.125,
+   "rate_mined": 0.0,
+   "mean_t_is": 1.522
+  },
+  {
+   "family": "garch_jumps",
+   "premium_bps": 2400.0,
+   "seeds": 8,
+   "kind": "power",
+   "rate_single_test": 0.875,
+   "rate_mined": 0.875,
+   "mean_t_is": 5.4098
+  },
+  {
+   "family": "market_corr",
+   "premium_bps": 0.0,
+   "seeds": 8,
+   "kind": "false_positive_rate",
+   "rate_single_test": 0.0,
+   "rate_mined": 0.0,
+   "mean_t_is": 0.3352
+  },
+  {
+   "family": "market_corr",
+   "premium_bps": 600.0,
+   "seeds": 8,
+   "kind": "false_positive_rate",
+   "rate_single_test": 0.125,
+   "rate_mined": 0.0,
+   "mean_t_is": 1.737
+  },
+  {
+   "family": "market_corr",
+   "premium_bps": 1100.0,
+   "seeds": 8,
+   "kind": "false_positive_rate",
+   "rate_single_test": 0.75,
+   "rate_mined": 0.625,
+   "mean_t_is": 4.0917
+  },
+  {
+   "family": "market_corr",
+   "premium_bps": 2400.0,
+   "seeds": 8,
+   "kind": "false_positive_rate",
+   "rate_single_test": 1.0,
+   "rate_mined": 1.0,
+   "mean_t_is": 13.049
+  }
+ ]
+}

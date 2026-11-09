@@ -122,3 +122,65 @@ python scripts/fetch_ff_factors.py
 python scripts/download_daily.py
 python scripts/fetch_real_reports.py
 ```
+
+## Research realism toolkit (0.10, WS-D)
+
+These changes make the *synthetic* research evaluation harder to pass and easier to audit. None of
+them is a result about real markets. Evidence class in brackets.
+
+**Calibration (D1) [literature + simulation].** Published moments for US cross-sectional signals are
+a monthly rank IC of about 0.02 to 0.03 and a gross long-short Sharpe of about 0.3 to 0.5 (Grinold and
+Kahn 2000, ch. 6; Asness, Moskowitz and Pedersen 2013). The old "realistic" momentum template had a
+rank IC of 0.062 and the strong one 0.100. Templates now carry a `calibration` label:
+`momentum_realistic` (R08, rank IC 0.025, gross Sharpe 0.42) and `reversal_realistic` (R09, five-day
+rank IC 0.024, gross Sharpe 0.84 before costs that consume it) match those moments; the other
+templates say "Stylised" and state the multiple (about 4x for momentum). One honest wrinkle: in this
+generator a 12-1 momentum signal estimates the latent drift with error, so matching the IC needs a
+cross-sectional expected-return SD of about 11 %/yr, not the 3 to 6 %/yr often quoted.
+
+**Verdicts (D3, D4) [method].** The IC hurdle is fixed in advance: t >= 1.645 for one preregistered
+test, t >= 3.0 for anything chosen from a search (Harvey, Liu and Zhu 2016). The default research
+flow counts the whole 24-configuration search, so it uses 3.0. A third verdict, `INCONCLUSIVE`,
+replaces `REJECT` when every flag is statistical (`NO_ALPHA`, `OOS_DECAY`) and the 95 % interval of
+the full-period net Sharpe (Lo 2002 standard error) covers both 0 and the 0.5 minimum: the data
+cannot tell "no edge" from "a tradable edge". The realistic momentum template's expected verdict is
+`INCONCLUSIVE`. No `MONITOR` verdict was added: nothing would act on it differently.
+
+**Null sweep (D3, D20, D21) [simulation].** Re-run on 500 pure-noise seeds over the full search; it
+reproduced the 0.4.0 sweep hash `ef474869e5fa…` exactly. At t >= 3.0 it found 0 false PROMOTEs (95 %
+Clopper-Pearson upper bound 0.74 %); at 1.645, 4 of 500 (0.8 %). The per-seed vector is published in
+[`null_sweep_per_seed.json`](null_sweep_per_seed.json) with a 50-seed quick check in
+`data/reference/research_thresholds.json`, and every sweep run is appended to
+`data/reference/sweep_ledger.jsonl` with its generator version.
+
+**Adversarial power curves (D2) [simulation].** [`adversarial_power.json`](adversarial_power.json):
+detection rate of the IC gate against the planted premium for five generator families written without
+reference to the signal code (8 seeds a point; a coarse first look, not a precise rate):
+
+| Family | 0 | 600 | 1100 | 2400 bps (detection at t >= 3.0) |
+|---|---|---|---|---|
+| drift (baseline) | 0/8 | 0/8 | 1/8 | 8/8 |
+| hidden factor (correlated noise) | 0/8 | 0/8 | 0/8 | 6/8 |
+| regime switching (+1 / -0.5) | 0/8 | 0/8 | 0/8 | 4/8 |
+| GARCH plus jumps | 0/8 | 0/8 | 0/8 | 7/8 |
+| premium on market beta (all false positives) | 0/8 | 0/8 | 5/8 | 8/8 |
+
+The last row is the important one: when expected return is planted on market beta, 12-1 momentum
+"detects" it because past winners are high-beta names in a rising market. The IC gate cannot tell
+beta from alpha; factor-neutral residuals (D16, `ceap.analytics.risk_research.residualise`) can.
+
+**Other checks.** Leakage canary through `simulate_backtest` (D7): a feature equal to the realised
+holding-period return, delayed d days, gives gross Sharpe 9.1, 7.7, 6.2, 3.9 at d = 0..3 and 0.0 at
+d = 4 with a five-day hold and a one-day lag, collapsing exactly when d + lag >= hold. Trial
+accounting (D8, `ceap.analytics.trial_accounting`), PBO by CSCV and stationary block bootstrap
+intervals (D9, `ceap.analytics.overfitting`), Newey-West over gaps with the Andrews bandwidth (D11),
+an equal-weight baseline with a paired bootstrap and Diebold-Mariano test for the ridge (D12),
+Ledoit-Wolf covariance, factor regression with alpha t after factors and multi-factor stress (D13,
+D16), data-vintage hashes (D14, `ceap.data.real.vintage`), the IC term structure and half-life (D15,
+`ceap.analytics.alpha_decay`), turnover-penalised construction and the cost frontier (D17, D18),
+drawdown, CVaR and volatility-regime splits (D19), a robustness report per verdict (D6) and
+`scripts/rebuild_study.py` (D20).
+
+Not done in 0.10: a 500-name universe (D5; it multiplies every scenario's run time by about 14, and
+with independent idiosyncratic noise the fundamental law then makes realistic ICs look like Sharpe
+ratios of 1.7, so it needs correlated noise first) and real-path delisting returns (D10).

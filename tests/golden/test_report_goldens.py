@@ -23,6 +23,7 @@ import pytest
 
 from ceap.config import Settings
 from ceap.domain.common import to_jsonable
+from ceap.domain.research import ResearchVerdict
 from ceap.harness.replay import DeterministicClock, injected_clock
 from ceap.llm.client import MockLLMClient
 from ceap.platform import Platform, default_request, default_research_request
@@ -68,7 +69,7 @@ def _check_invariants(report: dict[str, Any]) -> None:
 
     finite(report["metrics"])
     if report["kind"] == "research":
-        assert report["proposal"]["verdict"] in {"PROMOTE", "REJECT", "INCONCLUSIVE", "MONITOR"}
+        assert report["proposal"]["verdict"] in {v.value for v in ResearchVerdict}
 
 
 SIG_DIGITS = 9  # floats compared to 9 significant digits: last-ulp noise differs across OS/BLAS builds

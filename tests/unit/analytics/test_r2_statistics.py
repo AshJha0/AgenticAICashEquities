@@ -174,7 +174,7 @@ def test_assessment_carries_a_hypothesis_table():
         evaluate_signal(ds, "momentum_12_1"), run_backtest(ds, "momentum_12_1"),
         with_checks(target_portfolio(ds, "momentum_12_1")),
     )
-    assert a.hypotheses is not None and a.hypotheses.trials_counted == 1
+    assert a.hypotheses is not None and a.hypotheses.trials_counted == DEFAULT_THRESHOLDS.trial_floor  # D8
     assert [r.name for r in a.hypotheses.rows] == [
         "in_sample_ic_t", "deflated_sharpe", "out_of_sample_ic_t", "out_of_sample_sharpe_t"]
     assert a.metrics["hurdle_t"] == DEFAULT_THRESHOLDS.ic_t_stat_min
@@ -202,6 +202,11 @@ def test_committed_thresholds_record_the_sweep():
     assert doc["ic_t_stat_min"] == DEFAULT_THRESHOLDS.ic_t_stat_min
     assert doc["sweep_hash"] == DEFAULT_THRESHOLDS.hurdle_sweep_hash and len(doc["sweep_hash"]) == 64
     assert doc["n_seeds"] == 500 and doc["band95"][1] <= 0.05
+    # D3: the hurdle is a priori; the sweep measured 0 false PROMOTEs at t >= 3 over 500 seeds
+    assert doc["ic_t_single_test"] == DEFAULT_THRESHOLDS.ic_t_single_test == 1.645
+    assert doc["false_promotes"] == 0 and doc["quick_check_50"]["n_seeds"] == 50
+    per_seed = json.loads((THRESHOLDS_PATH.parents[2] / "docs" / "research" / "null_sweep_per_seed.json").read_text())
+    assert per_seed["sweep_hash"] == doc["sweep_hash"] and len(per_seed["per_seed"]) == 500
 
 
 def test_wheel_fallbacks_match_the_committed_files(monkeypatch, tmp_path):
@@ -211,7 +216,7 @@ def test_wheel_fallbacks_match_the_committed_files(monkeypatch, tmp_path):
     assert (ra.COMMITTED_HURDLE, ra.COMMITTED_SWEEP_HASH) == (DEFAULT_THRESHOLDS.ic_t_stat_min,
                                                             DEFAULT_THRESHOLDS.hurdle_sweep_hash)
     monkeypatch.setattr(ra, "THRESHOLDS_PATH", tmp_path / "missing.json")
-    assert ra._load_hurdle() == (ra.COMMITTED_HURDLE, ra.COMMITTED_SWEEP_HASH)
+    assert ra._load_sweep_hash() == ra.COMMITTED_SWEEP_HASH
     on_disk = cal._load()
     cal._load.cache_clear()
     monkeypatch.setattr(cal, "CALENDAR_PATH", tmp_path / "missing.csv")

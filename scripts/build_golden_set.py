@@ -17,7 +17,7 @@ from ceap.data.research_scenarios import all_research_scenarios  # noqa: E402
 from ceap.data.scenarios import all_scenarios  # noqa: E402
 from ceap.golden import GOLDEN_SET_PATH, items_sha256  # noqa: E402
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 ALL_CAUSES = (
     "MARKET_VOLATILITY",
     "WIDE_SPREADS",

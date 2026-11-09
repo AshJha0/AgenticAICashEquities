@@ -27,3 +27,13 @@ synthetic; the Stooq feed refuses rows up to 2025-12-31 and is not configured (n
 the repository), so the earliest
 real-price start is about January 2027. Distinguishing a Sharpe of 1 from 0 needs about 1980
 sessions (LEARN §18a), so the forward record tests operations and controls, not profitability.
+
+**Research realism (0.10, WS-D), evidence class simulation.** Source: `docs/research/README.md`
+("Research realism toolkit"). None of this is a real-data result. The synthetic templates are now
+labelled realistic or stylised; the realistic momentum template (rank IC 0.025, gross Sharpe 0.42)
+gets the new `INCONCLUSIVE` verdict, because 14 years of in-sample data cannot separate it from zero
+or from a tradable edge. The IC hurdle is a priori (3.0 for a searched result, 1.645 for one
+preregistered test); the re-run null sweep gave 0 false PROMOTEs in 500 seeds at 3.0. Data vintages
+of every real download can now be hashed and diffed (`ceap.data.real.vintage`), and
+`scripts/rebuild_study.py` checks a study's preregistration hash before anything is re-run. The next
+real-data study (E1) runs under its own preregistration and is not part of this change.

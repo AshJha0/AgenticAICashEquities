@@ -14,7 +14,10 @@ Conventions (0.4.0; each one is a stated assumption recorded in ``BacktestResult
   ``1 - net exposure`` (short proceeds are credited): positive cash earns the
   risk-free rate (the short rebate), negative cash pays rf plus a financing
   spread. Shorts pay a borrow fee by liquidity tier (A 0.5 %, B 2 %, C 10 % a
-  year). Sharpe and Sortino are computed on returns in excess of rf, so a
+  year), flat over time and the same for every name in a tier (0.10 D23: a
+  stated simplification; real borrow is name-specific, rises in squeezes and
+  can be recalled, so short-heavy books are flattered). Sharpe and Sortino are
+  computed on returns in excess of rf, so a
   long-only book's Sharpe falls by rf/sigma and a dollar-neutral book is
   self-financing. Gross leverage is capped at 2x (Reg T).
 * **Reg SHO SSR (2.3).** On a name down 10 % intraday from the prior close the
@@ -646,6 +649,7 @@ def simulate_backtest(
         "drift": drift,
         "risk_free": rf_source,
         "borrow_bps_annual": dict(fin_model.borrow_bps_annual) if fin_model.enabled else {},
+        "borrow_model": "flat per tier, constant over time (no squeezes, recalls or name-specific fees)",
         "financing_spread_bps_annual": fin_model.financing_spread_bps_annual if fin_model.enabled else 0.0,
         "gross_leverage": gross_leverage,
         "gross_leverage_limit": fin_model.gross_leverage_limit,

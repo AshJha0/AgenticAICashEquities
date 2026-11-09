@@ -49,12 +49,12 @@
         "supported": true
       },
       {
-        "adjusted_confidence": 0.936,
+        "adjusted_confidence": 0.916,
         "finding_id": "F-0000002b",
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
-        "llm_proposed_confidence": 0.936,
+        "llm_proposed_confidence": 0.916,
         "notes": [],
-        "original_confidence": 0.936,
+        "original_confidence": 0.916,
         "supported": true
       },
       {
@@ -478,7 +478,7 @@
               "ic_std": 0.186379807,
               "ic_t_stat": 12.7192394,
               "ic_t_stat_1d": 23.7140759,
-              "ic_t_stat_nw": 20.027801,
+              "ic_t_stat_nw": 18.0799801,
               "mean_ic": 0.0766309183,
               "mean_ic_1d": 0.0665014058,
               "mean_ic_horizon": 0.0779553355,
@@ -503,7 +503,7 @@
               "ic_std": 0.185932507,
               "ic_t_stat": 10.406796,
               "ic_t_stat_1d": 20.1688122,
-              "ic_t_stat_nw": 16.4819931,
+              "ic_t_stat_nw": 15.0648447,
               "mean_ic": 0.0728748723,
               "mean_ic_1d": 0.0661069296,
               "mean_ic_horizon": 0.0747706994,
@@ -528,7 +528,7 @@
               "ic_std": 0.197438339,
               "ic_t_stat": 6.13493507,
               "ic_t_stat_1d": 12.4844401,
-              "ic_t_stat_nw": 11.6093316,
+              "ic_t_stat_nw": 10.7365945,
               "mean_ic": 0.076454772,
               "mean_ic_1d": 0.0676372226,
               "mean_ic_horizon": 0.0876290343,
@@ -560,6 +560,7 @@
               "B": 200.0,
               "C": 1000.0
             },
+            "borrow_model": "flat per tier, constant over time (no squeezes, recalls or name-specific fees)",
             "caps": {
               "max_participation": 0.1,
               "max_weight": 0.1
@@ -1220,7 +1221,7 @@
           "COST_DRAG"
         ],
         "hypotheses": {
-          "correction": "null-sweep hurdle t>=0.40 (ef474869e5fa) + deflated Sharpe",
+          "correction": "a-priori hurdle t>=3 over 24 trial(s) + deflated Sharpe",
           "rows": [
             {
               "n_obs": 705,
@@ -1232,8 +1233,8 @@
             {
               "n_obs": 3528,
               "name": "deflated_sharpe",
-              "p_value": 3.98570066e-13,
-              "statistic": 1.0,
+              "p_value": 1.0468164e-07,
+              "statistic": 0.999999895,
               "verdict": "PASS"
             },
             {
@@ -1251,19 +1252,21 @@
               "verdict": "FAIL"
             }
           ],
-          "trials_counted": 1
+          "trials_counted": 24
         },
         "metrics": {
           "breached_checks": 0.0,
           "cost_share": 0.844199089,
-          "deflated_sharpe": 1.0,
-          "deflated_sharpe_bar": 0.0,
-          "hurdle_t": 0.4,
+          "deflated_sharpe": 0.999999895,
+          "deflated_sharpe_bar": 0.529116621,
+          "full_sharpe_ci_high": 0.580487963,
+          "full_sharpe_ci_low": -0.322553426,
+          "hurdle_t": 3.0,
           "is_ic_t_stat": 10.406796,
-          "is_ic_t_stat_nw": 16.4819931,
+          "is_ic_t_stat_nw": 15.0648447,
           "is_sharpe": 0.0892019453,
           "max_adv_participation": 0.01932,
-          "n_trials": 1.0,
+          "n_trials": 24.0,
           "oos_gross_sharpe": 2.23190841,
           "oos_ic_t_stat": 6.13493507,
           "oos_sharpe": 0.242381088,
@@ -1274,7 +1277,7 @@
           "gross out-of-sample Sharpe 2.23 but net 0.24; costs consume 84% of gross return"
         ],
         "scores": {
-          "alpha": 0.993,
+          "alpha": 0.976,
           "cost": 0.156,
           "diversification": 0.722,
           "limits": 1.0,
@@ -1337,12 +1340,12 @@
             "supported": true
           },
           {
-            "adjusted_confidence": 0.936,
+            "adjusted_confidence": 0.916,
             "finding_id": "F-0000002b",
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
-            "llm_proposed_confidence": 0.936,
+            "llm_proposed_confidence": 0.916,
             "notes": [],
-            "original_confidence": 0.936,
+            "original_confidence": 0.916,
             "supported": true
           },
           {
@@ -1551,7 +1554,7 @@
         "ic_t_stat": 10.406796
       },
       "category": "SIGNAL",
-      "confidence": 0.936,
+      "confidence": 0.916,
       "contradicting_evidence": [],
       "evidence_refs": [
         {
@@ -1562,7 +1565,7 @@
       ],
       "id": "F-0000002b",
       "produced_by": "alpha",
-      "statement": "The reversal_5 signal is predictive in-sample: mean 5-day rank IC 0.0729 with t-statistic 10.41 over 705 non-overlapping periods, clearing the 0.40 null-sweep hurdle (Newey-West t on overlapping periods 16.48; hit rate 65.2%).",
+      "statement": "The reversal_5 signal is predictive in-sample: mean 5-day rank IC 0.0729 with t-statistic 10.41 over 705 non-overlapping periods, clearing the 3.00 null-sweep hurdle (Newey-West t on overlapping periods 15.06; hit rate 65.2%).",
       "supporting_evidence": [
         "TCA-0000002a",
         "SIG-0000001e"
@@ -1988,6 +1991,7 @@
           "B": 200.0,
           "C": 1000.0
         },
+        "borrow_model": "flat per tier, constant over time (no squeezes, recalls or name-specific fees)",
         "caps": {
           "max_participation": 0.1,
           "max_weight": 0.1
@@ -2942,7 +2946,7 @@
           "ic_std": 0.186379807,
           "ic_t_stat": 12.7192394,
           "ic_t_stat_1d": 23.7140759,
-          "ic_t_stat_nw": 20.027801,
+          "ic_t_stat_nw": 18.0799801,
           "mean_ic": 0.0766309183,
           "mean_ic_1d": 0.0665014058,
           "mean_ic_horizon": 0.0779553355,
@@ -2967,7 +2971,7 @@
           "ic_std": 0.185932507,
           "ic_t_stat": 10.406796,
           "ic_t_stat_1d": 20.1688122,
-          "ic_t_stat_nw": 16.4819931,
+          "ic_t_stat_nw": 15.0648447,
           "mean_ic": 0.0728748723,
           "mean_ic_1d": 0.0661069296,
           "mean_ic_horizon": 0.0747706994,
@@ -2992,7 +2996,7 @@
           "ic_std": 0.197438339,
           "ic_t_stat": 6.13493507,
           "ic_t_stat_1d": 12.4844401,
-          "ic_t_stat_nw": 11.6093316,
+          "ic_t_stat_nw": 10.7365945,
           "mean_ic": 0.076454772,
           "mean_ic_1d": 0.0676372226,
           "mean_ic_horizon": 0.0876290343,
@@ -3007,10 +3011,10 @@
       "universe_size": 30
     }
   },
-  "narrative": "REVERSAL_5 RESEARCH PROPOSAL R03 2007-09-07 to 2026-09-18\n\nEXECUTIVE SUMMARY\n\nVerdict: REJECT. In-sample IC t-statistic 10.41, out-of-sample net Sharpe 0.24, costs consume 84% of gross return. Flags raised: COST_DRAG.\n\nHYPOTHESIS\n\nShort-term (five-day) return reversal (reversal_5) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 5 trading days earns a positive net return out-of-sample.\nUniverse of 30 names, 4788 trading days from 2007-09-07 to 2026-09-18; in-sample period ends 2021-09-10.\n\nSIGNAL STATISTICS\n\nIn-sample: mean IC 0.0729, IC t-stat 10.41, IR 0.39, hit rate 65.2%, turnover n/a over 705 dates\nOut-of-sample: mean IC 0.0765, IC t-stat 6.13, IR 0.39, hit rate 65.7%, turnover n/a over 251 dates\nFull period: mean IC 0.0766, IC t-stat 12.72, IR 0.41, hit rate 65.5%, turnover n/a over 957 dates\n\nBACKTEST\n\nIn-sample: CAGR 1.0%, volatility 7.1%, net Sharpe 0.09 (gross 1.92), max drawdown 22.2%, cost drag 1258 bps per year over 706 rebalances\nOut-of-sample: CAGR 5.3%, volatility 6.9%, net Sharpe 0.24 (gross 2.23), max drawdown 7.3%, cost drag 1320 bps per year over 252 rebalances\nFull period: CAGR 2.1%, volatility 7.0%, net Sharpe 0.13 (gross 2.00), max drawdown 22.2%, cost drag 1275 bps per year over 958 rebalances\nOut-of-sample to in-sample Sharpe ratio 2.72; top three names carry 28% of positive P&L.\n\nRISK\n\nTarget portfolio as of 2026-09-18: gross 100%, net 0%, max single-name weight 5.6%, beta 0.02, max ADV participation 1.9%.\nPortfolio limits respected.\nMarket shock of -500 bps: P&L through beta -51,750 USD, through net exposure -0 USD, worst single name -138,890 USD.\n\nVERDICT\n\nREJECT (COST_DRAG)\n- gross out-of-sample Sharpe 2.23 but net 0.24; costs consume 84% of gross return\n\nPRIMARY OBSERVATIONS\n\n1. Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.72 (in-sample 0.09, out-of-sample 0.24). [confidence 0.94]\n2. The reversal_5 signal is predictive in-sample: mean 5-day rank IC 0.0729 with t-statistic 10.41 over 705 non-overlapping periods, clearing the 0.40 null-sweep hurdle (Newey-West t on overlapping periods 16.48; hit rate 65.2%). [confidence 0.94]\n3. Predictive power persists out-of-sample: IC t-statistic 6.13 over 251 dates. [confidence 0.88]\n4. The strategy is not profitable out-of-sample: net Sharpe 0.24 against a 0.50 hurdle (CAGR 5.3%). [confidence 0.85]\n5. Transaction costs consume the alpha: gross out-of-sample Sharpe 2.23 versus net 0.24; cost drag 1275 bps per year (84% of gross return). [confidence 0.85]\n6. Portfolio limits respected (peak utilisation 95%; maximum ADV participation 1.9%). [confidence 0.85]\n7. Hypothesis: Short-term (five-day) return reversal (reversal_5) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 5 trading days earns a positive net return out-of-sample. [confidence 0.70]\n8. Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10. [confidence 0.70]\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the flags above.\n\nCRITIC\n\nReviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: REJECT (COST_DRAG).\n\nAPPROVAL\n\nApproved by auto-approver: auto-approved (dev mode)\n\nSTAGED ORDERS\n\nOrder staging was not requested.\n\nPOLICY CONTEXT\n\n- Quant in CEAP / The assessment (`assess_research`): ### The assessment (`assess_research`)\n- Quant in CEAP / Multiple testing (2.8, 2.10, decision D4): What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,\n- Quant in CEAP / Risk (`ceap.analytics.portfolio_risk`, 2.12): ### Risk (`ceap.analytics.portfolio_risk`, 2.12)\n\nEVIDENCE\n\n- BT-0000001f\n- DOC-00000023\n- MARKET-0000001d\n- RISK-00000020\n- RISK-00000021\n- RISK-00000022\n- SIG-0000001e\n- TCA-0000002a\n- TCA-00000030\n- TCA-00000040\n- TCA-00000041",
+  "narrative": "REVERSAL_5 RESEARCH PROPOSAL R03 2007-09-07 to 2026-09-18\n\nEXECUTIVE SUMMARY\n\nVerdict: REJECT. In-sample IC t-statistic 10.41, out-of-sample net Sharpe 0.24, costs consume 84% of gross return. Flags raised: COST_DRAG.\n\nHYPOTHESIS\n\nShort-term (five-day) return reversal (reversal_5) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 5 trading days earns a positive net return out-of-sample.\nUniverse of 30 names, 4788 trading days from 2007-09-07 to 2026-09-18; in-sample period ends 2021-09-10.\n\nSIGNAL STATISTICS\n\nIn-sample: mean IC 0.0729, IC t-stat 10.41, IR 0.39, hit rate 65.2%, turnover n/a over 705 dates\nOut-of-sample: mean IC 0.0765, IC t-stat 6.13, IR 0.39, hit rate 65.7%, turnover n/a over 251 dates\nFull period: mean IC 0.0766, IC t-stat 12.72, IR 0.41, hit rate 65.5%, turnover n/a over 957 dates\n\nBACKTEST\n\nIn-sample: CAGR 1.0%, volatility 7.1%, net Sharpe 0.09 (gross 1.92), max drawdown 22.2%, cost drag 1258 bps per year over 706 rebalances\nOut-of-sample: CAGR 5.3%, volatility 6.9%, net Sharpe 0.24 (gross 2.23), max drawdown 7.3%, cost drag 1320 bps per year over 252 rebalances\nFull period: CAGR 2.1%, volatility 7.0%, net Sharpe 0.13 (gross 2.00), max drawdown 22.2%, cost drag 1275 bps per year over 958 rebalances\nOut-of-sample to in-sample Sharpe ratio 2.72; top three names carry 28% of positive P&L.\n\nRISK\n\nTarget portfolio as of 2026-09-18: gross 100%, net 0%, max single-name weight 5.6%, beta 0.02, max ADV participation 1.9%.\nPortfolio limits respected.\nMarket shock of -500 bps: P&L through beta -51,750 USD, through net exposure -0 USD, worst single name -138,890 USD.\n\nVERDICT\n\nREJECT (COST_DRAG)\n- gross out-of-sample Sharpe 2.23 but net 0.24; costs consume 84% of gross return\n\nPRIMARY OBSERVATIONS\n\n1. Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.72 (in-sample 0.09, out-of-sample 0.24). [confidence 0.94]\n2. The reversal_5 signal is predictive in-sample: mean 5-day rank IC 0.0729 with t-statistic 10.41 over 705 non-overlapping periods, clearing the 3.00 null-sweep hurdle (Newey-West t on overlapping periods 15.06; hit rate 65.2%). [confidence 0.92]\n3. Predictive power persists out-of-sample: IC t-statistic 6.13 over 251 dates. [confidence 0.88]\n4. The strategy is not profitable out-of-sample: net Sharpe 0.24 against a 0.50 hurdle (CAGR 5.3%). [confidence 0.85]\n5. Transaction costs consume the alpha: gross out-of-sample Sharpe 2.23 versus net 0.24; cost drag 1275 bps per year (84% of gross return). [confidence 0.85]\n6. Portfolio limits respected (peak utilisation 95%; maximum ADV participation 1.9%). [confidence 0.85]\n7. Hypothesis: Short-term (five-day) return reversal (reversal_5) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 5 trading days earns a positive net return out-of-sample. [confidence 0.70]\n8. Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10. [confidence 0.70]\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the flags above.\n\nCRITIC\n\nReviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: REJECT (COST_DRAG).\n\nAPPROVAL\n\nApproved by auto-approver: auto-approved (dev mode)\n\nSTAGED ORDERS\n\nOrder staging was not requested.\n\nPOLICY CONTEXT\n\n- Quant in CEAP / The assessment (`assess_research`): ### The assessment (`assess_research`)\n- Quant in CEAP / Multiple testing (2.8, 2.10, decision D4): What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,\n- Quant in CEAP / Risk (`ceap.analytics.portfolio_risk`, 2.12): ### Risk (`ceap.analytics.portfolio_risk`, 2.12)\n\nEVIDENCE\n\n- BT-0000001f\n- DOC-00000023\n- MARKET-0000001d\n- RISK-00000020\n- RISK-00000021\n- RISK-00000022\n- SIG-0000001e\n- TCA-0000002a\n- TCA-00000030\n- TCA-00000040\n- TCA-00000041",
   "primary_observations": [
     "Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.72 (in-sample 0.09, out-of-sample 0.24).",
-    "The reversal_5 signal is predictive in-sample: mean 5-day rank IC 0.0729 with t-statistic 10.41 over 705 non-overlapping periods, clearing the 0.40 null-sweep hurdle (Newey-West t on overlapping periods 16.48; hit rate 65.2%).",
+    "The reversal_5 signal is predictive in-sample: mean 5-day rank IC 0.0729 with t-statistic 10.41 over 705 non-overlapping periods, clearing the 3.00 null-sweep hurdle (Newey-West t on overlapping periods 15.06; hit rate 65.2%).",
     "Predictive power persists out-of-sample: IC t-statistic 6.13 over 251 dates.",
     "The strategy is not profitable out-of-sample: net Sharpe 0.24 against a 0.50 hurdle (CAGR 5.3%).",
     "Transaction costs consume the alpha: gross out-of-sample Sharpe 2.23 versus net 0.24; cost drag 1275 bps per year (84% of gross return).",
@@ -3046,7 +3050,7 @@
       "gross out-of-sample Sharpe 2.23 but net 0.24; costs consume 84% of gross return"
     ],
     "scores": {
-      "alpha": 0.993,
+      "alpha": 0.976,
       "cost": 0.156,
       "diversification": 0.722,
       "limits": 1.0,

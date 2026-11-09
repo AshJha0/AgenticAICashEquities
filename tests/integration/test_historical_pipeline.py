@@ -34,7 +34,7 @@ def test_scenario_catalogue():
     assert len({(s.template, s.seed) for s in scenarios}) == 30
     assert {s.template for s in RESEARCH_TEMPLATES} == {
         "momentum_premium", "no_alpha", "reversal_premium", "regime_break", "cost_drag", "concentration", "mixed",
-        "momentum_near_threshold", "reversal_weak", "momentum_crash",
+        "momentum_realistic", "reversal_realistic", "momentum_crash",
     }
     assert get_research_scenario("R01").template == "momentum_premium"
     assert get_research_scenario("regime_break").id == "R04"

@@ -10,6 +10,24 @@ REJECT under t+1 execution stay REJECT (decision D5).
 ``LEGACY_TEMPLATES`` keep the 0.3.x scenarios on the legacy generator with
 their old hand-written verdicts; they exist only for the execution-lag
 regression (2.1) and the re-baseline diff table (2.11).
+
+Calibration (0.10 D1). Published moments for US cross-sectional equity signals:
+monthly rank IC about 0.02-0.03 and a gross long-short Sharpe about 0.3-0.5
+(evidence class: literature; e.g. Grinold and Kahn 2000, ch. 6; Asness,
+Moskowitz and Pedersen 2013 for momentum). Each template carries a
+``calibration`` label:
+
+* ``realistic`` - the planted premium reproduces those moments in this
+  generator (R08 momentum: per-period rank IC 0.025, gross Sharpe 0.42; R09
+  reversal: 5-day rank IC 0.024, gross Sharpe 0.84 before costs that consume
+  it). In the generator a 12-1 momentum signal estimates the latent drift with
+  error, so matching the IC needs a cross-sectional expected-return SD of
+  about 11 %/yr rather than the 3-6 %/yr often quoted; this is recorded, not
+  hidden.
+* ``stylised`` - the premium is several times a real one, so that a mechanism
+  (cost drag, regime break, concentration, crash) is visible on one seed. The
+  description states the multiple. A stylised PROMOTE is a pipeline check,
+  not evidence that such signals exist.
 """
 
 from __future__ import annotations
@@ -54,6 +72,12 @@ class ResearchScenarioSpec:
     concentration_names: int = 0
     concentration_adv_multiplier: float = 1.0
     tags: tuple[str, ...] = field(default_factory=tuple)
+    calibration: str = "stylised"  # "realistic" (matches published moments) or "stylised" (D1)
+    # D2 adversarial generator families (written blind to the detector; see ceap.data.historical)
+    hidden_factor_bps: float = 0.0  # premium on a latent factor loading the signal cannot see
+    regime_switch: bool = False  # Markov switching between a premium and an anti-premium state
+    jump_intensity: float = 0.0  # Poisson idiosyncratic jumps per name per year (GARCH + jumps)
+    market_corr_premium_bps: float = 0.0  # premium planted on market beta, so the signal is market exposure
 
 
 _MOM = "momentum_12_1"
@@ -62,57 +86,63 @@ _REV = "reversal_5"
 RESEARCH_TEMPLATES_RAW: tuple[ResearchScenarioSpec, ...] = (
     ResearchScenarioSpec(
         id="R01", template="momentum_premium", name="Momentum premium",
-        description="A persistent latent expected-return component that 12-1 momentum detects through past returns.",
+        description="Stylised: a persistent latent expected-return component (rank IC about 4x a real momentum "
+        "premium) that 12-1 momentum detects through past returns.",
         signal=_MOM, seed=11, mechanism="drift", premium_bps=2400.0, half_life_days=252.0,
         tags=("strong_premium",),
     ),
     ResearchScenarioSpec(
         id="R02", template="no_alpha", name="No alpha",
         description="Pure factor-plus-noise returns with fat tails and volatility clustering; nothing to find.",
-        signal=_MOM, seed=12,
+        signal=_MOM, seed=12, calibration="realistic",
     ),
     ResearchScenarioSpec(
         id="R03", template="reversal_premium", name="Short-term reversal premium",
-        description="A transient price component that mean-reverts over days, traded weekly at the next close.",
+        description="Stylised: a transient price component (rank IC about 3x a real reversal premium) that "
+        "mean-reverts over days, traded weekly at the next close.",
         signal=_REV, seed=13, rebalance_days=5, mechanism="transient", transient_share=0.45, transient_rho=0.6,
     ),
     ResearchScenarioSpec(
         id="R04", template="regime_break", name="Regime break",
-        description="The momentum premium works in-sample and vanishes after the locked in-sample end.",
+        description="Stylised: the 4x momentum premium works in-sample and vanishes after the locked in-sample end.",
         signal=_MOM, seed=14, mechanism="drift", premium_bps=2400.0, oos_premium_multiplier=0.0,
     ),
     ResearchScenarioSpec(
         id="R05", template="cost_drag", name="Cost drag",
-        description="A genuine reversal premium that transaction costs consume: spreads are 15x wider.",
+        description="Stylised: a strong reversal premium that transaction costs consume: spreads are 15x wider.",
         signal=_REV, seed=15, rebalance_days=5, mechanism="transient", transient_share=0.30, transient_rho=0.6,
         spread_multiplier=15.0,
     ),
     ResearchScenarioSpec(
         id="R06", template="concentration", name="Concentrated alpha",
-        description="The premium lives in four illiquid names; the book breaches participation limits.",
+        description="Stylised: the premium lives in four illiquid names; the book breaches participation limits.",
         signal=_MOM, seed=16, mechanism="drift", premium_bps=9000.0, concentration_names=4,
         concentration_adv_multiplier=0.05,
     ),
     ResearchScenarioSpec(
         id="R07", template="mixed", name="Momentum with moderate costs",
-        description="A decaying momentum premium on a less liquid universe with 4x spreads; costs are real.",
+        description="Stylised: a decaying 4x momentum premium on a less liquid universe with 4x spreads.",
         signal=_MOM, seed=17, mechanism="drift", premium_bps=2400.0, spread_multiplier=4.0, adv_multiplier=0.5,
         decay_half_life_years=30.0,
     ),
     ResearchScenarioSpec(
-        id="R08", template="momentum_near_threshold", name="Momentum near the hurdle",
-        description="A realistic momentum premium (net Sharpe about 0.7) whose out-of-sample Sharpe gate is a coin toss.",
-        signal=_MOM, seed=18, mechanism="drift", premium_bps=1800.0, tags=("realistic_premium",),
+        id="R08", template="momentum_realistic", name="Momentum at a realistic premium",
+        description="Momentum calibrated to published moments (rank IC 0.025, gross Sharpe 0.42); 14 years cannot "
+        "separate it from zero or from a tradable edge, so the honest verdict is INCONCLUSIVE.",
+        signal=_MOM, seed=18, mechanism="drift", premium_bps=1100.0, tags=("realistic_premium",),
+        calibration="realistic",
     ),
     ResearchScenarioSpec(
-        id="R09", template="reversal_weak", name="Weak reversal",
-        description="A weaker transient component whose gross edge is real but whose costs take most of it.",
-        signal=_REV, seed=19, rebalance_days=5, mechanism="transient", transient_share=0.40, transient_rho=0.6,
-        tags=("realistic_premium",),
+        id="R09", template="reversal_realistic", name="Reversal at a realistic premium",
+        description="Short-term reversal calibrated to published moments (5-day rank IC 0.024): the gross edge is "
+        "real and weekly trading costs consume all of it.",
+        signal=_REV, seed=19, rebalance_days=5, mechanism="transient", transient_share=0.18, transient_rho=0.6,
+        tags=("realistic_premium",), calibration="realistic",
     ),
     ResearchScenarioSpec(
         id="R10", template="momentum_crash", name="Momentum with a crash",
-        description="The momentum premium with a 30% market crash and a momentum crash in the rebound, out-of-sample.",
+        description="Stylised: the 4x momentum premium with a 30% market crash and a momentum crash in the rebound, "
+        "out-of-sample.",
         signal=_MOM, seed=20, mechanism="drift", premium_bps=2400.0, crash=True,
 
     ),
