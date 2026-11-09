@@ -849,7 +849,7 @@ class AnthropicLLMClient(LLMClient):
                     stop_reason="schema_invalid",
                     parse_errors=parse_errors,
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 - classified by is_retryable; anything else re-raised
                 if attempt >= self.max_retries or not is_retryable(exc):
                     raise
                 attempt += 1

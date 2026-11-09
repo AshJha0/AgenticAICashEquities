@@ -462,7 +462,7 @@ def build_router(settings: Settings | None = None) -> LLMRouter:
         primary: LLMClient = AnthropicLLMClient(
             api_key=settings.anthropic_api_key, model=settings.llm_model, timeout_s=settings.llm_timeout_s
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - any SDK construction failure becomes one SettingsError
         raise SettingsError(
             f"CEAP_LLM_PROVIDER=anthropic but the client cannot be built ({type(exc).__name__}: {exc}); "
             "install the [llm] extra or set CEAP_LLM_PROVIDER=mock explicitly"

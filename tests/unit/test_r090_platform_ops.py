@@ -179,3 +179,16 @@ def test_no_print_in_library_code():
             ):
                 offenders.append(f"{rel}:{node.lineno}")
     assert offenders == []
+
+
+# ------------------------------------------------------------------ H12 broad excepts
+def test_every_broad_except_states_its_reason():
+    """H12 audit: each ``except Exception`` in library code carries ``# noqa: BLE001`` and a reason."""
+    offenders = []
+    for path in (ROOT / "src" / "ceap").rglob("*.py"):
+        rel = path.relative_to(ROOT).as_posix()
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            code, _, comment = line.partition("#")
+            if "except Exception" in code and not ("BLE001" in comment and " - " in comment):
+                offenders.append(f"{rel}:{i}")
+    assert offenders == []

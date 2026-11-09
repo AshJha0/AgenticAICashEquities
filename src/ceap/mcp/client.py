@@ -208,14 +208,14 @@ class StdioMCPClient(MCPClient):
         session = await self._session(name)
         try:
             return await op(session)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - classified by _is_disconnect; anything else re-raised
             if not _is_disconnect(exc):
                 raise
             first = exc
         session = await self._reconnect(name)  # exactly one reconnect per call
         try:
             return await op(session)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - classified by _is_disconnect; always re-raised
             if _is_disconnect(exc):
                 raise MCPError(f"{name}: server exited again after one reconnect ({exc})") from first
             raise
