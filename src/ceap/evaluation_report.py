@@ -183,11 +183,14 @@ async def golden_scores(platform: Any, limit: int | None = None) -> dict[str, An
         spec = specs[item["scenario"]]
         result = await platform.investigate(default_request(spec.symbol, spec.id))
         rows.append(score_investigation(item, result))
+    from ceap.data.research_scenarios import golden_scenario_id
+
     known = {s.id for s in all_research_scenarios()}
     for item in res:
         if item["scenario"] in known:
+            # items on renamed templates run the pre-0.10 calibration they were authored against (0.10 D1)
             rows.append(
-                score_research(item, await platform.research(default_research_request(item["scenario"])))
+                score_research(item, await platform.research(default_research_request(golden_scenario_id(item))))
             )
     return {"version": doc["version"], "signoff": doc["signoff"]["status"], **summarise(rows), "rows": rows}
 

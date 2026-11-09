@@ -56,8 +56,15 @@ refuses a tag whose version has no section.
     `ceap.analytics.risk_research` and `ceap.analytics.alpha_decay`; D14 `ceap.data.real.vintage`;
     D20 `scripts/rebuild_study.py`; D22 model inventory (`ceap.ml.inventory`, new `ModelCard` fields);
     D23 `ic_ir_annualised` labelled descriptive and the flat borrow assumption stated.
-  - Golden set 1.0.0 -> 1.1.0 (two template renames, R08 expected verdict now INCONCLUSIVE); needs the
-    `golden-change` label and owner sign-off.
+  - Research-evaluation accuracy bars are now a priori: 5 % one-sided Poisson-binomial lower bounds at
+    parameter-derived hit probabilities (`ground_truth.hit_probability`, `accuracy_bar`). Clear 0.85 ->
+    0.875, near-threshold 0.5 -> 1/3, all 0.85 -> 0.80. The old bars predate the D1 recalibration;
+    measured 21/24, 2/6 and 25/30 meet the new bars (clear exactly at its bar).
+  - Golden set: the owner-signed `golden_set.json` 1.0.0 is unchanged. Its items on the renamed templates
+    run the pre-0.10 calibration they were authored against (`pre010:RSnn`, `golden_scenario_id`). The
+    three items on the recalibrated templates are in `tests/golden/golden_set_research_v1_1.json`
+    (1.1.0, sign-off PENDING, owner sign-off required); `scripts/build_golden_set.py` writes only that
+    file unless `--main` is given.
 - **Breaking (D4), policy lane (A3):** the policy engine validates arguments against each tool's JSON schema, checks every symbol-bearing field at any depth (lists and nested objects too, plus schema properties flagged `x-ceap-symbol`), bounds the whole argument tree (string length, item count, depth, total values) and coerces `limit` to a whole number before its bound. With no universe configured, a request that names a symbol is denied.
 - **Breaking (D4), A4:** HIGH-risk tools always need a human approval; `risk:high` no longer skips it. Admins cannot decide approvals, so an admin's request goes through four-eyes.
 - **Breaking, A5:** every tool of an MCP server outside `CEAP_MCP_TRUSTED_SERVERS` is denied, even when it declares itself read-only. Each server's tool catalogue is hashed at start-up; `CEAP_MCP_CATALOGUE_PINS=server=<sha256>,...` refuses start-up on a mismatch, and `PinnedToolRegistry.verify_catalogue` refuses on drift.
