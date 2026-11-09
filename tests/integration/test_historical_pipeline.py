@@ -126,6 +126,7 @@ def test_research_scope_and_tool_arguments():
 
 
 @pytest.mark.evaluation
+@pytest.mark.slow  # full historical pipeline over every scenario; over the 120 s default under -n 6
 def test_deterministic_pipeline_matches_scenario_ground_truth(history):
     rows = []
     for spec in all_research_scenarios():

@@ -9,6 +9,7 @@ from ceap.evaluation import run_evaluation
 pytestmark = pytest.mark.evaluation
 
 
+@pytest.mark.slow  # fifty full investigations; over the 120 s default under -n 6
 async def test_fifty_scenarios_against_ground_truth(platform):
     summary = await run_evaluation(platform=platform)
     misses = [r for r in summary["rows"] if not (r["primary_hit"] and r["coverage"])]
@@ -21,6 +22,7 @@ async def test_fifty_scenarios_against_ground_truth(platform):
     assert summary["false_positive_rate"] <= 0.1, [r for r in summary["rows"] if r["false_positives"]]
 
 
+@pytest.mark.slow  # all ten templates end to end; over the 120 s default under -n 6
 async def test_each_template_is_recognised_at_least_once(platform):
     summary = await run_evaluation(limit=50, platform=platform)
     by_template: dict[str, list[bool]] = {}
