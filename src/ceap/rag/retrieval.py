@@ -11,8 +11,10 @@ Public API (stable; 3C.3 planner wiring and 3C.4 reporter citations build on it)
   ``classifications`` restricts hits to documents of those classifications (role filtering, 3C.3).
   ``as_of`` (ISO date, default today in UTC) hides documents whose ``effective_date`` is later, and
   of several versions sharing a ``doc_key`` serves only the latest one in force on that date.
-- Documents are admitted by ``ceap.rag.ingestion.admit_documents`` first: a document with
-  instruction-like text or marked superseded is never indexed (``KnowledgeBase.rejected``).
+- Knowledge-corpus ingestion (``build_knowledge_base``, or ``KnowledgeBase(..., screen=True)``) admits
+  documents through ``ceap.rag.ingestion.admit_documents`` first: a document with instruction-like
+  text or marked superseded is never indexed (``KnowledgeBase.rejected``). Other in-memory indexes
+  (case memory) do not screen: their text already reaches a model only inside an untrusted data block.
 - ``KnowledgeBase.corpus_hash``: SHA-256 of the corpus, to record in reports.
 - ``RetrievalHit.to_dict()``: ``chunk_id, document_id, document, title, section, version,
   effective_date, classification, score, coverage, support, text``.
@@ -84,9 +86,12 @@ class KnowledgeBase:
         documents: list[Document],
         chunking: ChunkingStrategy = DEFAULT_CHUNKING,
         min_support: float = DEFAULT_MIN_SUPPORT,
+        screen: bool = False,
     ) -> None:
-        documents, rejected = admit_documents(documents)
-        self.rejected: list[Rejection] = rejected
+        rejected: list[Rejection] = []
+        if screen:
+            documents, rejected = admit_documents(documents)
+        self.rejected = rejected
         self.documents = {d.id: d for d in documents}
         self.chunking = chunking
         self.min_support = min_support
@@ -205,4 +210,4 @@ def build_knowledge_base(
     docs = load_documents(path) if path.exists() else []
     if not docs:
         log.warning("knowledge base is empty: no *.md documents under %s (set CEAP_KNOWLEDGE_DIR)", path)
-    return KnowledgeBase(docs, chunking=chunking)
+    return KnowledgeBase(docs, chunking=chunking, screen=True)

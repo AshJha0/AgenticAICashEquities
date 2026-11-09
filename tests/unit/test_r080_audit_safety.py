@@ -328,11 +328,13 @@ def test_injected_and_superseded_documents_are_not_indexed() -> None:
              effective_date="2026-01-01"),
         _doc("old", "VWAP participation limits were thirty percent.", status="superseded"),
     ]
-    kb = KnowledgeBase(docs)
+    kb = KnowledgeBase(docs, screen=True)
     assert sorted(r.document for r in kb.rejected) == ["evil.md", "old.md"]
     assert {r.reason for r in kb.rejected} == {"injected_instructions", "superseded"}
     hits = kb.search("VWAP participation limits", min_support=0.0, as_of="2026-11-09")
     assert {h.chunk.document for h in hits} == {"good.md"}
+    # case memory and other in-memory indexes do not screen (their text travels as an untrusted data block)
+    assert KnowledgeBase(docs).rejected == []
 
 
 def test_effective_date_and_latest_version_filter() -> None:
