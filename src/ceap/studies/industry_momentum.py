@@ -282,6 +282,14 @@ def alpha_regression(gross: pd.Series, factors: pd.DataFrame) -> dict[str, Any]:
 
 def state_test(gross: pd.Series, down: pd.Series) -> dict[str, Any]:
     df = pd.concat([gross.rename("y"), down.rename("d")], axis=1, join="inner").dropna()
+    if df["d"].nunique() < 2:  # one state only (e.g. no DOWN month in the live window)
+        return {
+            "status": "NOT TESTABLE",
+            "reason": "only one market state in the window",
+            "n": len(df),
+            "n_down": int(df["d"].sum()),
+            "h2_reject": None,
+        }
     xmat = np.column_stack([np.ones(len(df)), df["d"].astype(float).to_numpy()])
     res = nw_ols(df["y"].to_numpy(), xmat)
     up, dn = df.loc[df["d"] == 0, "y"], df.loc[df["d"] == 1, "y"]
@@ -340,6 +348,21 @@ def _git_head() -> str:
         return "unknown"
 
 
+def record_crash_rerun(ledger: Path, result_path: Path, reason: str) -> None:
+    """Complete the *same* opening after a crash that wrote and showed no holdout number.
+
+    Allowed only once, only if the ledger records an opening and no holdout result exists; the
+    rerun is appended to the ledger so the history stays visible.
+    """
+    raw = json.loads(ledger.read_text(encoding="utf-8")) if ledger.exists() else {}
+    if not raw.get("opened"):
+        raise PreregistrationError("no holdout opening recorded; use open_holdout=True")
+    if result_path.exists() or raw.get("crash_rerun"):
+        raise PreregistrationError("holdout result already exists or a crash rerun was used")
+    raw["crash_rerun"] = {"at_utc": datetime.now(UTC).isoformat(), "git_head": _git_head(), "reason": reason}
+    ledger.write_text(json.dumps(raw, indent=2) + "\n", encoding="utf-8")
+
+
 def open_holdout_once(ledger: Path = LEDGER, data_hashes: dict[str, str] | None = None) -> None:
     """Record the single holdout opening; raise if one is already recorded."""
     if ledger.exists() and json.loads(ledger.read_text(encoding="utf-8")).get("opened"):
@@ -362,10 +385,15 @@ def open_holdout_once(ledger: Path = LEDGER, data_hashes: dict[str, str] | None 
 # ---------------------------------------------------------------- runner -------------------------
 
 
-def run(open_holdout: bool = False, cache_dir: Path = CACHE_DIR) -> dict[str, Any]:
+def run(
+    open_holdout: bool = False, cache_dir: Path = CACHE_DIR, crash_rerun_reason: str | None = None
+) -> dict[str, Any]:
     require_prereg_lock(PREREG, LOCK)
     hashes = verify_hashes(cache_dir)
-    if open_holdout:
+    if crash_rerun_reason:
+        record_crash_rerun(LEDGER, STUDY_DIR / "result_holdout.json", crash_rerun_reason)
+        open_holdout = True
+    elif open_holdout:
         open_holdout_once(data_hashes=hashes)
     ind = read_zip(IND49, cache_dir)
     ff3, ff5, umd = read_zip(FF3, cache_dir), read_zip(FF5, cache_dir), read_zip(UMD, cache_dir)

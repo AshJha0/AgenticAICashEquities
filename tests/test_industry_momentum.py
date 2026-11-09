@@ -94,3 +94,19 @@ def test_holdout_opened_once(tmp_path) -> None:
     assert json.loads(ledger.read_text())["opened"] is True
     with pytest.raises(PreregistrationError):
         im.open_holdout_once(ledger)
+
+
+def test_state_test_single_state_not_testable() -> None:
+    g = pd.Series([0.01, 0.02], index=pd.period_range("2016-01", periods=2, freq="M"))
+    d = pd.Series([0.0, 0.0], index=g.index)
+    assert im.state_test(g, d)["status"] == "NOT TESTABLE"
+
+
+def test_crash_rerun_only_once(tmp_path) -> None:
+    ledger, res = tmp_path / "l.json", tmp_path / "r.json"
+    with pytest.raises(PreregistrationError):
+        im.record_crash_rerun(ledger, res, "x")
+    im.open_holdout_once(ledger)
+    im.record_crash_rerun(ledger, res, "x")
+    with pytest.raises(PreregistrationError):
+        im.record_crash_rerun(ledger, res, "x")
