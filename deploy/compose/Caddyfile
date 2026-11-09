@@ -1,0 +1,20 @@
+# Caddy front for the CEAP API (0.9.0, G13). Replace "localhost" with the real host name to get a
+# public certificate; keep everything else.
+localhost {
+	tls internal
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+	# /metrics stays on the internal network (scraped by Prometheus there)
+	@metrics path /metrics
+	respond @metrics 404
+	request_body {
+		max_size 1MB
+	}
+	reverse_proxy ceap:8000
+}

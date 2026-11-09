@@ -1,0 +1,46 @@
+# Reverse-proxy example (0.9.0, G13). Not a production deployment: a starting point that shows the
+# shape the app expects (see the module docstring of ceap/api/app.py).
+#
+#   docker compose -f deploy/compose/docker-compose.yml up --build
+#
+# Caddy terminates TLS (a local self-signed certificate for "localhost"), adds security headers and
+# is the only published port. The API is reachable only on the internal network, and /metrics is
+# not routed through the proxy at all: scrape it from inside the network.
+services:
+  ceap:
+    build:
+      context: ../..
+    environment:
+      CEAP_ENV: prod
+      CEAP_AUTO_APPROVE: "false"
+      CEAP_LLM_PROVIDER: mock
+      # pre-hashed keys only (never raw keys in a compose file); see docs/RUNBOOK.md "API keys"
+      CEAP_API_KEY_HASHES: ${CEAP_API_KEY_HASHES:?set CEAP_API_KEY_HASHES}
+      CEAP_DB_PATH: /var/lib/ceap/ceap.db
+    volumes:
+      - ceap-state:/var/lib/ceap
+    expose:
+      - "8000"
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks: [internal]
+    restart: unless-stopped
+
+  proxy:
+    image: caddy:2.8-alpine
+    depends_on: [ceap]
+    ports:
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    networks: [internal]
+    restart: unless-stopped
+
+networks:
+  internal: {}
+
+volumes:
+  ceap-state: {}
+  caddy-data: {}
