@@ -46,6 +46,45 @@ NASDAQ: frozenset[str] = frozenset(
      "RIOT", "SOFI", "UPST", "AFRM", "RKLB", "OPEN"}
 )
 
+
+# D5 (0.9.0): a 500-name synthetic universe, so that a decile is 50 names rather than 3.
+# Names are ``X<tier><4 digits>`` (no real ticker has that shape); tier shares echo the 30-name
+# universe in spirit (A 40 %, B 40 %, C 20 %: a choice, not a calibration) and every other name
+# is listed on NASDAQ.
+SYNTHETIC_TIER_SHARES: dict[str, float] = {"A": 0.4, "B": 0.4, "C": 0.2}
+
+
+def synthetic_universe(n: int = 500, shares: dict[str, float] | None = None) -> tuple[str, ...]:
+    """``n`` synthetic names split across tiers A/B/C by ``shares`` (largest remainder)."""
+    if n < 3:
+        raise ValueError("a synthetic universe needs at least 3 names")
+    shares = shares or SYNTHETIC_TIER_SHARES
+    raw = {t: shares[t] * n for t in ("A", "B", "C")}
+    count = {t: int(v) for t, v in raw.items()}
+    for t in sorted(raw, key=lambda t: raw[t] - count[t], reverse=True)[: n - sum(count.values())]:
+        count[t] += 1
+    return tuple(f"X{t}{k:04d}" for t in ("A", "B", "C") for k in range(1, count[t] + 1))
+
+
+def _is_synthetic(sym: str) -> bool:
+    return len(sym) == 6 and sym[0] == "X" and sym[1] in "ABC" and sym[2:].isdigit()
+
+
+def tier_of(sym: str) -> str:
+    """Liquidity tier of a research name: the table for the 30 named stocks, the encoded tier for a
+    synthetic name, ``C`` otherwise (the generator's long-standing default)."""
+    if sym in TIER_OF:
+        return TIER_OF[sym]
+    return sym[1] if _is_synthetic(sym) else "C"
+
+
+def is_nasdaq(sym: str) -> bool:
+    return sym in NASDAQ or (_is_synthetic(sym) and int(sym[2:]) % 2 == 1)
+
+
+RESEARCH_UNIVERSE_500: tuple[str, ...] = synthetic_universe(500)
+UNIVERSES: dict[str, tuple[str, ...]] = {"core30": RESEARCH_UNIVERSE, "synthetic500": RESEARCH_UNIVERSE_500}
+
 # price range, average daily notional range (USD), quoted spread range (bps), idiosyncratic annual vol
 TIER_PROFILE: dict[str, dict[str, Any]] = {
     "A": {"price": (150.0, 550.0), "adv_notional": (3.0e9, 3.0e10), "spread_bps": (1.5, 3.0), "idio_vol": 0.22},

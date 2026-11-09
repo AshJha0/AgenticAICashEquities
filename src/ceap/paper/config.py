@@ -38,6 +38,9 @@ class PaperConfig:
     db_path: str = "var/paper/paper.db"
     report_dir: str | None = None  # per-run markdown and JSON artefacts; config/paper.json sets one
     risk: dict[str, Any] | None = None  # RiskLimits fields (see ceap.paper.pretrade)
+    # 0.9.0 FillParams execution fields: moc_auction, auction_share, auction_max_fraction, lot_size,
+    # engine ("close" | "lob"), lob_window_s (see ceap.paper.fills); absent = the 0.8.0 behaviour
+    execution: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         date.fromisoformat(self.forward_start)
@@ -54,10 +57,27 @@ class PaperConfig:
             costs=CostModel(), financing=financing or FinancingModel(), caps=PositionCaps(),
             cost_multiplier=self.cost_multiplier, fee_per_share=self.fee_per_share, min_fee=self.min_fee,
             order_ttl_days=self.order_ttl_days, risk=RiskLimits.from_json(self.risk),
+            **_execution_fields(self.execution),
         )
 
     def with_(self, **kw: Any) -> PaperConfig:
         return replace(self, **kw)
+
+
+_EXECUTION_FIELDS = ("moc_auction", "auction_share", "auction_max_fraction", "lot_size", "engine", "lob_window_s")
+
+
+# panel-side execution keys (not FillParams): dividends (bool, default off), dividend_cache (path),
+# dividend_download (bool: refresh the cache from yfinance first; needs the optional package)
+_PANEL_FIELDS = ("dividends", "dividend_cache", "dividend_download")
+
+
+def _execution_fields(d: dict[str, Any] | None) -> dict[str, Any]:
+    d = {k: v for k, v in (d or {}).items() if k not in _PANEL_FIELDS}
+    unknown = sorted(set(d) - set(_EXECUTION_FIELDS))
+    if unknown:
+        raise ValueError(f"unknown execution fields {unknown}; known: {list(_EXECUTION_FIELDS)}")
+    return d
 
 
 def load_config(path: str | Path | None = None) -> PaperConfig:

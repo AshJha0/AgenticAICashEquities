@@ -141,6 +141,29 @@ def london(session_date: date, hh: int, mm: int = 0) -> datetime:
     return session_time(session_date, hh, mm)
 
 
+def _local_datetimes(epoch_s: np.ndarray) -> list[datetime]:
+    """``[datetime.fromtimestamp(t, tz=NY) for t in epoch_s]`` without a per-element tz lookup.
+
+    ``fromtimestamp`` splits ``t`` into whole seconds and a fraction rounded half-even to the
+    microsecond; the same split is done here on the whole array. The UTC offset is constant within
+    one session (no US DST change falls inside trading hours), so it is looked up once; a session
+    that would straddle a change falls back to the per-element path.
+    """
+    if epoch_s.size == 0:
+        return []
+    first = datetime.fromtimestamp(float(epoch_s[0]), tz=NY)
+    last = datetime.fromtimestamp(float(epoch_s[-1]), tz=NY)
+    if first.utcoffset() != last.utcoffset() or not np.all(epoch_s >= 0):
+        return [datetime.fromtimestamp(t, tz=NY) for t in epoch_s.tolist()]
+    off = first.utcoffset()
+    assert off is not None
+    whole = np.trunc(epoch_s)
+    micros = np.round((epoch_s - whole) * 1e6).astype(np.int64)
+    total = whole.astype(np.int64) * 1_000_000 + micros + int(off.total_seconds()) * 1_000_000
+    naive = total.astype("datetime64[us]").tolist()
+    return [d.replace(tzinfo=NY) for d in naive]
+
+
 def _round_tick(x: np.ndarray | float) -> np.ndarray:
     return np.round(np.asarray(x) / TICK) * TICK
 
@@ -744,35 +767,25 @@ class SyntheticMarketGenerator:
         late = tri[2] < LATE_PRINT_PROB
         when = ts[sec] + offsets
         src = np.where(late, np.maximum(0, sec - LATE_PRINT_LAG_SECONDS), sec)
-        bid_r = [round(x, 2) for x in bids.tolist()]
-        ask_r = [round(x, 2) for x in asks.tolist()]
-        venues = [str(v) for v in VENUES]
+        # G2 (0.9.0): every per-trade column is built as an array, then one tolist() each.
+        # Prices: round(x, 2) of the quote, picked per trade (same rounding as v0.8 per element).
+        quote = np.where(sides, asks[src], bids[src])
+        price = [round(x, 2) for x in quote.tolist()]
+        stamps = _local_datetimes(when)
+        venue_names = np.asarray([str(v) for v in VENUES], dtype=object)[venue_idx].tolist()
+        cond = np.where(late, "LATE", np.where(qty < 100, "ODD_LOT", "")).tolist()
         prefix = f"T-{sym}-{ts[0]:.0f}-"
+        new = object.__new__
         trades: list[Trade] = []
         append = trades.append
-        for seq, (t, buy, j, q, v, lt) in enumerate(
-            zip(
-                when.tolist(),
-                sides.tolist(),
-                src.tolist(),
-                qty.tolist(),
-                venue_idx.tolist(),
-                late.tolist(),
-                strict=True,
-            ),
-            start=1,
-        ):
-            append(
-                Trade(
-                    symbol=sym,
-                    timestamp=datetime.fromtimestamp(t, tz=NY),
-                    price=ask_r[j] if buy else bid_r[j],
-                    quantity=q,
-                    venue=venues[v],
-                    trade_id=f"{prefix}{seq:07d}",
-                    condition="LATE" if lt else ("ODD_LOT" if q < 100 else None),
-                )
-            )
+        # A frozen dataclass sets each field through object.__setattr__; filling __dict__ directly
+        # gives an equal object (same fields, same values) at a third of the cost.
+        for seq, (t, p, q, v, c) in enumerate(zip(stamps, price, qty.tolist(), venue_names, cond, strict=True),
+                                              start=1):
+            tr = new(Trade)
+            tr.__dict__.update(symbol=sym, timestamp=t, price=p, quantity=q, venue=v,
+                               trade_id=f"{prefix}{seq:07d}", condition=c or None)
+            append(tr)
         return trades
 
     # ----------------------------------------------------------- order books

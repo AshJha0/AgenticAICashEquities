@@ -85,6 +85,7 @@ from ceap.data.generator_params import (  # noqa: F401  (re-exported)
     PERFORMANCE_DELIST_DRIFT,
     PERFORMANCE_DELIST_RUNUP,
     RESEARCH_UNIVERSE,
+    RESEARCH_UNIVERSE_500,
     SPREAD_VOL_ELASTICITY,
     TIER_A,
     TIER_B,
@@ -92,8 +93,11 @@ from ceap.data.generator_params import (  # noqa: F401  (re-exported)
     TIER_OF,
     TIER_PROFILE,
     TRADING_DAYS_PER_YEAR,
+    UNIVERSES,
     VOLUME_VOL_ELASTICITY,
     WARMUP_DAYS,
+    is_nasdaq,
+    tier_of,
 )
 from ceap.data.research_scenarios import ResearchScenarioSpec, get_research_scenario
 from ceap.data.scenarios import BASE_PRICES
@@ -162,7 +166,7 @@ class HistoricalDataset:
         if self.members is None:
             self.members = np.isfinite(self.close)
         if not self.exchanges:
-            self.exchanges = tuple("NASDAQ" if s in NASDAQ else "NYSE" for s in self.symbols)
+            self.exchanges = tuple("NASDAQ" if is_nasdaq(s) else "NYSE" for s in self.symbols)
 
     # ------------------------------------------------------------ geometry
     @property
@@ -350,7 +354,7 @@ class HistoricalGenerator:
         self, rng: np.random.Generator, spec: ResearchScenarioSpec
     ) -> tuple[tuple[str, ...], np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         m = len(self.symbols)
-        tiers = tuple(TIER_OF.get(s, "C") for s in self.symbols)
+        tiers = tuple(tier_of(s) for s in self.symbols)
         base_price = np.empty(m)
         adv_notional = np.empty(m)
         spread_base = np.empty(m)
@@ -463,6 +467,10 @@ class HistoricalGenerator:
         if spec.membership_events:
             concentrated = spec.concentration_names > 0
             pool = [j for j, t in enumerate(tiers) if t in ("B", "C") and not (concentrated and premium_mask[j] > 0)]
+            if m > len(RESEARCH_UNIVERSE):
+                self._scaled_membership(spec, n, m, in_sample_days, pool, r, members, delistings)
+                pool = []
+        if spec.membership_events and pool:
             order = [pool[int(events[1 + k] * len(pool)) % len(pool)] for k in range(8)]
             chosen: list[int] = []
             for j in order:
@@ -524,6 +532,32 @@ class HistoricalGenerator:
             market_return=market,
             generator=GENERATOR_REALISTIC,
         )
+
+    def _scaled_membership(self, spec: ResearchScenarioSpec, n: int, m: int, in_sample_days: int, pool: list[int],
+                           r: np.ndarray, members: np.ndarray, delistings: dict[int, tuple[int, str]]) -> None:
+        """Membership events for a universe larger than the 30 names (0.9.0, D5 follow-up).
+
+        The 30-name rule (3 late listings, 1 merger, 1 performance delisting) is scaled by ``m / 30``
+        and drawn from a separate stream, so the 30-name datasets keep their exact bytes. For 500 names:
+        50 late listings, 17 mergers, 17 performance delistings (rounded).
+        """
+        f = m / len(RESEARCH_UNIVERSE)
+        n_late, n_each = round(N_LATE_LISTINGS * f), round(f)
+        rng = np.random.default_rng([spec.seed, 20_261_109])
+        k = min(len(pool), n_late + 2 * n_each)
+        picks = [int(j) for j in rng.choice(np.asarray(pool), size=k, replace=False)]
+        late, merge, perf = picks[:n_late], picks[n_late : n_late + n_each], picks[n_late + n_each :]
+        lo_l, hi_l = self.warmup_days + 252, self.warmup_days + in_sample_days // 2
+        for j in late:
+            members[: lo_l + int(rng.random() * (hi_l - lo_l)), j] = False
+        span = n - self.warmup_days - 700
+        for kind, names in (("merger", merge), ("performance", perf)):
+            for j in names:
+                d = self.warmup_days + 500 + int(rng.random() * span)
+                if kind == "performance":
+                    r[d - PERFORMANCE_DELIST_RUNUP : d, j] += PERFORMANCE_DELIST_DRIFT
+                members[d:, j] = False
+                delistings[j] = (d, kind)
 
     @staticmethod
     def _adversarial(
