@@ -1,5 +1,5 @@
 {
- "version": "1.1.0",
+ "version": "1.0.0",
  "frozen": "2026-11-08",
  "authored_from": "scenario specifications (ground truth and expected verdicts); not from platform output",
  "change_policy": "edits only in a PR labelled golden-change, with a version bump and owner sign-off",
@@ -16,11 +16,11 @@
   "G-RES-13"
  ],
  "signoff": {
-  "status": "PENDING",
-  "by": null,
-  "pr": null
+  "status": "SIGNED_OFF",
+  "by": "repository owner (AshJha0): all 10 sampled items OK, 2026-11-08",
+  "pr": 6
  },
- "items_sha256": "1dc9b1d6aaeb57fd1db03a1a5dfdf094078f128410377739ee1f7084e2860e15",
+ "items_sha256": "c9a28cc878191a85504562fe1d51ae6bc94f19c8b9e91f106c4d018efa3f6d09",
  "items": [
   {
    "id": "G-INV-01",
@@ -865,19 +865,21 @@
    "id": "G-RES-12",
    "kind": "research",
    "scenario": "RS23",
-   "template": "momentum_realistic",
+   "template": "momentum_near_threshold",
    "signal": "momentum_12_1",
-   "verdict": "INCONCLUSIVE",
-   "must_flag": [
-    "NO_ALPHA"
-   ],
-   "must_not_flag": []
+   "verdict": "PROMOTE",
+   "must_flag": [],
+   "must_not_flag": [
+    "NO_ALPHA",
+    "OOS_DECAY",
+    "REGIME_BREAK"
+   ]
   },
   {
    "id": "G-RES-13",
    "kind": "research",
    "scenario": "RS25",
-   "template": "reversal_realistic",
+   "template": "reversal_weak",
    "signal": "reversal_5",
    "verdict": "REJECT",
    "must_flag": [
@@ -889,7 +891,7 @@
    "id": "G-RES-14",
    "kind": "research",
    "scenario": "RS27",
-   "template": "reversal_realistic",
+   "template": "reversal_weak",
    "signal": "reversal_5",
    "verdict": "REJECT",
    "must_flag": [
