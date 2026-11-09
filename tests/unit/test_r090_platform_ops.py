@@ -31,14 +31,16 @@ ROOT = Path(__file__).resolve().parents[2]
 async def test_loop_lag_monitor_sees_a_blocked_loop():
     mon = LoopLagMonitor(interval_s=0.05)
     task = asyncio.create_task(mon.run())
-    await asyncio.sleep(0.12)  # a few idle samples
-    idle = mon.max_ms
+    await asyncio.sleep(0.12)  # let the monitor start sleeping
+    before = mon.samples
     time.sleep(0.3)  # block the loop on purpose
     await asyncio.sleep(0.12)
     task.cancel()
     await asyncio.gather(task, return_exceptions=True)
-    assert mon.samples >= 2
-    assert mon.max_ms >= 200.0 > idle  # a 300 ms block shows as >= 200 ms lag (slack for timer granularity)
+    # the wake-up that spans the block is at least ~300 ms late (250 ms leaves room for timer
+    # granularity); no bound on idle lag, which depends on how loaded the test machine is
+    assert mon.samples > before
+    assert mon.max_ms >= 250.0
     assert "ceap_event_loop_lag_seconds" in metrics.render()
 
 
