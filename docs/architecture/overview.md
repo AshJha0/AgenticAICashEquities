@@ -197,7 +197,8 @@ counters and histograms in Prometheus text format at `/metrics`. Logging is JSON
 
 `canonical.py` turns text and JSON into canonical bytes before hashing (LF line endings, sorted
 keys, UTC datetimes in one fixed format, NaN refused), so a hash computed on Windows equals the one
-computed on Linux. `redact.py` removes emails, API keys, tokens and account-like numbers from
+computed on Linux. `redact.py` removes emails, API keys, tokens, `name=value` secrets (`password=`,
+`*_API_KEY=`), phone numbers, high-entropy opaque tokens and account-like numbers from
 question text before it reaches a log, the task store or a prompt, and scrubs recorded HTTP
 interactions (API key, request id, organisation id) before a cassette is committed.
 
@@ -208,9 +209,20 @@ thread; async callers use `arun`, so the event loop never blocks on disk and SQL
 writers. WAL and `busy_timeout` let `ceap db` read while the server writes. Schema versions are
 `PRAGMA user_version`; `migrations/NNNN_*.sql` apply forward only, each in its own transaction, after
 an online backup of the file. Tables: `tasks`, `results`, `approvals`, `staged_orders`, `audit_log`
-(v1); `llm_calls`, `trial_ledger`, `idempotency_keys` (v2). Repositories (`repositories.py`) are thin,
+(v1); `llm_calls`, `trial_ledger`, `idempotency_keys` (v2); the paper tables (v3); `hash_alg` columns,
+`chain_epoch` and `kill_switch_events` (v4, 0.8.0). Repositories (`repositories.py`) are thin,
 one per table. Startup recovery turns in-flight tasks into `INTERRUPTED` and pending approvals into
 `EXPIRED`. The Postgres path stays open: repositories speak plain SQL and own no connection logic.
+
+Integrity and durability (0.8.0). The audit log, the paper ledger and the paper day chains are
+HMAC-SHA256 keyed with `CEAP_AUDIT_HMAC_KEY`, which never enters the database (`chainkey.py`). Each
+row records its `hash_alg`. Rows from before migration 0004 verify as a legacy prefix, and its length
+is sealed in `chain_epoch`. `anchor.py` writes chain heads to a git-committable file with a SHA-256
+sidecar for OpenTimestamps, and `verify_chain(expected_head, expected_rows)` checks against it. That
+is what catches a cut-off tail or a chain rebuilt by a key holder. `killswitch.py` keeps an
+append-only, audited set/clear log that the paper job and `stage_orders` both read. File databases
+use `synchronous=FULL`, `arun` has a timeout, and `Database.health()` (served on `/health`) reports
+the writer queue and a write probe.
 
 ### 3.11 API (`ceap.api`)
 
@@ -293,12 +305,14 @@ never by the plan — see §3.6 and `docs/DIAGRAMS.md` §9.
                                               |
  DailyFeed (synthetic | free daily) -> simulate_day(D+1): splits, financing, mark, fills, expiry
                                               |
-                 paper_ledger (hash chain) + paper_days + paper_forward_log | paper_simulated_log
+          paper_ledger (HMAC chain) + paper_days (HMAC chain) + paper_forward_log | paper_simulated_log
                                               |
                        paper report / export (CSV, schema_version) -> forward-log branch
 ```
 
-paper, synthetic or free daily data, not trading. One SQLite transaction per session.
+paper, synthetic or free daily data, not trading. One SQLite transaction per session. The kill
+switch (DB-backed, audited, or `CEAP_PAPER_HALT`) is checked before anything is staged. The forward
+and simulated logs keep plain SHA-256 links so the exported CSV verifies without a key.
 
 Today the feed is `synthetic`. `ceap.paper.feeds_real` (feed `"stooq"`) reads the local Stooq
 cache with R5 point-in-time membership, lagged 20-day ADV and the R5 spread schedule, and refuses

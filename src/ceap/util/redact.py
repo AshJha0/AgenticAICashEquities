@@ -1,5 +1,11 @@
 """Redaction of secrets and personal data before anything is logged, stored or sent to a model.
 
+Besides fixed key formats it catches ``name=value`` / ``name: value`` pairs whose name marks a
+secret (``password``, ``api_key``, ``ANTHROPIC_API_KEY`` and other ``*_KEY`` / ``*_TOKEN`` env names),
+phone numbers, and opaque high-entropy tokens (24+ characters, letters and digits, at least
+``TOKEN_ENTROPY_BITS`` bits per character). Hex digests of 32, 40 or 64 characters are kept: they are
+the platform's own content hashes, not secrets.
+
 Patterns are deliberately broad: a false positive costs a ``[REDACTED:...]`` token in a log line, a
 false negative leaks a key. ``redact`` is idempotent. ``scrub_cassette`` removes request metadata
 (API keys, request ids, organisation ids) from a recorded HTTP interaction before it is committed.
@@ -7,11 +13,71 @@ false negative leaks a key. ``redact`` is idempotent. ``scrub_cassette`` removes
 
 from __future__ import annotations
 
+import math
 import re
+from collections import Counter
 from collections.abc import Mapping
 from typing import Any
 
-__all__ = ["redact", "redact_obj", "scrub_headers", "scrub_cassette", "SENSITIVE_HEADERS"]
+__all__ = ["redact", "redact_obj", "scrub_headers", "scrub_cassette", "SENSITIVE_HEADERS", "shannon_entropy"]
+
+# Names that mark the value after them as a secret: ``password=...``, ``api_key: ...``, ``"token": "..."``,
+# and environment-style names such as ``ANTHROPIC_API_KEY=...`` or ``CEAP_AUDIT_HMAC_KEY=...``.
+_SECRET_NAME = (
+    r"(?:[A-Za-z0-9]+_)*(?:api[_-]?key|apikey|secret(?:[_-]?key)?|password|passwd|pwd|token|"
+    r"access[_-]?key|private[_-]?key|client[_-]?secret|hmac[_-]?key|auth|credentials?)"
+)
+_KEY_VALUE = re.compile(
+    rf"(?i)(?P<name>[\"']?(?<![A-Za-z0-9_]){_SECRET_NAME}(?![A-Za-z0-9_])[\"']?)(?P<sep>\s*[:=]\s*)"
+    r"(?P<value>\"[^\"\n]*\"|'[^'\n]*'|[^\s,;&'\"}\]]+)"
+)
+# phone numbers: +44 20 7946 0958, (020) 7946 0958, 020 7946 0958, +1-212-555-0100; 9+ digits in total
+_PHONE = re.compile(r"(?<![\w.:/-])(?:\+\d{1,3}|\(0\d{1,4}\)|0\d{1,4})(?:[ .-]?\d{2,5}){2,5}(?![\w:/-]|\.\d)")
+# candidate opaque tokens: long runs of base64 / hex / url-safe characters
+_TOKEN = re.compile(r"(?<![A-Za-z0-9_+/=-])[A-Za-z0-9_+/=-]{24,}(?![A-Za-z0-9_+/=-])")
+_HEX_DIGEST = re.compile(r"\A[0-9a-f]{32}\Z|\A[0-9a-f]{40}\Z|\A[0-9a-f]{64}\Z")
+TOKEN_ENTROPY_BITS = 4.0  # bits per character; English words and identifiers sit well below this
+
+
+def shannon_entropy(s: str) -> float:
+    """Shannon entropy of ``s`` in bits per character."""
+    if not s:
+        return 0.0
+    n = len(s)
+    return -sum(c / n * math.log2(c / n) for c in Counter(s).values())
+
+
+def _redact_key_value(m: re.Match[str]) -> str:
+    value = m.group("value")
+    if value.startswith("[REDACTED"):
+        return m.group(0)
+    quote = value[0] if value[:1] in "\"'" else ""
+    return f"{m.group('name')}{m.group('sep')}{quote}[REDACTED:SECRET]{quote}"
+
+
+def _redact_phone(m: re.Match[str]) -> str:
+    text = m.group(0)
+    digits = sum(ch.isdigit() for ch in text)
+    # dates (2026-11-09), times and short numeric codes are not phone numbers
+    if digits < 9 or re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+        return text
+    return "[REDACTED:PHONE]"
+
+
+def _redact_token(m: re.Match[str]) -> str:
+    text = m.group(0)
+    # Content hashes (sha256 hex digests, git shas) are the platform's own audit identifiers, not secrets.
+    if _HEX_DIGEST.match(text) or text.startswith("[REDACTED"):
+        return text
+    # readable identifiers (PAPER-STG-1a2b3c4d5e-001, snake_case names) are short segments joined by - or _
+    if all(len(seg) <= 12 for seg in re.split(r"[-_]", text)):
+        return text
+    has_digit = any(ch.isdigit() for ch in text)
+    has_alpha = any(ch.isalpha() for ch in text)
+    if has_digit and has_alpha and shannon_entropy(text) >= TOKEN_ENTROPY_BITS:
+        return "[REDACTED:TOKEN]"
+    return text
+
 
 _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("EMAIL", re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")),
@@ -42,9 +108,11 @@ SENSITIVE_HEADERS = frozenset(
 
 def redact(text: str) -> str:
     """Replace secrets and personal identifiers in ``text`` with ``[REDACTED:KIND]``."""
+    text = _KEY_VALUE.sub(_redact_key_value, text)
     for kind, pattern in _PATTERNS:
         text = pattern.sub(f"[REDACTED:{kind}]", text)
-    return text
+    text = _PHONE.sub(_redact_phone, text)
+    return _TOKEN.sub(_redact_token, text)
 
 
 def redact_obj(value: Any) -> Any:

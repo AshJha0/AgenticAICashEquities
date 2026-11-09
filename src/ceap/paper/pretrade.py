@@ -16,8 +16,14 @@ Rules (limits in ``config/paper.json`` under ``risk``):
 * **gross limit**: ``sum |post-trade value| / equity <= max_gross``; when breached, every order that
   increases gross is dropped (reducing orders still go).
 
-The kill switch is the environment variable ``CEAP_PAPER_HALT``: when set (its value is the reason),
-the job stages nothing, cancels every open order and logs why.
+The kill switch has two sources (either one halts): the DB-backed switch in the shared database
+(:class:`ceap.persistence.killswitch.KillSwitch`, set and cleared with ``ceap db kill-switch``, both
+audited; 0.8.0) and the older environment variable ``CEAP_PAPER_HALT`` (its value is the reason). When
+halted the job stages nothing, cancels every open order and logs why; ``stage_orders`` refuses.
+
+:func:`check_staged_orders` applies the rules that need no market panel (restricted list, hard to
+borrow, per-name and gross limits) to an order list staged from a research portfolio (MCP
+``stage_orders``), where there is no ADV or previous close to check against.
 """
 
 from __future__ import annotations
@@ -25,11 +31,14 @@ from __future__ import annotations
 import math
 import os
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from ceap.paper.feed import MarketPanel
+
+if TYPE_CHECKING:
+    from ceap.persistence.db import Database
 
 HALT_ENV = "CEAP_PAPER_HALT"
 
@@ -58,9 +67,63 @@ class RiskLimits:
         return symbol in self.hard_to_borrow or tier in self.htb_tiers
 
 
-def halt_reason() -> str | None:
+def halt_status(db: Database | None = None) -> tuple[str | None, str | None]:
+    """``(reason, source)`` of an active halt, source ``"env"`` or ``"db"``; ``(None, None)`` when trading."""
     raw = os.getenv(HALT_ENV, "").strip()
-    return raw or None
+    if raw:
+        return raw, "env"
+    if db is not None:
+        from ceap.persistence.killswitch import KillSwitch
+
+        reason = KillSwitch(db).reason()
+        if reason:
+            return reason, "db"
+    return None, None
+
+
+def halt_reason(db: Database | None = None) -> str | None:
+    return halt_status(db)[0]
+
+
+def check_staged_orders(orders: list[tuple[str, float, float, str]], equity: float,
+                        limits: RiskLimits) -> CheckResult:
+    """Pre-trade rules for an order list staged from flat: ``(symbol, signed quantity, price, tier)``.
+
+    The book is flat, so each order is the whole post-trade position. Restricted names are dropped,
+    hard-to-borrow shorts are dropped, each name is clipped to ``max_name_weight * equity`` and, when
+    the gross still exceeds ``max_gross * equity``, every order is scaled down pro rata (whole shares).
+    """
+    out: dict[str, float] = {}
+    blocks: list[dict[str, Any]] = []
+    prices: dict[str, float] = {}
+    for sym, qty, price, tier in sorted(orders):
+        d = float(qty)
+        prices[sym] = price
+        if sym in limits.restricted:
+            blocks.append(_block(sym, "restricted", d, 0.0))
+            continue
+        if d < 0 and limits.is_htb(sym, tier):
+            blocks.append(_block(sym, "hard_to_borrow", d, 0.0))
+            continue
+        cap = math.floor(limits.max_name_weight * equity / price) if price > 0 else 0.0
+        if abs(d) > cap:
+            allowed = math.copysign(cap, d)
+            blocks.append(_block(sym, "max_name_weight", d, allowed, cap_shares=cap))
+            d = allowed
+        if d != 0:
+            out[sym] = d
+    gross = sum(abs(q) * prices[s] for s, q in out.items())
+    limit = limits.max_gross * equity
+    if equity > 0 and gross > limit * (1 + 1e-9):
+        scale = limit / gross
+        for sym in sorted(out):
+            allowed = math.copysign(math.floor(abs(out[sym]) * scale), out[sym])
+            blocks.append(_block(sym, "max_gross", out[sym], allowed, gross=gross / equity))
+            if allowed:
+                out[sym] = allowed
+            else:
+                del out[sym]
+    return CheckResult(out, blocks)
 
 
 @dataclass

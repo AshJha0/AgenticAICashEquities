@@ -10,6 +10,13 @@ Four tables (migration ``0003_paper.sql``), all refusing UPDATE and DELETE by tr
 * ``paper_simulated_log``: rows written by ``backfill``, kept apart.
 
 Writes for one session happen inside the caller's single transaction (see :mod:`ceap.paper.job`).
+
+Keys (0.8.0, item A6). ``paper_ledger`` and ``paper_days`` links written after migration 0004 are
+HMAC-SHA256 keyed outside the database (:mod:`ceap.persistence.chainkey`), recorded per row in
+``hash_alg``; rows written earlier stay plain SHA-256 and verify as a sealed legacy prefix. The forward
+and simulated logs stay plain SHA-256 on purpose: they are exported as a public CSV that anyone must be
+able to verify without a key (``ceap paper verify-csv``), and their integrity rests on the git history
+of the forward-log branch and the anchored head (:mod:`ceap.persistence.anchor`).
 """
 
 from __future__ import annotations
@@ -22,7 +29,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from ceap.paper.fills import EPS, BookState
-from ceap.persistence.db import GENESIS_HASH, Database
+from ceap.persistence.chainkey import LEGACY_ALG, walk_chain
+from ceap.persistence.db import GENESIS_HASH, Database, check_anchor, has_column
 from ceap.util.canonical import canonical_json
 
 FORWARD_BOOK = "forward"
@@ -31,7 +39,13 @@ LEDGER_FIELDS = ("book", "date", "kind", "order_id", "symbol", "quantity", "pric
 
 
 def chain_hash(prev_hash: str, body: dict[str, Any]) -> str:
+    """Plain SHA-256 link (forward and simulated logs, and pre-0.8.0 ledger and day rows)."""
     return hashlib.sha256(prev_hash.encode("ascii") + canonical_json(body)).hexdigest()
+
+
+def _day_body(book: str, d: dict[str, Any]) -> dict[str, Any]:
+    return {"book": book, "date": d["date"], "snapshot": d["snapshot_json"], "state": d["state_json"],
+            "ledger_head": d["ledger_head"], "equity": d["equity"]}
 
 
 def _ledger_body(row: dict[str, Any]) -> dict[str, Any]:
@@ -51,6 +65,18 @@ class VerifyReport:
 class PaperLedger:
     def __init__(self, db: Database) -> None:
         self.db = db
+        self._keyed: bool | None = None
+
+    def _is_keyed(self, conn: sqlite3.Connection) -> bool:
+        if self._keyed is None:
+            self._keyed = has_column(conn, "paper_ledger", "hash_alg")
+        return self._keyed
+
+    def _link(self, conn: sqlite3.Connection, prev: str, body: dict[str, Any]) -> tuple[str, str | None]:
+        """(hash, hash_alg) for a new ledger or day row; ``hash_alg`` is None below schema v4."""
+        if self._is_keyed(conn):
+            return self.db.keys.sign(prev, canonical_json(body)), self.db.keys.alg
+        return chain_hash(prev, body), None
 
     # ------------------------------------------------------------ reads
     def last_day(self, book: str) -> dict[str, Any] | None:
@@ -110,12 +136,19 @@ class PaperLedger:
                 "cash_delta": float(e.get("cash_delta", 0.0)), "cost": float(e.get("cost", 0.0)),
                 "payload_json": canonical_json(e.get("detail", {})).decode("utf-8"),
             }
-            digest = chain_hash(prev, _ledger_body(row))
-            conn.execute(
-                "INSERT INTO paper_ledger(book, date, kind, order_id, symbol, quantity, price, cash_delta, cost, "
-                "payload_json, prev_hash, hash) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-                (*[row[k] for k in LEDGER_FIELDS], row["payload_json"], prev, digest),
-            )
+            digest, alg = self._link(conn, prev, _ledger_body(row))
+            if alg is None:
+                conn.execute(
+                    "INSERT INTO paper_ledger(book, date, kind, order_id, symbol, quantity, price, cash_delta, "
+                    "cost, payload_json, prev_hash, hash) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (*[row[k] for k in LEDGER_FIELDS], row["payload_json"], prev, digest),
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO paper_ledger(book, date, kind, order_id, symbol, quantity, price, cash_delta, "
+                    "cost, payload_json, prev_hash, hash, hash_alg) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (*[row[k] for k in LEDGER_FIELDS], row["payload_json"], prev, digest, alg),
+                )
             prev = digest
         return prev
 
@@ -124,15 +157,19 @@ class PaperLedger:
         prev = self._head(conn, "SELECT hash FROM paper_days WHERE book=? ORDER BY date DESC LIMIT 1", (book,))
         snap_json = canonical_json(_finite_or_none(snapshot)).decode("utf-8")
         state_json = canonical_json(state.to_json()).decode("utf-8")
-        digest = chain_hash(prev, {"book": book, "date": snapshot["date"], "snapshot": snap_json,
-                                   "state": state_json, "ledger_head": ledger_head,
-                                   "equity": float(snapshot["equity"])})
-        conn.execute(
-            "INSERT INTO paper_days(book, date, equity, snapshot_json, state_json, ledger_head, prev_hash, hash, "
-            "recorded_at) VALUES (?,?,?,?,?,?,?,?,?)",
-            (book, snapshot["date"], float(snapshot["equity"]), snap_json, state_json, ledger_head, prev, digest,
-             recorded_at),
-        )
+        digest, alg = self._link(conn, prev, {"book": book, "date": snapshot["date"], "snapshot": snap_json,
+                                              "state": state_json, "ledger_head": ledger_head,
+                                              "equity": float(snapshot["equity"])})
+        values = (book, snapshot["date"], float(snapshot["equity"]), snap_json, state_json, ledger_head, prev,
+                  digest, recorded_at)
+        if alg is None:
+            conn.execute(
+                "INSERT INTO paper_days(book, date, equity, snapshot_json, state_json, ledger_head, prev_hash, "
+                "hash, recorded_at) VALUES (?,?,?,?,?,?,?,?,?)", values)
+        else:
+            conn.execute(
+                "INSERT INTO paper_days(book, date, equity, snapshot_json, state_json, ledger_head, prev_hash, "
+                "hash, recorded_at, hash_alg) VALUES (?,?,?,?,?,?,?,?,?,?)", (*values, alg))
         return digest
 
     def append_log(self, conn: sqlite3.Connection, book: str, row: dict[str, Any], recorded_at: str) -> str:
@@ -157,27 +194,58 @@ class PaperLedger:
         return digest
 
     # ----------------------------------------------------------- verification
-    def verify(self, book: str) -> VerifyReport:
-        """Recompute every chain of ``book`` (ledger, days, log)."""
-        prev, rows = GENESIS_HASH, self.events(book)
-        for r in rows:
-            if r["prev_hash"] != prev or chain_hash(prev, _ledger_body(r)) != r["hash"]:
-                return VerifyReport(False, len(rows), f"ledger seq {r['seq']}", "ledger row does not match its hash")
-            prev = r["hash"]
-        prev = GENESIS_HASH
-        for d in self.db.query("SELECT * FROM paper_days WHERE book=? ORDER BY date", (book,)):
-            body = {"book": book, "date": d["date"], "snapshot": d["snapshot_json"], "state": d["state_json"],
-                    "ledger_head": d["ledger_head"], "equity": d["equity"]}
-            if d["prev_hash"] != prev or chain_hash(prev, body) != d["hash"]:
-                return VerifyReport(False, len(rows), f"day {d['date']}", "day row does not match its hash")
-            prev = d["hash"]
+    def chain_rows(self, chain: str, book: str) -> list[dict[str, Any]]:
+        """Rows of the ``ledger`` or ``days`` chain of ``book``, in chain order."""
+        if chain == "ledger":
+            return self.events(book)
+        return self.db.query("SELECT * FROM paper_days WHERE book=? ORDER BY date", (book,))
+
+    def verify_keyed(self, chain: str, book: str, expected_head: str | None = None,
+                     expected_rows: int | None = None) -> tuple[bool, str | None, str]:
+        """Verify the keyed ``ledger`` or ``days`` chain of ``book``; returns (ok, first bad label, reason)."""
+        rows = self.chain_rows(chain, book)
+        legacy, err = self.db.legacy_rows(f"paper_{chain}:{book}")
+        if err:
+            return False, None, err
+        if chain == "ledger":
+            links = [(f"ledger seq {r['seq']}", r["prev_hash"], r["hash"], r.get("hash_alg", LEGACY_ALG),
+                      canonical_json(_ledger_body(r))) for r in rows]
+        else:
+            links = [(f"day {d['date']}", d["prev_hash"], d["hash"], d.get("hash_alg", LEGACY_ALG),
+                      canonical_json(_day_body(book, d))) for d in rows]
+        bad, reason = walk_chain(links, self.db.keys, legacy)
+        if bad is not None:
+            return False, links[bad][0], f"{chain} row: {reason}"
+        problem = check_anchor([r["hash"] for r in rows], expected_head, expected_rows)
+        if problem:
+            return False, None, f"{chain}: {problem}"
+        return True, None, ""
+
+    def verify(self, book: str, anchor: dict[str, dict[str, Any]] | None = None) -> VerifyReport:
+        """Recompute every chain of ``book`` (ledger, days, log); with ``anchor`` (``{"ledger": {"head",
+        "rows"}, "days": ..., "log": ...}``) also check each against its externally recorded head."""
+        anchor = anchor or {}
+        rows = self.events(book)
+        for chain in ("ledger", "days"):
+            a = anchor.get(chain, {})
+            ok, where, reason = self.verify_keyed(chain, book, a.get("head"), a.get("rows"))
+            if not ok:
+                return VerifyReport(False, len(rows), where, reason)
         prev = GENESIS_HASH
         for lr in self.log(book):
             body = {k: v for k, v in lr.items() if k not in ("prev_hash", "hash")}
             if lr["prev_hash"] != prev or chain_hash(prev, body) != lr["hash"]:
                 return VerifyReport(False, len(rows), f"log {lr['date']}", "log row does not match its hash")
             prev = lr["hash"]
+        a = anchor.get("log", {})
+        problem = check_anchor([lr["hash"] for lr in self.log(book)], a.get("head"), a.get("rows"))
+        if problem:
+            return VerifyReport(False, len(rows), None, f"log: {problem}")
         return VerifyReport(True, len(rows))
+
+    def chain_lengths(self, book: str) -> dict[str, int]:
+        return {"ledger": len(self.events(book)), "days": len(self.chain_rows("days", book)),
+                "log": len(self.log(book))}
 
     def reconcile(self, book: str, tol: float = 1e-6) -> dict[str, Any]:
         """Ledger positions equal the sum of fills (plus split and delist adjustments); cash equals capital

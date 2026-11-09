@@ -190,6 +190,10 @@ class HealthOut(BaseModel):
 
     status: str
     version: str
+    # 0.8.0 (G7): database writer health. No topology or counts beyond the writer queue depth.
+    writer_queue: int | None = None
+    write_probe_ok: bool | None = None
+    write_probe_ms: float | None = None
 
 
 class StatusOut(BaseModel):

@@ -541,7 +541,10 @@ Order staging needs *two* separately-decided `HUMAN_APPROVAL` steps the harness 
 With `CEAP_AUTO_APPROVE=false` both show up in `GET /approvals` — see recipe 6 — the second
 carries `arguments.orders_preview` instead of `arguments.proposal`. Declining the second still
 completes the task; only the STAGED ORDERS section changes. `execution.stage_orders` never
-routes anywhere — it only ever builds paper orders in an in-memory `StagedOrderBook`.
+routes anywhere. It only builds paper orders in a `StagedOrderBook`, which the platform backs with its
+SQLite database (`staged_orders`, one row per `staging_id`). Before staging it runs the pre-trade
+checks (restricted, hard to borrow, per-name and gross limits) and returns any `risk_blocks`. While
+the kill switch is set it refuses (recipe 38).
 
 ## 31. Use the research API
 
@@ -650,6 +653,31 @@ ceap db verify-chain                       # exit 1 if any audit row was edited 
 ceap db prune                              # apply CEAP_RETENTION_* and CEAP_DB_MAX_BYTES
 ```
 
+### Keep the audit trail tamper-evident (0.8.0)
+
+```bash
+export CEAP_AUDIT_HMAC_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"  # keep it out of the repo
+ceap db anchor --out audit/audit_head.json        # chain heads + audit_head.json.sha256
+git add audit/audit_head.json audit/audit_head.json.sha256 && git commit -m "audit: anchor"
+ots stamp audit/audit_head.json                   # optional, free: OpenTimestamps proof (run by hand)
+ceap db verify-chain --anchor audit/audit_head.json   # exit 1 if any anchored row changed or vanished
+```
+
+Audit and paper ledger rows are HMAC-keyed. Without `CEAP_AUDIT_HMAC_KEY` the platform uses a
+published development key and `ceap db status` shows `"dev_key": true`. That is fine for the demo and
+the public paper record, but it protects nothing. To rotate, put the new key in `CEAP_AUDIT_HMAC_KEY`
+and list the old ones in `CEAP_AUDIT_HMAC_OLD_KEYS` (comma separated; `dev-default` names the
+development key). The key cannot stop someone who holds it from rebuilding the chain. The anchor
+can: commit one after every working day and any rebuild shows up as a changed head.
+
+### Stop all paper staging (kill switch)
+
+```bash
+ceap db kill-switch set --reason "venue outage" --actor ops   # audited; paper job and stage_orders stop
+ceap db kill-switch status
+ceap db kill-switch clear --reason "resolved" --actor ops     # audited
+```
+
 After a crash or `kill -9`, the next start marks in-flight tasks `INTERRUPTED` and pending approvals
 `EXPIRED`; their status and stored result stay readable (`GET /investigations/{id}`, `/result`).
 
@@ -706,8 +734,11 @@ ceap paper backfill --from 2026-06-01 --to 2026-10-30 --db var/paper/paper.db  #
 
 Each session writes `var/paper/reports/<book>/<date>.md` and `.json`: P&L attribution (signal,
 drift, financing, borrow, costs), fills with their staging and approval ids, every reject, cancel and
-risk block, and the reconciliation. Stop all new orders with `CEAP_PAPER_HALT="reason" ceap paper
-run-day ...`: working orders are cancelled and the reason is logged. Limits (restricted and
+risk block, and the reconciliation. Stop all new orders with `ceap db --path var/paper/paper.db
+kill-switch set --reason "..."` (audited, persists until cleared; recipe 38) or for one run with
+`CEAP_PAPER_HALT="reason" ceap paper run-day ...`: working orders are cancelled and the reason is
+logged. Ledger and day rows are HMAC-keyed (`CEAP_AUDIT_HMAC_KEY`; recipe 38). `ceap db anchor` also
+records each paper book's chain heads. Limits (restricted and
 hard-to-borrow lists, per-name and gross caps, % ADV, price bands, drift tolerance) live under `risk` in
 `config/paper.json`. Exit codes: 3 not a session (holiday or weekend), 4 reconciliation break (nothing
 committed; the break report is printed).

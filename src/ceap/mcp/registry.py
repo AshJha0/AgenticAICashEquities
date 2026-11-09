@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
 from ceap.data.historical import HistoricalStore
 from ceap.data.repositories import DatasetStore
@@ -13,16 +14,22 @@ from ceap.mcp.client import InProcessMCPClient, MCPClient
 from ceap.mcp.server import MCPServerDefinition
 from ceap.rag.retrieval import KnowledgeBase, build_knowledge_base
 
+if TYPE_CHECKING:
+    from ceap.persistence.db import Database
+
 
 def build_default_servers(
     store: DatasetStore | None = None,
     knowledge: KnowledgeBase | None = None,
     history: HistoricalStore | None = None,
+    db: Database | None = None,
 ) -> dict[str, MCPServerDefinition]:
+    """``db``: when given, staged paper order sets persist there and staging honours its kill switch."""
     from ceap.mcp.alpha.server import build_server as alpha
     from ceap.mcp.backtest.server import build_server as backtest
     from ceap.mcp.engineering.server import build_server as engineering
     from ceap.mcp.execution.server import build_server as execution
+    from ceap.mcp.execution.staging import StagedOrderBook
     from ceap.mcp.knowledge.server import build_server as knowledge_server
     from ceap.mcp.market_data.server import build_server as market_data
     from ceap.mcp.research_data.server import build_server as research_data
@@ -36,7 +43,7 @@ def build_default_servers(
     trials = TrialLedger()  # one ledger: combination trials and backtest trials deflate together (2B.2)
     servers = [
         market_data(store),
-        execution(store, history=history),
+        execution(store, history=history, staged=StagedOrderBook(db=db) if db is not None else None),
         risk(store, history),
         engineering(store),
         knowledge_server(knowledge),
@@ -51,8 +58,9 @@ def build_in_process_client(
     store: DatasetStore | None = None,
     knowledge: KnowledgeBase | None = None,
     history: HistoricalStore | None = None,
+    db: Database | None = None,
 ) -> InProcessMCPClient:
-    return InProcessMCPClient(build_default_servers(store, knowledge, history))
+    return InProcessMCPClient(build_default_servers(store, knowledge, history, db))
 
 
 #: ``server=<sha256>,...``: catalogue hashes a deployment has reviewed; a mismatch refuses start-up

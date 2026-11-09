@@ -108,9 +108,21 @@ def _aware(ts: datetime | None) -> datetime | None:
 
 # ------------------------------------------------------------------ health
 @router.get("/health", response_model=HealthOut, tags=["system"])
-async def health() -> HealthOut:
-    """Liveness only; topology and counts moved to the authenticated ``/status`` (R4 item 4.6)."""
-    return HealthOut(status="ok", version=__version__)
+async def health(request: Request) -> HealthOut:
+    """Liveness plus database writer health; topology and counts moved to the authenticated ``/status``
+    (R4 item 4.6). The write probe takes and releases the SQLite write lock without writing (0.8.0, G7);
+    when it fails the status is ``degraded``. The key setting (dev default or not) is not shown here."""
+    db = getattr(getattr(request.app.state, "platform", None), "db", None)
+    if db is None:
+        return HealthOut(status="ok", version=__version__)
+    h = await asyncio.to_thread(db.health)
+    return HealthOut(
+        status="ok" if h["write_probe_ok"] else "degraded",
+        version=__version__,
+        writer_queue=h["writer_queue"],
+        write_probe_ok=h["write_probe_ok"],
+        write_probe_ms=h["write_probe_ms"],
+    )
 
 
 @router.get("/status", response_model=StatusOut, tags=["system"])

@@ -26,7 +26,7 @@ paper order staging - the only non-read-only tool - and even then the harness as
 
 | Method | Path | Capability | Description |
 |---|---|---|---|
-| GET | `/health` | – | liveness only: `status`, `version` |
+| GET | `/health` | – | liveness plus writer health: `status` (`ok`, or `degraded` when the write probe fails), `version`, `writer_queue`, `write_probe_ok`, `write_probe_ms` |
 | GET | `/status` | `tools:read` | version, environment, LLM client, MCP servers, tool count, LLM usage, running tasks |
 | GET | `/metrics` | `metrics:read` | Prometheus text exposition (`text/plain; version=0.0.4`) |
 | GET | `/tools` | any key | discovered tool catalogue with read-only flag and risk level |
