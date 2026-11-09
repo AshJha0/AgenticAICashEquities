@@ -68,7 +68,8 @@ def trial_correlation(returns: np.ndarray) -> np.ndarray:
     sd = r.std(axis=0)
     sd[sd == 0] = np.inf
     z = (r - r.mean(axis=0)) / sd
-    return np.clip(z.T @ z / r.shape[0], -1.0, 1.0)
+    corr: np.ndarray = np.clip(z.T @ z / r.shape[0], -1.0, 1.0)
+    return corr
 
 
 def deflation_trial_count(
