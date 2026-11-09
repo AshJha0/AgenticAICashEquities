@@ -203,7 +203,45 @@ def all_research_scenarios() -> list[ResearchScenarioSpec]:
     return list(_all())
 
 
+# Pre-0.10 calibrations of the two renamed templates, kept so the owner-signed golden set (v1.0.0, whose
+# items name ``momentum_near_threshold`` and ``reversal_weak``) still evaluates as it was authored.
+PRE010_TEMPLATES: tuple[ResearchScenarioSpec, ...] = (
+    replace(RESEARCH_TEMPLATES_RAW[7], template="momentum_near_threshold", name="Momentum near the hurdle (pre-0.10)",
+            description="Pre-0.10 calibration (premium 1800 bps, rank IC 0.062), kept for the signed-off golden set.",
+            premium_bps=1800.0, calibration="stylised"),
+    replace(RESEARCH_TEMPLATES_RAW[8], template="reversal_weak", name="Weak reversal (pre-0.10)",
+            description="Pre-0.10 calibration (transient share 0.40, rank IC 0.062), kept for the signed-off golden set.",
+            transient_share=0.40, calibration="stylised"),
+)
+PRE010_PREFIX = "pre010:"
+TEMPLATE_ALIASES: dict[str, str] = {"momentum_near_threshold": "momentum_realistic", "reversal_weak": "reversal_realistic"}
+
+
+@lru_cache(maxsize=1)
+def _pre010_all() -> dict[str, ResearchScenarioSpec]:
+    """``pre010:RSnn`` -> the pre-0.10 spec with the same id and seed as the old catalogue."""
+    out: dict[str, ResearchScenarioSpec] = {}
+    for old in PRE010_TEMPLATES:
+        new = next(s for s in _all() if s.template == TEMPLATE_ALIASES[old.template])
+        for s in _all():
+            if s.template == new.template:
+                spec = with_ground_truth(replace(old, id=s.id, seed=s.seed))
+                out[PRE010_PREFIX + s.id] = replace(spec, id=PRE010_PREFIX + s.id)
+    return out
+
+
+def golden_scenario_id(item: dict[str, object]) -> str:
+    """The scenario a golden-set item was authored against: ``pre010:RSnn`` for the renamed templates."""
+    scenario = str(item["scenario"])
+    return PRE010_PREFIX + scenario if item.get("template") in TEMPLATE_ALIASES else scenario
+
+
 def get_research_scenario(scenario_id: str) -> ResearchScenarioSpec:
+    if scenario_id.startswith(PRE010_PREFIX):
+        return _pre010_all()[scenario_id]
+    for s in PRE010_TEMPLATES:
+        if s.template == scenario_id:
+            return with_ground_truth(s)
     for s in _templates():
         if s.id == scenario_id or s.template == scenario_id:
             return s

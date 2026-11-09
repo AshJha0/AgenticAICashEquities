@@ -22,6 +22,8 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GOLDEN_SET_PATH = REPO_ROOT / "tests" / "golden" / "golden_set.json"
+# 0.10 D1/D4 research items on the recalibrated templates; PENDING owner sign-off, separate from the signed set
+GOLDEN_RESEARCH_V11_PATH = REPO_ROOT / "tests" / "golden" / "golden_set_research_v1_1.json"
 
 
 def items_sha256(items: list[dict[str, Any]]) -> str:
