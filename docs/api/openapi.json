@@ -109,6 +109,18 @@
             "title": "Arguments",
             "type": "object"
           },
+          "challenger": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Challenger"
+          },
           "content_hash": {
             "title": "Content Hash",
             "type": "string"
