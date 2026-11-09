@@ -230,7 +230,8 @@ class PaperJob:
                     events.append({"kind": "cancel", "symbol": sym, "quantity": o.quantity, "order_id": o.order_id,
                                    "cash_delta": 0.0, "cost": 0.0, "detail": {"reason": "superseded", **o.trace()}})
                 chk = check_orders(self._deltas(st, target), st.positions, st.equity, self.panel, i,
-                                   self.params.risk, self.config.gross_leverage)
+                                   self.params.risk, self.config.gross_leverage,
+                                   session_cap_fraction=self.params.session_cap_fraction())
                 st.target = {k: v for k, v in target.items() if v}
                 st.waived = {}
                 for blk in chk.blocks:
