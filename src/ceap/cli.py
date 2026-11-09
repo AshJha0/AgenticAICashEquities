@@ -299,7 +299,7 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument("--workers", type=int, default=1, help="null suite: worker processes")
     ev.add_argument(
         "--write-thresholds", dest="write_thresholds", action="store_true",
-        help="null suite: write the chosen hurdle and sweep hash to data/reference/research_thresholds.json",
+        help="null suite: write the measured false-PROMOTE rate and sweep hash (the hurdle itself is fixed a priori) to data/reference/research_thresholds.json",
     )
 
     ev.set_defaults(func=_cmd_evaluate)

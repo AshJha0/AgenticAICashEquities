@@ -7,7 +7,13 @@ function-scoped so no test can see another test's leftovers; the random-order ni
 
 from __future__ import annotations
 
+import os
+
 import pytest
+
+# CPU-bound MCP tools run in a thread here, not in worker processes (each would cost seconds to
+# start on Windows). tests/unit/test_cpu_pool.py turns the process pool on for itself.
+os.environ.setdefault("CEAP_CPU_TOOL_PROCESSES", "0")
 
 from ceap.config import Settings
 from ceap.data.historical import HistoricalStore
@@ -16,6 +22,20 @@ from ceap.data.scenarios import get_scenario
 from ceap.llm.client import MockLLMClient
 from ceap.mcp.registry import build_in_process_client, build_tool_registry
 from ceap.platform import Platform
+
+#: H8: per-tier ceilings (the 120 s default is ``timeout`` in pyproject.toml)
+TIER_TIMEOUTS = {"nightly": 1800, "slow": 600}
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """Give slow and nightly tests an explicit, longer timeout unless they set their own."""
+    for item in items:
+        if item.get_closest_marker("timeout") is not None:
+            continue
+        for marker, seconds in TIER_TIMEOUTS.items():
+            if item.get_closest_marker(marker) is not None:
+                item.add_marker(pytest.mark.timeout(seconds))
+                break
 
 
 @pytest.fixture(scope="session")

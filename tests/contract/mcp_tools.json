@@ -1,6 +1,7 @@
 {
   "alpha.combine_signals": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -24,6 +25,7 @@
   },
   "alpha.evaluate_signal": {
     "annotations": {
+      "cpuBound": true,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -103,6 +105,7 @@
   },
   "alpha.list_signals": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -117,6 +120,7 @@
   },
   "backtest.run_backtest": {
     "annotations": {
+      "cpuBound": true,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -213,6 +217,7 @@
   },
   "backtest.trial_count": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -232,6 +237,7 @@
   },
   "engineering.get_deployments": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -278,6 +284,7 @@
   },
   "engineering.get_latency_metrics": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -339,6 +346,7 @@
   },
   "engineering.get_service_metrics": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -389,6 +397,7 @@
   },
   "engineering.get_services": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -403,6 +412,7 @@
   },
   "engineering.search_logs": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -479,6 +489,7 @@
   },
   "execution.get_child_orders": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -537,6 +548,7 @@
   },
   "execution.get_execution_metrics": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -576,6 +588,7 @@
   },
   "execution.get_executions": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -634,6 +647,7 @@
   },
   "execution.get_parent_orders": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -673,6 +687,7 @@
   },
   "execution.get_staged_orders": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -699,6 +714,7 @@
   },
   "execution.get_strategy_configuration": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -723,6 +739,7 @@
   },
   "execution.get_venue_statistics": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -762,13 +779,14 @@
   },
   "execution.stage_orders": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": false,
       "requiredCapabilities": [
         "trading:execute"
       ],
       "riskLevel": "HIGH"
     },
-    "description": "Stage a PAPER order list that moves the book to the signal's recomputed target portfolio at as_of. Nothing is routed to a venue. Idempotent per (signal, dataset, as_of, gross_notional, long_short). Requires the trading:execute capability and human approval.",
+    "description": "Stage a PAPER order list that moves the book to the signal's recomputed target portfolio at as_of. Nothing is routed to a venue. Idempotent per (signal, dataset, as_of, gross_notional, long_short). Pre-trade checks (restricted, hard to borrow, per-name and gross limits) run first; refused while the kill switch is set. Requires the trading:execute capability and human approval.",
     "inputSchema": {
       "properties": {
         "approved_portfolio_hash": {
@@ -818,6 +836,7 @@
   },
   "knowledge.get_document": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -842,6 +861,7 @@
   },
   "knowledge.list_documents": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -856,6 +876,7 @@
   },
   "knowledge.search_documents": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -884,6 +905,7 @@
   },
   "market_data.get_coverage": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -910,6 +932,7 @@
   },
   "market_data.get_market_statistics": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -949,6 +972,7 @@
   },
   "market_data.get_order_book": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -984,6 +1008,7 @@
   },
   "market_data.get_order_book_statistics": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1023,6 +1048,7 @@
   },
   "market_data.get_quote": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1058,6 +1084,7 @@
   },
   "market_data.get_quotes": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1101,6 +1128,7 @@
   },
   "market_data.get_reference_data": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1121,6 +1149,7 @@
   },
   "market_data.get_trades": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1168,6 +1197,7 @@
   },
   "research_data.get_daily_bars": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1204,6 +1234,7 @@
   },
   "research_data.get_universe": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1223,6 +1254,7 @@
   },
   "research_data.get_universe_summary": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1264,6 +1296,7 @@
   },
   "risk.calculate_portfolio_stress": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "MEDIUM"
@@ -1311,6 +1344,7 @@
   },
   "risk.calculate_stress": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "MEDIUM"
@@ -1346,6 +1380,7 @@
   },
   "risk.check_limit": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1396,6 +1431,7 @@
   },
   "risk.check_portfolio_limits": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1443,6 +1479,7 @@
   },
   "risk.get_exposure": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1485,6 +1522,7 @@
   },
   "risk.get_portfolio_exposure": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"
@@ -1528,6 +1566,7 @@
   },
   "risk.get_position": {
     "annotations": {
+      "cpuBound": false,
       "readOnlyHint": true,
       "requiredCapabilities": [],
       "riskLevel": "LOW"

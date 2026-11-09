@@ -94,14 +94,20 @@ def test_no_alpha_flag():
 
 def test_overfit_flag():
     a = assess_research(_stats(), _backtest(is_sharpe=3.0, oos_sharpe=0.3, oos_gross=0.4), _risk())
-    assert a.flags == (ResearchFlag.OVERFIT,) and a.verdict is ResearchVerdict.REJECT
+    # 0.10 D4: two years of data cannot separate a net Sharpe of 1.65 from 0 or 0.5, so the statistical
+    # REJECT becomes INCONCLUSIVE; the flag is unchanged
+    assert a.flags == (ResearchFlag.OVERFIT,) and a.verdict is ResearchVerdict.INCONCLUSIVE
     assert ResearchFlag.OVERFIT in assess_research(_stats(oos_t=0.2), _backtest(), _risk()).flags
-    weak = assess_research(_stats(), _backtest(is_sharpe=0.4, oos_sharpe=0.3, oos_gross=0.35), _risk())
+    weak_bt = replace(_backtest(is_sharpe=0.4, oos_sharpe=0.3, oos_gross=0.35),
+                      trial={"n_trials": 1, "preregistered_variants": 1})
+    weak = assess_research(_stats(), weak_bt, _risk())
     assert weak.flags == (ResearchFlag.OVERFIT,)
 
 
 def test_cost_drag_flag():
-    a = assess_research(_stats(), _backtest(is_sharpe=0.3, oos_sharpe=0.2, oos_gross=2.5, cost=1500.0), _risk())
+    bt = replace(_backtest(is_sharpe=0.3, oos_sharpe=0.2, oos_gross=2.5, cost=1500.0),
+                 trial={"n_trials": 1, "preregistered_variants": 1})  # one test: no 24-way deflation (D8)
+    a = assess_research(_stats(), bt, _risk())
     assert a.flags == (ResearchFlag.COST_DRAG,)
     assert a.metrics["cost_share"] == pytest.approx(0.75) and a.scores["cost"] == pytest.approx(0.25)
 

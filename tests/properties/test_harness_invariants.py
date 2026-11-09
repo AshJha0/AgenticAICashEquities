@@ -160,7 +160,7 @@ async def test_3a4_untraceable_narrative_is_blocking(store, settings, name):
 async def test_3a4_same_inputs_and_cassette_give_identical_result(store, settings, monkeypatch):
     pytest.importorskip("anthropic")
     from ceap.llm.client import AnthropicLLMClient
-    from ceap.llm.recording import CassetteTransport, load_cassette, sdk_over
+    from ceap.llm.recording import CassetteTransport, assert_consumed, load_cassette, sdk_over
 
     outputs = []
     for _ in range(2):
@@ -170,6 +170,7 @@ async def test_3a4_same_inputs_and_cassette_give_identical_result(store, setting
             settings=settings, llm=AnthropicLLMClient(client=sdk_over(transport)), store=store
         )
         result = await platform.investigate(default_request("AAPL", "T03"))
+        assert_consumed(transport)  # A19: an unused recording fails the replay
         r = result.report
         outputs.append(
             json.dumps(

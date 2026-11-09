@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import math
+from dataclasses import replace
 from typing import Any
 
 from ceap.analytics.backtest import simulate_backtest
 from ceap.analytics.profitability import capacity_sweep, json_safe, profitability_from_run
 from ceap.analytics.trial_ledger import TrialLedger
-from ceap.data.historical import HistoricalStore
+from ceap.data.historical import HistoricalDataset, HistoricalStore
 from ceap.domain.common import to_jsonable
 from ceap.domain.research import (
     DEFAULT_EXECUTION_LAG_DAYS,
@@ -18,7 +20,21 @@ from ceap.domain.research import (
     validate_choice,
 )
 from ceap.mcp.common import DEFAULT_RESEARCH_DATASET, select_history
+from ceap.mcp.cpu_pool import run_on_history
 from ceap.mcp.server import MCPServerDefinition
+
+
+def _backtest_compute(
+    ds: HistoricalDataset, signal: str, gross_notional: float, kwargs: dict[str, Any], capacity: bool
+) -> tuple[dict[str, Any], float]:
+    """The CPU-heavy part of ``run_backtest``: pure, picklable, safe to run in a worker process."""
+    run = simulate_backtest(ds, signal, gross_notional=gross_notional, **kwargs)
+    ins = run.result.period("in_sample")
+    sharpe_daily = ins.sharpe / math.sqrt(252) if ins is not None and math.isfinite(ins.sharpe) else float("nan")
+    sweep = capacity_sweep(ds, signal, **kwargs) if capacity else None
+    table = json_safe(profitability_from_run(run, ds, sweep))
+    payload = to_jsonable(replace(run.result, profitability=table, trial={}))
+    return payload, sharpe_daily
 
 
 def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) -> MCPServerDefinition:
@@ -31,11 +47,12 @@ def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) ->
     )
 
     @server.tool(
-        "Backtest the signal's quantile portfolio from the enumerated search space: decide at the close, fill "
-        "execution_lag_days later at the close or open, drift weights between fills, charge half-spread plus "
+        cpu_bound=True,
+        description="Backtest the signal's quantile portfolio from the enumerated search space: decide at the "
+        "close, fill execution_lag_days later at the close or open, drift weights between fills, charge half-spread plus "
         "square-root impact, borrow by liquidity tier and financing; report per-period Sharpe on excess returns, "
         "costs by line, capped and blocked trades, delisting bounds, the profitability table with a capacity "
-        "sweep, and this run's trial-ledger record (the trial count is read from the ledger, never supplied)."
+        "sweep, and this run's trial-ledger record (the trial count is read from the ledger, never supplied).",
     )
     async def run_backtest(
         signal: str,
@@ -52,7 +69,7 @@ def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) ->
         fill: str = DEFAULT_FILL,
         capacity: bool = True,
     ) -> dict[str, Any]:
-        ds = select_history(history, dataset)
+        ds = await asyncio.to_thread(select_history, history, dataset)  # a cold dataset takes seconds
         from ceap.analytics.signals import get_signal
 
         rebalance = int(get_signal(signal).default_rebalance_days if rebalance_days is None else rebalance_days)
@@ -62,17 +79,11 @@ def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) ->
             "long_short": long_short, "cost_multiplier": cost_multiplier, "weighting": weighting,
             "execution_lag_days": execution_lag_days, "fill": fill, "top_fraction": SEARCH_TOP_FRACTION,
         }
-        run = simulate_backtest(ds, signal, gross_notional=gross_notional, **kwargs)
-        ins = run.result.period("in_sample")
-        sharpe_daily = ins.sharpe / math.sqrt(252) if ins is not None and math.isfinite(ins.sharpe) else float("nan")
         params = {"signal": signal, "gross_notional": gross_notional, **kwargs}
-        summary = trials.record(ds.dataset_hash, params, sharpe_daily)
-        sweep = capacity_sweep(ds, signal, **kwargs) if capacity else None
-        table = json_safe(profitability_from_run(run, ds, sweep))
-        from dataclasses import replace
-
-        result = replace(run.result, profitability=table, trial=summary.to_dict())
-        return to_jsonable(result)
+        payload, sharpe_daily = await run_on_history(_backtest_compute, ds, signal, gross_notional, kwargs, capacity)
+        summary = trials.record(ds.dataset_hash, params, sharpe_daily)  # the ledger lives in this process
+        payload["trial"] = to_jsonable(summary.to_dict())
+        return payload
 
     @server.tool("Read the trial ledger for a dataset: how many distinct configurations have been backtested.")
     async def trial_count(dataset: str = DEFAULT_RESEARCH_DATASET) -> dict[str, Any]:

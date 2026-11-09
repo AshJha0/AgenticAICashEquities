@@ -36,7 +36,10 @@ async def _wait(c: httpx.AsyncClient, task_id: str) -> dict:
 
 async def test_health_and_system_endpoints(client):
     h = (await client.get("/health")).json()  # R4 4.6: liveness only, no topology
-    assert h["status"] == "ok" and set(h) == {"status", "version"}
+    assert h["status"] == "ok" and h["version"]
+    # documented contract (docs/api/api.md): liveness plus writer health, no topology
+    assert set(h) <= {"status", "version", "writer_queue", "write_probe_ok", "write_probe_ms"}
+    assert h["write_probe_ok"] is True and h["writer_queue"] >= 0
     assert (await client.get("/status")).status_code == 401
     s = (await client.get("/status", headers=VIEWER)).json()
     assert s["status"] == "ok" and s["tools"] >= 20 and "knowledge" in s["servers"]

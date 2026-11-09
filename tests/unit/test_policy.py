@@ -32,9 +32,22 @@ async def test_trader_can_read_but_not_write():
     assert ev.decision is PolicyDecision.DENY and ev.rule == "read-only"
 
 
-async def test_admin_write_requires_no_approval_with_risk_high_capability():
+async def test_admin_high_risk_write_still_requires_approval():
+    # D4/A4 (0.8.0): risk:high no longer skips the approval; it only lets the admin ask for one
     ev = await RulePolicyEngine().evaluate(ToolRequest(WRITE.id), WRITE, _ctx("admin"))
-    assert ev.decision is PolicyDecision.ALLOW
+    assert ev.decision is PolicyDecision.REQUIRE_APPROVAL and ev.rule == "risk-level"
+
+
+async def test_harness_grant_covers_one_identical_high_risk_call():
+    engine = RulePolicyEngine()
+    ctx = _ctx("admin")
+    engine.grant_approved(ctx.task_id, WRITE.id, {"qty": 1})
+    other = await engine.evaluate(ToolRequest(WRITE.id, {"qty": 2}), WRITE, ctx)
+    assert other.decision is PolicyDecision.REQUIRE_APPROVAL
+    same = await engine.evaluate(ToolRequest(WRITE.id, {"qty": 1}), WRITE, ctx)
+    assert same.decision is PolicyDecision.ALLOW
+    again = await engine.evaluate(ToolRequest(WRITE.id, {"qty": 1}), WRITE, ctx)
+    assert again.decision is PolicyDecision.REQUIRE_APPROVAL
 
 
 async def test_medium_risk_requires_approval_for_viewer_not_trader():
@@ -72,11 +85,16 @@ async def test_symbol_universe_and_argument_guards():
     assert huge.decision is PolicyDecision.DENY and huge.rule == "argument-guard"
     long_arg = await engine.evaluate(ToolRequest(READ.id, {"query": "x" * 5000}), READ, _ctx("trader"))
     assert long_arg.decision is PolicyDecision.DENY
-    # per-request universe override via context attributes
+    # a per-request universe only narrows (D4/A3): TSLA outside the engine universe stays denied.
+    # Before 0.8.0 the empty intersection read as "no universe" and let TSLA through.
     ctx_override = await engine.evaluate(
         ToolRequest(READ.id, {"symbol": "TSLA"}), READ, _ctx("trader", allowed_symbols={"TSLA"})
     )
-    assert ctx_override.decision is PolicyDecision.ALLOW
+    assert ctx_override.decision is PolicyDecision.DENY and ctx_override.rule == "symbol-universe"
+    narrowed = await engine.evaluate(
+        ToolRequest(READ.id, {"symbol": "AAPL"}), READ, _ctx("trader", allowed_symbols={"MSFT"})
+    )
+    assert narrowed.decision is PolicyDecision.DENY
 
 
 async def test_deny_list_and_first_deny_wins():

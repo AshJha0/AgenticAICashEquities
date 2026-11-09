@@ -105,6 +105,8 @@ class ShortfallComponents:
     timing_bps: float
     opportunity_bps: float
     fees_bps: float
+    fill_rate: float = float("nan")
+    opportunity_priced: bool = True
 
     @property
     def trading_bps(self) -> float:
@@ -119,7 +121,7 @@ class ShortfallComponents:
         """Shortfall measured from arrival: everything except the (pre-arrival) delay leg."""
         return self.total_bps - self.delay_bps
 
-    def as_dict(self) -> dict[str, float]:
+    def as_dict(self) -> dict[str, float | bool]:
         return {
             "delay_bps": self.delay_bps,
             "spread_bps": self.spread_bps,
@@ -127,6 +129,8 @@ class ShortfallComponents:
             "opportunity_bps": self.opportunity_bps,
             "fees_bps": self.fees_bps,
             "total_bps": self.total_bps,
+            "fill_rate": self.fill_rate,
+            "opportunity_priced": self.opportunity_priced,
         }
 
 
@@ -167,12 +171,20 @@ def shortfall_components(
     spread = s * float(((p - m) * q).sum()) if q.size else 0.0
     timing = s * float(((m - arrival_price) * q).sum()) if q.size else 0.0
     opportunity = 0.0
+    priced = True
     if final_price is not None and np.isfinite(final_price) and unfilled > 0:
         opportunity = s * (final_price - arrival_price) * unfilled
     else:
         delay = s * (arrival_price - decision_price) * filled  # no final price: no unfilled legs
+        # A partial fill with no final price cannot price the unfilled leg. The opportunity leg is
+        # left at zero so the other legs still sum, but it is flagged: total_bps then covers only the
+        # filled quantity and must be read together with fill_rate.
+        priced = unfilled <= 0
     fees = float((f * q).sum()) if q.size else 0.0
-    return ShortfallComponents(delay / norm, spread / norm, timing / norm, opportunity / norm, fees / norm)
+    fill_rate = min(filled / owed, 1.0) if owed > 0 else float("nan")
+    return ShortfallComponents(
+        delay / norm, spread / norm, timing / norm, opportunity / norm, fees / norm, fill_rate, priced
+    )
 
 
 def schedule_price_variance(segments: Sequence[tuple[float, float, float]]) -> float:

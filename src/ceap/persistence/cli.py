@@ -57,6 +57,7 @@ def _cmd_db(args: argparse.Namespace) -> int:
                     "size_bytes": db.size_bytes(),
                     "audit_rows": report.rows,
                     "chain_ok": report.ok,
+                    "dev_key": report.dev_key,
                 }
             )
             return 0
@@ -67,6 +68,12 @@ def _cmd_db(args: argparse.Namespace) -> int:
             _print({"backup": str(dest), "schema_version": db.schema_version(), "chain_ok": ok})
             return 0 if ok else 1
         if action == "verify-chain":
+            if args.anchor:
+                from ceap.persistence.anchor import load_anchor, verify_against_anchor
+
+                result = verify_against_anchor(db, load_anchor(args.anchor))
+                _print({"anchor": args.anchor, **result})
+                return 0 if result["ok"] else 1
             report = db.verify_chain()
             _print(
                 {
@@ -74,9 +81,29 @@ def _cmd_db(args: argparse.Namespace) -> int:
                     "rows": report.rows,
                     "first_bad_seq": report.first_bad_seq,
                     "reason": report.reason,
+                    "head": report.head,
+                    "dev_key": report.dev_key,
                 }
             )
             return 0 if report.ok else 1
+        if action == "anchor":
+            from ceap.persistence.anchor import write_anchor
+
+            _print(write_anchor(db, args.out))
+            return 0
+        if action == "kill-switch":
+            from dataclasses import asdict
+
+            from ceap.persistence.killswitch import KillSwitch
+
+            ks = KillSwitch(db)
+            if args.ks_action == "set":
+                _print(asdict(ks.set(args.actor, args.reason or "")))
+            elif args.ks_action == "clear":
+                _print(asdict(ks.clear(args.actor, args.reason or "cleared")))
+            else:
+                _print({**asdict(ks.state()), "history": ks.history()[-10:]})
+            return 0
         if action == "prune":
             from ceap.config import load_settings
 
@@ -134,7 +161,7 @@ def _cmd_replay(args: argparse.Namespace) -> int:
 
 
 def register(sub: Any) -> None:
-    db = sub.add_parser("db", help="SQLite persistence: status, migrate, backup, verify-chain, prune")
+    db = sub.add_parser("db", help="SQLite persistence: status, migrate, backup, verify-chain, anchor, kill-switch, prune")
     db.add_argument("--path", default=None, help=f"database file (default: $CEAP_DB_PATH or {DEFAULT_DB})")
     dbs = db.add_subparsers(dest="db_command", required=True)
     dbs.add_parser("status", help="schema version, size, audit chain")
@@ -142,7 +169,14 @@ def register(sub: Any) -> None:
     mig.add_argument("--to", type=int, default=None, help="target schema version (default: latest)")
     bk = dbs.add_parser("backup", help="online backup to DEST, then verify the copy")
     bk.add_argument("dest")
-    dbs.add_parser("verify-chain", help="verify the audit log hash chain (exit 1 when broken)")
+    vc = dbs.add_parser("verify-chain", help="verify the audit log hash chain (exit 1 when broken)")
+    vc.add_argument("--anchor", default=None, help="also check every chain against this anchor file")
+    an = dbs.add_parser("anchor", help="write the chain heads to a git-committable anchor file (+ .sha256)")
+    an.add_argument("--out", default="var/audit_head.json", help="anchor file (default var/audit_head.json)")
+    ks = dbs.add_parser("kill-switch", help="show, set or clear the DB-backed kill switch (audited)")
+    ks.add_argument("ks_action", choices=["status", "set", "clear"])
+    ks.add_argument("--reason", default=None, help="why (required for set)")
+    ks.add_argument("--actor", default=os.getenv("USERNAME") or os.getenv("USER") or "operator")
     dbs.add_parser("prune", help="apply the retention settings and the size bound")
     db.set_defaults(func=_cmd_db)
 

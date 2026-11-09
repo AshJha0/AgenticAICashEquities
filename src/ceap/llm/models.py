@@ -58,3 +58,6 @@ class LLMResponse:
     # R3C 3C.4: citations on text blocks (citations call only): document_index, start/end_block_index,
     # cited_text, type, and the cited sentence with its [text_start, text_end) offsets in ``content``
     citations: tuple[dict[str, Any], ...] = ()
+    # A20: where the token counts come from. "api" is the provider's usage block; "mock_estimate" is
+    # the mock's characters / 4 guess (no model was called), which every display must label as such.
+    token_source: str = "api"

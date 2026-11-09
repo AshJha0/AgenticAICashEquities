@@ -6,6 +6,263 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+## [0.8.0] - 2026-11-09
+
+The safety, research-realism, execution and AI-evaluation release: steps from the two-round review of
+2026-11-09 (`docs/review/2026-11-09/PLAN.md`, owner decisions D1-D4), built by seven parallel lanes
+and shipped as one combined PR. Full local suite with the API key unset: 935 passed, 0 failed.
+
+### Results that moved, and why (read before comparing with 0.7.x)
+
+- Research verdict accuracy 0.9667 -> 0.8333 (25/30, mock LLM): the synthetic premia were recalibrated
+  to realistic strength (D1), the IC hurdle is now fixed a priori (D3) and INCONCLUSIVE exists (D4).
+  Each pass bar is a 5 % one-sided lower bound derived in advance from the generator, not from a run;
+  the clear-case subset (21/24) sits exactly on its bar.
+- Owner-signed golden set, verdict accuracy 1.00 -> 0.8667 (13/15). G-RES-10 and G-RES-11 (template
+  `mixed`, signed-off expectation REJECT) no longer get REJECT under the three-way rule. The
+  signed-off expectations are unchanged; whether `mixed` should be REJECT or INCONCLUSIVE is an owner
+  decision at the next sign-off (`tests/golden/golden_set_research_v1_1.json`, PENDING).
+- New per-agent evaluation (B2, mock and hand-built cases): the critic detects 6/15 planted problems
+  (0.40, 95 % CI 0.20-0.64), including 0/3 contradictions and 0/3 direction mismatches. This is the
+  first measurement of the critic and a 0.9.0 work item, not a pass.
+- Retrieval: 3/25 near-miss negatives leak a passage (0.12, CI 0.04-0.30); 0/10 plain negatives.
+- Reproducibility fixes found during integration: allowlist derivation drew ids from the run's clock
+  on first use only (reports differed by process history); process-pool timeouts killed every worker,
+  losing results and changing clock reads. Both fixed with tests (thread/process parity test).
+
+### Breaking changes in 0.8.0
+
+Read these before upgrading from 0.7.1. Each is described in more detail in the entries below.
+
+- **Failing narrative is replaced, not shipped (A2, owner decision D4).** Model prose that fails the
+  number, evidence-id or citation audit no longer ships with a warning. The report carries the
+  deterministic template narrative, the degradation `LLM_NARRATIVE_SUPPRESSED` and
+  `critique.narrative_suppressed`; the rejected prose goes only to the audit log
+  (`reporter.narrative_rejected`). Consumers that read the narrative of a flagged report now get the
+  template text.
+- **The policy fails closed without a universe (A3, D4).** With no symbol universe configured, any
+  request that names a symbol is denied. Every symbol-bearing field is checked (lists, nested objects,
+  schema properties marked `x-ceap-symbol`), and arguments are validated against each tool's JSON
+  schema, so calls with extra or malformed arguments that used to pass are now refused.
+- **Admins need approval for HIGH risk (A4, D4).** `risk:high` no longer skips the human approval for
+  a HIGH-risk tool, and an admin cannot decide approvals, so an admin's request goes through four-eyes.
+- **Untrusted MCP servers are denied (A5).** Every tool of a server outside
+  `CEAP_MCP_TRUSTED_SERVERS` is denied, even when it declares itself read-only (in 0.7.1 it was
+  treated as read-only). `CEAP_MCP_CATALOGUE_PINS` refuses start-up on a catalogue mismatch.
+  `build_tool_registry` now returns a `PinnedToolRegistry`.
+- **API keys can map to a named subject (A13).** A key mapped with `:subject=NAME` (or
+  `CEAP_API_KEY_SUBJECTS`) acts as principal `user:NAME`, and four-eyes compares persons, not keys:
+  two keys mapped to the same person can no longer request and approve the same action. Unmapped keys
+  behave as before.
+- **Audit and ledger chains are HMAC-keyed (A6).** New env var `CEAP_AUDIT_HMAC_KEY` (rotation via
+  `CEAP_AUDIT_HMAC_OLD_KEYS`). Without it a published development key is used and reports say
+  `dev_key: true`; set it for any database you want to trust. A database written with a key verifies
+  only where that key (or an old key listed) is configured. Migration 0004 adds `hash_alg`; rows
+  written before it stay plain SHA-256 as a sealed legacy prefix.
+- **Process-pool tool isolation is server-only (G3).** `CEAP_CPU_TOOL_PROCESSES` defaults to 2 under
+  `ceap serve` and 0 (threads) in the CLI, the library and the tests. Workers use `spawn`, so a script
+  that sets it must keep its top level under `if __name__ == "__main__":`.
+- **Coverage gate (H2).** CI measures branch coverage (`--cov-branch`) with a floor of 85 % (was 80 %
+  line coverage). A PR that lowers branch coverage below 85 % fails.
+- **LLM budget and rate limit on by default (A10).** Per-task caps (`CEAP_TASK_BUDGET_USD` 2.00,
+  `CEAP_TASK_TOKEN_BUDGET` 400000) and a per-principal rate limit (429 with `Retry-After`) apply
+  unless set to `off`.
+- **Renamed or changed public API.**
+  - `ResearchVerdict` gains `INCONCLUSIVE` (contracts change); code that assumed only PROMOTE and
+    REJECT must handle it.
+  - Research templates `momentum_near_threshold` and `reversal_weak` are renamed
+    `momentum_realistic` and `reversal_realistic` and recalibrated (D1); the old names survive only as
+    the pre-0.8 calibration used by the signed-off golden set.
+  - Prompts move to `report@2`, `research_report@2`, `reporter_claims@2` and `reporter_prose@2`, and
+    are hash-verified at load (`PromptIntegrityError`).
+  - Cassette `prefix` interactions need `allow_prefix=True`; unused interactions fail
+    `assert_consumed`.
+  - `data_block` takes a `nonce`; the closing tag repeats it (`</data nonce="...">`).
+  - `Database.verify_chain(expected_head, expected_rows)` and `PaperLedger.verify(book, anchor)` gain
+    optional anchor arguments; `audit_hash` takes optional `keys`.
+  - `ShortfallComponents` gains `fill_rate` and `opportunity_priced`.
+  - `market_impact_bps` and `temporary_impact_bps` raise `DeprecationWarning` (removal in 1.0).
+  - The mock LLM reports zero tokens and zero cost (it reported characters / 4).
+  - The research IC hurdle is t >= 3.0 for a searched result (was 0.40), so fewer synthetic
+    scenarios PROMOTE.
+
+- Narrative guardrails (0.8.0 lane 1, plan WS-A steps A1, A2, A7, A8, A11, A12, A15, A19, A20).
+  **Breaking (decision D4):** model prose that fails the number, evidence-id or citation audit is no
+  longer shipped with a warning; the report carries the deterministic template narrative, the
+  degradation `LLM_NARRATIVE_SUPPRESSED` and `critique.narrative_suppressed` (sha256, length,
+  reasons), and the rejected prose goes only to the audit log (`reporter.narrative_rejected`).
+  - A1: typed placeholders. The model names a figure as `{fact.key}`; code renders it with its unit.
+    The free-text audit is hardened: unit-matched conversions only, no sign flip unless a direction
+    word agrees, and no small-integer exemption (line-start list markers and fact-list lengths
+    still trace). The review repro (`-12.34 bps` and `1234 bps` against
+    `{slippage_bps: 12.34, fill_rate: 0.4321}`) now fails; `43 pct` passes as the correct
+    percent form of 0.4321. Prompts `report@2`, `research_report@2`, `reporter_claims@2`,
+    `reporter_prose@2`.
+  - A7: per-claim citation mapping (`claim_citations`): a policy claim needs a verified citation on
+    its own sentence. The mock now writes each policy claim as its own line and cites it there.
+  - A8: data blocks NFKC-normalise and strip zero-width characters, escape tags whitespace-tolerantly
+    and carry a random nonce that the closing tag repeats (`</data nonce="...">`).
+  - A11: planner string arguments are allowlisted (enum, else a short plain value); a step with an
+    unknown data scope is dropped. A12: the planner and critic repair requests carry only the
+    structured problem list, in a data block, never the model's reply.
+  - A15: prompt `version:sha256` pinned in `llm/model_pins.toml` `[prompts]` and verified at load
+    (`PromptIntegrityError`).
+  - A19: cassette matching is exact by default; `prefix` needs `allow_prefix=True` (cache tests
+    only); `assert_consumed` fails unused interactions; nonces are masked in the match key and the
+    stored body. Cassettes regenerated through the existing writer.
+  - A20: the mock client reports zero tokens and so zero cost (it used to report characters / 4).
+- Research realism, WS-D (D1-D23 except D5 and D10; synthetic evaluation only, no real-data result):
+  - D1: research templates carry a `calibration` label. `momentum_near_threshold` becomes
+    `momentum_realistic` (premium 1800 -> 1100 bps: rank IC 0.025, gross Sharpe 0.42) and
+    `reversal_weak` becomes `reversal_realistic` (transient share 0.40 -> 0.18: five-day rank IC
+    0.024); the other templates are described as "Stylised" with their multiple of a real premium.
+  - D3: a-priori IC hurdle, t >= 3.0 for a searched result and 1.645 for one preregistered test
+    (was 0.4, read from the null sweep). The null sweep now measures the false-PROMOTE rate at the
+    hurdle: 0 of 500 seeds at 3.0 (sweep hash unchanged, `ef474869e5fa…`); per-seed vector in
+    `docs/research/null_sweep_per_seed.json`; sweep runs logged in `data/reference/sweep_ledger.jsonl`
+    with the generator version (D20, D21).
+  - D4: new `ResearchVerdict.INCONCLUSIVE` (contracts change) when every flag is statistical and the
+    95 % interval of the full-period net Sharpe covers both 0 and 0.5. The golden test that listed a
+    non-existent `MONITOR` verdict now reads the enum.
+  - D2: adversarial generator families (hidden factor, regime switching, GARCH plus jumps, premium on
+    market beta) on a separate random stream, so every existing dataset hash is unchanged; power and
+    false-positive curves in `docs/research/adversarial_power.json` (`ceap.analytics.adversarial`).
+  - D7 leakage canary through `simulate_backtest`; shuffled-label `t_max` 4.0 -> 3.0. D8 trial
+    accounting (`ceap.analytics.trial_accounting`; the DSR trial count is floored at the 24-way search
+    or the preregistered variants). D9 PBO by CSCV and stationary block bootstrap
+    (`ceap.analytics.overfitting`). D11 Newey-West over gaps with the Andrews bandwidth. D12
+    equal-weight baseline, paired bootstrap and Diebold-Mariano test and coefficient paths for the
+    ridge; it now PROMOTEs only if it also beats the baseline. D13-D19 in
+    `ceap.analytics.risk_research` and `ceap.analytics.alpha_decay`; D14 `ceap.data.real.vintage`;
+    D20 `scripts/rebuild_study.py`; D22 model inventory (`ceap.ml.inventory`, new `ModelCard` fields);
+    D23 `ic_ir_annualised` labelled descriptive and the flat borrow assumption stated.
+  - Research-evaluation accuracy bars are now a priori: 5 % one-sided Poisson-binomial lower bounds at
+    parameter-derived hit probabilities (`ground_truth.hit_probability`, `accuracy_bar`). Clear 0.85 ->
+    0.875, near-threshold 0.5 -> 1/3, all 0.85 -> 0.80. The old bars predate the D1 recalibration;
+    measured 21/24, 2/6 and 25/30 meet the new bars (clear exactly at its bar).
+  - Golden set: the owner-signed `golden_set.json` 1.0.0 is unchanged. Its items on the renamed templates
+    run the pre-0.10 calibration they were authored against (`pre010:RSnn`, `golden_scenario_id`). The
+    three items on the recalibrated templates are in `tests/golden/golden_set_research_v1_1.json`
+    (1.1.0, sign-off PENDING, owner sign-off required); `scripts/build_golden_set.py` writes only that
+    file unless `--main` is given.
+- **Breaking (D4), policy lane (A3):** the policy engine validates arguments against each tool's JSON schema, checks every symbol-bearing field at any depth (lists and nested objects too, plus schema properties flagged `x-ceap-symbol`), bounds the whole argument tree (string length, item count, depth, total values) and coerces `limit` to a whole number before its bound. With no universe configured, a request that names a symbol is denied.
+- **Breaking (D4), A4:** HIGH-risk tools always need a human approval; `risk:high` no longer skips it. Admins cannot decide approvals, so an admin's request goes through four-eyes.
+- **Breaking, A5:** every tool of an MCP server outside `CEAP_MCP_TRUSTED_SERVERS` is denied, even when it declares itself read-only. Each server's tool catalogue is hashed at start-up; `CEAP_MCP_CATALOGUE_PINS=server=<sha256>,...` refuses start-up on a mismatch, and `PinnedToolRegistry.verify_catalogue` refuses on drift.
+- **A13:** API keys can be mapped to a named subject (`:subject=NAME` on a `CEAP_API_KEY_HASHES` entry, or `CEAP_API_KEY_SUBJECTS=role:xxxxxxxx=NAME`). A mapped key's principal is `user:NAME`, so four-eyes binds to the person, not the key.
+- **A14:** `GET /approvals/{id}` returns the tool id, its exact arguments, the content hash and `hash_verified`. `POST /approvals/{id}` accepts `content_hash`; a mismatch is 409. The gateway re-checks the hash after the decision and refuses an approval whose arguments changed. The review payload no longer says there is no pre-trade cost model.
+- **A16:** per-agent least privilege: each agent's tool calls run with its own capability set and tool allowlist (`ceap.policy.agents`), intersected with the principal's.
+- **A18:** OWASP LLM Top 10 mapping in `docs/threat-model/owasp-llm-top10.md`.
+- Audit log and paper ledger chains are HMAC-SHA256 keyed (A6). The key comes from
+  `CEAP_AUDIT_HMAC_KEY`, never the database; without it a published development key is used and
+  reported as `dev_key: true`. Earlier keys go in `CEAP_AUDIT_HMAC_OLD_KEYS`. Before this change,
+  anyone who could write the SQLite file could flip an approval, recompute the hashes and still pass
+  `verify_chain()`. `verify_chain(expected_head, expected_rows)` now also catches a cut-off tail. New
+  `ceap db anchor` writes the chain heads to a file you can commit to git, plus a `.sha256` sidecar for
+  an OpenTimestamps proof; `ceap db verify-chain --anchor FILE` checks against it. Migration 0004
+  adds `hash_alg` per row. Rows written before 0004 stay plain SHA-256 and still verify, as a sealed
+  legacy prefix. The forward and simulated log CSVs stay plain SHA-256 so anyone can still verify
+  them; the forward-log export format is unchanged.
+- DB-backed kill switch (F11): `ceap db kill-switch set|clear|status`. Each set and clear is an
+  append-only row plus an audit entry in the same transaction. The paper job and MCP `stage_orders`
+  both check it; `CEAP_PAPER_HALT` still works. A halt raised by the DB switch logs
+  `source: kill_switch_db` instead of `env`.
+- `stage_orders` runs pre-trade checks before staging (restricted, hard to borrow, per-name and gross
+  limits; `ceap.paper.pretrade.check_staged_orders`) and reports `risk_blocks`. With a database, staged
+  sets persist in `staged_orders` (one row per `staging_id`), so a retry or a restart finds the same set.
+- SQLite durability (G7): file databases use `synchronous=FULL`. `Database.arun` times out
+  (`arun_timeout_s`, default 30 s; `DatabaseTimeoutError`). `/health` adds `writer_queue`,
+  `write_probe_ok` and `write_probe_ms` (the probe takes the write lock and releases it without
+  writing), and reports `degraded` when the probe fails.
+- Redaction (A9) also catches `name=value` secrets (`password=`, `api_key:`, `ANTHROPIC_API_KEY=` and
+  other `*_KEY`/`*_TOKEN` names), phone numbers and high-entropy opaque tokens. Hex content hashes and
+  readable ids are left alone.
+- Knowledge admission (A17): a document with instruction-like text ("ignore previous instructions",
+  role or prompt markers, requests to reveal prompts) or marked superseded is not indexed
+  (`KnowledgeBase.rejected`). `search(..., as_of=)` serves only documents with
+  `effective_date <= as_of` and, per `doc_key`, the latest version in force. The shipped corpus passes
+  unchanged, and neither the corpus nor the RAG calibration changed.
+- Implementation shortfall (F9): `ShortfallComponents` gains `fill_rate` and `opportunity_priced`. A
+  partial fill with no final price now reports `opportunity_priced: false`, where before it silently
+  showed a zero opportunity cost.
+- `data/reference/ATTRIBUTION.md` says that the knowledge documents are fictional and that
+  `classification: internal` is test metadata (I3).
+- Execution (WS-F, lane 6): new package `ceap.execution` with an event-driven limit order book
+  (price-time FIFO queues, millisecond clock, order-entry and market-data latency, icebergs, passive
+  fills only when traded through, informed-flow adverse selection; F1), propagator impact driven by
+  the bot's own fills with a fit reported against the truth (F2), TWAP/VWAP/POV/Almgren-Chriss behind
+  one `Schedule` interface with exact whole-share allocation (F3), child-order logic (F4), an auction
+  uncross with endogenous auction impact (F5, simulator half), a predicted-vs-realised cost loop in
+  SQLite with weekly recalibration and a drift alert (F6), markout curves by venue and liquidity flag
+  with bootstrap CIs plus a routing table (F7), and tick, round-lot and LULD rules (F12 part). Guide:
+  `docs/execution/execution.md`; COOKBOOK recipes 44-48. Deferred to the owning lanes: paper MOC caps
+  (F5 paper half), F10, F11, F13, and the sigma fat-finger band (F12 rest).
+- Attribution: `regression_attribution` (F8), a cross-sectional ridge regression giving each cause a
+  bps share with bootstrap CIs, next to the heuristic scores. Off by default; turn on with
+  `attribute_causes(..., method="regression")` or `CEAP_ATTRIBUTION=regression`. With the flag off the
+  output is byte-identical to 0.7.1.
+- Generator speed (G2): `SyntheticMarketGenerator._trades` vectorised with the random draws in the
+  same order, so every dataset is bit-for-bit unchanged (SHA-256 of three full scenarios identical
+  before and after; v0.7.1 digest pinned in a test). About 5x on `_trades` and 10x on `generate`
+  on the dev machine, short of the plan's 50x target (the rest is per-print object construction).
+  The ML registry's generator *source* hash changes as a result; model outputs do not.
+- Cleanups (F14): `market_impact_bps` and `temporary_impact_bps` now raise `DeprecationWarning`
+  (removal in 1.0); `london()` documented as a deprecated alias of `session_time`; `vwap_by_bucket`
+  uses one `bincount` pass. Markouts to the close use each fill's own session (`QuoteIndex.last_timestamp_on`).
+- AI eval (B2): per-agent evals in `ceap.eval.agents`. They cover planner tool recall and
+  precision against ten gold plans, critic detection of planted faults by kind plus its false-alarm
+  rate, and reporter faithfulness, claim-drop, planted-claim catch rate and citation-verified. Each
+  rate has a 95 % Wilson interval and an evidence class (`mock` until B1).
+- AI eval (B3): a metric sensitivity test. Five degraded clients (`ceap.eval.clients`) must move
+  all eight model metrics in the expected direction.
+- AI eval (B6): an out-of-distribution golden split, `tests/golden/golden_ood_v1.json`, with 15
+  items from three held-out cause-combination templates, scored per template. It is a separate
+  versioned file, so the 45 signed-off items and their hash are unchanged. The split is
+  `PENDING_OWNER`: it needs the `golden-change` label and owner sign-off.
+- Docs (B9): `docs/ai-agents/ai-agents.md` now says which agents call the model (planner, critic,
+  reporter) and which are deterministic.
+- Retrieval eval (C1): `eval.json` version 2 adds 119 queries (paraphrase, typo, multi-hop,
+  near-miss negative), for 159 in all. `extended_report` scores them by category with Wilson
+  intervals, and BM25's weak spots (typos, multi-hop, near-miss leaks) are recorded without tuning.
+- Corpus governance (C3): `src/ceap/eval/corpus_pin.json` pins each document's version, date and
+  body hash. `ceap.eval.corpus` fails on unpinned or unbumped edits and future dates, and warns on
+  stale documents and on release-note wording in corpus files.
+- `ceap evaluation-report` gains agents, sensitivity, ood, retrieval and corpus sections.
+- G1: CPU work is off the event loop. `validate_request` and `validate_research_request` run in a
+  worker thread (`asyncio.to_thread`) from the API and from `Platform.investigate`/`research`;
+  `DatasetStore` holds one lock per scenario key instead of one global lock (same key generates once,
+  different keys in parallel) and gains `aget`; `CEAP_PREWARM_DATASETS` generates datasets at start-up
+  off the loop (the Docker image pre-warms `T01`). A cold T01 took 30 s on this machine (77 s under
+  load in the review) inside the request, and `/health` waited behind it; `/health` now answers
+  while a dataset generates (`tests/integration/test_r080_offloop.py`).
+- G3: CPU-bound MCP tools declare `cpu_bound=True` (annotation `cpuBound`, `ToolMetadata.cpu_bound`)
+  and run their heavy part in a killable process pool (`ceap.mcp.cpu_pool`, `CEAP_CPU_TOOL_PROCESSES`).
+  A step or task timeout, or a cancel, now terminates the worker; before, `wait_for` could not
+  interrupt `run_backtest`. The API server runs 2 workers and starts them before it serves; the CLI,
+  the library and the tests use threads. Each worker is its own slot, so a timeout terminates only its
+  own call. The caller's dataset is sent to the worker, and a research report is identical in process
+  and thread mode, with the same clock reads. `run_backtest` and `evaluate_signal` use the pool;
+  `combine_signals` runs in a thread because it writes to the in-process trial ledger.
+- A10: the LLM budget is on by default and race-free. Every call reserves its upper-bound estimate
+  before it is sent and settles after; per-task caps on calls, tokens (`CEAP_TASK_TOKEN_BUDGET`,
+  default 400000) and USD (`CEAP_TASK_BUDGET_USD`, default 2.00; `off` removes it). A circuit
+  breaker skips the primary model after 5 consecutive failures for 60 s. A per-principal token bucket
+  (`CEAP_RATE_LIMIT_PER_MINUTE` 60, `CEAP_RATE_LIMIT_BURST` 20) answers 429 with `Retry-After` on the
+  task-starting endpoints.
+- G6: paper dead-man's switch. `paper-daily.yml` opens or updates a `paper-failure` issue when a run
+  fails (`issues: write`); the new weekly `paper-staleness.yml` fails and opens a `paper-stale` issue
+  when the `forward-log` head is more than 2 NYSE sessions old
+  (`scripts/check_forward_log_staleness.py`). README points to the last recorded session and asks the
+  owner to protect `forward-log` against force-push (not changed here: rulesets are the owner's).
+- H2: CI and nightly measure branch coverage (`--cov-branch`); the floor is the measured total
+  rounded down (85 %), target 90 %.
+- H5: repository-integrity tests (those reading `scripts/`, `docs/`, committed data or `.github/`)
+  moved from `tests/unit` to `tests/repo`, which resolves the root explicitly (`tests/repo/repo_root.py`,
+  `CEAP_REPO_ROOT`); `tests/unit` reads nothing outside `src` and `tests`.
+- H8: `pytest-timeout` (dev dependency, lock regenerated): 120 s per test by default, 600 s for
+  `slow` and 1800 s for `nightly` unless a test sets its own; `--durations=20` on every run.
+- H9: one definition each for the `slow` and `nightly` markers. Nightly-marked sweeps skip unless
+  `CEAP_NIGHTLY=1`, which `nightly.yml` did not set, so they never ran in CI; it now sets it.
+
 ## [0.7.1] - 2026-11-08
 
 Patch release after 0.7.0: release-gate fix, golden-set owner sign-off and the R5 v2 write-up

@@ -32,6 +32,7 @@ from ceap.llm.recording import (  # noqa: E402
     CassetteTransport,
     RecordingTransport,
     UnpublishableMetricError,
+    assert_consumed,
     assert_publishable,
     build_cassette,
     load_cassette,
@@ -105,7 +106,7 @@ async def test_adapter_equivalence_structural_diff_is_empty(template, store, set
         store, settings, AnthropicLLMClient(client=sdk_over(transport)), template, monkeypatch
     )
     assert transport.stale == [], transport.stale
-    assert transport.state["i"] == len(cassette.interactions), "every recorded interaction replayed"
+    assert_consumed(transport)  # A19: every recorded interaction replayed
     assert structure(adapter_result) == structure(mock_result)
     assert adapter_result.plan.generated_by.startswith("llm:claude-")
     with pytest.raises(UnpublishableMetricError):

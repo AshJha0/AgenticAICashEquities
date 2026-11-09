@@ -134,6 +134,11 @@ class ApprovalDecisionIn(BaseModel):
     action: Literal["approve", "reject", "modify"] | None = Field(
         default=None, description="modify = not approved, changes requested (R3B 3B.8)"
     )
+    content_hash: str | None = Field(
+        default=None,
+        max_length=128,
+        description="The content hash the approver reviewed; a mismatch is refused with 409 (A14)",
+    )
 
     @model_validator(mode="after")
     def _reason_required(self) -> ApprovalDecisionIn:
@@ -156,6 +161,9 @@ class ApprovalReviewOut(BaseModel):
     requested_at: datetime
     content_hash: str
     review: dict[str, Any]
+    tool_id: str = ""
+    arguments: dict[str, Any] = Field(default_factory=dict)
+    hash_verified: bool = True
 
 
 class ScenarioOut(BaseModel):
@@ -182,6 +190,10 @@ class HealthOut(BaseModel):
 
     status: str
     version: str
+    # 0.8.0 (G7): database writer health. No topology or counts beyond the writer queue depth.
+    writer_queue: int | None = None
+    write_probe_ok: bool | None = None
+    write_probe_ms: float | None = None
 
 
 class StatusOut(BaseModel):

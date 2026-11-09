@@ -55,3 +55,15 @@ input = 0.10
 output = 0.50
 cache_read = 0.01
 cache_write = 0.125
+
+# Prompt pins (A15): id = "version:sha256" of the canonical prompt bytes. Every prompt is checked
+# against its pin when it is loaded; change a prompt only with its version header, this pin,
+# tests/cassettes/prompt_hashes.json and a CHANGELOG line, all together.
+[prompts]
+planner = "3:8a5034b96237fd747815dd2fdd20e6e806bb4a5b6506eb6c0567b0cf2507fd44"
+research_planner = "2:be03bc38e8b9dccab2d04248268aeaae3a5b0ba593e07ba2a6ed28f81d35acd7"
+report = "2:b014be5021c234763983a4eebd7d0e2e6f107c2fbe9a7cfab7bc9474e0d92d38"
+research_report = "2:7be2003af743c7245449558a50bc1cb291f076d1728560838c64f16807dcc6cf"
+critic = "3:f471e75077d3b8738b646774811d519d1f706735c8da0711ea78d1d4415d28af"
+reporter_claims = "2:d62bc048b3e614d3a817b3fa978dbbc57bafb554c5e233628bb315fc9942d25c"
+reporter_prose = "2:69d23d4380ae6884df2ed00cde1ef7b65ec203967deb99055a0966225c975407"

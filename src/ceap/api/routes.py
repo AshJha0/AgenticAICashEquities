@@ -32,6 +32,7 @@ from ceap.api.models import (
     ToolOut,
 )
 from ceap.api.parsing import LONDON, parse_question, parse_research_question, resolve_session_date
+from ceap.api.ratelimit import retry_after_header
 from ceap.data.research_scenarios import RESEARCH_TEMPLATES, all_research_scenarios
 from ceap.data.scenarios import SCENARIO_TEMPLATES, all_scenarios
 from ceap.domain.common import to_jsonable
@@ -45,7 +46,12 @@ from ceap.platform import (
     RequestNotPermitted,
     ResearchRequest,
 )
-from ceap.policy.approvals import ConcurrencySlot, FourEyesViolationError, QueuedApprovalGateway
+from ceap.policy.approvals import (
+    ConcurrencySlot,
+    FourEyesViolationError,
+    QueuedApprovalGateway,
+    approval_view,
+)
 from ceap.policy.permissions import METRICS_READ, READ_ANY
 
 log = logging.getLogger(__name__)
@@ -76,6 +82,21 @@ def _can_read(p: Platform, task_id: str, principal: Principal) -> bool:
     return owner is not None and (owner == principal.name or READ_ANY in principal.capabilities)
 
 
+def _rate_limit(request: Request, principal: Principal) -> None:
+    """Per-principal token bucket on task-starting endpoints (A10): 429 before any work is done."""
+    limiter = getattr(request.app.state.ceap, "rate_limiter", None)
+    if limiter is None:
+        return
+    wait = limiter.acquire(principal.name)
+    if wait > 0:
+        metrics.inc("ceap_rate_limited_total", principal=principal.name)
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"rate limit exceeded for {principal.name}; retry in {wait:.1f}s",
+            headers={"Retry-After": retry_after_header(wait)},
+        )
+
+
 def _idempotency(
     request: Request, p: Platform, principal: Principal, body: BaseModel
 ) -> tuple[str | None, str | None, dict[str, Any] | None]:
@@ -103,9 +124,21 @@ def _aware(ts: datetime | None) -> datetime | None:
 
 # ------------------------------------------------------------------ health
 @router.get("/health", response_model=HealthOut, tags=["system"])
-async def health() -> HealthOut:
-    """Liveness only; topology and counts moved to the authenticated ``/status`` (R4 item 4.6)."""
-    return HealthOut(status="ok", version=__version__)
+async def health(request: Request) -> HealthOut:
+    """Liveness plus database writer health; topology and counts moved to the authenticated ``/status``
+    (R4 item 4.6). The write probe takes and releases the SQLite write lock without writing (0.8.0, G7);
+    when it fails the status is ``degraded``. The key setting (dev default or not) is not shown here."""
+    db = getattr(getattr(request.app.state, "platform", None), "db", None)
+    if db is None:
+        return HealthOut(status="ok", version=__version__)
+    h = await asyncio.to_thread(db.health)
+    return HealthOut(
+        status="ok" if h["write_probe_ok"] else "degraded",
+        version=__version__,
+        writer_queue=h["writer_queue"],
+        write_probe_ok=h["write_probe_ok"],
+        write_probe_ms=h["write_probe_ms"],
+    )
 
 
 @router.get("/status", response_model=StatusOut, tags=["system"])
@@ -181,6 +214,7 @@ async def create_investigation(
     idem_key, body_hash, replay = _idempotency(request, p, principal, body)
     if replay is not None:
         return InvestigationAccepted(**replay)
+    _rate_limit(request, principal)  # a replay is free; a new task takes a token
     try:
         session_date = resolve_session_date(body.session_date)
     except ValueError as exc:
@@ -213,7 +247,7 @@ async def create_investigation(
         attributes={"signoff": True} if body.signoff else {},
     )
     try:
-        p.validate_request(req)
+        await asyncio.to_thread(p.validate_request, req)  # G1: dataset generation is CPU-bound
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     state = request.app.state.ceap
@@ -462,6 +496,7 @@ async def create_research(
     idem_key, body_hash, replay = _idempotency(request, p, principal, body)
     if replay is not None:
         return ResearchAccepted(**replay)
+    _rate_limit(request, principal)  # a replay is free; a new task takes a token
     parsed = parse_research_question(body.question)
     signal = body.signal or parsed.signal or "momentum_12_1"
     dataset = (body.dataset or parsed.dataset or DEFAULT_RESEARCH_DATASET).upper()
@@ -483,7 +518,7 @@ async def create_research(
         roles=principal.roles,
     )
     try:
-        p.validate_research_request(req)
+        await asyncio.to_thread(p.validate_research_request, req)
     except RequestNotPermitted as exc:
         raise HTTPException(status.HTTP_403_FORBIDDEN, str(exc)) from exc
     except ValueError as exc:
@@ -581,6 +616,7 @@ async def get_approval(
     approval = pending.get(approval_id)
     if approval is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"no pending approval {approval_id}")
+    view = approval_view(approval)
     return ApprovalReviewOut(
         id=approval.id,
         task_id=approval.task_id,
@@ -590,6 +626,9 @@ async def get_approval(
         requested_at=approval.requested_at,
         content_hash=approval.content_hash,
         review=to_jsonable(approval.arguments.get("review") or {}),
+        tool_id=view["tool_id"],
+        arguments=to_jsonable(view["arguments"]),
+        hash_verified=view["hash_verified"],
     )
 
 
@@ -607,7 +646,12 @@ async def decide_approval(
         )
     try:
         decision = gateway.decide(
-            approval_id, body.approved, principal.name, body.comment, action=body.action or ""
+            approval_id,
+            body.approved,
+            principal.name,
+            body.comment,
+            action=body.action or "",
+            content_hash=body.content_hash,
         )
     except FourEyesViolationError as exc:  # four-eyes: requester or earlier-stage approver (T17)
         raise HTTPException(status.HTTP_403_FORBIDDEN, str(exc)) from exc

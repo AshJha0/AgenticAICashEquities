@@ -58,7 +58,8 @@ from ceap.llm.schemas import (
 
 log = logging.getLogger(__name__)
 CRITIC_REPAIR_INSTRUCTION = (
-    "Your previous critique cannot be used. Problems found:\n{problems}\n"
+    "Your previous critique cannot be used. The problems found are listed in the data block below.\n"
+    "{problems}\n"
     "Reply again with one assessment per finding, using only the finding ids given above."
 )
 
@@ -376,13 +377,17 @@ class CriticAgent(BaseAgent):
             repair = LLMRequest(
                 **{
                     **request.__dict__,
+                    # A12: only the structured problems, in a data block; never the model's reply
                     "messages": [
                         *request.messages,
-                        {"role": "assistant", "content": response.content[:4000] or "(no usable reply)"},
                         {
                             "role": "user",
                             "content": CRITIC_REPAIR_INSTRUCTION.format(
-                                problems="\n".join(f"- {e}" for e in errors[:20])
+                                problems=data_block(
+                                    "evidence",
+                                    "critique-problems",
+                                    {"problems": [str(e)[:300] for e in errors[:20]]},
+                                )
                             ),
                         },
                     ],

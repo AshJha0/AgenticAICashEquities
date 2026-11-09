@@ -141,6 +141,57 @@ REQUIREMENTS: dict[str, Callable[[Mapping[str, Any]], list[Requirement]]] = {
 }
 
 
+#: tools an agent calls with ``ensure`` because the arguments depend on fetched data, so they are
+#: not in :data:`REQUIREMENTS`. Together with REQUIREMENTS this is each agent's tool allowlist
+#: (A16); ``tests/unit/test_policy_r080_l2.py`` checks the agents' sources against it.
+ON_DEMAND_TOOLS: dict[str, frozenset[str]] = {
+    # change_point_scan (engineering.py) is also run by the market agent
+    "market": frozenset({"engineering.get_service_metrics"}),
+    "engineering": frozenset({"engineering.get_service_metrics"}),
+    "quant": frozenset(
+        {
+            "execution.get_execution_metrics",
+            "market_data.get_market_statistics",
+            "market_data.get_order_book_statistics",
+        }
+    ),
+    "risk": frozenset({"risk.check_limit"}),
+    "alpha": frozenset({"alpha.combine_signals"}),
+}
+
+#: a complete task input with every key REQUIREMENTS reads; values only need the right shape
+CANONICAL_INPUT: dict[str, Any] = {
+    "kind": "research",
+    "symbol": "AAPL",
+    "window_start": "2026-01-02T14:00:00+00:00",
+    "window_end": "2026-01-02T15:00:00+00:00",
+    "baseline_start": "2026-01-02T13:00:00+00:00",
+    "baseline_end": "2026-01-02T14:00:00+00:00",
+    "dataset": None,
+    "signal": "momentum_12_1",
+    "start": "2020-01-01",
+    "end": "2021-01-01",
+    "in_sample_end": "2020-07-01",
+}
+
+
+def agent_tool_ids(agent_id: str) -> frozenset[str] | None:
+    """The tools ``agent_id`` may call, derived from what it reads (A16).
+
+    ``None`` for an agent this module does not know, so the policy falls back to its default.
+    """
+    if agent_id not in REQUIREMENTS and agent_id not in ON_DEMAND_TOOLS:
+        return None
+    # Read tool ids straight from the builder: constructing ToolRequest objects here would draw ids
+    # from the run's deterministic clock on first use only, shifting every later id in that run.
+    build = REQUIREMENTS.get(agent_id)
+    try:
+        planned = {t for t, _ in build(CANONICAL_INPUT)} if build is not None else set()
+    except KeyError:
+        planned = set()
+    return frozenset(planned) | ON_DEMAND_TOOLS.get(agent_id, frozenset())
+
+
 def requirements_for(agent_id: str, task_input: Mapping[str, Any]) -> list[ToolRequest]:
     """The tool calls ``agent_id`` reads, for this task (empty for agents that read no tool data)."""
     build = REQUIREMENTS.get(agent_id)

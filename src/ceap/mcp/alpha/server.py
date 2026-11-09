@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from ceap.analytics.ml_signals import DEFAULT_HORIZON
@@ -12,6 +13,7 @@ from ceap.analytics.trial_ledger import TrialLedger
 from ceap.data.historical import HistoricalStore
 from ceap.domain.common import to_jsonable
 from ceap.mcp.common import DEFAULT_RESEARCH_DATASET, select_history
+from ceap.mcp.cpu_pool import run_on_history
 from ceap.mcp.server import MCPServerDefinition
 
 
@@ -28,8 +30,9 @@ def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) ->
         return {"count": len(SIGNALS), "items": [spec.describe() for spec in SIGNALS.values()]}
 
     @server.tool(
-        "Compute rank-IC statistics of a signal against forward returns over the in-sample, out-of-sample and "
-        "full periods: mean IC, IC t-statistic, information ratio, hit rate, turnover, decay and quantile spread."
+        cpu_bound=True,
+        description="Compute rank-IC statistics of a signal against forward returns over the in-sample, out-of-sample and "
+        "full periods: mean IC, IC t-statistic, information ratio, hit rate, turnover, decay and quantile spread.",
     )
     async def evaluate_signal(
         signal: str,
@@ -40,8 +43,10 @@ def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) ->
         horizon_days: int | None = None,
         rebalance_days: int | None = None,
     ) -> dict[str, Any]:
-        ds = select_history(history, dataset)
-        stats = _evaluate_signal(ds, signal, start, end, in_sample_end, horizon_days, rebalance_days)
+        ds = await asyncio.to_thread(select_history, history, dataset)
+        stats = await run_on_history(
+            _evaluate_signal, ds, signal, start, end, in_sample_end, horizon_days, rebalance_days
+        )
         return to_jsonable(stats)
 
     @server.tool(
@@ -53,7 +58,9 @@ def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) ->
     async def combine_signals(
         dataset: str = DEFAULT_RESEARCH_DATASET, horizon_days: int = DEFAULT_HORIZON
     ) -> dict[str, Any]:
-        ds = select_history(history, dataset)
-        return to_jsonable(_combine_signals(ds, ledger=trials, horizon=int(horizon_days)).to_dict())
+        # Off the loop, but in a thread: the fit writes every penalty it tries to this process's ledger.
+        ds = await asyncio.to_thread(select_history, history, dataset)
+        result = await asyncio.to_thread(_combine_signals, ds, ledger=trials, horizon=int(horizon_days))
+        return to_jsonable(result.to_dict())
 
     return server

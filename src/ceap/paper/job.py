@@ -40,7 +40,7 @@ from ceap.paper.config import PaperConfig
 from ceap.paper.feed import LABEL, DailyFeed, MarketPanel, get_feed
 from ceap.paper.fills import EPS, BookState, DayResult, OpenOrder, simulate_day
 from ceap.paper.ledger import FORWARD_BOOK, PaperLedger
-from ceap.paper.pretrade import check_orders, halt_reason
+from ceap.paper.pretrade import check_orders, halt_status
 from ceap.persistence.db import Database
 from ceap.persistence.repositories import SqlApprovalStore, StagedOrderRepository
 from ceap.policy.approvals import APPROVED, ApprovalRequest, QueuedApprovalGateway
@@ -202,7 +202,7 @@ class PaperJob:
         if self.ledger.has_day(book, day):
             return DayOutcome(book, day, "noop")
         state = self.ledger.state(book) or BookState.new(self.config.gross_notional)
-        halt = halt_reason()
+        halt, halt_source = halt_status(self.db)  # env CEAP_PAPER_HALT or the DB kill switch
         pre: list[dict[str, Any]] = []
         if halt:  # kill switch: no new orders, every open order cancelled, reason logged
             state = state.copy()
@@ -219,7 +219,9 @@ class PaperJob:
         n_orders = 0
         if halt:
             events.append({"kind": "halt", "symbol": None, "quantity": None, "price": None, "order_id": None,
-                           "cash_delta": 0.0, "cost": 0.0, "detail": {"reason": halt, "env": "CEAP_PAPER_HALT"}})
+                           "cash_delta": 0.0, "cost": 0.0,
+                           "detail": ({"reason": halt, "env": "CEAP_PAPER_HALT"} if halt_source == "env"
+                                      else {"reason": halt, "source": "kill_switch_db"})})
         elif (i - st.first_index) % self.config.rebalance == 0:
             target = self.target_shares(i, st.equity)
             if target is not None:

@@ -6,6 +6,7 @@ Both the API and the CLI build a :class:`Platform` and call
 
 from __future__ import annotations
 
+import asyncio
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -143,7 +144,7 @@ class Platform:
         self.history = history or HistoricalStore()
         self.llm = llm or build_router(self.settings)
         self.knowledge = knowledge or build_knowledge_base(self.settings.knowledge_dir)
-        self.mcp_client = mcp_client or build_in_process_client(self.store, self.knowledge, self.history)
+        self.mcp_client = mcp_client or build_in_process_client(self.store, self.knowledge, self.history, self.db)
         self.approvals = approvals or (
             AutoApprovalGateway()
             if self.settings.auto_approve
@@ -231,7 +232,7 @@ class Platform:
             agents=self._agents(),
             tools=await self.registry(),
             policy=self.policy,
-            reporter=ReportAgent(self.llm),
+            reporter=ReportAgent(self.llm, audit=self.audit),
             tracer=tracer or InMemoryTracer(),
             approvals=self.approvals,
             settings=self.settings,
@@ -323,7 +324,7 @@ class Platform:
             )
 
     async def research(self, req: ResearchRequest, task: Task | None = None) -> HarnessResult:
-        self.validate_research_request(req)
+        await asyncio.to_thread(self.validate_research_request, req)
         task = task or self.build_research_task(req)
         self.tasks.setdefault(task.id, task)
         token = self.cancellations.setdefault(task.id, CancellationToken())
@@ -378,7 +379,7 @@ class Platform:
             )
 
     async def investigate(self, req: InvestigationRequest, task: Task | None = None) -> HarnessResult:
-        self.validate_request(req)
+        await asyncio.to_thread(self.validate_request, req)  # off the loop (G1)
         task = task or self.build_task(req)
         self.tasks.setdefault(task.id, task)
         token = self.cancellations.setdefault(task.id, CancellationToken())

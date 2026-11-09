@@ -64,7 +64,15 @@ every 21 days, gross of costs) over the concatenated test blocks. The ridge is r
 label date with the best penalty. Its out-of-sample deflated Sharpe ratio is reported next to each
 single signal's, all deflated by the same ledger count and cross-trial variance.
 
-PROMOTE (for the combination) means an out-of-sample deflated Sharpe probability of at least 0.95.
+**Baseline (0.8.0, D12).** The explicit baseline is the equal-weight composite of the three z-scores,
+which needs no fitting. Every result reports the out-of-sample Sharpe difference between the ridge and
+the baseline with a paired stationary block bootstrap (mean block 21 days, 500 resamples, the same
+dates in both), and a Diebold-Mariano test on daily losses (minus the book return, Newey-West variance).
+It also reports the coefficient path: the chosen penalty refitted on each fold's training set, so an
+unstable weight shows up as a sign flip across folds.
+
+PROMOTE (for the combination) means an out-of-sample deflated Sharpe probability of at least 0.95
+and (from 0.8.0) a higher Sharpe than the baseline at the 5 % level.
 On the null set the rate over 200 seeds must not be significantly above 5 % (Clopper-Pearson lower
 bound <= 5 %, point rate <= 10 %). That check is the `nightly` test; a 40-seed smoke test runs as `slow`.
 
@@ -78,7 +86,7 @@ The MCP tool `alpha.combine_signals` exposes it. The alpha agent runs it when th
 * **Perturbation:** replace every input row after `t` with a fresh random path. Outputs at rows
   `<= t` must be bit-identical.
 * **Shuffled labels:** rebuild prices from time-shuffled daily returns, recompute feature and label,
-  and require `|t(mean rank IC)| <= 4`. A causal feature has no edge on a shuffled panel; a feature
+  and require `|t(mean rank IC)| <= 3` (0.8.0, D7; it was 4). A causal feature has no edge on a shuffled panel; a feature
   that reads the label period keeps one.
 
 Wired in `tests/unit/analytics/test_leakage.py` for every library signal and every z-scored ridge
@@ -86,6 +94,12 @@ feature. A planted one-day look-ahead fails both, and a full-sample normalisatio
 perturbation test. `test_ml_signals.py` also checks that changing every out-of-sample price leaves
 the fitted ridge bit-identical, and, as a control, that labels allowed past the in-sample end would
 move it.
+
+* **End-to-end canary (0.8.0, D7):** `leakage_canary` passes a feature equal to the realised
+  holding-period return, delayed `d` days, through `simulate_backtest`. With a five-day hold and a
+  one-day lag the gross Sharpe on the no-alpha dataset was 9.1, 7.7, 6.2 and 3.9 at `d = 0..3` and
+  0.0 at `d = 4`: it collapses exactly when `d + lag >= hold`, which checks the backtest's own timing,
+  not only the feature code. `tests/unit/analytics/test_r010_research.py` runs it on a short dataset.
 
 ## 2B.4 Confidence calibration (`ceap.analytics.calibration`)
 
@@ -101,6 +115,13 @@ Other agents' confidences remain heuristic and are now documented as such.
 Held-out numbers: see [reliability_table.md](reliability_table.md) and the card.
 
 ## 2B.5 Registry, reproducibility, drift (`ceap.ml.registry`)
+
+**Model inventory (0.8.0, D22).** `ModelCard` carries owner, validator, validation date, status, tier,
+review cadence and a challenger (all defaulted, so older card files load). `ceap.ml.inventory` lists
+every model whose output reaches a person or an order, including the pre-trade cost model and each LLM
+purpose, with a naive challenger for each; `docs/ml/model_cards.md` prints it. No model has been
+validated independently, and the validator column says "unassigned" rather than naming a reviewer who
+does not exist.
 
 * `model_hash` is the content hash of `{name, kind, params}` with floats rounded to 8 decimals, so
   last-bit BLAS differences across OS or thread count do not change a model's identity.

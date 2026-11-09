@@ -1,4 +1,4 @@
-"""Golden set governance (PLAN 3E.1).
+"""Golden set governance (PLAN 3E.1) and the out-of-distribution split (B6).
 
 ``tests/golden/golden_set.json`` holds 30 investigation and 15 research questions with expected
 findings written against the scenario specifications:
@@ -22,6 +22,8 @@ from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 GOLDEN_SET_PATH = REPO_ROOT / "tests" / "golden" / "golden_set.json"
+# 0.10 D1/D4 research items on the recalibrated templates; PENDING owner sign-off, separate from the signed set
+GOLDEN_RESEARCH_V11_PATH = REPO_ROOT / "tests" / "golden" / "golden_set_research_v1_1.json"
 
 
 def items_sha256(items: list[dict[str, Any]]) -> str:
@@ -101,4 +103,69 @@ def summarise(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "verdict_accuracy": rate(res, "verdict_ok"),
         "must_flag_rate": rate(res, "flags_ok"),
         "no_forbidden_flag_rate": rate(res, "no_forbidden_flag"),
+    }
+
+
+# ---------------------------------------------------------------------- out-of-distribution split (B6)
+
+OOD_SET_PATH = REPO_ROOT / "tests" / "golden" / "golden_ood_v1.json"
+OOD_TEMPLATES = ("venue_and_spreads", "latency_and_large_order", "illiquid_and_volatile")
+
+
+def load_ood_set(path: Path | None = None) -> dict[str, Any]:
+    return json.loads((path or OOD_SET_PATH).read_text(encoding="utf-8"))
+
+
+def ood_set_problems(doc: dict[str, Any], main: dict[str, Any] | None = None) -> list[str]:
+    """Governance check of the OOD split: frozen hash, three held-out templates, no overlap with the main set."""
+    problems: list[str] = []
+    items = doc.get("items") or []
+    if items_sha256(items) != doc.get("items_sha256"):
+        problems.append("OOD items changed without a version bump and a new items_sha256")
+    templates = [i.get("template") for i in items]
+    if tuple(sorted(set(templates))) != tuple(sorted(OOD_TEMPLATES)):
+        problems.append(f"expected the templates {OOD_TEMPLATES}, found {sorted(set(templates))}")
+    if any(templates.count(t) < 5 for t in OOD_TEMPLATES):
+        problems.append("every OOD template needs at least 5 items")
+    ids = [i.get("id") for i in items]
+    if len(set(ids)) != len(ids):
+        problems.append("duplicate OOD item ids")
+    main = main if main is not None else load_golden_set()
+    seen = {i.get("template") for i in main.get("items") or []}
+    if seen & set(templates):
+        problems.append(f"OOD templates also appear in the main golden set: {sorted(seen & set(templates))}")
+    for i in items:
+        truth = set(i["spec"]["ground_truth"])
+        if not set(i["primary"]) <= truth or truth & set(i["must_not_claim"]):
+            problems.append(f"{i['id']}: primary must be a true cause and must_not_claim must exclude them")
+    return problems
+
+
+def score_ood(item: dict[str, Any], result: Any) -> dict[str, Any]:
+    """The investigation score plus coverage: every true cause is material."""
+    row = score_investigation(item, result)
+    att = result.report.attribution if result.report else {}
+    material = {r["cause"] for r in att.get("ranked", []) if r.get("score", 0) >= 0.35}
+    truth = set(item["spec"]["ground_truth"])
+    return {
+        **row,
+        "primary": att.get("primary"),
+        "material": sorted(material),
+        "coverage_ok": truth <= material,
+    }
+
+
+def summarise_ood(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Per-template and pooled accuracy, each with a 95 % Wilson interval."""
+    from ceap.eval.stats import rate
+
+    keys = ("primary_ok", "coverage_ok", "mentions_ok", "no_forbidden_claim")
+
+    def block(xs: list[dict[str, Any]]) -> dict[str, Any]:
+        return {"items": len(xs), **{k: rate(sum(bool(x[k]) for x in xs), len(xs)) for k in keys}}
+
+    templates = sorted({str(r["template"]) for r in rows})
+    return {
+        "overall": block(rows),
+        "per_template": {t: block([r for r in rows if r["template"] == t]) for t in templates},
     }

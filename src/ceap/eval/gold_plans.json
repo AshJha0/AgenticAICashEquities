@@ -1,0 +1,93 @@
+{
+ "version": "1.0.0",
+ "written": "2026-11-09",
+ "authored_from": "the question text, the tool catalogue descriptions and the golden set's must_mention_tools; not from any planner output",
+ "note": "required: tools a sound plan for this question must call (recall denominator). allowed: every tool in scope for an execution-quality investigation (precision numerator). The planner sees the question, never the data, so the cases vary the question, not the scenario.",
+ "allowed": [
+  "execution.get_parent_orders",
+  "execution.get_child_orders",
+  "execution.get_executions",
+  "execution.get_execution_metrics",
+  "execution.get_venue_statistics",
+  "execution.get_strategy_configuration",
+  "market_data.get_market_statistics",
+  "market_data.get_order_book_statistics",
+  "market_data.get_order_book",
+  "market_data.get_quote",
+  "market_data.get_quotes",
+  "market_data.get_trades",
+  "market_data.get_reference_data",
+  "market_data.get_coverage",
+  "engineering.get_latency_metrics",
+  "engineering.get_deployments",
+  "engineering.search_logs",
+  "engineering.get_service_metrics",
+  "engineering.get_services",
+  "knowledge.search_documents",
+  "knowledge.get_document",
+  "knowledge.list_documents",
+  "risk.get_exposure",
+  "risk.get_position",
+  "risk.check_limit",
+  "risk.calculate_stress"
+ ],
+ "cases": [
+  {
+   "id": "GP-01",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "required": [
+    "execution.get_execution_metrics",
+    "execution.get_parent_orders",
+    "execution.get_venue_statistics",
+    "market_data.get_market_statistics",
+    "market_data.get_order_book_statistics",
+    "engineering.get_latency_metrics"
+   ]
+  },
+  {
+   "id": "GP-02",
+   "question": "Was the AAPL slippage this hour caused by a slow order gateway or a recent deployment?",
+   "required": ["execution.get_execution_metrics", "engineering.get_latency_metrics", "engineering.get_deployments"]
+  },
+  {
+   "id": "GP-03",
+   "question": "Did one venue underperform on our AAPL fills between 14:00 and 15:00?",
+   "required": ["execution.get_execution_metrics", "execution.get_venue_statistics", "execution.get_executions"]
+  },
+  {
+   "id": "GP-04",
+   "question": "Were AAPL spreads or volatility unusual this hour compared with the hour before?",
+   "required": ["execution.get_execution_metrics", "market_data.get_market_statistics"]
+  },
+  {
+   "id": "GP-05",
+   "question": "Was the AAPL order book thin while our VWAP order was working?",
+   "required": ["execution.get_execution_metrics", "market_data.get_order_book_statistics"]
+  },
+  {
+   "id": "GP-06",
+   "question": "Was our AAPL parent order too large for the market this afternoon?",
+   "required": ["execution.get_execution_metrics", "execution.get_parent_orders"]
+  },
+  {
+   "id": "GP-07",
+   "question": "Check whether bad quotes or a market-data feed problem hurt our AAPL execution.",
+   "required": ["execution.get_execution_metrics", "market_data.get_market_statistics", "engineering.search_logs"]
+  },
+  {
+   "id": "GP-08",
+   "question": "Does the AAPL deterioration need a written explanation under the execution policy? Cite the policy.",
+   "required": ["execution.get_execution_metrics", "knowledge.search_documents"]
+  },
+  {
+   "id": "GP-09",
+   "question": "Explain the AAPL VWAP slippage and whether the algorithm configuration changed.",
+   "required": ["execution.get_execution_metrics", "execution.get_strategy_configuration"]
+  },
+  {
+   "id": "GP-10",
+   "question": "Were AAPL child orders rejected or slow to be acknowledged, and why?",
+   "required": ["execution.get_child_orders", "engineering.get_latency_metrics", "engineering.search_logs"]
+  }
+ ]
+}

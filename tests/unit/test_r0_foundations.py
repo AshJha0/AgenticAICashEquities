@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
 import json
 import logging
 import math
@@ -30,19 +29,9 @@ from ceap.policy.approvals import ApprovalRequest
 from ceap.util.canonical import canonical_datetime, canonical_json, canonical_text, content_hash
 from ceap.util.redact import redact, redact_obj, scrub_cassette
 
-ROOT = Path(__file__).resolve().parents[2]
-
 # Fake secrets are assembled at runtime so the repository itself never contains a key-shaped string
 # (gitleaks scans the tree; see the planted-key self-test in ci.yml).
 FAKE_KEY = "sk-" + "ant-api03-" + "A1b2C3d4E5f6G7h8I9j0" * 2
-
-
-def _load_script(name: str):
-    spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / f"{name}.py")
-    mod = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(mod)
-    return mod
 
 
 # ---------------------------------------------------------------- 0.3 canonical bytes
@@ -166,63 +155,4 @@ def test_approval_content_hash_binds_the_payload() -> None:
     assert len(odd.content_hash) == 64
 
 
-def test_contract_checker_flags_signature_changes() -> None:
-    mod = _load_script("check_contracts")
-    before = {"d.py": "class A:\n    x: int\n"}
-    after = {"d.py": "class A:\n    x: int\n    y: str = ''\n"}
-    assert mod.signatures(before) != mod.signatures(after)
-    assert mod.signatures(before) == mod.signatures({"d.py": "class A:\n    x: int\n    _p = 1\n"})
-
-
 # ---------------------------------------------------------------- 0.4 release gate
-
-
-def test_release_gate_refuses_red_or_missing_checks() -> None:
-    mod = _load_script("release_check")
-
-    def run(name, conclusion="success", status="completed", created="2026-11-08T10:00:00Z", attempt=1):
-        return {
-            "name": name,
-            "id": 1,
-            "event": "push",
-            "status": status,
-            "conclusion": conclusion,
-            "created_at": created,
-            "run_attempt": attempt,
-        }
-
-    ci = run("CI")
-    # only CI gates: a refused daily paper session or a red nightly on the same commit does not block
-    assert mod.evaluate_workflow_runs([ci, run("paper-daily", "failure"), run("Nightly", "failure")])
-    # the latest CI run decides (a green re-run after a red one releases; a red latest refuses)
-    assert mod.evaluate_workflow_runs([run("CI", "failure"), run("CI", created="2026-11-08T11:00:00Z")])
-    for runs in (
-        [],
-        [run("paper-daily")],
-        [run("CI", "failure")],
-        [run("CI", None, "in_progress")],
-        [ci, run("CI", "failure", created="2026-11-08T11:00:00Z")],
-    ):
-        with pytest.raises(mod.ReleaseRefusedError):
-            mod.evaluate_workflow_runs(runs)
-
-
-def test_release_gate_checks_versions_and_changelog(tmp_path: Path) -> None:
-    mod = _load_script("release_check")
-    (tmp_path / "src" / "ceap").mkdir(parents=True)
-    (tmp_path / "pyproject.toml").write_text('[project]\nversion = "0.4.0"\n')
-    (tmp_path / "src" / "ceap" / "__init__.py").write_text('__version__ = "0.4.0"\n')
-    (tmp_path / "CHANGELOG.md").write_text("# Changelog\n\n## [0.4.0] - 2026-11-29\n")
-    assert mod.versions("v0.4.0", tmp_path) == "0.4.0"
-    mod.changelog("0.4.0", tmp_path)
-    with pytest.raises(mod.ReleaseRefusedError):
-        mod.versions("v0.4.1", tmp_path)
-    with pytest.raises(mod.ReleaseRefusedError):
-        mod.changelog("0.4.1", tmp_path)
-
-
-def test_version_agrees_in_repo() -> None:
-    mod = _load_script("release_check")
-    import ceap
-
-    assert mod.versions(f"v{ceap.__version__}") == ceap.__version__

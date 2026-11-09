@@ -79,12 +79,22 @@ non-overlapping holding-period IC after the execution lag, with a Newey-West t a
 `backtest` (decision at the close, fill at t+1; weight drift; spread + square-root impact, tier
 borrow, rf financing, Sharpe on excess returns; Reg SHO, weight and ADV caps logged; delisting
 bounds; locked in-sample split), `trial_ledger` (append-only, server-side trial count),
-`null_sweep` (the PROMOTE hurdle measured on 500 noise datasets x 24 configurations),
+`null_sweep` (until 0.7.1 it set the PROMOTE hurdle; since 0.8.0 the hurdle is a priori, t >= 3.0
+for a searched result, and the 500-seed sweep measures its false-PROMOTE rate),
 `profitability` (capacity sweep and profitability table), `portfolio_risk` (target portfolio *recomputed* from
 the signal at the report date — never trusts the backtest's own weights — gross/net/HHI/beta/ADV
 participation, limit checks over the out-of-sample history, beta ex-self with Vasicek shrinkage,
 factor / squeeze / liquidation stress) and `research_assessment` (`assess_research`: a deterministic
-`PROMOTE`/`REJECT` verdict plus flags — the Stage 2 analogue of `attribute_causes`).
+`PROMOTE`/`REJECT`/`INCONCLUSIVE` verdict plus flags — the Stage 2 analogue of `attribute_causes`;
+`INCONCLUSIVE` since 0.8.0). The 0.8.0 research toolkit (`adversarial`, `trial_accounting`,
+`overfitting`, `risk_research`, `alpha_decay`) is described in `docs/research/README.md`.
+
+**Execution (0.8.0, `ceap.execution`).** A separate package that *runs* an execution on synthetic
+data rather than measuring one: limit order book simulator (`lob`), propagator impact (`impact`),
+TWAP/VWAP/POV/Almgren-Chriss behind one `Schedule` (`schedule`), child orders (`child`), auctions
+(`auction`), markouts (`markouts`), the predicted-versus-realised cost loop (`cost_loop`) and
+trading rules (`rules`). It reuses the Perold IS from `ceap.analytics`. Guide:
+`docs/execution/execution.md`; diagram: `docs/DIAGRAMS.md` §15.
 
 ### 3.3 Data (`ceap.data`)
 
@@ -114,15 +124,18 @@ a run. The 0.3.x generator survives as `legacy_v03` for regression tests only.
 * Servers: `market_data`, `execution`, `risk`, `engineering`, `knowledge`, and (Stage 2)
   `research_data`, `alpha`, `backtest`. `execution.stage_orders` is the platform's only
   non-read-only tool (HIGH risk, `trading:execute`) — it builds *paper* orders from the
-  recomputed target portfolio into an in-memory, idempotent `StagedOrderBook`; nothing is routed
-  to a venue. `risk` gains `get_portfolio_exposure` / `check_portfolio_limits` /
+  recomputed target portfolio into an idempotent `StagedOrderBook` (persisted in SQLite and
+  pre-trade checked since 0.8.0, and blocked by the DB kill switch); nothing is routed to a venue. `risk` gains `get_portfolio_exposure` / `check_portfolio_limits` /
   `calculate_portfolio_stress`, which recompute the target portfolio rather than trusting a
   backtest's output.
 * `MCPClient` abstraction with `InProcessMCPClient` and `StdioMCPClient` (official SDK).
 * `MCPToolAdapter` turns a discovered descriptor into a domain `Tool` and attaches an
   `Evidence` record — tool id, arguments, correlation id and a SHA-256 digest of the payload — to
   every successful call.
-* `build_tool_registry` performs discovery and populates the `ToolRegistry`.
+* `build_tool_registry` performs discovery and returns a `PinnedToolRegistry`: each server's tool
+  catalogue is hashed at start-up and checked against `CEAP_MCP_CATALOGUE_PINS` (0.8.0).
+* CPU-bound tools (`run_backtest`, `evaluate_signal`) declare `cpu_bound=True` and, under the API
+  server, run in a killable process pool (`ceap.mcp.cpu_pool`, 0.8.0).
 
 ### 3.5 LLM (`ceap.llm`)
 
@@ -130,6 +143,12 @@ a run. The 0.3.x generator survives as `legacy_v03` for regression tests only.
 canonical plan for planning requests, a templated narrative rendered from structured facts for
 report requests, and a rule-based critique. `AnthropicLLMClient` adapts the Anthropic SDK.
 `LLMRouter` selects a model per purpose and falls back to the mock if the primary client fails.
+Since 0.8.0 the router also holds the per-task caps (calls, tokens, USD), on by default: each call
+reserves its upper-bound local estimate under a lock before it is sent and settles to the actual
+cost afterwards, so concurrent calls of one task cannot pass a check that only one of them fits. A
+circuit breaker skips the primary model for a cooldown after N consecutive failures. The API adds a
+per-principal token bucket (`ceap.api.ratelimit`, 429 with `Retry-After`) in front of the endpoints
+that start tasks.
 Prompts live in `prompts.py` and state the boundary explicitly.
 
 ### 3.6 Harness (`ceap.harness`)
@@ -139,6 +158,14 @@ Prompts live in `prompts.py` and state the boundary explicitly.
 approval when required, retry with exponential backoff, per-step timeout bounded by the task
 deadline, metrics and tracing, then `InvestigationMemory.record_tool`. Agents receive a
 `HarnessToolInvoker` so their own tool calls take the same path.
+
+The per-step timeout is an `asyncio.wait_for`, which only fires if the event loop is free. CPU work
+therefore stays off the loop (0.8.0): request validation and dataset generation run in a worker
+thread (`DatasetStore` locks per scenario key), and tools declared `cpu_bound=True` run their heavy
+part in `ceap.mcp.cpu_pool`, a process pool whose workers are terminated when the awaiting step is
+cancelled or times out. A CPU-heavy tool that does not declare `cpu_bound` would block the loop and
+defeat both the timeout and cancellation, so new tools that compute for more than a few hundred
+milliseconds should declare it.
 
 Governance is enforced by the harness regardless of the plan: a critic step, an evidence
 validation step and a finalise step are appended if absent; the critic is forced before
@@ -170,10 +197,15 @@ Consecutive independent `TOOL_CALL` steps are batched and executed concurrently 
 
 ### 3.8 Policy (`ceap.policy`)
 
-`RulePolicyEngine` evaluates ordered rules (deny list, read-only, required capabilities, argument
-guards, symbol universe, risk level) and returns ALLOW / DENY / REQUIRE_APPROVAL with the rule
-that fired. Roles map to capabilities in `permissions.py`. Approval gateways: automatic (dev),
-queued (human decides through the API, with timeout) and deny.
+`RulePolicyEngine` evaluates ordered rules (deny list, untrusted MCP server, per-agent allowlist,
+read-only, required capabilities, argument guards, JSON input schema, symbol universe, knowledge
+classification, risk level) and returns ALLOW / DENY / REQUIRE_APPROVAL with the rule that fired.
+Since 0.8.0 every symbol-bearing field is checked and the engine fails closed without a universe;
+HIGH-risk tools always need a human approval, decided by a different named person who is not an
+admin; each agent's calls carry its own allowlist (`agents.py`). Roles map to capabilities in
+`permissions.py`. Approval gateways: automatic (dev), queued (human decides through the API, with
+timeout; the content hash of the exact arguments is re-checked after the decision) and deny.
+Diagram: `docs/DIAGRAMS.md` §13; OWASP mapping: `docs/threat-model/owasp-llm-top10.md`.
 
 ### 3.9 RAG (`ceap.rag`)
 
@@ -197,7 +229,8 @@ counters and histograms in Prometheus text format at `/metrics`. Logging is JSON
 
 `canonical.py` turns text and JSON into canonical bytes before hashing (LF line endings, sorted
 keys, UTC datetimes in one fixed format, NaN refused), so a hash computed on Windows equals the one
-computed on Linux. `redact.py` removes emails, API keys, tokens and account-like numbers from
+computed on Linux. `redact.py` removes emails, API keys, tokens, `name=value` secrets (`password=`,
+`*_API_KEY=`), phone numbers, high-entropy opaque tokens and account-like numbers from
 question text before it reaches a log, the task store or a prompt, and scrubs recorded HTTP
 interactions (API key, request id, organisation id) before a cassette is committed.
 
@@ -208,9 +241,20 @@ thread; async callers use `arun`, so the event loop never blocks on disk and SQL
 writers. WAL and `busy_timeout` let `ceap db` read while the server writes. Schema versions are
 `PRAGMA user_version`; `migrations/NNNN_*.sql` apply forward only, each in its own transaction, after
 an online backup of the file. Tables: `tasks`, `results`, `approvals`, `staged_orders`, `audit_log`
-(v1); `llm_calls`, `trial_ledger`, `idempotency_keys` (v2). Repositories (`repositories.py`) are thin,
+(v1); `llm_calls`, `trial_ledger`, `idempotency_keys` (v2); the paper tables (v3); `hash_alg` columns,
+`chain_epoch` and `kill_switch_events` (v4, 0.8.0). Repositories (`repositories.py`) are thin,
 one per table. Startup recovery turns in-flight tasks into `INTERRUPTED` and pending approvals into
 `EXPIRED`. The Postgres path stays open: repositories speak plain SQL and own no connection logic.
+
+Integrity and durability (0.8.0). The audit log, the paper ledger and the paper day chains are
+HMAC-SHA256 keyed with `CEAP_AUDIT_HMAC_KEY`, which never enters the database (`chainkey.py`). Each
+row records its `hash_alg`. Rows from before migration 0004 verify as a legacy prefix, and its length
+is sealed in `chain_epoch`. `anchor.py` writes chain heads to a git-committable file with a SHA-256
+sidecar for OpenTimestamps, and `verify_chain(expected_head, expected_rows)` checks against it. That
+is what catches a cut-off tail or a chain rebuilt by a key holder. `killswitch.py` keeps an
+append-only, audited set/clear log that the paper job and `stage_orders` both read. File databases
+use `synchronous=FULL`, `arun` has a timeout, and `Database.health()` (served on `/health`) reports
+the writer queue and a write probe.
 
 ### 3.11 API (`ceap.api`)
 
@@ -293,12 +337,14 @@ never by the plan — see §3.6 and `docs/DIAGRAMS.md` §9.
                                               |
  DailyFeed (synthetic | free daily) -> simulate_day(D+1): splits, financing, mark, fills, expiry
                                               |
-                 paper_ledger (hash chain) + paper_days + paper_forward_log | paper_simulated_log
+          paper_ledger (HMAC chain) + paper_days (HMAC chain) + paper_forward_log | paper_simulated_log
                                               |
                        paper report / export (CSV, schema_version) -> forward-log branch
 ```
 
-paper, synthetic or free daily data, not trading. One SQLite transaction per session.
+paper, synthetic or free daily data, not trading. One SQLite transaction per session. The kill
+switch (DB-backed, audited, or `CEAP_PAPER_HALT`) is checked before anything is staged. The forward
+and simulated logs keep plain SHA-256 links so the exported CSV verifies without a key.
 
 Today the feed is `synthetic`. `ceap.paper.feeds_real` (feed `"stooq"`) reads the local Stooq
 cache with R5 point-in-time membership, lagged 20-day ADV and the R5 spread schedule, and refuses

@@ -38,8 +38,20 @@ def queries():
 def test_eval_set_shape(queries):
     splits = [q["split"] for q in queries]
     assert splits.count("train") == 20 and splits.count("heldout") == 10 and splits.count("negative") == 10
-    assert len({q["id"] for q in queries}) == 40
-    assert all(q["expected"] for q in queries if q["split"] != "negative")
+    # C1 (0.8.0): 119 extended queries, never tuned on
+    assert splits.count("extended") == 94 and splits.count("extended_negative") == 25
+    assert len({q["id"] for q in queries}) == len(queries) == 159
+    cats = [q.get("category") for q in queries if q["split"].startswith("extended")]
+    assert {c: cats.count(c) for c in set(cats)} == {
+        "paraphrase": 44,
+        "typo": 30,
+        "multi_hop": 20,
+        "near_miss_negative": 25,
+    }
+    assert all(
+        len(q["expected"]) >= 2 and q["match"] == "all" for q in queries if q.get("category") == "multi_hop"
+    )
+    assert all(q["expected"] for q in queries if not q["split"].endswith("negative"))
 
 
 def test_expected_sections_exist_in_the_corpus(kb, queries):
@@ -91,3 +103,40 @@ def test_retrieval_is_deterministic(kb, queries):
         a = [h.to_dict() for h in kb.search(q["query"], k=5)]
         b = [h.to_dict() for h in other.search(q["query"], k=5)]
         assert a == b
+
+
+def test_extended_report_has_wilson_intervals_and_honest_numbers(kb, queries):
+    from ceap.rag.evaluation import extended_report
+
+    r = extended_report(kb, queries)
+    assert r["queries"] == 159 and r["all_positive"]["n"] == 124
+    for block in r["by_category"].values():
+        lo, hi = block["recall_at_3"]["ci95"]
+        assert 0.0 <= lo <= block["recall_at_3"]["rate"] <= hi <= 1.0
+    # the original held-out split is unchanged by the extension
+    assert r["by_category"]["heldout"]["recall_at_3"]["rate"] >= HELDOUT_RECALL3_FLOOR
+    # measured on BM25 at the committed gate (0.8.0): recorded, not tuned. Typos and multi-hop are
+    # BM25's known weak spots; C2 (hybrid retrieval) is measured against these numbers.
+    assert (
+        r["by_category"]["typo"]["recall_at_3"]["rate"]
+        < r["by_category"]["paraphrase"]["recall_at_3"]["rate"]
+    )
+    assert r["negatives"]["negative"]["leaking"] == []
+
+
+def test_multi_hop_needs_every_expected_section(kb):
+    from ceap.rag.evaluation import rank_of
+
+    q = {
+        "query": "latency incident first response and the known router change to consider",
+        "match": "all",
+        "expected": [
+            {"document": "07_incident_runbook.md", "section": "First response"},
+            {"document": "07_incident_runbook.md", "section": "Known change"},
+        ],
+    }
+    hits = kb.search(q["query"], k=10, min_support=0.0)
+    one = {**q, "match": None, "expected": q["expected"][:1]}
+    assert rank_of(hits, one) is not None
+    both = rank_of(hits, q)
+    assert both is None or both >= rank_of(hits, one)

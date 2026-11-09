@@ -12,6 +12,12 @@ The LLM proposes the plan as JSON; this agent converts it into typed
   (unknown agent, a window that is neither the task window nor its baseline, a symbol outside the
   task or its universe, a duplicated governance step, too many steps) are sent back once as the
   repair target (rung 2); a second failure is ``DEGRADED`` and the plan is sanitised as below;
+* the repair request (rung 2) carries only the structured problem list, inside a data block; the
+  model's own reply is never echoed back (A12);
+* string arguments are allowlisted: a schema ``enum`` is enforced, and any other string must be a
+  short plain value (no control characters, markup or braces) or it is dropped (A11);
+* a step whose data scope is unknown is dropped: a scoping argument (``symbol``, ``dataset``,
+  ``signal``) with no task value to pin it to, and for ``symbol`` no task universe either (A11);
 * unusable model output falls back to the canonical plan.
 
 The harness validates the result again (including a policy pre-check of
@@ -23,6 +29,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from dataclasses import replace
 from typing import Any
 
@@ -39,7 +46,7 @@ from ceap.domain.common import new_id
 from ceap.domain.plans import Plan, PlanStep, StepType
 from ceap.domain.tools import ToolRequest
 from ceap.harness.cancellation import TaskCancelled
-from ceap.llm.client import LLMClient, canonical_plan
+from ceap.llm.client import LLMClient, canonical_plan, token_view
 from ceap.llm.models import (
     RUNG_DETERMINISTIC,
     RUNG_KILL_SWITCH,
@@ -80,9 +87,13 @@ _RESEARCH_FACT_KEYS = (
 )
 
 REPAIR_INSTRUCTION = (
-    "Your previous plan cannot be used. Problems found:\n{problems}\n"
+    "Your previous plan cannot be used. The problems found are listed in the data block below.\n"
+    "{problems}\n"
     "Reply again with a corrected plan that uses only the tool catalogue, the agents and the PARAMETERS given above."
 )
+#: A11: a free string argument must look like a plain value (ticker, date, query words), nothing more
+SAFE_STRING = re.compile(r"[A-Za-z0-9 _.,:;/@#%&()'+=?!-]{1,200}")
+MAX_REPAIR_PROBLEM_CHARS = 300
 MAX_REPAIR_PROBLEMS = 20
 
 
@@ -178,7 +189,7 @@ class PlannerAgent(BaseAgent):
                 if errors:
                     # rung 2: exactly one repair, with the schema and semantic errors as its target
                     repairs = 1
-                    listed = "\n".join(f"- {e}" for e in errors[:MAX_REPAIR_PROBLEMS])
+                    listed = repair_problems(errors)
                     degradations.append(
                         Degradation(
                             RUNG_REPAIR,
@@ -189,12 +200,9 @@ class PlannerAgent(BaseAgent):
                     repair = LLMRequest(
                         **{
                             **request.__dict__,
+                            # A12: never echo the model's reply; only the structured problems
                             "messages": [
                                 *request.messages,
-                                {
-                                    "role": "assistant",
-                                    "content": response.content[:4000] or "(no usable reply)",
-                                },
                                 {"role": "user", "content": REPAIR_INSTRUCTION.format(problems=listed)},
                             ],
                         }
@@ -271,7 +279,7 @@ class PlannerAgent(BaseAgent):
             "plan": plan,
             "rejected_steps": rejected,
             "llm_model": response.model if response else None,
-            "tokens": {"input": response.input_tokens, "output": response.output_tokens} if response else {},
+            "tokens": token_view(response),  # A20: labelled when the counts are a mock estimate
             "degradations": degradation_records(degradations),
             "repairs": repairs,
             "prompt": prompt.ref(),
@@ -346,6 +354,20 @@ class PlannerAgent(BaseAgent):
         return steps, rejected
 
 
+def repair_problems(errors: list[str]) -> str:
+    """A12: the problem list for the repair request, as a data block (problems may quote model text)."""
+    items = [str(e)[:MAX_REPAIR_PROBLEM_CHARS] for e in errors[:MAX_REPAIR_PROBLEMS]]
+    return data_block("evidence", "plan-problems", {"problems": items})
+
+
+def _allowed_string(value: str, spec: dict[str, Any]) -> bool:
+    """A11: a schema enum is enforced; otherwise only a short plain value passes."""
+    enum = spec.get("enum")
+    if isinstance(enum, list) and enum:
+        return value in [str(e) for e in enum]
+    return bool(SAFE_STRING.fullmatch(value))
+
+
 def _sanitise_arguments(
     args: dict[str, Any], schema: dict[str, Any], facts: dict[str, Any]
 ) -> tuple[dict[str, Any] | None, list[str]]:
@@ -363,9 +385,13 @@ def _sanitise_arguments(
         if isinstance(value, (dict, list, tuple)):
             problems.append(f"argument {key} must be a scalar (dropped)")
             continue
-        expected = _JSON_TYPES.get(str(props.get(key, {}).get("type", "")))
+        spec = props.get(key, {}) or {}
+        expected = _JSON_TYPES.get(str(spec.get("type", "")))
         if expected and not isinstance(value, expected) or (expected == (int,) and isinstance(value, bool)):
             problems.append(f"argument {key} has wrong type (dropped)")
+            continue
+        if isinstance(value, str) and key not in PINNED_ARGUMENTS and not _allowed_string(value, spec):
+            problems.append(f"argument {key} value is not an allowed string (dropped)")
             continue
         clean[key] = value
     # pin data-scoping arguments to the task: the model may not point at other data
@@ -385,6 +411,15 @@ def _sanitise_arguments(
         problems.append(f"window {clean['start']}..{clean['end']} is not a task window (step dropped)")
         return None, problems
     universe = facts.get("universe")
+    has_universe = isinstance(universe, (list, tuple)) and bool(universe)
+    for key in PINNED_ARGUMENTS:
+        pinned = facts.get(key)
+        scoped = key in clean or key in required
+        if scoped and (pinned is None or isinstance(pinned, (list, tuple))):
+            if key == "symbol" and has_universe:
+                continue  # checked against the universe below
+            problems.append(f"argument {key} has no task value to pin it to: scope unknown (step dropped)")
+            return None, problems
     if isinstance(universe, (list, tuple)) and "symbol" in clean:
         if str(clean["symbol"]) not in {str(u) for u in universe}:
             problems.append(f"symbol {clean['symbol']!r} is outside the task universe (step dropped)")

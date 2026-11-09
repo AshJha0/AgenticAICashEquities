@@ -51,6 +51,7 @@ from ceap.harness.state_machine import HarnessState, StateMachine
 from ceap.llm.router import task_cost, task_scope
 from ceap.observability.metrics import metrics
 from ceap.observability.tracing import ExecutionTracer, InMemoryTracer
+from ceap.policy.agents import agent_policy_context
 from ceap.policy.approvals import (
     DISTINCT_FROM_KEY,
     SYSTEM_ACTORS,
@@ -860,6 +861,8 @@ class AgentHarness:
         task: Task,
     ) -> AgentResult:
         async with self.tracer.span(f"agent:{agent.id}", step_id=step_id) as span:
+            # A16: the agent's tool calls run with its own capability set and tool allowlist
+            agent_run = replace(run, policy_context=agent_policy_context(run.policy_context, agent.id))
             ctx = AgentContext(
                 task_id=task.id,
                 execution_id=run.execution_id,
@@ -878,9 +881,9 @@ class AgentHarness:
                     "cases": memory.scratch.get("cases") or (),  # R3B 3B.7: read-only views
                 },
                 tool_registry=self.tools,
-                policy_context=run.policy_context,
+                policy_context=agent_run.policy_context,
                 cancellation_event=run.cancellation,
-                tools=HarnessToolInvoker(executor, run, step_id, agent.id),
+                tools=HarnessToolInvoker(executor, agent_run, step_id, agent.id),
                 findings=tuple(memory.findings),
             )
             t0 = time.perf_counter()
@@ -1046,7 +1049,24 @@ class AgentHarness:
         elif step.id == STAGE_APPROVAL_STEP_ID and request.arguments.get(PORTFOLIO_HASH_KEY):
             # R4 4.5: staging must stage exactly the portfolio this approver saw
             memory.scratch[APPROVED_PORTFOLIO_HASH] = request.arguments[PORTFOLIO_HASH_KEY]
+        if decision.approved and step.id == STAGE_APPROVAL_STEP_ID:
+            self._grant_staging(run, step, memory)
         return decision.approved
+
+    def _grant_staging(self, run: RunContext, step: PlanStep, memory: InvestigationMemory) -> None:
+        """A4: the four-eyes staging approval is the human approval of the HIGH-risk staging call.
+
+        The grant covers exactly the arguments the staging step will send (those in the approval
+        payload plus the bound portfolio hash), once, for this task; anything else asks again.
+        """
+        grant = getattr(self.policy, "grant_approved", None)
+        tool_id, arguments = step.metadata.get("tool_id"), step.metadata.get("arguments")
+        if grant is None or not isinstance(tool_id, str) or not isinstance(arguments, dict):
+            return
+        final = dict(arguments)
+        if memory.scratch.get(APPROVED_PORTFOLIO_HASH):
+            final[APPROVED_PORTFOLIO_HASH] = memory.scratch[APPROVED_PORTFOLIO_HASH]
+        grant(run.task_id, tool_id, final)
 
     @staticmethod
     def _validate_evidence(

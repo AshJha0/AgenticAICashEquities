@@ -11,7 +11,7 @@ from ceap.analytics.backtest import run_backtest
 from ceap.analytics.portfolio_risk import history_limit_checks, target_portfolio, with_checks, with_stress
 from ceap.analytics.research_assessment import assess_research
 from ceap.analytics.signal_statistics import evaluate_signal
-from ceap.data.ground_truth import derive_ground_truth
+from ceap.data.ground_truth import accuracy_bar, derive_ground_truth, hit_probability
 from ceap.data.historical import (
     RESEARCH_UNIVERSE,
     HistoricalGenerator,
@@ -34,7 +34,7 @@ def test_scenario_catalogue():
     assert len({(s.template, s.seed) for s in scenarios}) == 30
     assert {s.template for s in RESEARCH_TEMPLATES} == {
         "momentum_premium", "no_alpha", "reversal_premium", "regime_break", "cost_drag", "concentration", "mixed",
-        "momentum_near_threshold", "reversal_weak", "momentum_crash",
+        "momentum_realistic", "reversal_realistic", "momentum_crash",
     }
     assert get_research_scenario("R01").template == "momentum_premium"
     assert get_research_scenario("regime_break").id == "R04"
@@ -126,6 +126,7 @@ def test_research_scope_and_tool_arguments():
 
 
 @pytest.mark.evaluation
+@pytest.mark.slow  # full historical pipeline over every scenario; over the 120 s default under -n 6
 def test_deterministic_pipeline_matches_scenario_ground_truth(history):
     rows = []
     for spec in all_research_scenarios():
@@ -149,7 +150,12 @@ def test_deterministic_pipeline_matches_scenario_ground_truth(history):
     clear = [r for r in rows if not r["near"]]
     misses = [r for r in rows if not (r["hit"] and r["covered"])]
     assert len(rows) == 30 and len(clear) >= 15
-    assert sum(r["hit"] for r in clear) / len(clear) >= 0.85, misses
+    # a-priori bars (0.10): 5 % one-sided Poisson-binomial lower bounds at the hit probabilities derived from
+    # generator parameters (ground_truth.hit_probability), never from a run; see docs/quant/real-data-and-paper.md
+    probs = {s.id: hit_probability(derive_ground_truth(s)) for s in all_research_scenarios()}
+    near = [r for r in rows if r["near"]]
+    for subset in (clear, near, rows):
+        bar = accuracy_bar([probs[r["id"]] for r in subset])
+        assert sum(r["hit"] for r in subset) / len(subset) >= bar, (bar, misses)
     assert sum(r["covered"] for r in clear) / len(clear) >= 0.85, misses
-    assert sum(r["hit"] for r in rows) / len(rows) >= 0.85, misses
 

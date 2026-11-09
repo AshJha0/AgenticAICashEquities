@@ -10,6 +10,13 @@ probability >= ``dsr_min`` with the 24 trials counted, out-of-sample IC t >=
 ``sharpe_min`` without cost drag. (Concentration and limit checks are ignored,
 which can only overstate the false-PROMOTE rate.)
 
+0.10 (D3): the hurdle is now fixed a priori (``t >= 3`` for a mined result,
+``1.645`` for one preregistered test). The sweep no longer chooses it; it
+*measures* the false-PROMOTE rate at the a-priori hurdle and publishes the
+per-seed statistic vector (D20) so anyone can recompute the curve. Each run
+is appended to the sweep ledger with the generator version (D21), so a
+re-sweep after a generator change is visible, not silent.
+
 Each seed therefore has a statistic ``m = max over configurations of the
 in-sample t among configurations that pass every other gate`` (``-inf`` when
 none does); the false-PROMOTE rate at ``h`` is ``#{m >= h} / n``. The hurdle is
@@ -39,6 +46,9 @@ GRID_STEP = 0.05
 GRID_MIN = 0.0
 GRID_MAX = 6.0
 SWEEP_VERSION = "null-sweep-v1"
+GENERATOR_VERSION = "realistic_v1"  # frozen per sweep (D21); bump when the noise generator changes
+SWEEP_LEDGER = Path(__file__).resolve().parents[3] / "data" / "reference" / "sweep_ledger.jsonl"
+PER_SEED_PATH = Path(__file__).resolve().parents[3] / "docs" / "research" / "null_sweep_per_seed.json"
 
 
 def binomial_cdf(k: int, n: int, p: float) -> float:
@@ -166,7 +176,7 @@ def run_null_sweep(
     th = thresholds or DEFAULT_THRESHOLDS
     gates = {"oos_ic_t_min": th.oos_ic_t_min, "sharpe_min": th.sharpe_min, "cost_share_max": th.cost_share_max,
              "dsr_min": th.dsr_min, "min_dates": th.min_dates}
-    body = {"version": SWEEP_VERSION, "generator": "realistic_v1", "n_seeds": n_seeds, "first_seed": first_seed,
+    body = {"version": SWEEP_VERSION, "generator": GENERATOR_VERSION, "n_seeds": n_seeds, "first_seed": first_seed,
             "search_space": list(search_space()), "gates": gates, "per_seed": per_seed}
     sweep_hash = content_hash(body)
     curve = false_promote_curve(stats)
@@ -193,27 +203,74 @@ def run_null_sweep(
     }
 
 
-def write_thresholds(summary: dict[str, Any], path: Path | None = None) -> Path:
-    from ceap.analytics.research_assessment import THRESHOLDS_PATH
+def rate_at(summary: dict[str, Any], hurdle: float) -> dict[str, float]:
+    """False-PROMOTE row of the sweep's curve at the first grid point at or above ``hurdle``."""
+    return next(r for r in summary["curve"] if r["hurdle"] >= hurdle - 1e-9)
+
+
+def quick_check(summary: dict[str, Any], n: int = 50) -> dict[str, Any]:
+    """The first ``n`` seeds of a published per-seed vector (D20): a cheap reproduction target."""
+    from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS
+
+    stats = [p["stat"] if p["stat"] is not None else float("-inf") for p in summary["per_seed"][:n]]
+    row = next(r for r in false_promote_curve(stats) if r["hurdle"] >= DEFAULT_THRESHOLDS.ic_t_stat_min - 1e-9)
+    return {"n_seeds": len(stats), "false_promotes": row["false_promotes"], "rate": row["rate"]}
+
+
+def append_sweep_ledger(summary: dict[str, Any], reason: str, path: Path | None = None) -> Path:
+    """Append one record per sweep run (D21): hash, generator version, seeds, the rate at the a-priori hurdle
+    and why it was run. Append-only; a re-sweep never overwrites the earlier record."""
+    from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS
+
+    target = path or SWEEP_LEDGER
+    row = rate_at(summary, DEFAULT_THRESHOLDS.ic_t_stat_min)
+    rec = {
+        "sweep_hash": summary["sweep_hash"], "version": SWEEP_VERSION, "generator": GENERATOR_VERSION,
+        "n_seeds": summary["n_seeds"], "first_seed": summary["first_seed"],
+        "hurdle": DEFAULT_THRESHOLDS.ic_t_stat_min, "false_promotes": row["false_promotes"],
+        "rate": round(row["rate"], 6), "reason": reason,
+    }
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(rec, sort_keys=True) + "\n")
+    return target
+
+
+def write_thresholds(summary: dict[str, Any], path: Path | None = None, per_seed_path: Path | None = None) -> Path:
+    """Record the sweep that measured the false-PROMOTE rate at the a-priori hurdle (D3) and publish the
+    per-seed vector (D20). The hurdle itself is not taken from the sweep."""
+    from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS, THRESHOLDS_PATH
 
     target = path or THRESHOLDS_PATH
-    chosen = summary["chosen"]
-    if chosen is None:
-        raise ValueError("the sweep found no admissible hurdle")
+    hurdle = DEFAULT_THRESHOLDS.ic_t_stat_min
+    row = rate_at(summary, hurdle)
     doc = {
-        "ic_t_stat_min": chosen["hurdle"],
+        "ic_t_stat_min": hurdle,
+        "ic_t_single_test": DEFAULT_THRESHOLDS.ic_t_single_test,
         "sweep_hash": summary["sweep_hash"],
-        "rule": "lowest t on a 0.05 grid whose Clopper-Pearson 95% upper bound on the false-PROMOTE rate is <= 5% "
-        "over the full 24-configuration search on the pure-noise set",
+        "generator": GENERATOR_VERSION,
+        "rule": "a-priori hurdle: t >= 3 for a result chosen from a search, t >= 1.645 for one preregistered "
+        "test (Harvey, Liu and Zhu 2016); the sweep measures the false-PROMOTE rate of the full 24-configuration "
+        "search on the pure-noise set at that hurdle",
         "n_seeds": summary["n_seeds"],
         "first_seed": summary["first_seed"],
-        "false_promotes": chosen["false_promotes"],
-        "rate": round(chosen["rate"], 6),
-        "band95": [round(chosen["lower"], 6), round(chosen["upper"], 6)],
+        "false_promotes": row["false_promotes"],
+        "rate": round(row["rate"], 6),
+        "band95": [round(row["lower"], 6), round(row["upper"], 6)],
+        "lowest_hurdle_with_upper_le_5pct": None if summary.get("chosen") is None else summary["chosen"]["hurdle"],
         "abs_t_gt_2_rate": round(summary["abs_t_gt_2_rate"], 6),
         "gates": summary["gates"],
-        "curve": [{k: (round(v, 6) if isinstance(v, float) else v) for k, v in row.items()} for row in summary["curve"]
-                  if row["hurdle"] <= chosen["hurdle"] + 1.0],
+        "quick_check_50": quick_check(summary, 50),
+        "curve": [{k: (round(v, 6) if isinstance(v, float) else v) for k, v in r.items()} for r in summary["curve"]
+                  if r["hurdle"] <= hurdle + 0.5 and round(r["hurdle"] * 4) == r["hurdle"] * 4],
     }
     target.write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    seeds_target = per_seed_path or PER_SEED_PATH
+    seeds_target.parent.mkdir(parents=True, exist_ok=True)
+    seeds_target.write_text(
+        json.dumps({"sweep_hash": summary["sweep_hash"], "generator": GENERATOR_VERSION,
+                    "per_seed": [{"seed": p["seed"], "stat": p["stat"]} for p in summary["per_seed"]]},
+                   indent=0, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     return target

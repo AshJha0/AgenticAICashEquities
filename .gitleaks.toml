@@ -8,4 +8,6 @@ description = "Documented development API keys and test fixtures (not secrets)"
 regexes = [
   # The fixed demo keys of CEAP_ENV=dev (src/ceap/config.py; auditor added in 0.5.0, R4 4.3), shown in README/COOKBOOK curl examples.
   '''dev-(trader|viewer|admin|quant|approver|auditor|risk|engineer)-key''',
+  # The fixed HMAC test key of the 0.8.0 audit-chain tests (tests/unit/test_r080_audit_safety.py, A6); a literal fixture, never a real key.
+  '''test-key-0123456789abcdef0123456789abcdef''',
 ]

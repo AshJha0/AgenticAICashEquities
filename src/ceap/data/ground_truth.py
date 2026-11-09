@@ -25,6 +25,11 @@ from the generator's parameters:
 * **Deflated Sharpe.** Expected maximum Sharpe of ``N`` null trials over ``T``
   in-sample days, ``SR0 = sqrt(1/T) * ((1-g) Z(1-1/N) + g Z(1-1/(N e)))``.
 
+* **Full-period net Sharpe** (0.10 D4): the day-weighted mean of the in- and
+  out-of-sample net Sharpe, with the Lo (2002) standard error over the full
+  period. ``INCONCLUSIVE`` is expected when every expected flag is statistical
+  and the expected 95 % interval covers both 0 and ``sharpe_min``.
+
 The verdict follows the assessment's gate chain with these expectations in
 place of observed statistics. A scenario whose expected t is within one unit
 of the hurdle, or whose expected out-of-sample net Sharpe is within one
@@ -242,6 +247,9 @@ def expected_statistics(spec: Any, lag: int = 1, gross_notional: float = 50_000_
     net_sr_oos = gross_sr_oos - (cost_ann + borrow_ann) / vol_ann
     oos_years = (N_DAYS - WARMUP_DAYS - IN_SAMPLE_DAYS) / TRADING_DAYS
     se_oos = math.sqrt((1.0 + net_sr_oos**2 / (2.0 * TRADING_DAYS)) / oos_years)
+    full_days = N_DAYS - WARMUP_DAYS
+    net_sr_full = (net_sr_is * IN_SAMPLE_DAYS + net_sr_oos * (full_days - IN_SAMPLE_DAYS)) / full_days
+    se_full = math.sqrt((1.0 + net_sr_full**2 / 2.0) / (full_days / TRADING_DAYS))
     sr0_ann = expected_max_sharpe(len(search_space()), IN_SAMPLE_DAYS) * math.sqrt(TRADING_DAYS)
     max_participation = participation_coef / u["min_adv_concentrated"] if spec.concentration_names else 0.0
     return {
@@ -256,6 +264,8 @@ def expected_statistics(spec: Any, lag: int = 1, gross_notional: float = 50_000_
         "net_sharpe_is": net_sr_is,
         "net_sharpe_oos": net_sr_oos,
         "se_sharpe_oos": se_oos,
+        "net_sharpe_full": net_sr_full,
+        "se_sharpe_full": se_full,
         "turnover_per_rebalance": turnover,
         "cost_ann": cost_ann,
         "borrow_ann": borrow_ann,
@@ -267,17 +277,18 @@ def expected_statistics(spec: Any, lag: int = 1, gross_notional: float = 50_000_
 
 def derive_ground_truth(spec: Any, thresholds: Any = None, lag: int = 1) -> GroundTruth:
     """Expected verdict and flags from parameters, following the assessment's gate chain."""
-    from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS
+    from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS, hurdle_for
 
     th = thresholds or DEFAULT_THRESHOLDS
+    hurdle = hurdle_for(th.trial_floor, th)  # the default research flow counts the whole enumerated search
     e = expected_statistics(spec, lag)
     flags: list[ResearchFlag] = []
     why: list[str] = []
-    detectable = e["t_is"] >= th.ic_t_stat_min and e["gross_sharpe_is"] >= e["sr0_ann"]
+    detectable = e["t_is"] >= hurdle and e["gross_sharpe_is"] >= e["sr0_ann"]
     if not detectable:
         flags.append(ResearchFlag.NO_ALPHA)
         why.append(
-            f"expected in-sample IC t {e['t_is']:.2f} vs hurdle {th.ic_t_stat_min:.2f}; expected in-sample gross "
+            f"expected in-sample IC t {e['t_is']:.2f} vs hurdle {hurdle:.2f}; expected in-sample gross "
             f"Sharpe {e['gross_sharpe_is']:.2f} vs deflation bar {e['sr0_ann']:.2f}"
         )
     elif e["t_oos"] <= -th.regime_break_t:
@@ -304,18 +315,30 @@ def derive_ground_truth(spec: Any, thresholds: Any = None, lag: int = 1) -> Grou
         flags.append(ResearchFlag.LIMIT_BREACH)
         why.append(f"expected participation {e['max_participation_concentrated']:.0%} of ADV in the thinnest name")
     # distance of each gate's expectation from its threshold, in standard errors (positive = passes)
-    z = gate_z_scores(e, th)
+    z = gate_z_scores(e, th, hurdle)
     e = {**e, **{f"z_{k}": v for k, v in z.items()}}
     verdict = ResearchVerdict.PROMOTE if not flags else ResearchVerdict.REJECT
+    # D4: margin inside the inconclusive band, in full-period standard errors (positive = inside)
+    zc = th.inconclusive_z
+    sr, se = e["net_sharpe_full"], e["se_sharpe_full"]
+    band = min(zc - sr / se, zc - (th.sharpe_min - sr) / se)
+    e["z_inconclusive_band"] = band
+    statistical_only = bool(flags) and set(flags) <= {ResearchFlag.NO_ALPHA, ResearchFlag.OOS_DECAY}
+    if statistical_only and band > 0:
+        verdict = ResearchVerdict.INCONCLUSIVE
+        why.append(
+            f"expected full-period net Sharpe {sr:.2f} (SE {se:.2f}): the 95% interval covers 0 and {th.sharpe_min:.2f}"
+        )
+        return GroundTruth(verdict, tuple(flags), band < 1.0 or min(z.values()) > -1.0, e, tuple(why))
     if verdict is ResearchVerdict.PROMOTE:
         near = min(z.values()) < 1.0  # clear only if every gate passes by at least one standard error
     else:
         structural = spec.concentration_names > 0  # parameter-defined flags are not statistical
-        near = not structural and min(z.values()) > -1.0  # clear only if some gate fails by one standard error
+        near = not structural and (min(z.values()) > -1.0 or (statistical_only and band > -1.0))
     return GroundTruth(verdict, tuple(flags), near, e, tuple(why))
 
 
-def gate_z_scores(e: dict[str, float], th: Any) -> dict[str, float]:
+def gate_z_scores(e: dict[str, float], th: Any, hurdle: float | None = None) -> dict[str, float]:
     """Expected margin of every PROMOTE gate in standard errors: IC t (SE 1), deflated Sharpe bar (SE of the
     in-sample Sharpe), out-of-sample IC t (SE 1), out-of-sample net Sharpe (SE of the OOS Sharpe), cost share
     (delta method: ``share * SE_oos / gross_oos``)."""
@@ -330,10 +353,49 @@ def gate_z_scores(e: dict[str, float], th: Any) -> dict[str, float]:
     else:
         z_cost = -10.0
     return {
-        "ic_t": e["t_is"] - th.ic_t_stat_min,
+        "ic_t": e["t_is"] - (th.ic_t_stat_min if hurdle is None else hurdle),
         "deflated_sharpe": (e["gross_sharpe_is"] - e["sr0_ann"]) / se_is,
         "oos_ic_t": e["t_oos"] - th.oos_ic_t_min,
         "oos_net_sharpe": (e["net_sharpe_oos"] - th.sharpe_min) / e["se_sharpe_oos"],
         "cost_share": z_cost,
     }
 
+
+
+def hit_probability(gt: GroundTruth, thresholds: Any = None) -> float:
+    """A-priori probability that a run reproduces the expected verdict (0.10, accuracy bars).
+
+    Gate statistics are treated as independent normals around their expectations (``z`` margins from
+    :func:`gate_z_scores`, SE 1 each): ``P(PROMOTE) = prod Phi(z_k)``. The realised full-period net Sharpe
+    is ``N(net_sharpe_full, se_sharpe_full)``, so ``P(in band) = Phi((c se - sr) / se) - Phi((m - c se - sr)
+    / se)`` with ``c = inconclusive_z`` and ``m = sharpe_min``. Parameter-defined flags (concentration,
+    limits) are certain. ``INCONCLUSIVE`` needs a failure and the band; ``REJECT`` is the rest.
+    """
+    from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS
+
+    th = thresholds or DEFAULT_THRESHOLDS
+    if any(f in (ResearchFlag.CONCENTRATION, ResearchFlag.LIMIT_BREACH) for f in gt.flags):
+        return 1.0
+    m = gt.metrics
+    z = [v for k, v in m.items() if k.startswith("z_") and k != "z_inconclusive_band"]
+    p_promote = float(np.prod([_N.cdf(v) for v in z]))
+    sr, se, c = m["net_sharpe_full"], m["se_sharpe_full"], th.inconclusive_z
+    p_band = _N.cdf((c * se - sr) / se) - _N.cdf((th.sharpe_min - c * se - sr) / se)
+    statistical = not any(f is ResearchFlag.COST_DRAG or f is ResearchFlag.REGIME_BREAK for f in gt.flags)
+    p_inconclusive = (1.0 - p_promote) * p_band if statistical else 0.0
+    if gt.verdict is ResearchVerdict.PROMOTE:
+        return p_promote
+    if gt.verdict is ResearchVerdict.INCONCLUSIVE:
+        return p_inconclusive
+    return max(0.0, 1.0 - p_promote - p_inconclusive)
+
+
+def accuracy_bar(probabilities: list[float], alpha: float = 0.05) -> float:
+    """One-sided ``alpha`` lower bound on the hit share: the largest ``k / n`` with ``P(hits < k) <= alpha``
+    under the Poisson-binomial distribution of independent scenarios with the given hit probabilities."""
+    dist = np.array([1.0])
+    for p in probabilities:
+        dist = np.convolve(dist, [1.0 - p, p])
+    cdf = np.cumsum(dist)  # cdf[k] = P(hits <= k)
+    k = int(np.searchsorted(cdf, alpha, side="right"))  # first k with P(hits <= k) > alpha
+    return k / len(probabilities) if probabilities else 0.0

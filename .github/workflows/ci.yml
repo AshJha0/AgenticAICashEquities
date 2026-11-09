@@ -63,8 +63,10 @@ jobs:
         run: |
           python -m pip install --require-hashes -r requirements.lock
           python -m pip install -e . --no-deps
-      - name: Pytest (PR tier, parallel, coverage floor 80 %)
-        run: pytest -n auto -m "not nightly" --cov=ceap --cov-report=term --cov-fail-under=80
+      - name: Pytest (PR tier, parallel, branch coverage floor 85 %)
+        env:
+          ANTHROPIC_API_KEY: ""
+        run: pytest -n auto -m "not nightly" --cov=ceap --cov-branch --cov-report=term --cov-fail-under=85
 
   lock-fresh:
     # The lock is produced by uv in universal mode on Linux and never edited by hand. Regenerating it

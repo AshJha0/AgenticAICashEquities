@@ -8,12 +8,14 @@ and reported. The LLM never decides the verdict.
 
 1. ``NO_ALPHA`` unless the in-sample non-overlapping horizon-h IC t (2.7)
    clears the **PROMOTE hurdle** and the deflated Sharpe probability clears
-   ``dsr_min``. The hurdle is not chosen by hand: it is the lowest t whose
-   false-PROMOTE upper bound is at most 5 % over the full 24-configuration
-   search on the pure-noise set (2.10), read from
-   ``data/reference/research_thresholds.json`` together with the sweep hash.
-   The deflated Sharpe uses the trial count and cross-trial Sharpe variance
-   from the ledger (2.8), never a number supplied by the caller.
+   ``dsr_min``. 0.10 (D3): the hurdle is fixed *a priori*, not fitted to the
+   null sweep: ``t >= 1.645`` (one-sided 5 %) for a single preregistered test,
+   ``t >= 3.0`` for anything chosen from a search (Harvey, Liu and Zhu 2016).
+   The null sweep (2.10) no longer sets the hurdle; it *measures* the
+   false-PROMOTE rate at it, and the power study measures detection. The
+   deflated Sharpe uses the ledger's trial count floored at the enumerated
+   (or preregistered) variants and, when known, the effective count of
+   correlated trials (D8, :mod:`ceap.analytics.trial_accounting`).
 2. ``REGIME_BREAK`` when the out-of-sample IC t is at or below
    ``-regime_break_t``: the premium reversed.
 3. ``OOS_DECAY`` (0.4 name ``OVERFIT``; nothing is fitted) when the
@@ -23,6 +25,10 @@ and reported. The LLM never decides the verdict.
    net does not, or costs take at least ``cost_share_max`` of gross.
 5. ``CONCENTRATION`` and ``LIMIT_BREACH`` are independent checks; limits are
    evaluated over the whole out-of-sample history (2.12).
+6. 0.10 (D4) ``INCONCLUSIVE`` replaces ``REJECT`` when every flag is
+   statistical (``NO_ALPHA`` or ``OOS_DECAY``) and the 95 % interval of the
+   full-period net Sharpe (Lo 2002 standard error) covers both 0 and
+   ``sharpe_min``: the data cannot tell "no edge" from "a tradable edge".
 """
 
 from __future__ import annotations
@@ -48,28 +54,33 @@ THRESHOLDS_PATH = Path(__file__).resolve().parents[3] / "data" / "reference" / "
 TRADING_DAYS = 252
 EULER_GAMMA = 0.5772156649015329
 _N = NormalDist()
-UNSET_HURDLE = 3.0
-# shipped with the code so an installed wheel (no data/ directory) uses the measured hurdle, not a guess;
-# a test keeps these equal to data/reference/research_thresholds.json
-COMMITTED_HURDLE = 0.4
+# 0.10 (D3): a-priori hurdles. One-sided 5 % for a single preregistered test; t >= 3 for a mined result
+# (Harvey, Liu and Zhu 2016, "... and the Cross-Section of Expected Returns", RFS 29(1)). Evidence class: method.
+SINGLE_TEST_HURDLE = 1.645
+MINED_HURDLE = 3.0
+UNSET_HURDLE = MINED_HURDLE
+# kept equal to data/reference/research_thresholds.json by a test; the file records the sweep that measured
+# the false-PROMOTE rate at the a-priori hurdle (it no longer sets the hurdle)
+COMMITTED_HURDLE = MINED_HURDLE
 COMMITTED_SWEEP_HASH = "ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4"
 
 
-def _load_hurdle() -> tuple[float, str]:
+def _load_sweep_hash() -> str:
     try:
         data = json.loads(THRESHOLDS_PATH.read_text(encoding="utf-8"))
-        return float(data["ic_t_stat_min"]), str(data["sweep_hash"])
+        return str(data["sweep_hash"])
     except (OSError, KeyError, ValueError):
-        return COMMITTED_HURDLE, COMMITTED_SWEEP_HASH
+        return COMMITTED_SWEEP_HASH
 
 
-_HURDLE, _SWEEP_HASH = _load_hurdle()
+_SWEEP_HASH = _load_sweep_hash()
 
 
 @dataclass(frozen=True)
 class ResearchThresholds:
-    ic_t_stat_min: float = _HURDLE  # PROMOTE hurdle from the null sweep (2.10)
-    hurdle_sweep_hash: str = _SWEEP_HASH
+    ic_t_stat_min: float = MINED_HURDLE  # a-priori PROMOTE hurdle for a result chosen from a search (D3)
+    ic_t_single_test: float = SINGLE_TEST_HURDLE  # a-priori hurdle for one preregistered test (D3)
+    hurdle_sweep_hash: str = _SWEEP_HASH  # the null sweep that measured the false-PROMOTE rate at the hurdle
     sharpe_min: float = 0.5
     oos_is_sharpe_ratio_min: float = 0.5  # reported and scored; no longer a gate (IS Sharpe is too noisy)
     oos_ic_t_min: float = 1.0
@@ -78,9 +89,38 @@ class ResearchThresholds:
     pnl_concentration_max: float = 0.5
     min_dates: int = 30  # non-overlapping in-sample IC observations
     dsr_min: float = 0.5  # deflated Sharpe probability: observed IS Sharpe beats the expected maximum of the trials
+    trial_floor: int = 24  # D8: the enumerated search space; a preregistered study passes its own variant count
+    inconclusive_z: float = 1.96  # D4: two-sided 95 % interval of the full-period net Sharpe
 
 
 DEFAULT_THRESHOLDS = ResearchThresholds()
+
+
+def trial_count(trial: dict[str, Any], th: ResearchThresholds) -> int:
+    """Trials for the deflated Sharpe and the hurdle (D8): ledger or effective count, floored at the
+    preregistered variants when the record carries them, otherwise at the enumerated search space."""
+    from ceap.analytics.trial_accounting import deflation_trial_count
+
+    raw = int(trial.get("n_trials", 1) or 1)
+    eff = trial.get("n_trials_effective")
+    prereg = trial.get("preregistered_variants")
+    floor = int(prereg) if prereg is not None else th.trial_floor
+    return deflation_trial_count(raw, float(eff) if eff is not None else None, floor)
+
+
+def hurdle_for(n_trials: int, th: ResearchThresholds) -> float:
+    """A-priori IC t hurdle (D3): the single-test hurdle only when exactly one trial counts."""
+    return th.ic_t_single_test if n_trials <= 1 else th.ic_t_stat_min
+
+
+def sharpe_interval(sharpe_ann: float, n_days: int, z: float = 1.96) -> tuple[float, float]:
+    """Two-sided interval for an annualised Sharpe ratio with the iid standard error of Lo (2002),
+    ``SE = sqrt((1 + SR^2 / 2) / years)``. Evidence class: method."""
+    if sharpe_ann is None or not math.isfinite(sharpe_ann) or n_days < 2:
+        return float("nan"), float("nan")
+    years = n_days / TRADING_DAYS
+    se = math.sqrt((1.0 + sharpe_ann**2 / 2.0) / years)
+    return sharpe_ann - z * se, sharpe_ann + z * se
 
 
 def _finite(x: float | None) -> bool:
@@ -174,7 +214,8 @@ def assess_research(
     breached = [c for c in risk.checks if c.breached]
     history_breaches = [c for c in risk.history_checks if c.get("breached")]
     trial = backtest.trial or {}
-    n_trials = int(trial.get("n_trials", 1) or 1)
+    n_trials = trial_count(trial, th)
+    hurdle = hurdle_for(n_trials, th)
     trial_var = trial.get("sharpe_variance")
     # the alpha test deflates the in-sample Sharpe *before* trading costs: costs belong to COST_DRAG, not NO_ALPHA
     dsr, sr0_ann = deflated_sharpe(
@@ -186,14 +227,14 @@ def assess_research(
     rationale: list[str] = []
 
     # ---- alpha chain: no alpha -> regime break -> OOS decay -> cost drag
-    weak_t = not _finite(is_s.ic_t_stat) or is_s.n_dates < th.min_dates or is_s.ic_t_stat < th.ic_t_stat_min
+    weak_t = not _finite(is_s.ic_t_stat) or is_s.n_dates < th.min_dates or is_s.ic_t_stat < hurdle
     weak_dsr = not _finite(dsr) or dsr < th.dsr_min
     if weak_t or weak_dsr:
         flags.append(ResearchFlag.NO_ALPHA)
         if weak_t:
             rationale.append(
                 f"in-sample {is_s.horizon_days}-day IC t-stat {is_s.ic_t_stat:.2f} over {is_s.n_dates} "
-                f"non-overlapping periods is below the {th.ic_t_stat_min:.2f} hurdle (null sweep {th.hurdle_sweep_hash[:12]})"
+                f"non-overlapping periods is below the a-priori {hurdle:.2f} hurdle ({n_trials} trial(s) counted)"
             )
         if weak_dsr:
             rationale.append(
@@ -243,14 +284,22 @@ def assess_research(
         )
 
     verdict = ResearchVerdict.PROMOTE if not flags else ResearchVerdict.REJECT
+    lo, hi = sharpe_interval(full_b.sharpe, full_b.n_days, th.inconclusive_z)
+    statistical_only = bool(flags) and set(flags) <= {ResearchFlag.NO_ALPHA, ResearchFlag.OOS_DECAY}
+    if statistical_only and _finite(lo) and lo < 0.0 < th.sharpe_min < hi:
+        verdict = ResearchVerdict.INCONCLUSIVE
+        rationale.append(
+            f"inconclusive: the 95% interval of the full-period net Sharpe [{lo:.2f}, {hi:.2f}] covers both 0 and "
+            f"the {th.sharpe_min:.2f} minimum; more data is needed to tell no edge from a tradable one"
+        )
     if not flags:
         rationale.append(
-            f"in-sample IC t-stat {is_s.ic_t_stat:.2f} clears {th.ic_t_stat_min:.2f}, deflated Sharpe {dsr:.2f} over "
+            f"in-sample IC t-stat {is_s.ic_t_stat:.2f} clears {hurdle:.2f}, deflated Sharpe {dsr:.2f} over "
             f"{n_trials} trial(s), out-of-sample net Sharpe {oos_b.sharpe:.2f}, costs {cost_share:.0%} of gross "
             "return, limits respected"
         )
     scores = {
-        "alpha": round(_sigmoid(is_s.ic_t_stat - th.ic_t_stat_min, 2.0), 3),
+        "alpha": round(_sigmoid(is_s.ic_t_stat - hurdle, 2.0), 3),
         "robustness": round(_clamp(ratio) if _finite(is_b.sharpe) and is_b.sharpe > 0 else 0.0, 3),
         "cost": round(_clamp(1.0 - cost_share), 3),
         "diversification": round(_clamp(1.0 - concentration), 3),
@@ -268,7 +317,9 @@ def assess_research(
         "pnl_concentration_top3": concentration,
         "max_adv_participation": risk.max_adv_participation,
         "breached_checks": float(len(breached) + len(history_breaches)),
-        "hurdle_t": th.ic_t_stat_min,
+        "hurdle_t": hurdle,
+        "full_sharpe_ci_low": lo,
+        "full_sharpe_ci_high": hi,
         "deflated_sharpe": dsr,
         "deflated_sharpe_bar": sr0_ann,
         "n_trials": float(n_trials),
@@ -287,7 +338,7 @@ def assess_research(
                           "PASS" if _finite(oos_b.sharpe) and oos_b.sharpe >= th.sharpe_min else "FAIL"),
         ),
         trials_counted=n_trials,
-        correction=f"null-sweep hurdle t>={th.ic_t_stat_min:.2f} ({th.hurdle_sweep_hash[:12]}) + deflated Sharpe",
+        correction=f"a-priori hurdle t>={hurdle:.3g} over {n_trials} trial(s) + deflated Sharpe",
     )
     return ResearchAssessment(verdict, tuple(flags), scores, tuple(rationale), metrics, hypotheses)
 

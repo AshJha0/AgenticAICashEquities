@@ -41,13 +41,20 @@ Contents:
 32. [Add a new signal](#32-add-a-new-signal)
 33. [Add a research scenario template](#33-add-a-research-scenario-template)
 34. [Day-to-day development: bootstrap, test tiers, lock, release](#34-day-to-day-development-bootstrap-test-tiers-lock-release)
-35. [Measure the PROMOTE hurdle (null sweep)](#35-measure-the-promote-hurdle-null-sweep)
+35. [Measure the false-PROMOTE rate at the hurdle (null sweep)](#35-measure-the-false-promote-rate-at-the-hurdle-null-sweep)
 36. [Profitability table and capacity sweep](#36-profitability-table-and-capacity-sweep)
 37. [Backtest under different execution assumptions](#37-backtest-under-different-execution-assumptions)
 38. [Keep state across restarts (SQLite)](#38-keep-state-across-restarts-sqlite)
 39. [Replay a task byte for byte](#39-replay-a-task-byte-for-byte)
 40. [Scrape metrics and correlate logs](#40-scrape-metrics-and-correlate-logs)
 41. [Hold API keys as hashes only](#41-hold-api-keys-as-hashes-only)
+42. [Produce the evaluation report and record a release](#42-produce-the-evaluation-report-and-record-a-release)
+43. [Paper-trade a signal and keep a forward record](#43-paper-trade-a-signal-and-keep-a-forward-record)
+44. [Run a parent order through the simulated book](#44-run-a-parent-order-through-the-simulated-book)
+45. [Fit market impact and compare it with the truth](#45-fit-market-impact-and-compare-it-with-the-truth)
+46. [Markout curves and a venue routing table from fills](#46-markout-curves-and-a-venue-routing-table-from-fills)
+47. [Predicted versus realised cost, weekly](#47-predicted-versus-realised-cost-weekly)
+48. [Regression cause attribution and the trading rules](#48-regression-cause-attribution-and-the-trading-rules)
 
 ---
 
@@ -501,7 +508,7 @@ The signal and dataset are parsed from the question when omitted ("momentum" →
 "reversal"/"mean reversion" → `reversal_5`, "low vol" → `low_vol_60`; a ticker like `R04` or
 `RS12`). `--dataset` picks the research scenario (R01–R07 templates, RS01–RS21 concrete).
 `--role` must have the `research` capability (`quant` or `admin`); `viewer`/`trader`/`engineer`
-do not. The proposal's VERDICT section carries `PROMOTE` or `REJECT` with any flags
+do not. The proposal's VERDICT section carries `PROMOTE`, `REJECT` or (since v0.8.0) `INCONCLUSIVE` with any flags
 (`NO_ALPHA`, `OOS_DECAY` (called `OVERFIT` before 0.4.0), `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`).
 
 ## 29. Run a research proposal from Python
@@ -541,7 +548,10 @@ Order staging needs *two* separately-decided `HUMAN_APPROVAL` steps the harness 
 With `CEAP_AUTO_APPROVE=false` both show up in `GET /approvals` — see recipe 6 — the second
 carries `arguments.orders_preview` instead of `arguments.proposal`. Declining the second still
 completes the task; only the STAGED ORDERS section changes. `execution.stage_orders` never
-routes anywhere — it only ever builds paper orders in an in-memory `StagedOrderBook`.
+routes anywhere. It only builds paper orders in a `StagedOrderBook`, which the platform backs with its
+SQLite database (`staged_orders`, one row per `staging_id`). Before staging it runs the pre-trade
+checks (restricted, hard to borrow, per-name and gross limits) and returns any `risk_blocks`. While
+the kill switch is set it refuses (recipe 38).
 
 ## 31. Use the research API
 
@@ -592,11 +602,17 @@ so `ceap evaluate --suite research` and `tests/evaluation/test_research_scenario
 ```bash
 scripts/bootstrap.sh                                  # .venv from the hashed lock
 pytest -n auto -m "not nightly and not slow"          # quick local loop
-pytest -n auto -m "not nightly" --cov=ceap --cov-fail-under=80   # what PR CI runs
-HYPOTHESIS_PROFILE=nightly pytest -n auto -p randomly # what nightly runs: random order, 1000 examples
+pytest -n auto -m "not nightly" --cov=ceap --cov-branch --cov-fail-under=85   # what PR CI runs
+CEAP_NIGHTLY=1 HYPOTHESIS_PROFILE=nightly pytest -n auto -p randomly    # what nightly runs: random order, 1000 examples
+pytest tests/unit                                     # hermetic: reads nothing outside src/ and tests/
+pytest tests/repo                                     # repository integrity: scripts, docs, workflows
 python scripts/check_banned_words.py                  # must print "clean"
 python scripts/check_contracts.py origin/main         # lists any public ceap.domain signature change
 ```
+
+Every test has a 120 s timeout (`pytest-timeout`); `slow` tests get 600 s and `nightly` tests
+1800 s unless they set `@pytest.mark.timeout(...)` themselves. The 20 slowest tests are printed at
+the end of every run. Nightly-marked tests skip unless `CEAP_NIGHTLY=1`.
 
 Adding a dependency: edit `pyproject.toml`, then run the `uv pip compile ...` command printed in
 the header of `requirements.lock` (uv is free: `pip install uv`). Commit both files; the
@@ -608,15 +624,20 @@ then push the tag `vX.Y.Z`. `release.yml` runs `scripts/release_check.py` and bu
 the latest run of the `CI` workflow on that commit is green (since 0.7.1 other workflows, such as the
 daily paper job, do not count). Local dry run: `python scripts/release_check.py --tag vX.Y.Z --skip-checks`.
 
-## 35. Measure the PROMOTE hurdle (null sweep)
+## 35. Measure the false-PROMOTE rate at the hurdle (null sweep)
 
 ```bash
 ceap evaluate --suite null --seeds 50
 ```
 
 Prints the false-PROMOTE rate of the full 24-configuration search on pure-noise data at the
-committed hurdle, with its 95 % binomial band. `--seeds 500 --workers 6 --write-thresholds`
-re-derives the hurdle and writes it with the sweep hash to `data/reference/research_thresholds.json`.
+committed hurdle, with its 95 % binomial band. Since 0.8.0 the hurdle is fixed in advance (IC
+t >= 3.0 for a searched result, 1.645 for one preregistered test) and the sweep only measures it:
+`--seeds 500 --workers 6 --write-thresholds` records the measured rate, the sweep hash and the
+per-seed vector (`data/reference/research_thresholds.json`, `docs/research/null_sweep_per_seed.json`)
+and appends the run to `data/reference/sweep_ledger.jsonl`. It no longer chooses the hurdle (the
+flag's help text still says "chosen hurdle"). Background: `docs/research/README.md`, "Research
+realism toolkit".
 
 ## 36. Profitability table and capacity sweep
 
@@ -650,6 +671,31 @@ ceap db verify-chain                       # exit 1 if any audit row was edited 
 ceap db prune                              # apply CEAP_RETENTION_* and CEAP_DB_MAX_BYTES
 ```
 
+### Keep the audit trail tamper-evident (0.8.0)
+
+```bash
+export CEAP_AUDIT_HMAC_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"  # keep it out of the repo
+ceap db anchor --out audit/audit_head.json        # chain heads + audit_head.json.sha256
+git add audit/audit_head.json audit/audit_head.json.sha256 && git commit -m "audit: anchor"
+ots stamp audit/audit_head.json                   # optional, free: OpenTimestamps proof (run by hand)
+ceap db verify-chain --anchor audit/audit_head.json   # exit 1 if any anchored row changed or vanished
+```
+
+Audit and paper ledger rows are HMAC-keyed. Without `CEAP_AUDIT_HMAC_KEY` the platform uses a
+published development key and `ceap db status` shows `"dev_key": true`. That is fine for the demo and
+the public paper record, but it protects nothing. To rotate, put the new key in `CEAP_AUDIT_HMAC_KEY`
+and list the old ones in `CEAP_AUDIT_HMAC_OLD_KEYS` (comma separated; `dev-default` names the
+development key). The key cannot stop someone who holds it from rebuilding the chain. The anchor
+can: commit one after every working day and any rebuild shows up as a changed head.
+
+### Stop all paper staging (kill switch)
+
+```bash
+ceap db kill-switch set --reason "venue outage" --actor ops   # audited; paper job and stage_orders stop
+ceap db kill-switch status
+ceap db kill-switch clear --reason "resolved" --actor ops     # audited
+```
+
 After a crash or `kill -9`, the next start marks in-flight tasks `INTERRUPTED` and pending approvals
 `EXPIRED`; their status and stored result stay readable (`GET /investigations/{id}`, `/result`).
 
@@ -675,7 +721,13 @@ curl -si localhost:8000/health -H "X-Request-ID: my-trace-1"     # echoed back; 
 ```bash
 python -c "from ceap.api.auth import hash_api_key; print(hash_api_key('a-long-random-key'))"
 CEAP_API_KEY_HASHES='sha256$...$...:auditor:2027-01-31' ceap serve   # optional expiry date
+# 0.8.0: bind each key to a person, so four-eyes compares people, not keys
+CEAP_API_KEY_HASHES='sha256$...$...:approver:2027-01-31:subject=alice' ceap serve
 ```
+
+A mapped key acts as principal `user:alice`; two keys mapped to the same subject cannot request and
+approve the same action. `CEAP_API_KEY_SUBJECTS=role:xxxxxxxx=NAME` maps existing keys the same way.
+Since 0.8.0 HIGH-risk tools always need an approval, and an admin cannot decide one.
 
 ## 42. Produce the evaluation report and record a release
 
@@ -706,8 +758,11 @@ ceap paper backfill --from 2026-06-01 --to 2026-10-30 --db var/paper/paper.db  #
 
 Each session writes `var/paper/reports/<book>/<date>.md` and `.json`: P&L attribution (signal,
 drift, financing, borrow, costs), fills with their staging and approval ids, every reject, cancel and
-risk block, and the reconciliation. Stop all new orders with `CEAP_PAPER_HALT="reason" ceap paper
-run-day ...`: working orders are cancelled and the reason is logged. Limits (restricted and
+risk block, and the reconciliation. Stop all new orders with `ceap db --path var/paper/paper.db
+kill-switch set --reason "..."` (audited, persists until cleared; recipe 38) or for one run with
+`CEAP_PAPER_HALT="reason" ceap paper run-day ...`: working orders are cancelled and the reason is
+logged. Ledger and day rows are HMAC-keyed (`CEAP_AUDIT_HMAC_KEY`; recipe 38). `ceap db anchor` also
+records each paper book's chain heads. Limits (restricted and
 hard-to-borrow lists, per-name and gross caps, % ADV, price bands, drift tolerance) live under `risk` in
 `config/paper.json`. Exit codes: 3 not a session (holiday or weekend), 4 reconciliation break (nothing
 committed; the break report is printed).
@@ -722,3 +777,108 @@ blocks scripted downloads, so files must be placed by hand), refuses rows up to 
 produce a 12-1 signal before about January 2027. The scheduled workflow runs because the owner set
 the repository variable `PAPER_DAILY_ENABLED=true` on 2026-11-08 (D22); the forward record starts on
 2026-11-09.
+
+If the record stops, you hear about it: a failed `paper-daily` run opens (or comments on) an issue
+labelled `paper-failure`, and the weekly `paper-staleness` workflow opens a `paper-stale` issue when
+the `forward-log` head is more than 2 NYSE sessions old. Check by hand:
+
+```bash
+git fetch origin forward-log
+git show FETCH_HEAD:forward_log.csv > forward_log.csv
+python scripts/check_forward_log_staleness.py --csv forward_log.csv   # exit 1 = stale
+```
+
+## 44. Run a parent order through the simulated book
+
+```python
+from ceap.execution.algo import ParentOrder, execute
+from ceap.execution.child import ChildPolicy
+from ceap.execution.lob import BUY, LOBSimulator
+from ceap.execution.schedule import POV, TWAP, VWAP, AlmgrenChriss
+
+parent = ParentOrder(BUY, 3_000, start_ms=60_000, end_ms=660_000, n_slices=10)  # 10 minutes
+for sched in (TWAP(), VWAP(0.4, 0.45), POV(0.10, 0.03, total=3_000),
+              AlmgrenChriss(sigma=0.3, eta=1e-4, gamma=1e-6, horizon=1.0, risk_aversion=1e-3)):
+    r = execute(LOBSimulator(seed=100), parent, sched, ChildPolicy(urgency=0.5))
+    print(sched.name, r.executed, round(r.passive_share, 2), r.components.as_dict())
+```
+
+The book is a price-time FIFO queue with latency; passive children fill only when a taker trades
+through the queue ahead of them, and the bot's own fills move the price (propagator impact). The cost
+is the same Perold split the post-trade TCA uses. One seed is one noisy draw: compare schedulers over
+many seeds (docs/execution/execution.md, section 3).
+
+## 45. Fit market impact and compare it with the truth
+
+```python
+from ceap.execution.impact import fit_propagator
+from ceap.execution.lob import LOBSimulator
+
+sim = LOBSimulator(seed=3)
+for t in range(0, 600_000, 2_000):           # buy 200 every 2 s for 10 minutes
+    sim.run_until(t)
+    sim.submit(1, 200)
+sim.run_until(900_000)
+flow = sim.agent_flow_grid(1_000, 0, 900_000)
+fit = fit_propagator(sim.mid_grid(1_000, 0, 900_000, efficient=True), flow, dt_s=1.0)
+print(fit.compare(sim.p.kernel))              # estimate, SE, truth and z for each parameter
+```
+
+Use `efficient=True` to check the mechanism; on the quoted mid (`efficient=False`) the bid-ask bounce
+biases the split towards a large, fast-reverting impact. One-directional flow like this identifies
+the permanent part poorly: vary the side for a cleaner fit.
+
+## 46. Markout curves and a venue routing table from fills
+
+```python
+from ceap.data.scenarios import get_scenario
+from ceap.data.synthetic import SyntheticMarketGenerator
+from ceap.execution.markouts import markout_curves, routing_table
+
+ds = SyntheticMarketGenerator().generate(get_scenario("venue_degradation"))
+for p in markout_curves(ds.executions, ds.quotes, horizons=(1, 30, 300, "close"), n_boot=300):
+    print(p.group, p.horizon, p.n, round(p.mean_bps, 2), (round(p.ci_low_bps, 2), round(p.ci_high_bps, 2)))
+for row in routing_table(ds.executions, ds.quotes, horizon=60):
+    print(row.venue, row.verdict, round(row.markout_bps, 2), round(row.suggested_weight, 3))
+```
+
+Positive markout = the price moved our way after the fill. A venue is `adverse` only when its whole
+CI is below zero.
+
+## 47. Predicted versus realised cost, weekly
+
+```python
+from datetime import date
+from ceap.execution.cost_loop import CostLoop, CostObservation
+
+loop = CostLoop("var/costs.sqlite")               # or ":memory:"
+pred = loop.predict(quantity=40_000, adv=1_000_000, sigma_daily_bps=120.0)
+loop.record(CostObservation(date(2026, 11, 9), "P-1", 40_000, 1_000_000, 120.0, pred, realised_bps=17.2))
+# ... record each parent as it completes, then once a week:
+calibration, drift = loop.weekly(as_of=date(2026, 11, 13))
+print(calibration, drift)                         # new Y and exponent; mean residual in SEs
+```
+
+`weekly` needs at least three observations to fit; `drift.alert` is `|z| >= 2` on the last seven days.
+`reliability_table(loop.observations())` gives the rows for a reliability plot.
+
+## 48. Regression cause attribution and the trading rules
+
+```bash
+CEAP_ATTRIBUTION=regression ceap investigate "Why did AAPL execution deteriorate between 14:00 and 15:00?" --dataset T03 --json result.json
+```
+
+(T03 is the wide-spreads scenario) or `attribute_causes(..., method="regression")` in Python. The heuristic verdict is unchanged; the
+regression's bps share per cause with CIs appears under `regression`. With only five matched peer
+sessions it leans on its ridge prior and says so.
+
+```python
+from ceap.execution.auction import AuctionOrder, uncross
+from ceap.execution.rules import LULDMonitor, luld_bands, round_lot_size, round_to_tick
+
+print(round_to_tick(10.019, side=1), round_lot_size(400.0), luld_bands(100.0, seconds_since_open=600))
+print(uncross([AuctionOrder(1, 500), AuctionOrder(-1, 400, 9.99), AuctionOrder(-1, 400, 10.01)], reference=10.0))
+```
+
+The tick, lot and LULD numbers are the published rules as recalled; check the current text before
+relying on them.

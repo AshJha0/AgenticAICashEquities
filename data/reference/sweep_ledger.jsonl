@@ -1,0 +1,1 @@
+{"false_promotes": 0, "first_seed": 0, "generator": "realistic_v1", "hurdle": 3.0, "n_seeds": 500, "rate": 0.0, "reason": "0.10 D3/D20: re-run at the a-priori hurdle; reproduces the 0.4.0 sweep hash; per-seed vector published", "sweep_hash": "ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4", "version": "null-sweep-v1"}

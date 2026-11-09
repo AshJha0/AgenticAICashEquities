@@ -67,6 +67,31 @@ def _summarise(data: Any) -> str:
     return type(data).__name__
 
 
+class CatalogueDriftError(RuntimeError):
+    """A server's tool catalogue differs from the one pinned or recorded at start-up (A5)."""
+
+
+def catalogue_hash(descriptors: list[dict[str, Any]]) -> str:
+    """SHA-256 over a server's tool descriptors (names, descriptions, schemas, annotations).
+
+    Order does not matter. Any change to a tool's description, input schema or annotations
+    changes the hash, so a server cannot quietly widen a tool after it was reviewed.
+    """
+    canonical = sorted(
+        (json.dumps(to_jsonable(d), sort_keys=True, default=str) for d in descriptors), key=str
+    )
+    return hashlib.sha256("\n".join(canonical).encode()).hexdigest()
+
+
+def check_catalogue(server: str, actual: str, expected: str | None) -> None:
+    """Refuse a catalogue whose hash differs from the expected one; ``None`` means not pinned."""
+    if expected is not None and expected != actual:
+        raise CatalogueDriftError(
+            f"MCP server {server}: tool catalogue hash {actual[:12]} does not match the pinned "
+            f"{expected[:12]}; refusing its tools"
+        )
+
+
 def _risk(value: Any) -> RiskLevel:
     """Missing or unknown ``riskLevel`` means HIGH (fail closed)."""
     try:
@@ -78,7 +103,7 @@ def _risk(value: Any) -> RiskLevel:
 class MCPToolAdapter(Tool):
     """Fail closed on annotations (PLAN 1.7): a missing ``readOnlyHint`` means *not* read-only and
     a missing ``riskLevel`` means HIGH. Whether the server is trusted is decided by the policy engine
-    (``trusted_servers``), which denies every write to a tool of an untrusted server."""
+    (``trusted_servers``), which denies every tool of an untrusted server, read-only or not (A5)."""
 
     def __init__(self, client: MCPClient, server: str, descriptor: dict[str, Any]) -> None:
         self._client = client
@@ -94,6 +119,7 @@ class MCPToolAdapter(Tool):
             required_capabilities=frozenset(ann.get("requiredCapabilities", [])),
             input_schema=descriptor.get("inputSchema", {}),
             server=server,
+            cpu_bound=ann.get("cpuBound") is True,
         )
 
     @property

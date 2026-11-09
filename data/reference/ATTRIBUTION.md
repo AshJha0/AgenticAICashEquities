@@ -32,3 +32,11 @@ momentum factor, one-month T-bill). Free for research use; cite the library.
 Yahoo Finance via the `yfinance` package and, when a person downloads them in a browser, Stooq
 (https://stooq.com). Vendor price data is cached in `data/real_cache/`, which is gitignored and never
 committed.
+
+## `knowledge/` (desk documents used by the knowledge server)
+
+The documents in `knowledge/` (runbooks, policies, venue configuration, limits, incident procedures)
+are fictional. They were written for this project to exercise retrieval and citation, and do not
+describe any real firm, desk, venue setup or policy. Their front-matter field
+`classification: internal` is test metadata for the role filter in `ceap.rag.retrieval`; it does not
+mark the files as confidential, and nothing in them came from an employer or a client.

@@ -4,19 +4,30 @@ Compares the investigation window against a baseline window and scores a
 fixed catalogue of candidate causes. The scores are *evidence-derived*;
 the LLM only narrates them. Thresholds are documented in
 ``docs/evaluation/evaluation.md`` and can be tuned via :class:`Thresholds`.
+
+F8 (0.8.0) adds :func:`regression_attribution`, a cross-sectional regression of the IS residual on
+standardised regressors that gives each cause a bps share with a bootstrap CI. It sits next to the
+heuristic scores and does not replace them yet: it runs only when asked for
+(``attribute_causes(..., method="regression")`` or ``CEAP_ATTRIBUTION=regression`` in the
+environment), and its output goes in the extra ``regression`` key. See ``docs/execution/execution.md``.
 """
 
 from __future__ import annotations
 
 import math
+import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+
+import numpy as np
 
 from ceap.domain.execution import ExecutionMetrics
 from ceap.domain.market import MarketStatistics
 
 MATERIAL_SCORE = 0.35  # a cause with score >= this is reported as material
+ATTRIBUTION_ENV = "CEAP_ATTRIBUTION"  # "regression" adds the F8 regression next to the scores
 
 
 class Cause(str, Enum):
@@ -88,12 +99,20 @@ class AttributionResult:
     baseline_kind: str = "same_day"  # "time_of_day_matched" with peer windows (2T.2)
     decomposition: dict[str, Any] = field(default_factory=dict)
     peer_note: str = ""
+    #: F8 regression attribution; empty unless requested (keeps v0.7 outputs byte-identical)
+    regression: dict[str, Any] = field(default_factory=dict)
 
     @property
     def material(self) -> tuple[CauseScore, ...]:
         return tuple(c for c in self.ranked if c.score >= MATERIAL_SCORE)
 
     def to_dict(self) -> dict[str, Any]:
+        out = self._base_dict()
+        if self.regression:
+            out["regression"] = self.regression
+        return out
+
+    def _base_dict(self) -> dict[str, Any]:
         return {
             "deteriorated": self.deteriorated,
             "is_delta_bps": self.is_delta_bps,
@@ -147,14 +166,24 @@ def _cause_metric(cause: Cause, m: ExecutionMetrics, mkt: MarketStatistics) -> f
     if cause is Cause.WIDE_SPREADS:
         return _f(mkt.average_spread_bps)
     if cause is Cause.LOW_LIQUIDITY:
-        return _f(mkt.average_displayed_depth) if not math.isnan(_f(mkt.average_displayed_depth)) else _f(mkt.average_top_of_book_size)
+        return (
+            _f(mkt.average_displayed_depth)
+            if not math.isnan(_f(mkt.average_displayed_depth))
+            else _f(mkt.average_top_of_book_size)
+        )
     if cause is Cause.VENUE_DEGRADATION:
-        rates = [v.fill_rate for v in m.venue_statistics.values() if v.child_orders >= 3 and not math.isnan(v.fill_rate)]
+        rates = [
+            v.fill_rate
+            for v in m.venue_statistics.values()
+            if v.child_orders >= 3 and not math.isnan(v.fill_rate)
+        ]
         return min(rates) if rates else float("nan")
     if cause is Cause.TECHNOLOGY_LATENCY:
         return _f(m.average_latency_us)
     if cause is Cause.MARKET_DATA_ANOMALY:
-        return _f(mkt.stale_quote_fraction) + _f(mkt.crossed_quote_count) / max(1.0, _f(mkt.quote_count) or 1.0)
+        return _f(mkt.stale_quote_fraction) + _f(mkt.crossed_quote_count) / max(
+            1.0, _f(mkt.quote_count) or 1.0
+        )
     if cause is Cause.LARGE_ORDER_IMPACT:
         return _f(m.participation_rate)
     return m.side.sign * _f(mkt.price_drift_bps)
@@ -270,6 +299,7 @@ def attribute_causes(
     engineering: dict[str, Any] | None = None,
     thresholds: Thresholds = Thresholds(),
     peers: list[PeerWindow] | None = None,
+    method: str | None = None,
 ) -> AttributionResult:
     """Score candidate causes for the execution-quality change in ``window``.
 
@@ -278,7 +308,11 @@ def attribute_causes(
     peer-relative effect with a bootstrap CI (2T.6). Deterioration is the IS residual against the
     pre-trade estimate in standard errors (2T.4); the v0.4 1.5 bps delta remains only as the
     fallback when no estimate is available.
+
+    ``method="regression"`` (or ``CEAP_ATTRIBUTION=regression``) also runs the F8 regression over
+    the peers and returns it in ``regression``; the heuristic scores and verdict are unchanged.
     """
+    method = (method or os.environ.get(ATTRIBUTION_ENV, "heuristic")).strip().lower()
     t = thresholds
     eng = engineering or {}
     peers = [p for p in (peers or []) if p.metrics.execution_count > 0]
@@ -438,10 +472,19 @@ def attribute_causes(
         with_effects = []
         for k, cs in enumerate(scores):
             value = _cause_metric(cs.cause, window, window_market)
-            eff = peer_effect(value, [_cause_metric(cs.cause, p.metrics, p.market) for p in peers], seed=100 + k)
+            eff = peer_effect(
+                value, [_cause_metric(cs.cause, p.metrics, p.market) for p in peers], seed=100 + k
+            )
             comp_bps = sum(_f(getattr(window, c)) for c in CAUSE_COMPONENTS.get(cs.cause, ()))
             with_effects.append(
-                _replace(cs, effect={**eff.as_dict(), "components": list(CAUSE_COMPONENTS.get(cs.cause, ())), "component_bps": comp_bps})
+                _replace(
+                    cs,
+                    effect={
+                        **eff.as_dict(),
+                        "components": list(CAUSE_COMPONENTS.get(cs.cause, ())),
+                        "component_bps": comp_bps,
+                    },
+                )
             )
         scores = with_effects
 
@@ -470,6 +513,9 @@ def attribute_causes(
         baseline_kind="time_of_day_matched" if peers else "same_day",
         decomposition=decompose(window, peers) if not math.isnan(_f(window.delay_cost_bps)) else {},
         peer_note=_peer_note() if peers else "",
+        regression=regression_attribution(window, window_market, peers).to_dict()
+        if method == "regression" and peers
+        else {},
     )
 
 
@@ -528,3 +574,141 @@ def _venue_degradation(window: ExecutionMetrics, t: Thresholds) -> tuple[float, 
     if worst_name:
         metrics["venue"] = worst_name
     return worst_score, rationale, metrics
+
+
+# --------------------------------------------------------------------------- F8 regression
+def _neg_log_depth(m: ExecutionMetrics, mkt: MarketStatistics) -> float:
+    d = _cause_metric(Cause.LOW_LIQUIDITY, m, mkt)
+    return -math.log(d) if d > 0 and math.isfinite(d) else float("nan")
+
+
+def _metric_of(cause: Cause) -> Callable[[ExecutionMetrics, MarketStatistics], float]:
+    return lambda m, k: _cause_metric(cause, m, k)
+
+
+#: one regressor per cause, signed so that a larger value is expected to raise the cost
+REGRESSORS: dict[Cause, Callable[[ExecutionMetrics, MarketStatistics], float]] = {
+    Cause.MARKET_VOLATILITY: _metric_of(Cause.MARKET_VOLATILITY),
+    Cause.WIDE_SPREADS: _metric_of(Cause.WIDE_SPREADS),
+    Cause.LOW_LIQUIDITY: _neg_log_depth,
+    Cause.TECHNOLOGY_LATENCY: _metric_of(Cause.TECHNOLOGY_LATENCY),
+    Cause.LARGE_ORDER_IMPACT: _metric_of(Cause.LARGE_ORDER_IMPACT),
+    Cause.PRICE_MOVEMENT: _metric_of(Cause.PRICE_MOVEMENT),
+}
+#: the cost explained, in order of preference (the first one finite for the window is used)
+TARGETS = ("is_residual_bps", "arrival_shortfall_bps", "implementation_shortfall_bps")
+
+
+@dataclass(frozen=True)
+class RegressionAttribution:
+    target: str
+    excess_bps: float  # window value minus the observations' mean: what is being explained
+    explained_bps: float
+    unexplained_bps: float
+    n_obs: int
+    ridge: float
+    shares: dict[str, dict[str, float]]
+    note: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "method": "ridge_regression",
+            "target": self.target,
+            "excess_bps": self.excess_bps,
+            "explained_bps": self.explained_bps,
+            "unexplained_bps": self.unexplained_bps,
+            "n_obs": self.n_obs,
+            "ridge": self.ridge,
+            "shares": self.shares,
+            "note": self.note,
+        }
+
+
+def _ridge_contributions(
+    x: np.ndarray, y: np.ndarray, xw: np.ndarray, ridge: float
+) -> tuple[np.ndarray, np.ndarray, float]:
+    mu, sd = x.mean(axis=0), x.std(axis=0, ddof=1)
+    sd = np.where(sd > 0, sd, 1.0)
+    z = (x - mu) / sd
+    yc = y - y.mean()
+    beta = np.linalg.solve(z.T @ z + ridge * np.eye(z.shape[1]), z.T @ yc)
+    return beta, beta * (xw - mu) / sd, float(y.mean())
+
+
+def regression_attribution(
+    window: ExecutionMetrics,
+    window_market: MarketStatistics,
+    observations: list[PeerWindow],
+    ridge: float = 1.0,
+    n_boot: int = 500,
+    confidence: float = 0.90,
+    seed: int = 0,
+) -> RegressionAttribution:
+    """Each cause's bps share of the window's excess cost, from a cross-sectional ridge regression.
+
+    Across ``observations`` (matched peer windows, or any comparable set of parent windows) the
+    cost ``y`` - the IS residual against the pre-trade estimate when available, else arrival or
+    total shortfall - is regressed on one standardised regressor per cause (:data:`REGRESSORS`).
+    The window's share for cause ``k`` is ``beta_k * z_k``: the fitted effect, in bps, of how far
+    the window sits from the observations' mean on that regressor. The shares plus the unexplained
+    part sum to the window's excess over the mean. CIs resample the observations (percentile
+    bootstrap, deterministic in ``seed``). The ridge penalty, in standardised units, keeps a small
+    cross-section stable; with fewer than four observations no shares are given. Evidence class:
+    standard linear cost attribution (Kissell (2013), *The Science of Algorithmic Trading and
+    Portfolio Management*, ch. 6), not validated on real desk data here.
+    """
+    obs = [o for o in observations if o.metrics.execution_count > 0]
+    target = next((t for t in TARGETS if math.isfinite(_f(getattr(window, t)))), TARGETS[-1])
+    causes = list(REGRESSORS)
+    rows: list[tuple[float, list[float]]] = []
+    for o in obs:
+        yv = _f(getattr(o.metrics, target))
+        if math.isfinite(yv):
+            rows.append((yv, [_f(REGRESSORS[c](o.metrics, o.market)) for c in causes]))
+    xw = np.array([_f(REGRESSORS[c](window, window_market)) for c in causes])
+    nan = float("nan")
+    yw = _f(getattr(window, target))
+    if len(rows) < 4 or not math.isfinite(yw):
+        return RegressionAttribution(
+            target, nan, nan, nan, len(rows), ridge, {}, "too few comparable observations"
+        )
+    y = np.array([r[0] for r in rows])
+    x = np.array([r[1] for r in rows], dtype=float)
+    keep = [
+        j
+        for j in range(len(causes))
+        if np.isfinite(x[:, j]).all() and math.isfinite(xw[j]) and x[:, j].std() > 0
+    ]
+    if not keep:
+        return RegressionAttribution(
+            target, yw - float(y.mean()), nan, nan, len(rows), ridge, {}, "no regressor varies"
+        )
+    x, xk = x[:, keep], xw[keep]
+    beta, contrib, ybar = _ridge_contributions(x, y, xk, ridge)
+    rng = np.random.default_rng(seed)
+    boots = [
+        _ridge_contributions(x[idx], y[idx], xk, ridge)[1]
+        for idx in rng.integers(0, len(rows), size=(n_boot, len(rows)))
+    ]
+    b = np.array(boots)
+    a = (1.0 - confidence) / 2.0
+    lo, hi = np.quantile(b, a, axis=0), np.quantile(b, 1.0 - a, axis=0)
+    excess = yw - ybar
+    shares = {
+        causes[j].value: {
+            "bps": float(contrib[i]),
+            "ci_low_bps": float(lo[i]),
+            "ci_high_bps": float(hi[i]),
+            "beta_bps_per_sd": float(beta[i]),
+        }
+        for i, j in enumerate(keep)
+    }
+    explained = float(contrib.sum())
+    note = (
+        ""
+        if len(rows) > len(keep) + 2
+        else "fewer observations than regressors + 3: shares lean on the ridge prior"
+    )
+    return RegressionAttribution(
+        target, float(excess), explained, float(excess - explained), len(rows), ridge, shares, note
+    )

@@ -15,9 +15,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from ceap.data.research_scenarios import all_research_scenarios  # noqa: E402
 from ceap.data.scenarios import all_scenarios  # noqa: E402
-from ceap.golden import GOLDEN_SET_PATH, items_sha256  # noqa: E402
+from ceap.golden import GOLDEN_RESEARCH_V11_PATH, GOLDEN_SET_PATH, items_sha256  # noqa: E402
 
-VERSION = "1.0.0"
+VERSION = "1.0.0"  # the owner-signed main set; never rewritten by default
+RESEARCH_V11_VERSION = "1.1.0"
 ALL_CAUSES = (
     "MARKET_VOLATILITY",
     "WIDE_SPREADS",
@@ -87,7 +88,31 @@ def research_items() -> list[dict]:
     return items
 
 
-def main() -> None:
+def research_v11_items() -> list[dict]:
+    """The 0.10 (D1, D4) research items: only the scenarios on the recalibrated templates."""
+    return [dict(i, id=i["id"].replace("G-RES-", "G-RES11-")) for i in research_items()
+            if i["template"] in ("momentum_realistic", "reversal_realistic")]
+
+
+def write_research_v11() -> None:
+    """Write ``golden_set_research_v1_1.json``: new items, sign-off PENDING, owner sign-off required."""
+    items = research_v11_items()
+    doc = {
+        "version": RESEARCH_V11_VERSION,
+        "extends": "golden_set.json 1.0.0 (signed off by the owner; not modified)",
+        "authored_from": "0.10 recalibrated scenario specifications (ground truth); not from platform output",
+        "change_policy": "owner sign-off required before this file counts; edits only in a PR labelled golden-change",
+        "signoff": {"status": "PENDING", "by": None, "pr": None},
+        "items_sha256": items_sha256(items),
+        "items": items,
+    }
+    GOLDEN_RESEARCH_V11_PATH.write_text(json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8",
+                                        newline="\n")
+    print(f"wrote {len(items)} items to {GOLDEN_RESEARCH_V11_PATH.name}, sha {doc['items_sha256'][:12]}")
+
+
+def write_main() -> None:
+    """Rewrite the signed-off main set (only for a deliberate golden-change with an owner sign-off)."""
     items = investigation_items() + research_items()
     doc = {
         "version": VERSION,
@@ -103,6 +128,14 @@ def main() -> None:
         json.dumps(doc, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n"
     )
     print(f"wrote {len(items)} items, version {VERSION}, sha {doc['items_sha256'][:12]}")
+
+
+def main() -> None:
+    # 0.10: the default writes only the new research file; ``--main`` rewrites the signed-off set
+    if "--main" in sys.argv[1:]:
+        write_main()
+    else:
+        write_research_v11()
 
 
 if __name__ == "__main__":

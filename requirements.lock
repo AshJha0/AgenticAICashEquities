@@ -1688,6 +1688,7 @@ pytest==9.1.1 \
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-randomly
+    #   pytest-timeout
     #   pytest-xdist
 pytest-asyncio==1.4.0 \
     --hash=sha256:933ca923a23075a87fb7070c0ec272a6848489824d887c85c812670932835aa1 \
@@ -1700,6 +1701,10 @@ pytest-cov==7.1.0 \
 pytest-randomly==5.0.0 \
     --hash=sha256:8a0d4703115c0c25b38b6e129fc16b1947b9643ff26a41bc1d185d7e5a7689c1 \
     --hash=sha256:e9c575a5873ef168ddbe340ed9e97ce9edb4492ccc821e4b2ac6bb1f0ed515d2
+    # via cash-equities-agentic-platform (pyproject.toml)
+pytest-timeout==2.4.0 \
+    --hash=sha256:7e68e90b01f9eff71332b25001f85c75495fc4e3a836701876183c4bcfd0540a \
+    --hash=sha256:c42667e5cdadb151aeb5b26d114aff6bdf5a907f176a007a30b940d3d865b5c2
     # via cash-equities-agentic-platform (pyproject.toml)
 pytest-xdist==3.8.0 \
     --hash=sha256:202ca578cfeb7370784a8c33d6d05bc6e13b4f25b5053c30a152269fd10f0b88 \

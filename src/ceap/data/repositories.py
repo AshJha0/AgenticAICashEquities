@@ -8,6 +8,7 @@ repository interfaces (see ``ceap.data.export``).
 
 from __future__ import annotations
 
+import asyncio
 import threading
 import weakref
 from bisect import bisect_left
@@ -70,27 +71,58 @@ def _indexed(dataset: SyntheticDataset, attr: str) -> tuple[list, list[float]]:
 
 
 class DatasetStore:
-    """Thread-safe cache of generated datasets keyed by scenario id."""
+    """Thread-safe cache of generated datasets keyed by scenario id.
+
+    Generation is CPU-bound (about 30-80 s for a cold intraday scenario), so each key has its own
+    lock: two callers asking for the same scenario generate it once, while a caller asking for a
+    different scenario is not held up. Async callers use :meth:`aget`, which runs the generation in
+    a worker thread so the event loop (and ``/health``) keeps answering.
+    """
 
     def __init__(self, generator: SyntheticMarketGenerator | None = None) -> None:
         self._generator = generator or SyntheticMarketGenerator()
         self._datasets: dict[str, SyntheticDataset] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.Lock()  # guards the two dicts only, never held while generating
+        self._key_locks: dict[str, threading.Lock] = {}
+
+    @staticmethod
+    def _key(spec: ScenarioSpec) -> str:
+        return f"{spec.id}:{spec.symbol}:{spec.seed}"
 
     def get(self, scenario: str | ScenarioSpec = "T01") -> SyntheticDataset:
         spec = scenario if isinstance(scenario, ScenarioSpec) else get_scenario(scenario)
-        key = f"{spec.id}:{spec.symbol}:{spec.seed}"
+        key = self._key(spec)
         with self._lock:
             ds = self._datasets.get(key)
+            if ds is not None:
+                return ds
+            key_lock = self._key_locks.setdefault(key, threading.Lock())
+        with key_lock:
+            with self._lock:
+                ds = self._datasets.get(key)
             if ds is None:
                 ds = self._generator.generate(spec)
-                self._datasets[key] = ds
+                with self._lock:
+                    ds = self._datasets.setdefault(key, ds)
         return ds
 
-    def put(self, dataset: SyntheticDataset) -> None:
-        spec = dataset.scenario
+    async def aget(self, scenario: str | ScenarioSpec = "T01") -> SyntheticDataset:
+        """:meth:`get` off the event loop: a cache hit returns at once, a miss generates in a thread."""
+        spec = scenario if isinstance(scenario, ScenarioSpec) else get_scenario(scenario)
         with self._lock:
-            self._datasets[f"{spec.id}:{spec.symbol}:{spec.seed}"] = dataset
+            ds = self._datasets.get(self._key(spec))
+        if ds is not None:
+            return ds
+        return await asyncio.to_thread(self.get, spec)
+
+    def is_cached(self, scenario: str | ScenarioSpec) -> bool:
+        spec = scenario if isinstance(scenario, ScenarioSpec) else get_scenario(scenario)
+        with self._lock:
+            return self._key(spec) in self._datasets
+
+    def put(self, dataset: SyntheticDataset) -> None:
+        with self._lock:
+            self._datasets[self._key(dataset.scenario)] = dataset
 
     def clear(self) -> None:
         with self._lock:

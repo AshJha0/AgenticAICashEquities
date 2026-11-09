@@ -1,0 +1,2006 @@
+{
+"generator": "realistic_v1",
+"per_seed": [
+{
+"seed": 0,
+"stat": null
+},
+{
+"seed": 1,
+"stat": null
+},
+{
+"seed": 2,
+"stat": null
+},
+{
+"seed": 3,
+"stat": null
+},
+{
+"seed": 4,
+"stat": null
+},
+{
+"seed": 5,
+"stat": null
+},
+{
+"seed": 6,
+"stat": null
+},
+{
+"seed": 7,
+"stat": null
+},
+{
+"seed": 8,
+"stat": null
+},
+{
+"seed": 9,
+"stat": null
+},
+{
+"seed": 10,
+"stat": null
+},
+{
+"seed": 11,
+"stat": null
+},
+{
+"seed": 12,
+"stat": 1.754442
+},
+{
+"seed": 13,
+"stat": null
+},
+{
+"seed": 14,
+"stat": null
+},
+{
+"seed": 15,
+"stat": 0.55063
+},
+{
+"seed": 16,
+"stat": null
+},
+{
+"seed": 17,
+"stat": null
+},
+{
+"seed": 18,
+"stat": null
+},
+{
+"seed": 19,
+"stat": null
+},
+{
+"seed": 20,
+"stat": null
+},
+{
+"seed": 21,
+"stat": null
+},
+{
+"seed": 22,
+"stat": null
+},
+{
+"seed": 23,
+"stat": null
+},
+{
+"seed": 24,
+"stat": null
+},
+{
+"seed": 25,
+"stat": null
+},
+{
+"seed": 26,
+"stat": null
+},
+{
+"seed": 27,
+"stat": null
+},
+{
+"seed": 28,
+"stat": null
+},
+{
+"seed": 29,
+"stat": null
+},
+{
+"seed": 30,
+"stat": null
+},
+{
+"seed": 31,
+"stat": null
+},
+{
+"seed": 32,
+"stat": null
+},
+{
+"seed": 33,
+"stat": null
+},
+{
+"seed": 34,
+"stat": null
+},
+{
+"seed": 35,
+"stat": 0.644465
+},
+{
+"seed": 36,
+"stat": null
+},
+{
+"seed": 37,
+"stat": null
+},
+{
+"seed": 38,
+"stat": null
+},
+{
+"seed": 39,
+"stat": null
+},
+{
+"seed": 40,
+"stat": null
+},
+{
+"seed": 41,
+"stat": null
+},
+{
+"seed": 42,
+"stat": null
+},
+{
+"seed": 43,
+"stat": null
+},
+{
+"seed": 44,
+"stat": null
+},
+{
+"seed": 45,
+"stat": null
+},
+{
+"seed": 46,
+"stat": null
+},
+{
+"seed": 47,
+"stat": null
+},
+{
+"seed": 48,
+"stat": null
+},
+{
+"seed": 49,
+"stat": null
+},
+{
+"seed": 50,
+"stat": 1.466034
+},
+{
+"seed": 51,
+"stat": null
+},
+{
+"seed": 52,
+"stat": null
+},
+{
+"seed": 53,
+"stat": null
+},
+{
+"seed": 54,
+"stat": null
+},
+{
+"seed": 55,
+"stat": null
+},
+{
+"seed": 56,
+"stat": null
+},
+{
+"seed": 57,
+"stat": null
+},
+{
+"seed": 58,
+"stat": null
+},
+{
+"seed": 59,
+"stat": null
+},
+{
+"seed": 60,
+"stat": null
+},
+{
+"seed": 61,
+"stat": null
+},
+{
+"seed": 62,
+"stat": null
+},
+{
+"seed": 63,
+"stat": null
+},
+{
+"seed": 64,
+"stat": null
+},
+{
+"seed": 65,
+"stat": null
+},
+{
+"seed": 66,
+"stat": null
+},
+{
+"seed": 67,
+"stat": null
+},
+{
+"seed": 68,
+"stat": null
+},
+{
+"seed": 69,
+"stat": null
+},
+{
+"seed": 70,
+"stat": null
+},
+{
+"seed": 71,
+"stat": null
+},
+{
+"seed": 72,
+"stat": null
+},
+{
+"seed": 73,
+"stat": null
+},
+{
+"seed": 74,
+"stat": 0.466581
+},
+{
+"seed": 75,
+"stat": null
+},
+{
+"seed": 76,
+"stat": null
+},
+{
+"seed": 77,
+"stat": null
+},
+{
+"seed": 78,
+"stat": null
+},
+{
+"seed": 79,
+"stat": null
+},
+{
+"seed": 80,
+"stat": null
+},
+{
+"seed": 81,
+"stat": null
+},
+{
+"seed": 82,
+"stat": null
+},
+{
+"seed": 83,
+"stat": null
+},
+{
+"seed": 84,
+"stat": null
+},
+{
+"seed": 85,
+"stat": null
+},
+{
+"seed": 86,
+"stat": null
+},
+{
+"seed": 87,
+"stat": null
+},
+{
+"seed": 88,
+"stat": null
+},
+{
+"seed": 89,
+"stat": null
+},
+{
+"seed": 90,
+"stat": null
+},
+{
+"seed": 91,
+"stat": null
+},
+{
+"seed": 92,
+"stat": null
+},
+{
+"seed": 93,
+"stat": null
+},
+{
+"seed": 94,
+"stat": null
+},
+{
+"seed": 95,
+"stat": null
+},
+{
+"seed": 96,
+"stat": null
+},
+{
+"seed": 97,
+"stat": null
+},
+{
+"seed": 98,
+"stat": null
+},
+{
+"seed": 99,
+"stat": null
+},
+{
+"seed": 100,
+"stat": null
+},
+{
+"seed": 101,
+"stat": null
+},
+{
+"seed": 102,
+"stat": null
+},
+{
+"seed": 103,
+"stat": null
+},
+{
+"seed": 104,
+"stat": null
+},
+{
+"seed": 105,
+"stat": null
+},
+{
+"seed": 106,
+"stat": null
+},
+{
+"seed": 107,
+"stat": null
+},
+{
+"seed": 108,
+"stat": null
+},
+{
+"seed": 109,
+"stat": null
+},
+{
+"seed": 110,
+"stat": null
+},
+{
+"seed": 111,
+"stat": null
+},
+{
+"seed": 112,
+"stat": null
+},
+{
+"seed": 113,
+"stat": null
+},
+{
+"seed": 114,
+"stat": null
+},
+{
+"seed": 115,
+"stat": null
+},
+{
+"seed": 116,
+"stat": null
+},
+{
+"seed": 117,
+"stat": null
+},
+{
+"seed": 118,
+"stat": null
+},
+{
+"seed": 119,
+"stat": null
+},
+{
+"seed": 120,
+"stat": null
+},
+{
+"seed": 121,
+"stat": null
+},
+{
+"seed": 122,
+"stat": null
+},
+{
+"seed": 123,
+"stat": null
+},
+{
+"seed": 124,
+"stat": null
+},
+{
+"seed": 125,
+"stat": null
+},
+{
+"seed": 126,
+"stat": null
+},
+{
+"seed": 127,
+"stat": null
+},
+{
+"seed": 128,
+"stat": null
+},
+{
+"seed": 129,
+"stat": null
+},
+{
+"seed": 130,
+"stat": null
+},
+{
+"seed": 131,
+"stat": null
+},
+{
+"seed": 132,
+"stat": null
+},
+{
+"seed": 133,
+"stat": null
+},
+{
+"seed": 134,
+"stat": null
+},
+{
+"seed": 135,
+"stat": null
+},
+{
+"seed": 136,
+"stat": null
+},
+{
+"seed": 137,
+"stat": null
+},
+{
+"seed": 138,
+"stat": null
+},
+{
+"seed": 139,
+"stat": null
+},
+{
+"seed": 140,
+"stat": null
+},
+{
+"seed": 141,
+"stat": null
+},
+{
+"seed": 142,
+"stat": null
+},
+{
+"seed": 143,
+"stat": null
+},
+{
+"seed": 144,
+"stat": null
+},
+{
+"seed": 145,
+"stat": null
+},
+{
+"seed": 146,
+"stat": null
+},
+{
+"seed": 147,
+"stat": null
+},
+{
+"seed": 148,
+"stat": null
+},
+{
+"seed": 149,
+"stat": null
+},
+{
+"seed": 150,
+"stat": null
+},
+{
+"seed": 151,
+"stat": null
+},
+{
+"seed": 152,
+"stat": null
+},
+{
+"seed": 153,
+"stat": null
+},
+{
+"seed": 154,
+"stat": null
+},
+{
+"seed": 155,
+"stat": null
+},
+{
+"seed": 156,
+"stat": null
+},
+{
+"seed": 157,
+"stat": null
+},
+{
+"seed": 158,
+"stat": null
+},
+{
+"seed": 159,
+"stat": null
+},
+{
+"seed": 160,
+"stat": null
+},
+{
+"seed": 161,
+"stat": null
+},
+{
+"seed": 162,
+"stat": null
+},
+{
+"seed": 163,
+"stat": null
+},
+{
+"seed": 164,
+"stat": null
+},
+{
+"seed": 165,
+"stat": null
+},
+{
+"seed": 166,
+"stat": null
+},
+{
+"seed": 167,
+"stat": null
+},
+{
+"seed": 168,
+"stat": null
+},
+{
+"seed": 169,
+"stat": null
+},
+{
+"seed": 170,
+"stat": null
+},
+{
+"seed": 171,
+"stat": null
+},
+{
+"seed": 172,
+"stat": null
+},
+{
+"seed": 173,
+"stat": null
+},
+{
+"seed": 174,
+"stat": null
+},
+{
+"seed": 175,
+"stat": null
+},
+{
+"seed": 176,
+"stat": null
+},
+{
+"seed": 177,
+"stat": 0.358772
+},
+{
+"seed": 178,
+"stat": null
+},
+{
+"seed": 179,
+"stat": null
+},
+{
+"seed": 180,
+"stat": null
+},
+{
+"seed": 181,
+"stat": null
+},
+{
+"seed": 182,
+"stat": null
+},
+{
+"seed": 183,
+"stat": null
+},
+{
+"seed": 184,
+"stat": null
+},
+{
+"seed": 185,
+"stat": null
+},
+{
+"seed": 186,
+"stat": null
+},
+{
+"seed": 187,
+"stat": null
+},
+{
+"seed": 188,
+"stat": null
+},
+{
+"seed": 189,
+"stat": null
+},
+{
+"seed": 190,
+"stat": null
+},
+{
+"seed": 191,
+"stat": null
+},
+{
+"seed": 192,
+"stat": null
+},
+{
+"seed": 193,
+"stat": null
+},
+{
+"seed": 194,
+"stat": null
+},
+{
+"seed": 195,
+"stat": null
+},
+{
+"seed": 196,
+"stat": null
+},
+{
+"seed": 197,
+"stat": 0.057073
+},
+{
+"seed": 198,
+"stat": null
+},
+{
+"seed": 199,
+"stat": null
+},
+{
+"seed": 200,
+"stat": null
+},
+{
+"seed": 201,
+"stat": null
+},
+{
+"seed": 202,
+"stat": null
+},
+{
+"seed": 203,
+"stat": null
+},
+{
+"seed": 204,
+"stat": null
+},
+{
+"seed": 205,
+"stat": null
+},
+{
+"seed": 206,
+"stat": null
+},
+{
+"seed": 207,
+"stat": null
+},
+{
+"seed": 208,
+"stat": null
+},
+{
+"seed": 209,
+"stat": null
+},
+{
+"seed": 210,
+"stat": null
+},
+{
+"seed": 211,
+"stat": null
+},
+{
+"seed": 212,
+"stat": null
+},
+{
+"seed": 213,
+"stat": null
+},
+{
+"seed": 214,
+"stat": null
+},
+{
+"seed": 215,
+"stat": null
+},
+{
+"seed": 216,
+"stat": null
+},
+{
+"seed": 217,
+"stat": null
+},
+{
+"seed": 218,
+"stat": null
+},
+{
+"seed": 219,
+"stat": null
+},
+{
+"seed": 220,
+"stat": null
+},
+{
+"seed": 221,
+"stat": null
+},
+{
+"seed": 222,
+"stat": null
+},
+{
+"seed": 223,
+"stat": null
+},
+{
+"seed": 224,
+"stat": null
+},
+{
+"seed": 225,
+"stat": null
+},
+{
+"seed": 226,
+"stat": 0.804741
+},
+{
+"seed": 227,
+"stat": null
+},
+{
+"seed": 228,
+"stat": null
+},
+{
+"seed": 229,
+"stat": null
+},
+{
+"seed": 230,
+"stat": null
+},
+{
+"seed": 231,
+"stat": null
+},
+{
+"seed": 232,
+"stat": null
+},
+{
+"seed": 233,
+"stat": null
+},
+{
+"seed": 234,
+"stat": null
+},
+{
+"seed": 235,
+"stat": null
+},
+{
+"seed": 236,
+"stat": null
+},
+{
+"seed": 237,
+"stat": null
+},
+{
+"seed": 238,
+"stat": null
+},
+{
+"seed": 239,
+"stat": null
+},
+{
+"seed": 240,
+"stat": null
+},
+{
+"seed": 241,
+"stat": null
+},
+{
+"seed": 242,
+"stat": null
+},
+{
+"seed": 243,
+"stat": null
+},
+{
+"seed": 244,
+"stat": null
+},
+{
+"seed": 245,
+"stat": null
+},
+{
+"seed": 246,
+"stat": null
+},
+{
+"seed": 247,
+"stat": null
+},
+{
+"seed": 248,
+"stat": null
+},
+{
+"seed": 249,
+"stat": null
+},
+{
+"seed": 250,
+"stat": null
+},
+{
+"seed": 251,
+"stat": null
+},
+{
+"seed": 252,
+"stat": null
+},
+{
+"seed": 253,
+"stat": null
+},
+{
+"seed": 254,
+"stat": null
+},
+{
+"seed": 255,
+"stat": null
+},
+{
+"seed": 256,
+"stat": null
+},
+{
+"seed": 257,
+"stat": null
+},
+{
+"seed": 258,
+"stat": null
+},
+{
+"seed": 259,
+"stat": null
+},
+{
+"seed": 260,
+"stat": null
+},
+{
+"seed": 261,
+"stat": null
+},
+{
+"seed": 262,
+"stat": null
+},
+{
+"seed": 263,
+"stat": 0.455113
+},
+{
+"seed": 264,
+"stat": null
+},
+{
+"seed": 265,
+"stat": null
+},
+{
+"seed": 266,
+"stat": null
+},
+{
+"seed": 267,
+"stat": null
+},
+{
+"seed": 268,
+"stat": null
+},
+{
+"seed": 269,
+"stat": null
+},
+{
+"seed": 270,
+"stat": null
+},
+{
+"seed": 271,
+"stat": null
+},
+{
+"seed": 272,
+"stat": null
+},
+{
+"seed": 273,
+"stat": null
+},
+{
+"seed": 274,
+"stat": null
+},
+{
+"seed": 275,
+"stat": 1.634696
+},
+{
+"seed": 276,
+"stat": null
+},
+{
+"seed": 277,
+"stat": null
+},
+{
+"seed": 278,
+"stat": null
+},
+{
+"seed": 279,
+"stat": null
+},
+{
+"seed": 280,
+"stat": null
+},
+{
+"seed": 281,
+"stat": null
+},
+{
+"seed": 282,
+"stat": null
+},
+{
+"seed": 283,
+"stat": null
+},
+{
+"seed": 284,
+"stat": null
+},
+{
+"seed": 285,
+"stat": null
+},
+{
+"seed": 286,
+"stat": null
+},
+{
+"seed": 287,
+"stat": null
+},
+{
+"seed": 288,
+"stat": null
+},
+{
+"seed": 289,
+"stat": null
+},
+{
+"seed": 290,
+"stat": null
+},
+{
+"seed": 291,
+"stat": null
+},
+{
+"seed": 292,
+"stat": null
+},
+{
+"seed": 293,
+"stat": null
+},
+{
+"seed": 294,
+"stat": null
+},
+{
+"seed": 295,
+"stat": null
+},
+{
+"seed": 296,
+"stat": null
+},
+{
+"seed": 297,
+"stat": null
+},
+{
+"seed": 298,
+"stat": null
+},
+{
+"seed": 299,
+"stat": 1.129689
+},
+{
+"seed": 300,
+"stat": null
+},
+{
+"seed": 301,
+"stat": null
+},
+{
+"seed": 302,
+"stat": null
+},
+{
+"seed": 303,
+"stat": null
+},
+{
+"seed": 304,
+"stat": null
+},
+{
+"seed": 305,
+"stat": null
+},
+{
+"seed": 306,
+"stat": null
+},
+{
+"seed": 307,
+"stat": null
+},
+{
+"seed": 308,
+"stat": null
+},
+{
+"seed": 309,
+"stat": null
+},
+{
+"seed": 310,
+"stat": null
+},
+{
+"seed": 311,
+"stat": null
+},
+{
+"seed": 312,
+"stat": null
+},
+{
+"seed": 313,
+"stat": null
+},
+{
+"seed": 314,
+"stat": null
+},
+{
+"seed": 315,
+"stat": null
+},
+{
+"seed": 316,
+"stat": null
+},
+{
+"seed": 317,
+"stat": null
+},
+{
+"seed": 318,
+"stat": null
+},
+{
+"seed": 319,
+"stat": null
+},
+{
+"seed": 320,
+"stat": null
+},
+{
+"seed": 321,
+"stat": null
+},
+{
+"seed": 322,
+"stat": null
+},
+{
+"seed": 323,
+"stat": null
+},
+{
+"seed": 324,
+"stat": null
+},
+{
+"seed": 325,
+"stat": null
+},
+{
+"seed": 326,
+"stat": null
+},
+{
+"seed": 327,
+"stat": null
+},
+{
+"seed": 328,
+"stat": null
+},
+{
+"seed": 329,
+"stat": null
+},
+{
+"seed": 330,
+"stat": null
+},
+{
+"seed": 331,
+"stat": null
+},
+{
+"seed": 332,
+"stat": null
+},
+{
+"seed": 333,
+"stat": null
+},
+{
+"seed": 334,
+"stat": null
+},
+{
+"seed": 335,
+"stat": null
+},
+{
+"seed": 336,
+"stat": null
+},
+{
+"seed": 337,
+"stat": null
+},
+{
+"seed": 338,
+"stat": null
+},
+{
+"seed": 339,
+"stat": null
+},
+{
+"seed": 340,
+"stat": null
+},
+{
+"seed": 341,
+"stat": null
+},
+{
+"seed": 342,
+"stat": null
+},
+{
+"seed": 343,
+"stat": null
+},
+{
+"seed": 344,
+"stat": null
+},
+{
+"seed": 345,
+"stat": null
+},
+{
+"seed": 346,
+"stat": null
+},
+{
+"seed": 347,
+"stat": null
+},
+{
+"seed": 348,
+"stat": null
+},
+{
+"seed": 349,
+"stat": null
+},
+{
+"seed": 350,
+"stat": null
+},
+{
+"seed": 351,
+"stat": null
+},
+{
+"seed": 352,
+"stat": null
+},
+{
+"seed": 353,
+"stat": null
+},
+{
+"seed": 354,
+"stat": null
+},
+{
+"seed": 355,
+"stat": 1.643507
+},
+{
+"seed": 356,
+"stat": null
+},
+{
+"seed": 357,
+"stat": null
+},
+{
+"seed": 358,
+"stat": null
+},
+{
+"seed": 359,
+"stat": null
+},
+{
+"seed": 360,
+"stat": null
+},
+{
+"seed": 361,
+"stat": null
+},
+{
+"seed": 362,
+"stat": null
+},
+{
+"seed": 363,
+"stat": null
+},
+{
+"seed": 364,
+"stat": null
+},
+{
+"seed": 365,
+"stat": null
+},
+{
+"seed": 366,
+"stat": null
+},
+{
+"seed": 367,
+"stat": null
+},
+{
+"seed": 368,
+"stat": null
+},
+{
+"seed": 369,
+"stat": null
+},
+{
+"seed": 370,
+"stat": null
+},
+{
+"seed": 371,
+"stat": null
+},
+{
+"seed": 372,
+"stat": null
+},
+{
+"seed": 373,
+"stat": null
+},
+{
+"seed": 374,
+"stat": null
+},
+{
+"seed": 375,
+"stat": null
+},
+{
+"seed": 376,
+"stat": null
+},
+{
+"seed": 377,
+"stat": null
+},
+{
+"seed": 378,
+"stat": null
+},
+{
+"seed": 379,
+"stat": null
+},
+{
+"seed": 380,
+"stat": null
+},
+{
+"seed": 381,
+"stat": null
+},
+{
+"seed": 382,
+"stat": null
+},
+{
+"seed": 383,
+"stat": null
+},
+{
+"seed": 384,
+"stat": null
+},
+{
+"seed": 385,
+"stat": null
+},
+{
+"seed": 386,
+"stat": null
+},
+{
+"seed": 387,
+"stat": null
+},
+{
+"seed": 388,
+"stat": null
+},
+{
+"seed": 389,
+"stat": null
+},
+{
+"seed": 390,
+"stat": null
+},
+{
+"seed": 391,
+"stat": null
+},
+{
+"seed": 392,
+"stat": null
+},
+{
+"seed": 393,
+"stat": null
+},
+{
+"seed": 394,
+"stat": 2.338509
+},
+{
+"seed": 395,
+"stat": null
+},
+{
+"seed": 396,
+"stat": null
+},
+{
+"seed": 397,
+"stat": null
+},
+{
+"seed": 398,
+"stat": null
+},
+{
+"seed": 399,
+"stat": null
+},
+{
+"seed": 400,
+"stat": null
+},
+{
+"seed": 401,
+"stat": null
+},
+{
+"seed": 402,
+"stat": null
+},
+{
+"seed": 403,
+"stat": null
+},
+{
+"seed": 404,
+"stat": null
+},
+{
+"seed": 405,
+"stat": null
+},
+{
+"seed": 406,
+"stat": null
+},
+{
+"seed": 407,
+"stat": null
+},
+{
+"seed": 408,
+"stat": null
+},
+{
+"seed": 409,
+"stat": null
+},
+{
+"seed": 410,
+"stat": null
+},
+{
+"seed": 411,
+"stat": null
+},
+{
+"seed": 412,
+"stat": 1.646112
+},
+{
+"seed": 413,
+"stat": null
+},
+{
+"seed": 414,
+"stat": null
+},
+{
+"seed": 415,
+"stat": null
+},
+{
+"seed": 416,
+"stat": null
+},
+{
+"seed": 417,
+"stat": null
+},
+{
+"seed": 418,
+"stat": 1.815416
+},
+{
+"seed": 419,
+"stat": null
+},
+{
+"seed": 420,
+"stat": null
+},
+{
+"seed": 421,
+"stat": null
+},
+{
+"seed": 422,
+"stat": null
+},
+{
+"seed": 423,
+"stat": null
+},
+{
+"seed": 424,
+"stat": null
+},
+{
+"seed": 425,
+"stat": null
+},
+{
+"seed": 426,
+"stat": null
+},
+{
+"seed": 427,
+"stat": null
+},
+{
+"seed": 428,
+"stat": null
+},
+{
+"seed": 429,
+"stat": null
+},
+{
+"seed": 430,
+"stat": null
+},
+{
+"seed": 431,
+"stat": null
+},
+{
+"seed": 432,
+"stat": null
+},
+{
+"seed": 433,
+"stat": null
+},
+{
+"seed": 434,
+"stat": null
+},
+{
+"seed": 435,
+"stat": null
+},
+{
+"seed": 436,
+"stat": null
+},
+{
+"seed": 437,
+"stat": null
+},
+{
+"seed": 438,
+"stat": null
+},
+{
+"seed": 439,
+"stat": null
+},
+{
+"seed": 440,
+"stat": null
+},
+{
+"seed": 441,
+"stat": null
+},
+{
+"seed": 442,
+"stat": null
+},
+{
+"seed": 443,
+"stat": null
+},
+{
+"seed": 444,
+"stat": null
+},
+{
+"seed": 445,
+"stat": null
+},
+{
+"seed": 446,
+"stat": null
+},
+{
+"seed": 447,
+"stat": null
+},
+{
+"seed": 448,
+"stat": null
+},
+{
+"seed": 449,
+"stat": null
+},
+{
+"seed": 450,
+"stat": null
+},
+{
+"seed": 451,
+"stat": null
+},
+{
+"seed": 452,
+"stat": null
+},
+{
+"seed": 453,
+"stat": null
+},
+{
+"seed": 454,
+"stat": null
+},
+{
+"seed": 455,
+"stat": null
+},
+{
+"seed": 456,
+"stat": null
+},
+{
+"seed": 457,
+"stat": null
+},
+{
+"seed": 458,
+"stat": null
+},
+{
+"seed": 459,
+"stat": null
+},
+{
+"seed": 460,
+"stat": null
+},
+{
+"seed": 461,
+"stat": null
+},
+{
+"seed": 462,
+"stat": null
+},
+{
+"seed": 463,
+"stat": null
+},
+{
+"seed": 464,
+"stat": null
+},
+{
+"seed": 465,
+"stat": null
+},
+{
+"seed": 466,
+"stat": null
+},
+{
+"seed": 467,
+"stat": null
+},
+{
+"seed": 468,
+"stat": null
+},
+{
+"seed": 469,
+"stat": null
+},
+{
+"seed": 470,
+"stat": null
+},
+{
+"seed": 471,
+"stat": null
+},
+{
+"seed": 472,
+"stat": null
+},
+{
+"seed": 473,
+"stat": null
+},
+{
+"seed": 474,
+"stat": null
+},
+{
+"seed": 475,
+"stat": null
+},
+{
+"seed": 476,
+"stat": null
+},
+{
+"seed": 477,
+"stat": null
+},
+{
+"seed": 478,
+"stat": null
+},
+{
+"seed": 479,
+"stat": null
+},
+{
+"seed": 480,
+"stat": null
+},
+{
+"seed": 481,
+"stat": null
+},
+{
+"seed": 482,
+"stat": null
+},
+{
+"seed": 483,
+"stat": null
+},
+{
+"seed": 484,
+"stat": null
+},
+{
+"seed": 485,
+"stat": null
+},
+{
+"seed": 486,
+"stat": null
+},
+{
+"seed": 487,
+"stat": 1.025461
+},
+{
+"seed": 488,
+"stat": null
+},
+{
+"seed": 489,
+"stat": null
+},
+{
+"seed": 490,
+"stat": null
+},
+{
+"seed": 491,
+"stat": null
+},
+{
+"seed": 492,
+"stat": null
+},
+{
+"seed": 493,
+"stat": null
+},
+{
+"seed": 494,
+"stat": null
+},
+{
+"seed": 495,
+"stat": 2.385826
+},
+{
+"seed": 496,
+"stat": null
+},
+{
+"seed": 497,
+"stat": null
+},
+{
+"seed": 498,
+"stat": null
+},
+{
+"seed": 499,
+"stat": null
+}
+],
+"sweep_hash": "ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4"
+}
