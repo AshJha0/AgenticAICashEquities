@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from datetime import timedelta
 
+import pytest
+
 from ceap.domain.common import to_jsonable, utc_now
 from ceap.domain.tools import ToolRequest
 from ceap.harness.durable import (
@@ -99,7 +101,7 @@ def test_sql_journal_round_trips_a_result_with_evidence(tmp_path, platform):
     from ceap.domain.evidence import Evidence, EvidenceType
     from ceap.domain.tools import ToolResult, ToolStatus
 
-    ev = Evidence.create(EvidenceType.METRIC, "execution.tca", "IS 12.5 bps", utc_now(), {"bps": 12.5})
+    ev = Evidence.create(EvidenceType.CALCULATION, "execution.tca", "IS 12.5 bps", utc_now(), {"bps": 12.5})
     res = ToolResult(ToolStatus.SUCCESS, {"is_bps": 12.5, "n": [1, 2]}, (ev,), None, 3.5)
     with Database(tmp_path / "j.db") as db:
         j = SqlRunJournal(db)
@@ -145,3 +147,23 @@ def test_expire_stale_skips_live_and_recent_rows(tmp_path):
         assert ids == [old_orphan.id]
         assert store.status(old_orphan.id) == "EXPIRED"
         assert store.status(old_live.id) == "PENDING" and store.status(recent.id) == "PENDING"
+
+
+@pytest.mark.slow
+async def test_thread_and_process_mode_give_the_same_report(platform, monkeypatch):
+    """CPU tools in threads (CEAP_CPU_TOOL_PROCESSES=0) and in worker processes agree."""
+    from ceap.mcp.cpu_pool import shutdown_default_pool
+
+    req = default_request("AAPL", "T01")
+    reports = {}
+    for mode in ("0", "2"):
+        monkeypatch.setenv("CEAP_CPU_TOOL_PROCESSES", mode)
+        shutdown_default_pool()
+        try:
+            _, result = await _run(platform, None, req)
+        finally:
+            shutdown_default_pool()
+        assert result.success, (mode, result.error)
+        reports[mode] = normalised(result.report)
+    for key in ("narrative", "attribution", "conclusion", "metrics"):
+        assert reports["0"][key] == reports["2"][key], key
