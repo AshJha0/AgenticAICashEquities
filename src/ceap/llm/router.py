@@ -27,6 +27,7 @@ from collections import OrderedDict
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from typing import Any
 
 from ceap.config import Settings, SettingsError, load_settings
 from ceap.domain.reports import LLMCallRecord
@@ -199,6 +200,7 @@ class LLMRouter(LLMClient):
         self._budget_lock = threading.Lock()  # reserve-and-check is atomic across threads too
         self._keep_tasks = keep_tasks
         self._costs: OrderedDict[str, TaskCost] = OrderedDict()  # bounded: the router is long-lived
+        self.slo: Any = None  # 0.9.0 B8: an observability.ai_slo.AISLOMonitor; None uses ai_slo.default_monitor
         _ROUTERS.add(self)
 
     def cost_for(self, task_id: str) -> TaskCost:
@@ -340,6 +342,14 @@ class LLMRouter(LLMClient):
             meter.calls += 1
             meter.tokens += response.input_tokens + response.output_tokens
             meter.records.append(record)
+        self._report_slo(request, response, latency_ms)
+
+    def _report_slo(self, request: LLMRequest, response: LLMResponse, latency_ms: float) -> None:
+        from ceap.observability import ai_slo
+
+        monitor = self.slo if self.slo is not None else ai_slo.default_monitor
+        if monitor is not None:
+            monitor.record(ai_slo.event_from_response(request, response, latency_ms))
 
     async def _call(self, client: LLMClient, request: LLMRequest) -> LLMResponse:
         async with self._sem:  # model-call concurrency cap
