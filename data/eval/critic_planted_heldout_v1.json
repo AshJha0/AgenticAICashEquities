@@ -1,0 +1,517 @@
+{
+ "version": "critic_planted_heldout_v1",
+ "written": "2026-11-09, committed before any change to the critic agent (0.9.0 lane L3)",
+ "author_note": "Same author as the fix; written knowing the five fault kinds but not the code of the checks. Varies symbols, metrics, direction verbs and evidence layout from ceap.eval.agents.critic_cases. Includes hard controls (higher-is-better 'improved', 'fell' with a negative change, a percent against a fraction) to measure false alarms.",
+ "batches": [
+  {
+   "id": "HB-01",
+   "findings": [
+    {
+     "id": "H1-OK1",
+     "statement": "Fill rate improved by 3.0 percentage points",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H1-EXE",
+       "type": "EXECUTION_DATA",
+       "description": "META fills",
+       "attributes": {
+        "fill_rate_change_pct": 3.0,
+        "fill_rate": 0.71
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": null,
+     "note": "hard control: 'improved' on a higher-is-better metric"
+    },
+    {
+     "id": "H1-CON",
+     "statement": "Quoted spread widened by 1.9 bps and drove the cost increase",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H1-BOOK",
+       "type": "ORDER_BOOK",
+       "description": "META quoted spread",
+       "attributes": {
+        "spread_change_bps": 1.9,
+        "spread_bps": 4.3
+       }
+      },
+      {
+       "id": "EV-H1-TCA",
+       "type": "CALCULATION",
+       "description": "META cost attribution",
+       "attributes": {
+        "spread_change_bps": 0.1,
+        "is_change_bps": 3.2
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": "contradicted",
+     "note": "two cited records disagree on spread_change_bps"
+    },
+    {
+     "id": "H1-DIR",
+     "statement": "Quoted spread tightened by 1.9 bps over the window",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H1-BOOK",
+       "type": "ORDER_BOOK",
+       "description": "META quoted spread",
+       "attributes": {
+        "spread_change_bps": 1.9,
+        "spread_bps": 4.3
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": "direction_mismatch",
+     "note": ""
+    },
+    {
+     "id": "H1-UNC",
+     "statement": "Spread widening is the main driver of the slippage",
+     "confidence": 0.7,
+     "supporting_evidence": [],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": "uncited",
+     "note": ""
+    },
+    {
+     "id": "H1-OK2",
+     "statement": "Quoted spread was 4.3 bps in the window",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H1-BOOK",
+       "type": "ORDER_BOOK",
+       "description": "META quoted spread",
+       "attributes": {
+        "spread_change_bps": 1.9,
+        "spread_bps": 4.3
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "HB-02",
+   "findings": [
+    {
+     "id": "H2-OK1",
+     "statement": "Gateway latency increased by 12.5 ms",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H2-ENG",
+       "type": "SYSTEM_METRIC",
+       "description": "TSLA gateway latency",
+       "attributes": {
+        "latency_ratio": 3.8,
+        "latency_change_ms": 12.5
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": null,
+     "note": ""
+    },
+    {
+     "id": "H2-CON",
+     "statement": "Gateway latency was elevated in the window",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H2-ENG",
+       "type": "SYSTEM_METRIC",
+       "description": "TSLA gateway latency",
+       "attributes": {
+        "latency_ratio": 3.8,
+        "latency_change_ms": 12.5
+       }
+      }
+     ],
+     "contradicting_evidence": [
+      {
+       "id": "EV-H2-ENG2",
+       "type": "SYSTEM_METRIC",
+       "description": "TSLA gateway latency, second probe",
+       "attributes": {
+        "latency_ratio": 1.05
+       }
+      }
+     ],
+     "evidence_resolved": true,
+     "planted": "contradicted",
+     "note": "producer cited a contradicting probe"
+    },
+    {
+     "id": "H2-NUM",
+     "statement": "latency_ratio hit 5.2 during the window",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H2-ENG",
+       "type": "SYSTEM_METRIC",
+       "description": "TSLA gateway latency",
+       "attributes": {
+        "latency_ratio": 3.8,
+        "latency_change_ms": 12.5
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": "numeric_mismatch",
+     "note": ""
+    },
+    {
+     "id": "H2-UNR",
+     "statement": "Latency explains the execution drift",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H2-LOST",
+       "type": "LOG",
+       "description": "rotated log",
+       "attributes": {}
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": false,
+     "planted": "unresolved",
+     "note": ""
+    },
+    {
+     "id": "H2-OK2",
+     "statement": "Implementation shortfall fell by 2.4 bps",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H2-EXE",
+       "type": "EXECUTION_DATA",
+       "description": "TSLA execution metrics",
+       "attributes": {
+        "is_change_bps": -2.4,
+        "vwap_slippage_bps": 1.1
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": null,
+     "note": "hard control: 'fell' with a negative change"
+    }
+   ]
+  },
+  {
+   "id": "HB-03",
+   "findings": [
+    {
+     "id": "H3-OK1",
+     "statement": "Fill rate was 62% in the window",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H3-EXE",
+       "type": "EXECUTION_DATA",
+       "description": "JPM execution metrics",
+       "attributes": {
+        "is_change_bps": 5.1,
+        "fill_rate": 0.62
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": null,
+     "note": "hard control: percent against a fraction"
+    },
+    {
+     "id": "H3-DIR",
+     "statement": "Implementation shortfall eased by 5.1 bps against the baseline",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H3-EXE",
+       "type": "EXECUTION_DATA",
+       "description": "JPM execution metrics",
+       "attributes": {
+        "is_change_bps": 5.1,
+        "fill_rate": 0.62
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": "direction_mismatch",
+     "note": ""
+    },
+    {
+     "id": "H3-NUM",
+     "statement": "depth_ratio was 0.85 in the window",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H3-BOOK",
+       "type": "ORDER_BOOK",
+       "description": "JPM depth",
+       "attributes": {
+        "depth_ratio": 0.45,
+        "depth_change_pct": -55.0
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": "numeric_mismatch",
+     "note": ""
+    },
+    {
+     "id": "H3-UNC",
+     "statement": "LOW_LIQUIDITY explains the cost rise",
+     "confidence": 0.7,
+     "supporting_evidence": [],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": "uncited",
+     "note": ""
+    },
+    {
+     "id": "H3-OK2",
+     "statement": "Book depth dropped by 55% against the baseline",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H3-BOOK",
+       "type": "ORDER_BOOK",
+       "description": "JPM depth",
+       "attributes": {
+        "depth_ratio": 0.45,
+        "depth_change_pct": -55.0
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "HB-04",
+   "findings": [
+    {
+     "id": "H4-OK1",
+     "statement": "volatility_ratio was 2.05 in the window",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H4-MKT",
+       "type": "MARKET_DATA",
+       "description": "XOM realised volatility",
+       "attributes": {
+        "volatility_ratio": 2.05
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": null,
+     "note": ""
+    },
+    {
+     "id": "H4-CON",
+     "statement": "Volatility was the material driver",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H4-MKT",
+       "type": "MARKET_DATA",
+       "description": "XOM realised volatility",
+       "attributes": {
+        "volatility_ratio": 2.05
+       }
+      }
+     ],
+     "contradicting_evidence": [
+      {
+       "id": "EV-H4-CALC",
+       "type": "CALCULATION",
+       "description": "XOM attribution",
+       "attributes": {
+        "volatility_ratio": 0.97
+       }
+      }
+     ],
+     "evidence_resolved": true,
+     "planted": "contradicted",
+     "note": ""
+    },
+    {
+     "id": "H4-UNR",
+     "statement": "Volatility regime shift caused the slippage",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H4-GONE",
+       "type": "CALCULATION",
+       "description": "missing",
+       "attributes": {}
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": false,
+     "planted": "unresolved",
+     "note": ""
+    },
+    {
+     "id": "H4-DIR",
+     "statement": "VWAP slippage declined by 2.2 bps",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H4-EXE",
+       "type": "EXECUTION_DATA",
+       "description": "XOM execution metrics",
+       "attributes": {
+        "vwap_slippage_bps": 3.7,
+        "slippage_change_bps": 2.2
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": "direction_mismatch",
+     "note": ""
+    },
+    {
+     "id": "H4-OK2",
+     "statement": "VWAP slippage rose by 2.2 bps",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H4-EXE",
+       "type": "EXECUTION_DATA",
+       "description": "XOM execution metrics",
+       "attributes": {
+        "vwap_slippage_bps": 3.7,
+        "slippage_change_bps": 2.2
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": null,
+     "note": ""
+    }
+   ]
+  },
+  {
+   "id": "HB-05",
+   "findings": [
+    {
+     "id": "H5-OK1",
+     "statement": "Implementation shortfall worsened by 4.0 bps",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H5-EXE",
+       "type": "EXECUTION_DATA",
+       "description": "KO execution metrics",
+       "attributes": {
+        "is_change_bps": 4.0
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": null,
+     "note": ""
+    },
+    {
+     "id": "H5-UNC",
+     "statement": "VENUE_DEGRADATION was the primary cause",
+     "confidence": 0.7,
+     "supporting_evidence": [],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": "uncited",
+     "note": ""
+    },
+    {
+     "id": "H5-NUM",
+     "statement": "fill_rate_gap reached 0.08 on the primary venue",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H5-VEN",
+       "type": "EXECUTION_DATA",
+       "description": "KO venue fill rates",
+       "attributes": {
+        "fill_rate_gap": 0.28,
+        "fill_rate_change_pct": -9.0
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": "numeric_mismatch",
+     "note": ""
+    },
+    {
+     "id": "H5-UNR",
+     "statement": "Venue outage explains the drop",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H5-X",
+       "type": "LOG",
+       "description": "missing venue log",
+       "attributes": {}
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": false,
+     "planted": "unresolved",
+     "note": ""
+    },
+    {
+     "id": "H5-OK2",
+     "statement": "Fill rate dropped by 9.0 percentage points on the venue",
+     "confidence": 0.7,
+     "supporting_evidence": [
+      {
+       "id": "EV-H5-VEN",
+       "type": "EXECUTION_DATA",
+       "description": "KO venue fill rates",
+       "attributes": {
+        "fill_rate_gap": 0.28,
+        "fill_rate_change_pct": -9.0
+       }
+      }
+     ],
+     "contradicting_evidence": [],
+     "evidence_resolved": true,
+     "planted": null,
+     "note": ""
+    }
+   ]
+  }
+ ]
+}
