@@ -31,8 +31,8 @@ def implementation_shortfall_bps(
     """Return implementation shortfall in bps (positive = adverse).
 
     ``final_price`` is used to price the opportunity cost of any unfilled
-    quantity; when omitted the opportunity-cost leg is ignored (pure
-    execution-cost IS).
+    quantity; when omitted, or not finite (NaN/inf, H3 0.9.0), the opportunity-cost leg is
+    ignored (pure execution-cost IS), matching :func:`shortfall_components`.
     """
     if decision_price <= 0 or target_quantity <= 0:
         return float("nan")
@@ -43,7 +43,7 @@ def implementation_shortfall_bps(
     execution_leg = side.sign * (executed_cost - decision_price * filled)
     unfilled = max(target_quantity - filled, 0.0)
     opportunity_leg = 0.0
-    if final_price is not None and unfilled > 0:
+    if final_price is not None and np.isfinite(final_price) and unfilled > 0:
         opportunity_leg = side.sign * (final_price - decision_price) * unfilled
     total = execution_leg + opportunity_leg
     return float(total / (decision_price * target_quantity) * 10_000.0)

@@ -94,5 +94,53 @@ ignore = ["E501", "B008", "UP042"]  # B008: FastAPI Depends(); UP042: str-Enum k
 # still targets Python >= 3.11 per requires-python above.
 python_version = "3.12"
 strict = false
-ignore_missing_imports = true
+# H1 (0.9.0): no global ignore_missing_imports. Third-party packages that ship no type
+# information are listed by name below, so a typo'd or missing import still fails.
 mypy_path = "src"
+
+[[tool.mypy.overrides]]
+# Per-module strict (H1): the domain contracts and the deterministic analytics.
+# mypy cannot set `strict` per module, so the strict flag set is spelled out here.
+module = ["ceap.domain.*", "ceap.analytics.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_reexport = true
+strict_equality = true
+extra_checks = true
+warn_return_any = true
+
+[[tool.mypy.overrides]]
+# ceap.api: the same strict flags except warn_return_any. Three no-any-return sites remain
+# (routes.py x2, middleware.py x1) and api is edited by another 0.9.0 lane; set warn_return_any
+# = true here once they are annotated.
+module = ["ceap.api.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_reexport = true
+strict_equality = true
+extra_checks = true
+
+[[tool.mypy.overrides]]
+# Third-party packages without type information in the hashed lock (no pandas-stubs, types-PyYAML, types-jsonschema,
+# scikit-learn stubs). Named one by one so any other missing import still fails.
+module = ["jsonschema", "jsonschema.*", "yaml", "yaml.*", "pandas", "pandas.*", "sklearn", "sklearn.*"]
+ignore_missing_imports = true
+
+[tool.mutmut]
+# H3 (0.9.0): nightly mutation testing (.github/workflows/nightly.yml, job `mutation`). mutmut is a
+# job-only tool (ADR 0003) and needs Linux; scripts/mutation_ratchet.py enforces the ceiling.
+paths_to_mutate = ["src/ceap/analytics/", "src/ceap/domain/"]
+tests_dir = ["tests/unit/analytics/", "tests/properties/", "tests/unit/test_domain.py"]
+pytest_add_cli_args = ["-p", "no:randomly", "--no-cov", "-o", "addopts="]

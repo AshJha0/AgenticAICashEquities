@@ -1,0 +1,27 @@
+# H7 (0.9.0): grouped dependency updates. One PR per ecosystem per week, so each update costs one
+# CI cycle. Python updates still have to pass `lock-fresh` (ADR 0003): regenerate requirements.lock
+# with uv on the Dependabot branch before merging.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
+    labels: [dependencies, no-changelog]
+    groups:
+      python-runtime:
+        dependency-type: production
+      python-dev:
+        dependency-type: development
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 1
+    labels: [dependencies, no-changelog]
+    groups:
+      actions:
+        patterns: ["*"]

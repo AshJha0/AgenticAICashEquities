@@ -76,13 +76,15 @@ class CostModel:
     def impact_bps(self, daily_vol_bps: np.ndarray, participation: np.ndarray) -> np.ndarray:
         vol = np.where(np.isfinite(daily_vol_bps), daily_vol_bps, self.default_vol_bps)
         part = np.clip(np.nan_to_num(np.asarray(participation, dtype=float), nan=0.0, posinf=0.0), 0.0, None)
-        return self.impact_coefficient * vol * np.sqrt(part)
+        impact: np.ndarray = self.impact_coefficient * vol * np.sqrt(part)
+        return impact
 
     def trade_cost_bps(
         self, half_spread_bps: np.ndarray, daily_vol_bps: np.ndarray, participation: np.ndarray
     ) -> np.ndarray:
         hs = np.nan_to_num(np.asarray(half_spread_bps, dtype=float), nan=0.0)
-        return hs + self.impact_bps(daily_vol_bps, participation)
+        total: np.ndarray = hs + self.impact_bps(daily_vol_bps, participation)
+        return total
 
 
 @dataclass(frozen=True)

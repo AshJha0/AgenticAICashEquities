@@ -22,6 +22,11 @@ see [GITHUB_PAGES.md](GITHUB_PAGES.md)).
 | [research/README.md](research/README.md) | the R5 real-data momentum study: preregistration, point-in-time universe, loaders, costs, and the VOID result ([result_momentum_2026-11.md](research/result_momentum_2026-11.md)), plus the v2 Stooq attempt, also VOID ([result_momentum_2026-11-v2.md](research/result_momentum_2026-11-v2.md)); the 0.8.0 research realism toolkit (calibration, a-priori hurdle, INCONCLUSIVE, adversarial power curves, leakage canary, PBO, risk toolkit) |
 | [review/2026-11-09/PLAN.md](review/2026-11-09/PLAN.md) | the 0.8.0 review and plan (workstreams A-I) with per-step status: done, partial, or moved to 0.9.0 |
 | [review/2026-11-07/PLAN.md](review/2026-11-07/PLAN.md) | the 0.4.0 to 0.7.0 release plan and owner decisions D1 to D22; paper trading plan in [RP_PLAN.md](review/2026-11-07/RP_PLAN.md) |
-| [api/api.md](api/api.md) | endpoints, auth and roles, schemas, errors |
+| [api/api.md](api/api.md) | endpoints, auth and roles, schemas, errors; [api/openapi.json](api/openapi.json) is the generated OpenAPI document (checked in, diffed in CI) |
+| [adr/README.md](adr/README.md) | architecture decision records 0001-0005 (0.9.0) |
+| [testing/test-pyramid.md](testing/test-pyramid.md) | test layers, where they live, when they run; property, metamorphic and mutation testing (0.9.0) |
+| [glossary.md](glossary.md) | execution, research and platform terms, each tied to the code that computes it (0.9.0) |
+| [how-to-extend.md](how-to-extend.md) | add a signal, an MCP tool or a policy rule (0.9.0) |
+| [exercises.md](exercises.md) | graded exercises for LEARN.md, with answers or checks (0.9.0) |
 | [GITHUB_PAGES.md](GITHUB_PAGES.md) | how the site is published and how to keep its numbers honest |
 | [../CHANGELOG.md](../CHANGELOG.md) | release notes |

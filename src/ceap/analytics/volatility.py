@@ -30,7 +30,7 @@ def realised_volatility_bps(
     if r.size < 2:
         return float("nan")
     per_sample = float(r.std(ddof=1))
-    scale = np.sqrt(horizon_seconds / sample_seconds)
+    scale: float = np.sqrt(horizon_seconds / sample_seconds)
     return per_sample * scale * 10_000.0
 
 
@@ -41,7 +41,8 @@ def annualise_volatility(prices: Sequence[float] | np.ndarray, sample_seconds: f
         return float("nan")
     per_sample = float(r.std(ddof=1))
     samples_per_day = SECONDS_PER_TRADING_DAY / sample_seconds
-    return per_sample * np.sqrt(samples_per_day * TRADING_DAYS_PER_YEAR)
+    annualiser: float = np.sqrt(samples_per_day * TRADING_DAYS_PER_YEAR)
+    return per_sample * annualiser
 
 
 def price_drift_bps(prices: Sequence[float] | np.ndarray) -> float:

@@ -147,7 +147,8 @@ def fit_ridge(p: Panel, dates: np.ndarray, alpha: float) -> np.ndarray:
 
 def predict(p: Panel, coef: np.ndarray) -> np.ndarray:
     """Score per date and name: ``X[t] . coef``; a name with any NaN signal gets NaN."""
-    return np.einsum("tis,s->ti", p.X, coef)
+    scores: np.ndarray = np.einsum("tis,s->ti", p.X, coef)
+    return scores
 
 
 def _weights(score: np.ndarray) -> np.ndarray:
