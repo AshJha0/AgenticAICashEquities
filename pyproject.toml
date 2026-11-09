@@ -99,9 +99,9 @@ strict = false
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-# Per-module strict (H1): the domain contracts, the deterministic analytics and the HTTP API.
+# Per-module strict (H1): the domain contracts and the deterministic analytics.
 # mypy cannot set `strict` per module, so the strict flag set is spelled out here.
-module = ["ceap.domain.*", "ceap.analytics.*", "ceap.api.*"]
+module = ["ceap.domain.*", "ceap.analytics.*"]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_calls = true
@@ -109,21 +109,31 @@ disallow_untyped_decorators = true
 disallow_any_generics = true
 disallow_subclassing_any = true
 check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_reexport = true
+strict_equality = true
+extra_checks = true
 warn_return_any = true
+
+[[tool.mypy.overrides]]
+# ceap.api: the same strict flags except warn_return_any. Three no-any-return sites remain
+# (routes.py x2, middleware.py x1) and api is edited by another 0.9.0 lane; set warn_return_any
+# = true here once they are annotated.
+module = ["ceap.api.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+check_untyped_defs = true
 warn_unused_ignores = true
 no_implicit_reexport = true
 strict_equality = true
 extra_checks = true
 
 [[tool.mypy.overrides]]
-# ceap.api keeps every strict flag above except warn_return_any: three no-any-return sites remain
-# (routes.py x2, middleware.py x1) and api is edited by another 0.9.0 lane. Remove this block once
-# they are annotated.
-module = ["ceap.api.*"]
-warn_return_any = false
-
-[[tool.mypy.overrides]]
-# Third-party packages without type information in the hashed lock (no pandas-stubs, types-PyYAML,
+# Third-party packages without type information in the hashed lock (no pandas-stubs, types-PyYAML, types-jsonschema,
 # scikit-learn stubs). Named one by one so any other missing import still fails.
-module = ["yaml", "yaml.*", "pandas", "pandas.*", "sklearn", "sklearn.*"]
+module = ["jsonschema", "jsonschema.*", "yaml", "yaml.*", "pandas", "pandas.*", "sklearn", "sklearn.*"]
 ignore_missing_imports = true
