@@ -3,9 +3,7 @@
 
 from __future__ import annotations
 
-import json
 import math
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -21,8 +19,6 @@ from ceap.analytics.profitability import capacity_sweep, profitability_table, sh
 from ceap.data.ground_truth import derive_ground_truth, expected_statistics, p_stay_tercile
 from ceap.data.historical import HistoricalStore
 from ceap.data.research_scenarios import RESEARCH_TEMPLATES_RAW, all_research_scenarios
-
-ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture(scope="module")
@@ -79,15 +75,6 @@ def test_analytic_building_blocks():
     r03 = expected_statistics(RESEARCH_TEMPLATES_RAW[2], lag=0)
     r03_lag = expected_statistics(RESEARCH_TEMPLATES_RAW[2], lag=1)
     assert r03["gross_sharpe_is"] > r03_lag["gross_sharpe_is"] > 0  # the transient decays before a t+1 fill
-
-
-def test_power_curve_is_committed_and_monotone():
-    doc = json.loads((ROOT / "docs" / "quant_power_curve.json").read_text(encoding="utf-8"))
-    rows = doc["rows"]
-    assert len(rows) >= 6 and doc["seeds_per_point"] >= 40
-    rates = [r["detection_rate"] for r in rows]
-    assert rates[0] <= 0.15 and rates[-1] >= 0.8
-    assert all(b >= a - 0.1 for a, b in zip(rates, rates[1:], strict=False))
 
 
 # ------------------------------------------------------------------ 2.12

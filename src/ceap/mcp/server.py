@@ -98,6 +98,8 @@ class ToolSpec:
     risk_level: RiskLevel = RiskLevel.LOW
     required_capabilities: frozenset[str] = frozenset()
     input_schema: dict[str, Any] = field(default_factory=dict)
+    #: the tool runs heavy CPU work through ``ceap.mcp.cpu_pool`` (killable on timeout / cancel)
+    cpu_bound: bool = False
 
     def descriptor(self) -> dict[str, Any]:
         """MCP-style tool descriptor (``tools/list`` shape plus our annotations)."""
@@ -109,6 +111,7 @@ class ToolSpec:
                 "readOnlyHint": self.read_only,
                 "riskLevel": self.risk_level.value,
                 "requiredCapabilities": sorted(self.required_capabilities),
+                "cpuBound": self.cpu_bound,
             },
         }
 
@@ -128,6 +131,7 @@ class MCPServerDefinition:
         read_only: bool = True,
         risk_level: RiskLevel = RiskLevel.LOW,
         required_capabilities: frozenset[str] | set[str] = frozenset(),
+        cpu_bound: bool = False,
     ) -> Callable[[ToolFn], ToolFn]:
         def decorator(fn: ToolFn) -> ToolFn:
             if not inspect.iscoroutinefunction(fn):
@@ -143,6 +147,7 @@ class MCPServerDefinition:
                 risk_level=risk_level,
                 required_capabilities=frozenset(required_capabilities),
                 input_schema=schema_from_signature(fn),
+                cpu_bound=cpu_bound,
             )
             return fn
 

@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write # push to the forward-log branch only
+  issues: write # open or update the paper-failure issue when the run fails (G6)
 
 concurrency:
   group: paper-daily
@@ -77,3 +78,17 @@ jobs:
           git add paper.db forward_log.csv REPORT.txt reports
           git commit -m "paper: forward log $(tail -n 1 forward_log.csv | cut -d, -f1) (paper, not trading)" || exit 0
           git push origin forward-log
+      - name: Open or update the paper-failure issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create paper-failure --color B60205 --description "paper-daily run failed" 2>/dev/null || true
+          n=$(gh issue list --label paper-failure --state open --json number --jq '.[0].number')
+          body="paper-daily failed on $(date -u +%F). Run: $RUN_URL"
+          if [ -n "$n" ]; then
+            gh issue comment "$n" --body "$body"
+          else
+            gh issue create --title "paper-daily run failed" --label paper-failure --body "$body"
+          fi

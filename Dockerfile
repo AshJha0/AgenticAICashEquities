@@ -24,7 +24,7 @@ RUN pip install --no-deps ".[llm]" \
 
 ENV CEAP_ENV=prod \
     CEAP_AUTO_APPROVE=false \
-    CEAP_LLM_PROVIDER=mock
+    CEAP_LLM_PROVIDER=mock     CEAP_PREWARM_DATASETS=T01
 
 USER ceap
 EXPOSE 8000

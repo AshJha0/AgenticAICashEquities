@@ -592,11 +592,17 @@ so `ceap evaluate --suite research` and `tests/evaluation/test_research_scenario
 ```bash
 scripts/bootstrap.sh                                  # .venv from the hashed lock
 pytest -n auto -m "not nightly and not slow"          # quick local loop
-pytest -n auto -m "not nightly" --cov=ceap --cov-fail-under=80   # what PR CI runs
-HYPOTHESIS_PROFILE=nightly pytest -n auto -p randomly # what nightly runs: random order, 1000 examples
+pytest -n auto -m "not nightly" --cov=ceap --cov-branch --cov-fail-under=COVFLOOR   # what PR CI runs
+CEAP_NIGHTLY=1 HYPOTHESIS_PROFILE=nightly pytest -n auto -p randomly    # what nightly runs: random order, 1000 examples
+pytest tests/unit                                     # hermetic: reads nothing outside src/ and tests/
+pytest tests/repo                                     # repository integrity: scripts, docs, workflows
 python scripts/check_banned_words.py                  # must print "clean"
 python scripts/check_contracts.py origin/main         # lists any public ceap.domain signature change
 ```
+
+Every test has a 120 s timeout (`pytest-timeout`); `slow` tests get 600 s and `nightly` tests
+1800 s unless they set `@pytest.mark.timeout(...)` themselves. The 20 slowest tests are printed at
+the end of every run. Nightly-marked tests skip unless `CEAP_NIGHTLY=1`.
 
 Adding a dependency: edit `pyproject.toml`, then run the `uv pip compile ...` command printed in
 the header of `requirements.lock` (uv is free: `pip install uv`). Commit both files; the
@@ -722,3 +728,13 @@ blocks scripted downloads, so files must be placed by hand), refuses rows up to 
 produce a 12-1 signal before about January 2027. The scheduled workflow runs because the owner set
 the repository variable `PAPER_DAILY_ENABLED=true` on 2026-11-08 (D22); the forward record starts on
 2026-11-09.
+
+If the record stops, you hear about it: a failed `paper-daily` run opens (or comments on) an issue
+labelled `paper-failure`, and the weekly `paper-staleness` workflow opens a `paper-stale` issue when
+the `forward-log` head is more than 2 NYSE sessions old. Check by hand:
+
+```bash
+git fetch origin forward-log
+git show FETCH_HEAD:forward_log.csv > forward_log.csv
+python scripts/check_forward_log_staleness.py --csv forward_log.csv   # exit 1 = stale
+```

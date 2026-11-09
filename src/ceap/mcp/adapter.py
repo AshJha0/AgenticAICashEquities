@@ -94,6 +94,7 @@ class MCPToolAdapter(Tool):
             required_capabilities=frozenset(ann.get("requiredCapabilities", [])),
             input_schema=descriptor.get("inputSchema", {}),
             server=server,
+            cpu_bound=ann.get("cpuBound") is True,
         )
 
     @property

@@ -22,6 +22,8 @@ jobs:
         python-version: ["3.11", "3.12"]
     env:
       HYPOTHESIS_PROFILE: nightly
+      CEAP_NIGHTLY: "1" # the nightly-marked sweeps skip without it (H9)
+      ANTHROPIC_API_KEY: ""
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -34,4 +36,4 @@ jobs:
           python -m pip install --require-hashes -r requirements.lock
           python -m pip install -e . --no-deps
       - name: Every tier, random order (state-leak check), 1000 hypothesis examples
-        run: pytest -n auto -p randomly --cov=ceap --cov-report=term --cov-fail-under=80
+        run: pytest -n auto -p randomly --cov=ceap --cov-branch --cov-report=term --cov-fail-under=COVFLOOR

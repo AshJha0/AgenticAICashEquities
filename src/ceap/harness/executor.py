@@ -157,6 +157,12 @@ class StepExecutor:
                 capabilities=run.policy_context.capabilities,
             )
             attempts = {"n": 0}
+            # A cpu_bound tool runs its heavy part in ceap.mcp.cpu_pool, so the wait_for below really
+            # stops it: cancelling the await terminates the worker process (G3). A CPU-bound tool that
+            # does not declare it would block the loop and this timeout could not fire.
+            cpu_bound = getattr(tool.metadata, "cpu_bound", False)
+            if cpu_bound:
+                self.tracer.event("tool.cpu_bound", tool=request.tool_id)
 
             async def attempt() -> ToolResult:
                 run.cancellation.raise_if_cancelled()

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+from repo_root import ROOT
+
 spec = importlib.util.spec_from_file_location("check_docs", ROOT / "scripts" / "check_docs.py")
 check_docs = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(check_docs)

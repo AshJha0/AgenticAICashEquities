@@ -427,6 +427,14 @@ attribution and a markdown/JSON artefact per run. A free daily feed plugs in thr
 set on 2026-11-08; it appends to the `forward-log` branch. See COOKBOOK recipe 43 and
 LEARN section 18a.
 
+**Last recorded session:** see the head of the
+[`forward-log` branch](https://github.com/AshJha0/AgenticAICashEquities/commits/forward-log) (the last
+line of `forward_log.csv`). Two dead-man's switches watch it: a failed `paper-daily` run opens or
+updates an issue labelled `paper-failure`, and the weekly `paper-staleness` workflow fails and opens
+an issue labelled `paper-stale` when the branch head is more than 2 NYSE sessions old. The owner
+should protect `forward-log` against force-push and deletion (Settings > Rules), since the
+record's value is that it is append-only.
+
 **What the forward log is, and what it is not.**
 
 - It runs on **SYNTHETIC data, not real prices** (evidence class: synthetic). `config/paper.json`
@@ -456,7 +464,12 @@ LEARN section 18a.
 | `CEAP_LLM_PLANNING_MODEL` | = model | stronger planning model; **recommended for Stage 2** — a weak planner (tested: Haiku alone) can produce an incomplete research plan; pairing a stronger planner with a smaller narrative model took the 21-scenario evaluation from 5 incomplete plans to 0 (see CHANGELOG 0.3.1); the pinned default is `claude-opus-5-5` |
 | `CEAP_LLM_DISABLED` | `false` | kill switch: no model call anywhere, deterministic plan / critique / narrative, banner on every result |
 | `CEAP_LLM_TIMEOUT_S` | `60` | per model call |
-| `CEAP_LLM_MAX_CONCURRENCY` / `CEAP_LLM_MAX_CALLS_PER_TASK` | `4` / `12` | model-call concurrency cap and per-investigation call cap |
+| `CEAP_LLM_MAX_CONCURRENCY` / `CEAP_LLM_MAX_CALLS_PER_TASK` | `4` / `12` | model-call concurrency cap and per-task call cap (the router enforces it too) |
+| `CEAP_TASK_BUDGET_USD` / `CEAP_TASK_TOKEN_BUDGET` | `2.00` / `400000` | per-task caps, on by default since 0.8.0. Each call reserves its upper-bound local estimate (estimated input + `max_tokens`) before it is sent and settles to the actual cost after, so concurrent calls cannot overshoot; `off` removes a cap |
+| `CEAP_LLM_BREAKER_FALLBACKS` / `CEAP_LLM_BREAKER_COOLDOWN_S` | `5` / `60` | circuit breaker: after this many consecutive primary-model failures the primary is skipped (deterministic fallback, flagged DEGRADED) for the cooldown |
+| `CEAP_RATE_LIMIT_PER_MINUTE` / `CEAP_RATE_LIMIT_BURST` | `60` / `20` | per-principal token bucket on `POST /investigations` and `POST /research`; an empty bucket answers 429 with `Retry-After`; `off` disables. In-process, so per replica |
+| `CEAP_CPU_TOOL_PROCESSES` | `2` | worker processes for CPU-bound MCP tools (`run_backtest`, `evaluate_signal`); a step timeout or cancel terminates the worker. `0` runs them in a thread (loop stays free, but a timed-out call runs to completion) |
+| `CEAP_PREWARM_DATASETS` | – (`T01` in the Docker image) | scenario ids generated at start-up in a worker thread, so the first request does not pay the generation cost |
 | `CEAP_MCP_TRUSTED_SERVERS` | the built-in servers | comma-separated allowlist; tools of any other MCP server are read-only whatever they declare |
 | `CEAP_MCP_PRINCIPAL_ROLES` | – | roles a standalone stdio MCP server acts for; unset means no capabilities, so `stage_orders` is refused |
 | `CEAP_DEFAULT_DATASET` | `T01` | scenario dataset when a request names none |
