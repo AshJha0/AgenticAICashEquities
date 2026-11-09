@@ -224,3 +224,19 @@ def test_a16_no_profile_grants_write_and_narrowing_never_widens() -> None:
     assert c.capabilities <= viewer.capabilities
     twice = agent_policy_context(agent_policy_context(viewer, "market"), "risk")
     assert twice.attributes["agent_tools"] == frozenset()
+
+
+def test_a4_stage_orders_without_valid_stage_approval_is_blocked() -> None:
+    """The staging grant is issued only by an approved stage step; it covers one identical call."""
+    stage = meta(id="execution.stage_orders", read_only=False, risk_level=RiskLevel.HIGH, server="execution")
+    engine = RulePolicyEngine(allowed_symbols=AAPL)
+    args = {"dataset": "d", "approved_portfolio_hash": "h1"}
+    c = ctx(("admin",))
+    assert decide(engine, args, stage, c).decision is PolicyDecision.REQUIRE_APPROVAL  # no grant
+    engine.grant_approved("OTHER-TASK", stage.id, args)
+    assert decide(engine, args, stage, c).decision is PolicyDecision.REQUIRE_APPROVAL  # wrong task
+    engine.grant_approved(c.task_id, stage.id, {**args, "approved_portfolio_hash": "h2"})
+    assert decide(engine, args, stage, c).decision is PolicyDecision.REQUIRE_APPROVAL  # other content
+    engine.grant_approved(c.task_id, stage.id, args)
+    assert decide(engine, args, stage, c).decision is PolicyDecision.ALLOW
+    assert decide(engine, args, stage, c).decision is PolicyDecision.REQUIRE_APPROVAL  # used once
