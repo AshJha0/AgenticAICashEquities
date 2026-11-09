@@ -64,8 +64,10 @@ the layer fails closed and degrades visibly:
   The reply is validated twice: by the schema, then semantically (a window that is neither the task
   window nor its baseline, a symbol outside the task or its universe, an unknown agent, a duplicated
   governance step, more than 64 steps, an unknown finding id, a confidence outside [0, 1]). Those
-  errors are the repair target, once; a second failure is `DEGRADED`. There is no regex or lenient
-  JSON recovery anywhere. The reporter writes prose and does not use structured output.
+  errors are the repair target, once; a second failure is `DEGRADED`. The repair request carries
+  only that problem list, inside a data block; the model's rejected reply is not sent back (0.8.0,
+  plan step A12), so text the model was steered into writing cannot reach it again as an
+  instruction. There is no regex or lenient JSON recovery anywhere. The reporter writes prose and does not use structured output.
 * **Caching and cost:** one `cache_control` breakpoint on the system block (the last stable block
   in the tools -> system -> messages order). Every call leaves an `LLMCallRecord` (model, SDK pin,
   prompt id/version/sha, tokens including cache reads and writes, USD from pinned list prices,
@@ -76,7 +78,11 @@ the layer fails closed and degrades visibly:
 * **Prompt registry:** prompts are `llm/prompts/<id>.md` with a version header; the sha256 of the
   canonical bytes travels in request metadata, call records and `InvestigationReport.prompts`. A
   golden snapshot (`tests/cassettes/prompt_hashes.json`) fails CI when a prompt changes until the
-  version is bumped and CHANGELOG names `<id>@<version>`.
+  version is bumped and CHANGELOG names `<id>@<version>`. Since 0.8.0 (A15) the same
+  `version:sha256` is also pinned in `llm/model_pins.toml` under `[prompts]`, and every prompt is
+  checked against its pin when it is loaded: an edited prompt file without a matching pin raises
+  `PromptIntegrityError` at import, before any model call. The model ids were already checked at
+  load (`UnpinnedModelError`).
 * **Nothing here is measured live** (D15). The LLM layer is proven offline by:
   * wire contract tests (`tests/contract/test_wire_request.py`, `test_wire_response.py`): the real
     `AsyncAnthropic` over an in-memory transport, a committed request snapshot, and responses in the
@@ -88,7 +94,12 @@ the layer fails closed and degrades visibly:
   * harness invariants under every fake client (`tests/properties/test_harness_invariants.py`);
   * hand-built cassettes (`tests/cassettes/`, provenance `hand_built`) replayed through the real SDK:
     a changed prompt, schema or message fails `STALE`, and no model-behaviour metric may be
-    published from them (`assert_publishable`, `llm_provenance`);
+    published from them (`assert_publishable`, `llm_provenance`). Matching is exact by default;
+    `prefix` matching is refused unless the transport is built with `allow_prefix=True`, which only
+    prompt-cache tests do, and `assert_consumed` fails a replay that left recorded interactions
+    unused (0.8.0, A19). Data-block nonces are masked in the match key and in the stored body;
+  * the mock client reports zero tokens (and so zero cost): it calls no model, and the old
+    characters-divided-by-four figure read like a measurement (0.8.0, A20);
   * **adapter equivalence** (`tests/contract/test_adapter_differential.py`): the mock path and the
     adapter-plus-cassette path give identical harness outputs apart from narrative on the ten
     scenario templates. This is adapter equivalence, never model fidelity.
@@ -104,7 +115,11 @@ Three purposes, three call sites:
    cannot schedule a mutating action. If the repaired plan is still invalid, unknown tools,
    agents, step types and arguments are stripped and recorded (`rejected_steps`), scoping
    arguments are pinned to the task and steps outside the task windows are dropped; if nothing
-   usable comes back, a canonical hand-written plan is used instead.
+   usable comes back, a canonical hand-written plan is used instead. Since 0.8.0 (A11) string
+   arguments are allowlisted: a schema `enum` is enforced, and any other string must be a short
+   plain value (letters, digits and ordinary punctuation; no markup, braces or control
+   characters) or it is dropped. A step whose data scope is unknown, for example a `symbol`
+   argument when the task has neither a symbol nor a universe, is dropped.
 2. **Critique** (`ceap.agents.critic.CriticAgent`) — deterministic checks run first (evidence
    resolves, cross-agent contradictions, thin-evidence caps); an optional LLM pass then runs and
    is only permitted to *lower* a finding's confidence, never raise it.
@@ -114,8 +129,12 @@ Three purposes, three call sites:
 ## Prompt-injection posture
 
 Every surface through which untrusted text reaches a model travels in a delimited data block,
-`<data surface="..." id="...">`, which cannot be closed from inside (`ceap.llm.prompts.data_block`):
-the question, the MCP tool descriptions and prior cases (planner), evidence including log lines and
+`<data surface="..." id="..." nonce="...">`, which cannot be closed from inside
+(`ceap.llm.prompts.data_block`). Since 0.8.0 (A8) the content is NFKC-normalised and stripped of
+zero-width and bidirectional format characters before any tag in it is escaped, the escape regex
+tolerates whitespace inside a tag (`< / data`), and each block carries a random 16-hex nonce that
+its closing tag repeats (`</data nonce="...">`), so the content cannot guess the end marker. The
+surfaces are the question, the MCP tool descriptions and prior cases (planner), evidence including log lines and
 deployment text (critic, reporter) and each retrieved policy chunk (reporter). One test per surface
 runs a model that obeys any instruction it sees (`tests/adversarial/test_surfaces.py`). The platform
 still does not rely on the model honouring the blocks. It relies on structure: the planner's tool catalogue is closed, arguments are
@@ -221,14 +240,34 @@ There is no code-writing agent (D13) and no live model call in any test (D15).
 
 ## The reporter's audits
 
-After the model writes the narrative, two audits run against it before it's trusted:
+Since 0.8.0 (plan step A1) the model does not type figures. It names them as typed placeholders,
+`{fact.metrics.window.fill_rate}`, and code renders each value with its unit (`render_placeholders`,
+`format_fact`: a `_bps` key renders as signed basis points, a `_pct` key as a percent). A
+placeholder that names no single fact is an audit failure. The prompts `report@2`,
+`research_report@2`, `reporter_claims@2` and `reporter_prose@2` say so.
 
-- **Number audit** (`audit_numbers`) — every number quoted must trace back to the structured
-  facts the model was handed, tolerant of rounding and common derived forms (percent, bps,
-  per-mille, ratio-to-percent-change). It is deliberately *not* infinitely tolerant: an earlier
-  attempt to add a generic pairwise relative-change derivation was reverted after it let a
-  genuinely fabricated number pass undetected in the adversarial suite (CHANGELOG 0.3.2) — the
-  audit trades some false-positive noise for a real fabrication-detection guarantee, on purpose.
+The model's own prose is audited before anything code-written (hypothesis table, banners, corpus
+hash) is added to it. If any audit below fails, the prose is **suppressed** (0.8.0, A2): the report
+carries the deterministic template narrative instead, with the degradation `LLM_NARRATIVE_SUPPRESSED`;
+`critique.narrative_suppressed` keeps the sha256, the length and the reasons, and the rejected
+prose itself goes only to the hash-chained audit log (`reporter.narrative_rejected`). The run is
+still `DEGRADED` with `NARRATIVE_UNTRACEABLE`, so a reviewer sees that the model's text was refused.
+This is a breaking change approved as decision D4: before 0.8.0 the flagged prose shipped with a
+warning.
+
+- **Number audit** (`audit_numbers`) — the backstop for any figure the model still types. A
+  number traces when it equals a fact, or a conversion that matches the unit written after it: a
+  fraction as a percent or basis points, a ratio as a percent change, basis points as a percent.
+  A fact with a `_bps` or `_pct` key is never rescaled into its own unit. A sign is never flipped:
+  "-12.34" does not trace to 12.34, and an unsigned "12.34" traces to -12.34 only when a direction
+  word ("fell", "lower", "declined", ...) comes just before it. There is no small-integer
+  exemption any more; only a list marker at the start of a line is skipped, and the length of a
+  fact list counts as a fact ("3 findings"). The review repro, facts
+  `{slippage_bps: 12.34, fill_rate: 0.4321}`, now fails "Slippage improved by -12.34 bps" and
+  "1234 bps"; "43 pct" still passes because it is the correct percent form of 0.4321. It is
+  deliberately *not* infinitely tolerant: an earlier attempt to add a generic pairwise
+  relative-change derivation was reverted after it let a genuinely fabricated number pass
+  undetected in the adversarial suite (CHANGELOG 0.3.2).
 - **Evidence-id audit** (`audit_evidence_ids`) — every `PREFIX-xxxxxxxx` token in the prose must
   be a real `Evidence` record. The regex only matches actual evidence-type prefixes (`ceap.domain
   .evidence._PREFIX`) — it used to also match the approval-request id, which was never meant to
@@ -253,9 +292,12 @@ in the narrative. The reporter checks that each `cited_text` equals the text of 
 that `document_index`; only then does it mint `DOC` evidence (`domain.evidence.document_citation`:
 chunk id, document, section, version, effective date, the narrative span and the corpus hash). A
 fabricated quote, or a citation to a document that was not sent, mints nothing and is added to the
-narrative evidence warnings, so the run is `DEGRADED` with `NARRATIVE_UNTRACEABLE`. A claim that
-needs policy support but has no verified citation is listed in
-`critique.knowledge.unsupported_policy_claims`. The number audit still runs on the final prose, and
+narrative evidence warnings, so the run is `DEGRADED` with `NARRATIVE_UNTRACEABLE` and the prose is
+suppressed. Citations are mapped to claims one by one (0.8.0, A7, `claim_citations`): a claim that
+needs policy support is supported only by a verified citation whose citing sentence contains the
+claim, or at least 60 % of its words. One citation elsewhere in the prose no longer clears every
+policy claim. Claims without their own span are listed in
+`critique.knowledge.unsupported_policy_claims`. The number audit still runs on the model's prose, and
 the narrative ends with `Knowledge corpus sha256:<hash>`, so a reader can tell which revision of the
 policies the report cited. If the claims call fails the prose call still runs, from the facts
 alone (`LLM_CLAIMS_UNAVAILABLE`). Research reports keep the single narrative call.

@@ -20,7 +20,7 @@ pytest.importorskip("anthropic")
 from ceap.llm.client import AnthropicLLMClient  # noqa: E402
 from ceap.llm.models import LLMRequest  # noqa: E402
 from ceap.llm.pins import load_pins  # noqa: E402
-from ceap.llm.prompts import get_prompt  # noqa: E402
+from ceap.llm.prompts import get_prompt, mask_nonces  # noqa: E402
 from ceap.llm.schemas import CritiqueOutput, lint_schema, plan_model  # noqa: E402
 from fakes.transport import message_json, sdk_client  # noqa: E402
 
@@ -122,6 +122,7 @@ async def test_wire_request_rules_for_structured_planning_call():
 async def test_wire_request_snapshot_is_committed_and_unchanged():
     """3A.2: the planning request body equals the reviewed snapshot (SDK or prompt drift fails)."""
     body, _ = await _send(_planning_request(), json.dumps(PLAN_JSON))
+    body = json.loads(mask_nonces(json.dumps(body)))  # A8: data-block nonces are random per call
     if os.environ.get("CEAP_UPDATE_SNAPSHOTS") == "1":
         SNAPSHOT.write_text(json.dumps(body, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     assert SNAPSHOT.exists(), "run once with CEAP_UPDATE_SNAPSHOTS=1, review and commit the snapshot"

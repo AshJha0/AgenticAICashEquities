@@ -231,7 +231,7 @@ class Platform:
             agents=self._agents(),
             tools=await self.registry(),
             policy=self.policy,
-            reporter=ReportAgent(self.llm),
+            reporter=ReportAgent(self.llm, audit=self.audit),
             tracer=tracer or InMemoryTracer(),
             approvals=self.approvals,
             settings=self.settings,

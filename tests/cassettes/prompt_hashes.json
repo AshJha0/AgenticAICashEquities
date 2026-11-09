@@ -8,23 +8,23 @@
     "version": "3"
   },
   "report": {
-    "sha256": "ebfaac4ca69da17afd6106c4ff7d4d345cfdc3bbfd6a2ce3108cc87eb079489a",
-    "version": "1"
+    "sha256": "b014be5021c234763983a4eebd7d0e2e6f107c2fbe9a7cfab7bc9474e0d92d38",
+    "version": "2"
   },
   "reporter_claims": {
-    "sha256": "a41258cb32832636cbaed3736874d820db5e06426d50b7a8ff50370c7cf57304",
-    "version": "1"
+    "sha256": "d62bc048b3e614d3a817b3fa978dbbc57bafb554c5e233628bb315fc9942d25c",
+    "version": "2"
   },
   "reporter_prose": {
-    "sha256": "fc59d6a0e76a636355fc51e3abe1e7cccc2db2fd9b3b9259b06018058035c676",
-    "version": "1"
+    "sha256": "69d23d4380ae6884df2ed00cde1ef7b65ec203967deb99055a0966225c975407",
+    "version": "2"
   },
   "research_planner": {
     "sha256": "be03bc38e8b9dccab2d04248268aeaae3a5b0ba593e07ba2a6ed28f81d35acd7",
     "version": "2"
   },
   "research_report": {
-    "sha256": "44b1a056a13ab62b98e449cf2a2f71d0aad7eb338d6396c887a3debef5c9c076",
-    "version": "1"
+    "sha256": "7be2003af743c7245449558a50bc1cb291f076d1728560838c64f16807dcc6cf",
+    "version": "2"
   }
 }

@@ -49,6 +49,23 @@ def _own_payload(text: str) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+MOCK_TOKEN_SOURCE = "mock_estimate"
+
+
+def token_view(response: LLMResponse | None) -> dict[str, Any]:
+    """A20: token counts for an agent's output, always with their source."""
+    if response is None:
+        return {}
+    view: dict[str, Any] = {
+        "input": response.input_tokens,
+        "output": response.output_tokens,
+        "source": response.token_source,
+    }
+    if response.token_source == MOCK_TOKEN_SOURCE:
+        view["label"] = "estimate: characters / 4 of a mock reply; no model was called"
+    return view
+
+
 class MockLLMClient(LLMClient):
     """Deterministic stand-in used when no model is configured."""
 
@@ -73,7 +90,7 @@ class MockLLMClient(LLMClient):
         elif request.purpose == "narrative":
             content = _mock_narrative(_own_payload(_last_text(last)))
             if isinstance(last, list):  # R3C 3C.4 citations call: document blocks, then the text
-                citations = _mock_citations(last, content)
+                content, citations = _mock_cited_prose(last, content)
         elif request.purpose == "critique":
             parsed = _mock_critique(_own_payload(last))
             content = json.dumps(parsed)
@@ -86,8 +103,11 @@ class MockLLMClient(LLMClient):
             parsed=parsed,
             content=content,
             tool_calls=[],
+            # A20: no model is called; these are characters / 4, labelled by ``token_source`` so
+            # no display can present them (or a cost computed from them) as a measurement.
             input_tokens=len(str(last)) // 4,
             output_tokens=len(content) // 4,
+            token_source=MOCK_TOKEN_SOURCE,
             model=self.model,
             stop_reason="end_turn",
         )
@@ -128,28 +148,51 @@ def mock_claims(facts: dict[str, Any]) -> dict[str, Any]:
     return {"claims": claims}
 
 
-def _mock_citations(blocks: list[Any], content: str) -> list[dict[str, Any]]:
-    """R3C 3C.4 call 2 (mock): cite each document's first content block verbatim, on the last line."""
+def _claims_block(text: str) -> list[dict[str, Any]]:
+    """The validated claims this platform put in the prose request (our own payload, not model output)."""
+    at = text.find('id="claims"')
+    start = text.find("[", at) if at >= 0 else -1
+    if start < 0:
+        return []
+    try:
+        value, _ = json.JSONDecoder().raw_decode(text, start)
+    except json.JSONDecodeError:
+        return []
+    return [c for c in value if isinstance(c, dict)] if isinstance(value, list) else []
+
+
+def _mock_cited_prose(blocks: list[Any], content: str) -> tuple[str, list[dict[str, Any]]]:
+    """R3C 3C.4 call 2 (mock): write each policy claim on its own line and cite a document there.
+
+    A7: a citation supports only the sentence it is attached to, so the mock attaches each citation
+    to the line that states the policy claim. Without a policy claim it cites nothing.
+    """
     docs = [b for b in blocks if isinstance(b, dict) and b.get("type") == "document"]
-    start = content.rfind("\n") + 1
-    out = []
-    for i, doc in enumerate(docs):
-        parts = (doc.get("source") or {}).get("content") or []
-        if parts:
-            out.append(
-                {
-                    "type": "content_block_location",
-                    "document_index": i,
-                    "document_title": doc.get("title"),
-                    "start_block_index": 0,
-                    "end_block_index": 1,
-                    "cited_text": parts[0].get("text", ""),
-                    "text": content[start:],
-                    "text_start": start,
-                    "text_end": len(content),
-                }
-            )
-    return out
+    policy_claims = [c for c in _claims_block(_last_text(blocks)) if c.get("needs_policy_support")]
+    out: list[dict[str, Any]] = []
+    for claim in policy_claims:
+        if not docs:
+            break
+        sentence = str(claim.get("text", ""))
+        start = len(content) + 2
+        content = f"{content}\n\n{sentence}"
+        for i, doc in enumerate(docs):
+            parts = (doc.get("source") or {}).get("content") or []
+            if parts:
+                out.append(
+                    {
+                        "type": "content_block_location",
+                        "document_index": i,
+                        "document_title": doc.get("title"),
+                        "start_block_index": 0,
+                        "end_block_index": 1,
+                        "cited_text": parts[0].get("text", ""),
+                        "text": sentence,
+                        "text_start": start,
+                        "text_end": start + len(sentence),
+                    }
+                )
+    return content, out
 
 
 def canonical_plan(facts: dict[str, Any]) -> dict[str, Any]:

@@ -28,7 +28,11 @@ from fakes.clients import INJECTION_MARKERS, INJECTION_TEXT, ObedientInjectionCl
 pytestmark = pytest.mark.adversarial
 
 SETTINGS = Settings(llm_provider="mock", auto_approve=True)
-_BLOCK = re.compile(r"<data surface=\"[a-z_]+\" id=\"[^\"]*\">.*?</data>", re.DOTALL)
+# A8: a block opens with a random nonce and closes only at the closing tag with the same nonce
+_BLOCK = re.compile(
+    r"<data surface=\"[a-z_]+\" id=\"[^\"]*\" nonce=\"(?P<n>[0-9a-f]{16})\">.*?</data nonce=\"(?P=n)\">",
+    re.DOTALL,
+)
 
 
 class RecordingObedient(ObedientInjectionClient):
@@ -104,7 +108,7 @@ def _assert_only_in_data_blocks(client: RecordingObedient, surface: str) -> None
             assert not any(m in outside for m in INJECTION_MARKERS), (
                 f"injection outside a data block ({surface})"
             )
-            inside = " ".join(_BLOCK.findall(text))
+            inside = " ".join(m.group(0) for m in _BLOCK.finditer(text))
             assert f'surface="{surface}"' in inside or surface == "evidence", surface
     assert seen, f"the planted {surface} text never reached the model: the test would be vacuous"
 
@@ -130,6 +134,13 @@ async def _assert_invariants(platform: Platform, result, store, client: Recordin
     assert not any("approver" == s.get("agent_id") for s in result.step_results)
     if narrative_obeyed:  # the obeyed narrative (fabricated numbers and ids) is caught and blocking
         assert "NARRATIVE_UNTRACEABLE" in {w.code for w in result.warnings}
+        # A2: and suppressed - the report carries the template, not the model's prose
+        suppressed = result.report.critique.get("narrative_suppressed")
+        assert suppressed and suppressed["sha256"], "the obeyed narrative shipped"
+        assert "LLM_NARRATIVE_SUPPRESSED" in {w.code for w in result.warnings}
+        assert result.report.critique["narrative_number_warnings"] or result.report.critique[
+            "narrative_evidence_warnings"
+        ]
 
 
 async def test_surface_question(store):

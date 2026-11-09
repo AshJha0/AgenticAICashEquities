@@ -14,9 +14,13 @@ A cassette is one JSON file::
   answers each request with the next recorded ``Message`` *only if* the request body hashes to the
   recorded ``request_sha256``. A changed prompt, schema, model or message makes it ``STALE`` (the
   transport raises :class:`CassetteStaleError` and records the mismatch on ``stale``).
-* ``match: "prefix"`` hashes only the stable prefix (model, system, tools, output format) for
-  interactions whose message carries run-time values (the narrative facts include timestamps);
-  a prompt change still makes them ``STALE``.
+* Matching is **exact by default** (A19): the whole request body, after the float rounding and the
+  masking of evidence digests and data-block nonces described below.
+* ``match: "prefix"`` hashes only the stable prefix (model, system, tools, output format). It is
+  for prompt-cache tests only: a transport refuses a ``prefix`` interaction unless it was built with
+  ``allow_prefix=True``. A prompt change still makes such an interaction ``STALE``.
+* **Unused interactions fail**: :func:`assert_consumed` raises when a replay ends before every
+  recorded interaction was asked for (a run that silently skipped a model call is not a pass).
 * **Writing** (:func:`write_cassette`) applies the scrubber (0.8) to every interaction first.
 * **Metric gate**: :func:`assert_publishable` refuses to let a model-behaviour metric come from a
   ``hand_built`` cassette - a hand-built reply measures the harness, not the model.
@@ -107,13 +111,26 @@ def _round_floats(value: Any) -> Any:
     sent on the wire stay exact.
     """
     if isinstance(value, str):
-        return _DECIMAL.sub(_round_literal, _DIGEST.sub(r"\g<1><digest>", value))
+        return _DECIMAL.sub(_round_literal, _DIGEST.sub(r"\g<1><digest>", mask_nonces(value)))
     if isinstance(value, float):
         return float(f"{value:.{MATCH_SIG_DIGITS}g}") if math.isfinite(value) else value
     if isinstance(value, dict):
         return {k: ("<digest>" if k == "digest" else _round_floats(v)) for k, v in value.items()}
     if isinstance(value, list | tuple):
         return [_round_floats(v) for v in value]
+    return value
+
+
+def mask_nonces(value: Any) -> Any:
+    """Replace every data-block nonce with a fixed mask, recursively (A8 nonces are random per call)."""
+    from ceap.llm.prompts import mask_nonces as mask_text
+
+    if isinstance(value, str):
+        return mask_text(value)
+    if isinstance(value, dict):
+        return {k: mask_nonces(v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [mask_nonces(v) for v in value]
     return value
 
 
@@ -152,7 +169,7 @@ def _scrub(interaction: Mapping[str, Any]) -> dict[str, Any]:
     out = scrub_cassette(interaction)
     for key in ("request", "response"):
         if key in out:
-            out[key] = redact_obj(out[key])
+            out[key] = redact_obj(mask_nonces(out[key]))  # mask first: the redactor reads a nonce as an id
     return out
 
 
@@ -202,9 +219,13 @@ def _transport_base() -> Any:
 
 
 class CassetteTransport:
-    """``httpx2`` mock transport replaying a cassette in order, refusing stale requests."""
+    """``httpx2`` mock transport replaying a cassette in order, refusing stale requests.
 
-    def __new__(cls, cassette: Cassette) -> Any:
+    ``prefix`` interactions are refused unless ``allow_prefix`` is set (prompt-cache tests only, A19).
+    Call :func:`assert_consumed` after the run: an interaction never asked for is a failure.
+    """
+
+    def __new__(cls, cassette: Cassette, *, allow_prefix: bool = False) -> Any:
         httpx2 = _transport_base()
         state: dict[str, Any] = {"i": 0}
         stale: list[str] = []
@@ -216,6 +237,12 @@ class CassetteTransport:
                 stale.append(f"interaction {i}: cassette exhausted")
                 raise CassetteStaleError(f"{STALE}: request {i} has no recording")
             rec = cassette.interactions[i]
+            if rec.match == "prefix" and not allow_prefix:
+                stale.append(f"interaction {i} ({rec.purpose}): prefix match not allowed here")
+                raise CassetteStaleError(
+                    f"{STALE}: request {i} ({rec.purpose}) is recorded with prefix matching; "
+                    "only prompt-cache tests may replay it (allow_prefix=True)"
+                )
             got = request_sha256(body, rec.match)
             if got != rec.request_sha256:
                 stale.append(f"interaction {i} ({rec.purpose}): {got[:12]} != {rec.request_sha256[:12]}")
@@ -228,7 +255,15 @@ class CassetteTransport:
         transport = httpx2.MockTransport(handle)
         transport.stale = stale  # type: ignore[attr-defined]
         transport.state = state  # type: ignore[attr-defined]
+        transport.total = len(cassette.interactions)  # type: ignore[attr-defined]
         return transport
+
+
+def assert_consumed(transport: Any) -> None:
+    """A19: fail when a replay ended with recorded interactions nobody asked for."""
+    used, total = int(transport.state["i"]), int(transport.total)
+    if used != total:
+        raise CassetteStaleError(f"{STALE}: {total - used} of {total} recorded interaction(s) never replayed")
 
 
 class RecordingTransport:

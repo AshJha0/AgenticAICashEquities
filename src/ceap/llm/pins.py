@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -41,6 +42,8 @@ class ModelPins:
     allowed: frozenset[str]
     purposes: dict[str, PurposePin]
     prices: dict[str, Price] = field(default_factory=dict)
+    #: A15: prompt id -> (version, sha256 of its canonical bytes), checked when a prompt is loaded
+    prompts: dict[str, tuple[str, str]] = field(default_factory=dict)
 
     def require(self, model: str) -> str:
         if model not in self.allowed:
@@ -80,9 +83,20 @@ def parse_pins(raw: dict[str, Any]) -> ModelPins:
         )
         for m, p in (raw.get("pricing") or {}).items()
     }
+    prompts: dict[str, tuple[str, str]] = {}
+    for pid, ref in (raw.get("prompts") or {}).items():
+        version, _, sha = str(ref).partition(":")
+        if not version.isdigit() or not re.fullmatch(r"[0-9a-f]{64}", sha):
+            raise ValueError(f"model_pins.toml [prompts] {pid!r} must be 'version:sha256', got {ref!r}")
+        prompts[str(pid)] = (version, sha)
     sdk = raw.get("sdk") or {}
     return ModelPins(
-        str(sdk.get("package", "anthropic")), str(sdk.get("version", "")), allowed, purposes, prices
+        str(sdk.get("package", "anthropic")),
+        str(sdk.get("version", "")),
+        allowed,
+        purposes,
+        prices,
+        prompts,
     )
 
 

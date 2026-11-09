@@ -25,7 +25,7 @@ from ceap.agents.reporter import (
 from ceap.domain.evidence import EvidenceType
 from ceap.llm.client import MockLLMClient, mock_claims
 from ceap.llm.models import LLMRequest, LLMResponse
-from ceap.llm.prompts import REPORTER_CLAIMS_SYSTEM_PROMPT, get_prompt
+from ceap.llm.prompts import REPORTER_CLAIMS_SYSTEM_PROMPT, get_prompt, mask_nonces
 from ceap.platform import Platform, default_request
 
 SNAPSHOTS = Path(__file__).resolve().parents[1] / "contract" / "snapshots"
@@ -124,7 +124,9 @@ def test_prose_request_shape():
     blocks = req.messages[0]["content"]
     doc, text = blocks[0], blocks[-1]
     assert doc["type"] == "document" and doc["citations"] == {"enabled": True}
-    assert doc["source"] == {"type": "content", "content": [{"type": "text", "text": document_text(CHUNK)}]}
+    sent = doc["source"]["content"][0]["text"]
+    assert doc["source"]["type"] == "content" and len(doc["source"]["content"]) == 1
+    assert mask_nonces(sent) == mask_nonces(document_text(CHUNK))  # A8: the nonce is random per block
     assert doc["cache_control"] == {"type": "ephemeral"}
     assert text["type"] == "text" and CHUNK["text"] not in text["text"]  # full text only in the document
     assert req.output_model is None and req.purpose == "narrative"
@@ -202,6 +204,7 @@ async def _wire(request: LLMRequest, content: list[dict[str, Any]]) -> tuple[dic
 
 def _snapshot(name: str, body: dict[str, Any]) -> None:
     path = SNAPSHOTS / name
+    body = json.loads(mask_nonces(json.dumps(body)))  # A8: data-block nonces are random per call
     if os.environ.get("CEAP_UPDATE_SNAPSHOTS") == "1" or not path.exists():
         path.write_text(json.dumps(body, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     assert json.loads(path.read_text(encoding="utf-8")) == body, (

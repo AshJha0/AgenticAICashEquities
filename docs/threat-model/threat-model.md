@@ -66,13 +66,18 @@ before they influence anything, and it never touches data or tools directly.
 | T26 | Duplicate side effects from client retries | `Idempotency-Key` per principal, persisted 24 h; different body 422 | `test_idempotency_key_same_body_same_id_different_body_422` |
 | T27 | Credential leakage (keys in logs, errors, reprs) and reconnaissance via unauthenticated endpoints | Salted digests in memory, optional expiry, `repr=False` on secrets, no key in any error; `/health` liveness only; `/metrics` needs `metrics:read`; request id on every log line | `test_raw_key_absent_from_logs_errors_and_reprs_and_every_line_has_a_request_id`, `test_salted_hash_entries_and_key_expiry` |
 | T28 | Tampering with the audit trail | Hash chain over canonical bytes; `ceap db verify-chain` names the first bad row; never pruned | `test_backup_restores_and_verifies_then_tamper_breaks_chain`, `test_deleting_a_middle_audit_row_is_detected` |
-| T30 | Injection through the question (surface `question`) | The question reaches the planner only inside `<data surface="question">`; a block cannot be closed from inside (`<data`/`</data` are escaped); the system prompt states that data blocks are never instructions; invariants hold even when the model obeys | `tests/adversarial/test_surfaces.py::test_surface_question` |
-| T31 | Injection through log lines (surface `logs`) | Log text appears only in finding statements, which reach the critic and the reporter inside `<data surface="evidence">`; the critic cannot change confidences; numbers and ids in the narrative are audited (blocking) | `test_surface_logs` |
+| T30 | Injection through the question (surface `question`) | The question reaches the planner only inside `<data surface="question" nonce="...">`; a block cannot be closed from inside (content NFKC-normalised and stripped of zero-width characters, `<data`/`</data` escaped even with whitespace inside the tag, and a random nonce per block that the closing tag repeats, 0.8.0 A8); the system prompt states that data blocks are never instructions; invariants hold even when the model obeys | `tests/adversarial/test_surfaces.py::test_surface_question`, `test_block_content_cannot_close_the_block` |
+| T31 | Injection through log lines (surface `logs`) | Log text appears only in finding statements, which reach the critic and the reporter inside `<data surface="evidence">`; the critic cannot change confidences; numbers and ids in the narrative are audited, and prose that fails is suppressed and replaced by the template (0.8.0 A2) | `test_surface_logs` |
 | T32 | Injection through deployment text (surface `deployments`) | Same as T31: deployment descriptions travel as evidence data | `test_surface_deployment_text` |
 | T33 | Injection through retrieved documents (surface `rag`) | One `<data surface="rag" id="policy-N">` block per retrieved chunk; the reporter's audits apply to whatever the model writes | `test_surface_rag_documents` |
 | T34 | Injection through MCP tool descriptions (surface `tool_descriptions`) | The tool catalogue reaches the planner inside `<data surface="tool_descriptions">`; the plan output schema is a union over the catalogue and every step is re-validated and policy-checked | `test_surface_mcp_tool_descriptions` |
 | T35 | Injection or poisoning through case memory (surface `case_memory`) | Prior cases reach the planner as read-only views inside `<data surface="case_memory">`; memory is written only by the harness after a human decision, append-only, audited, partitioned by dataset, and OFF in evaluation (D10); there is no memory tool | `test_surface_case_memory`, `test_3b7_*` |
 | T36 | A finding cites a value it did not use | `evidence_refs {id, path, value}`; validation checks the value at the path and drops the finding with `EVIDENCE_VALUE_MISMATCH`; calculations must derive from evidence recorded in the run | `test_3b4_*` |
+| T37 | Fabricated or rescaled figures in model prose (sign flips, 100x unit errors) | The model names figures as `{fact.key}` placeholders that code renders with units (0.8.0 A1); the free-text number audit accepts only unit-matched conversions, never flips a sign without a direction word, and has no small-integer exemption; prose that fails any audit is replaced by the template narrative and kept only in the audit log (A2) | `tests/agent/test_r080_narrative_guardrails.py::test_repro_figures_fail_the_audit`, `tests/adversarial/test_surfaces.py` |
+| T38 | One citation laundering several policy claims | Per-claim citation mapping: each policy claim needs a verified citation attached to its own sentence (0.8.0 A7) | `tests/agent/test_r080_narrative_guardrails.py::test_each_policy_claim_needs_its_own_citing_sentence` |
+| T39 | Planner arguments carrying injected text, or steps with no task scope | String arguments allowlisted (schema enum, else a short plain value); a step whose scoping argument has no task value is dropped (0.8.0 A11); the repair request carries only the structured problem list in a data block, never the model's reply (A12) | `tests/agent/test_r080_narrative_guardrails.py::test_string_arguments_are_allowlisted`, `::test_step_with_unknown_scope_is_dropped`, `::test_repair_turn_does_not_echo_the_model_reply` |
+| T40 | A prompt file edited without review | Prompt `version:sha256` pinned in `llm/model_pins.toml` and verified when the prompt is loaded (0.8.0 A15) | `tests/agent/test_r080_narrative_guardrails.py::test_a_drifted_prompt_is_refused` |
+| T41 | Cassette replay hiding a skipped or loosely matched model call | Exact matching by default, `prefix` only with `allow_prefix=True` (cache tests), unused interactions fail (0.8.0 A19) | `tests/agent/test_r080_narrative_guardrails.py::test_prefix_interactions_need_an_explicit_opt_in`, `::test_unused_interactions_fail` |
 | T29 | Resource exhaustion through request size or parked tasks | Body limit (413), question length, `gross_notional` bound, pagination clamp; slots released while awaiting approval | `test_request_limits_body_question_notional_and_pagination`, `test_four_pending_approvals_do_not_block_a_fifth_task` |
 
 ## Residual risks and recommendations
@@ -91,11 +96,13 @@ before they influence anything, and it never touches data or tools directly.
   and content-hashed, since retrieved passages influence the narrative.
 * Attribution thresholds are heuristics calibrated on synthetic data; they must be recalibrated on
   real TCA history and versioned like code.
-* The number audit is tolerant (rounding, percentage forms, bps/per-mille scalings); it detects
-  fabrication rather than proving correctness of prose — see `ceap.agents.reporter.audit_numbers`
-  for exactly which derived values are accepted, and CHANGELOG 0.3.2 for a rejected attempt (a
-  pairwise relative-change derivation) that made the audit *too* permissive and let a fabricated
-  number through in the adversarial suite.
+* The number audit is the backstop behind typed placeholders. It accepts rounding and
+  unit-matched conversions only (fraction to percent or bps, ratio to percent change, bps to
+  percent); it detects fabrication rather than proving the prose correct. A figure can still be
+  attached to the wrong fact ("fill rate 12.34 bps" when 12.34 is the slippage) if the units
+  agree; placeholders remove that risk only when the model uses them. See
+  `ceap.agents.reporter.audit_numbers`, and CHANGELOG 0.3.2 for a rejected attempt (a pairwise
+  relative-change derivation) that made the audit *too* permissive.
 * Structured logs may contain symbols and quantities; apply the same access controls as the data.
 * `stage_orders` is paper-only by construction (no MCP tool in this codebase has venue
   connectivity); if this platform is ever extended with a real execution adapter, that adapter

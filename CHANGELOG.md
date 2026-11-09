@@ -6,6 +6,32 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+- Narrative guardrails (0.8.0 lane 1, plan WS-A steps A1, A2, A7, A8, A11, A12, A15, A19, A20).
+  **Breaking (decision D4):** model prose that fails the number, evidence-id or citation audit is no
+  longer shipped with a warning; the report carries the deterministic template narrative, the
+  degradation `LLM_NARRATIVE_SUPPRESSED` and `critique.narrative_suppressed` (sha256, length,
+  reasons), and the rejected prose goes only to the audit log (`reporter.narrative_rejected`).
+  - A1: typed placeholders. The model names a figure as `{fact.key}`; code renders it with its unit.
+    The free-text audit is hardened: unit-matched conversions only, no sign flip unless a direction
+    word agrees, and no small-integer exemption (line-start list markers and fact-list lengths
+    still trace). The review repro (`-12.34 bps` and `1234 bps` against
+    `{slippage_bps: 12.34, fill_rate: 0.4321}`) now fails; `43 pct` passes as the correct
+    percent form of 0.4321. Prompts `report@2`, `research_report@2`, `reporter_claims@2`,
+    `reporter_prose@2`.
+  - A7: per-claim citation mapping (`claim_citations`): a policy claim needs a verified citation on
+    its own sentence. The mock now writes each policy claim as its own line and cites it there.
+  - A8: data blocks NFKC-normalise and strip zero-width characters, escape tags whitespace-tolerantly
+    and carry a random nonce that the closing tag repeats (`</data nonce="...">`).
+  - A11: planner string arguments are allowlisted (enum, else a short plain value); a step with an
+    unknown data scope is dropped. A12: the planner and critic repair requests carry only the
+    structured problem list, in a data block, never the model's reply.
+  - A15: prompt `version:sha256` pinned in `llm/model_pins.toml` `[prompts]` and verified at load
+    (`PromptIntegrityError`).
+  - A19: cassette matching is exact by default; `prefix` needs `allow_prefix=True` (cache tests
+    only); `assert_consumed` fails unused interactions; nonces are masked in the match key and the
+    stored body. Cassettes regenerated through the existing writer.
+  - A20: the mock client reports zero tokens and so zero cost (it used to report characters / 4).
+
 ## [0.7.1] - 2026-11-08
 
 Patch release after 0.7.0: release-gate fix, golden-set owner sign-off and the R5 v2 write-up
