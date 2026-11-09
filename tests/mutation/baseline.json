@@ -1,0 +1,4 @@
+{
+  "_comment": "H3 ratchet: ceiling on surviving mutmut mutants in ceap.analytics and ceap.domain. null until the first Linux nightly measures it; see scripts/mutation_ratchet.py.",
+  "survived": null
+}

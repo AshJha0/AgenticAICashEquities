@@ -1,0 +1,42 @@
+# H14 (0.9.0): the same checks the CI lint job runs, before each commit.
+# Setup once: pip install pre-commit==4.7.0 && pre-commit install
+# Every hook is `language: system`: it runs the tools already in .venv at the versions pinned by
+# requirements.lock (ADR 0003), so local and CI results agree. Activate .venv before committing.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff check
+        entry: ruff check --force-exclude
+        language: system
+        types: [python]
+      - id: ruff-format-check
+        name: ruff format --check
+        entry: ruff format --check --force-exclude
+        language: system
+        types: [python]
+        stages: [manual] # the repository is not fully ruff-formatted yet; run with --hook-stage manual
+      - id: mypy
+        name: mypy src (strict for domain, analytics, api; see pyproject)
+        entry: mypy src
+        language: system
+        pass_filenames: false
+        files: ^src/.*\.py$
+      - id: banned-words
+        name: banned-word check (scripts/check_banned_words.py)
+        entry: python scripts/check_banned_words.py
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: docs-check
+        name: docs numbers and commands match artefacts (scripts/check_docs.py)
+        entry: python scripts/check_docs.py
+        language: system
+        pass_filenames: false
+        files: \.(md|json|py)$
+      - id: openapi-fresh
+        name: docs/api/openapi.json matches the code
+        entry: python scripts/export_openapi.py --check
+        language: system
+        pass_filenames: false
+        files: ^(src/ceap/api/|docs/api/openapi\.json)

@@ -137,3 +137,10 @@ extra_checks = true
 # scikit-learn stubs). Named one by one so any other missing import still fails.
 module = ["jsonschema", "jsonschema.*", "yaml", "yaml.*", "pandas", "pandas.*", "sklearn", "sklearn.*"]
 ignore_missing_imports = true
+
+[tool.mutmut]
+# H3 (0.9.0): nightly mutation testing (.github/workflows/nightly.yml, job `mutation`). mutmut is a
+# job-only tool (ADR 0003) and needs Linux; scripts/mutation_ratchet.py enforces the ceiling.
+paths_to_mutate = ["src/ceap/analytics/", "src/ceap/domain/"]
+tests_dir = ["tests/unit/analytics/", "tests/properties/", "tests/unit/test_domain.py"]
+pytest_add_cli_args = ["-p", "no:randomly", "--no-cov", "-o", "addopts="]

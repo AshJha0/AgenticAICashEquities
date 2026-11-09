@@ -2,6 +2,18 @@
 
 Run with `ceap serve` (or `uvicorn ceap.api.app:app`). Interactive docs at `/docs`.
 
+## Generated reference (0.9.0)
+
+- **HTTP API**: [`openapi.json`](openapi.json) is the OpenAPI 3 document the running server serves at
+  `/openapi.json`, checked in so a route or schema change is a visible diff. Regenerate with
+  `python scripts/export_openapi.py`; CI's `contracts` job fails when the committed file is stale.
+  The nightly `api-fuzz` job runs Schemathesis against it (read-only operations).
+- **Python API**: CI's `api-reference` job renders `ceap.analytics` and `ceap.domain` with pdoc from
+  their docstrings and type annotations and uploads the HTML as the `api-reference` artifact.
+  Locally: `pip install pdoc==16.0.0 && pdoc ceap.analytics ceap.domain`.
+- The tables below are the hand-written guide; when they and `openapi.json` disagree, the JSON is
+  what the code does.
+
 ## Authentication and roles
 
 Send `X-API-Key: <key>`. Keys map to roles via `CEAP_API_KEYS` (`key:role,...`). Development
