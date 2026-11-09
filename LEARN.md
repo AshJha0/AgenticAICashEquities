@@ -28,6 +28,8 @@ Contents:
 16. [Ten pitfalls this platform is built to avoid](#16-ten-pitfalls-this-platform-is-built-to-avoid)
 17. [Knowledge check (ten questions, answered from this repo)](#17-knowledge-check)
 18. [Stage 2: signal research](#18-stage-2-signal-research)
+    (18a. [Paper trading](#18a-paper-trading-and-the-forward-record) ·
+    18b. [Running an execution, not only measuring it](#18b-running-an-execution-not-only-measuring-it-080))
 19. [Further reading](#19-further-reading)
 
 ---
@@ -320,10 +322,19 @@ The reporter then hands *structured facts* to the model and audits what comes ba
 * **Number audit** — every number in the narrative must match some fact value (allowing for
   rounding, `×100` percentage forms and `(ratio − 1) × 100`); list numbering is ignored.
 * **Evidence-id audit** — every `PREFIX-xxxxxxxx` token must exist.
+* **Citation audit (0.8.0)** — a policy claim needs a verified citation on its own sentence.
+
+Since 0.8.0 the model is asked to name figures as typed placeholders (`{fact.key}`) that code
+renders with their units, so most numbers never pass through the model at all. The free-text audit
+remains for anything else and is stricter: unit-matched conversions only, no sign flip unless a
+direction word agrees, and no small-integer exemption. Prose that fails any audit is **not shipped**:
+the report carries the deterministic template narrative and the degradation
+`LLM_NARRATIVE_SUPPRESSED`, and the rejected prose goes only to the audit log.
 
 `test_fabricated_numbers_and_evidence_ids_are_flagged` feeds the reporter a narrative
 claiming "0.0000 bps", "99.9 %" and "EXEC-deadbeef" and asserts all are flagged while the
-deterministic report fields are untouched.
+deterministic report fields are untouched; since 0.8.0 the adversarial tests also assert that the
+flagged prose is suppressed.
 
 ## 11. Policy, approvals and RBAC
 
@@ -333,11 +344,18 @@ otherwise ALLOW, and the evaluation names the rule:
 | Rule | Effect |
 |---|---|
 | denied-tools | explicit deny list |
+| untrusted-server (0.8.0) | every tool of an MCP server outside `CEAP_MCP_TRUSTED_SERVERS` is denied, whatever it declares |
+| agent-allowlist (0.8.0) | each agent has its own capability set and tool allowlist (`ceap.policy.agents`), intersected with the principal's |
 | read-only | mutating tools need `tools:write`; reading needs `tools:read` |
 | required-capabilities | tool's declared capabilities ⊆ principal's |
-| argument-guard | page limits ≤ 5,000; no string argument over 2,000 chars |
-| symbol-universe | symbol must be in the permitted universe (global or per request) |
-| risk-level | CRITICAL never; HIGH needs `risk:high` or approval; MEDIUM needs `risk:medium` or approval |
+| argument-guard | page limits ≤ 5,000 and a whole number; strings ≤ 2,000 chars, ≤ 1,000 items, depth ≤ 8, at every level of the argument tree |
+| input-schema (0.8.0) | arguments validate against the tool's JSON schema |
+| symbol-universe | every symbol-bearing field (lists, nested objects, `x-ceap-symbol` properties) must be in the permitted universe; with no universe configured, a request that names a symbol is denied (fail closed, 0.8.0) |
+| risk-level | CRITICAL never; HIGH always needs a human approval (no capability skips it since 0.8.0); MEDIUM needs `risk:medium` or approval |
+
+Four-eyes binds to a person: an API key mapped with `subject=NAME` acts as `user:NAME`, and an
+admin cannot decide approvals at all, so an admin's HIGH-risk request waits for a separate
+approver. Diagram: [docs/DIAGRAMS.md §13](docs/DIAGRAMS.md#13-policy-and-approval-flow-080).
 
 Roles map to capabilities (viewer, trader, quant, engineer, admin). Approval gateways:
 `AutoApprovalGateway` (dev, records what it approved), `QueuedApprovalGateway` (parks the step,
@@ -458,6 +476,14 @@ See `docs/evaluation/evaluation.md`.
 * Durable state is SQLite behind one writer thread (WAL, forward-only migrations, backup before
   migrate). The audit log is a hash chain: each row's hash covers the previous hash and the row's
   canonical bytes, so editing or deleting any row breaks `ceap db verify-chain` from that row on.
+  A plain hash chain only proves consistency: anyone who can write the file can rewrite a row and
+  recompute every later hash. Since 0.8.0 the link is HMAC-SHA256 under `CEAP_AUDIT_HMAC_KEY`,
+  which never lives in the database, and `ceap db anchor` writes the chain heads to a file you commit
+  to git, so `ceap db verify-chain --anchor FILE` also catches a rewritten or cut-off tail
+  ([diagram](docs/DIAGRAMS.md#14-audit-chain-and-external-anchor-080)).
+* CPU-heavy work (request validation, dataset generation) runs off the event loop since 0.8.0, and
+  under the API server CPU-bound tools run in a killable process pool, so a step timeout really
+  stops the work. The LLM budget and a per-principal rate limit are on by default.
 * Every request gets an `X-Request-ID` that appears on every log line it causes. `/metrics`
   follows Prometheus conventions (`_total` counters, seconds, HELP on every family) and needs a key.
 * A replay bundle captures everything a task consumed; `ceap replay` re-runs it with an injected
@@ -535,7 +561,7 @@ second set of deterministic analytics and a second agent roster.
 **The research pipeline mirrors the TCA one exactly.** Universe/signal/backtest/portfolio tool
 calls run first (their outputs become evidence, same as market data); Research, Alpha, Backtest
 and Portfolio-risk agents interpret them (same pattern as Market/Execution/Quant); the Critic
-computes a deterministic verdict — `assess_research` scores `PROMOTE`/`REJECT` with flags
+computes a deterministic verdict — `assess_research` scores `PROMOTE`/`REJECT`/`INCONCLUSIVE` (the third since v0.8.0) with flags
 (`NO_ALPHA`, `OOS_DECAY`, `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`) exactly the way
 `attribute_causes` scores execution-quality causes — and caps any agent finding that contradicts
 it; the Reporter writes the proposal and the same number/evidence-id audits run against it.
@@ -586,9 +612,13 @@ real model's legitimate arithmetic. See `docs/evaluation/evaluation.md` and `CHA
 for the numbers; the lesson generalises past this project: *an offline mock proves the control
 plane works, not that the model integration does — check both.*
 
-On the current 30-scenario set (0.4.0 re-baseline), with the mock model, `ceap evaluation-report`
-gives research verdict accuracy <!-- metric: capability.research_verdict_accuracy -->0.9667 (29/30; evidence class: mock,
-source `docs/evaluation/latest.json`). That number measures the deterministic pipeline; real-model
+On the 30-scenario set, with the mock model, `ceap evaluation-report` gives research verdict
+accuracy <!-- metric: capability.research_verdict_accuracy -->0.8333 (25/30; evidence class: mock,
+source `docs/evaluation/latest.json`). It was 29/30 in 0.7.1; v0.8.0 made the test harder on
+purpose: the premia were recalibrated to published moments, the IC hurdle became t >= 3.0 for a
+searched result, and a third verdict `INCONCLUSIVE` covers "the data cannot tell no edge from a
+tradable edge". By class: 21/24 clear and 2/6 near-threshold, each at or above its a-priori bar <!-- source: CHANGELOG.md -->
+(synthetic; `docs/quant/real-data-and-paper.md`). That number measures the deterministic pipeline; real-model
 verdict accuracy on this set is UNKNOWN / NOT RUN LIVE (D15).
 
 ## 18a. Paper trading and the forward record
@@ -620,6 +650,27 @@ stays on the synthetic feed, no Stooq data is in the repository (the cache is gi
 pseudo-holdout (to 2025-12-31), and 12-1 momentum needs a year of history after that, so January
 2027 is the earliest real-price start. Even then, at 1980 sessions for S = 1, the record cannot
 settle a Sharpe question for years; read it for breaks, blocks and reconciliation, not for alpha.
+
+## 18b. Running an execution, not only measuring it (0.8.0)
+
+Sections 5 and 6 measure an execution after the fact. Up to 0.7.1 the synthetic market also gave
+passive orders free fills at the touch and planted impact as a drift chosen in advance, so nothing
+the platform did could move the price. The `ceap.execution` package (0.8.0) closes that gap, still on
+synthetic data only:
+
+* a limit order book where a resting order fills only when the market trades through the queue
+  ahead of it, with latency and informed flow that makes passive fills adversely selected;
+* impact caused by the bot's own fills (a propagator kernel), which can be fitted from markouts and
+  compared with the truth the simulator used;
+* one `Schedule` interface for TWAP, VWAP, POV and Almgren-Chriss, child-order logic, an auction
+  uncross, and the tick, round-lot and LULD rules;
+* a predicted-versus-realised cost loop that stores residuals, recalibrates weekly and raises a drift
+  alert, and markout curves by venue with bootstrap intervals.
+
+Start with [docs/execution/execution.md](docs/execution/execution.md) (plain idea, formal statement
+and a worked example per part) and COOKBOOK recipes 44-48; the data flow is in
+[docs/DIAGRAMS.md §15](docs/DIAGRAMS.md#15-execution-package-080). Not done yet: paper MOC caps, money
+as integer micro-dollars, dividends and the sigma fat-finger band (0.9.0).
 
 ## 19. Further reading
 

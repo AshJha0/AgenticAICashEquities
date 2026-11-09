@@ -46,7 +46,7 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
        statistics, technology telemetry and runbooks through MCP, computes every number with
        deterministic quant analytics, lets specialist agents interpret the evidence, has a critic
        challenge the findings, and writes a report in which every claim points at an evidence
-       record. Current release: 0.7.1. Python · MCP · LLM layer (offline-provable) · multi-agent
+       record. Current release: v0.8.0. Python · MCP · LLM layer (offline-provable) · multi-agent
        harness · policy engine · BM25 RAG · SQLite · FastAPI.</p>
     <nav>
       <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/README.md">README</a>
@@ -57,7 +57,8 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
       <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/ai-agents/ai-agents.md">AI &amp; Agents</a>
       <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/evaluation/evaluation.md">Evaluation</a>
       <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/quant/quant.md">Quant</a>
-      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/research/README.md">R5 study</a>
+      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/research/README.md">Research</a>
+      <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/execution/execution.md">Execution</a>
       <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/quant/real-data-and-paper.md">Real data &amp; paper</a>
       <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/DIAGRAMS.md">Diagrams</a>
       <a class="secondary" href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/threat-model/threat-model.md">Threat model</a>
@@ -74,15 +75,15 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
   <div class="numbers">
     Evidence class&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the evaluation results below come from the deterministic mock LLM on synthetic data; no test, demo or CI job calls a real model (decision D15)<br>
     <!-- source: docs/evaluation/latest.json -->Execution evaluation&nbsp;&nbsp;&nbsp;&nbsp; 50 scenarios (mock LLM, synthetic) · primary-cause accuracy 0.98 · ground-truth coverage 0.98 · false-positive rate 0.06<br>
-    <!-- source: docs/evaluation/latest.json -->Research evaluation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30 scenarios (mock LLM, synthetic) · verdict accuracy 0.9667 (29/30)<br>
-    <!-- source: docs/evaluation/latest.json -->Golden set&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; v1.0.0, 30 investigation + 15 research items, SIGNED_OFF by the owner on 2026-11-08 (10/10 sampled items OK) · primary cause 0.9667 · verdicts 1.00 (mock LLM)<br>
+    <!-- source: docs/evaluation/latest.json -->Research evaluation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30 scenarios (mock LLM, synthetic) · verdict accuracy 0.8333 (25/30; 29/30 before the 0.8.0 recalibration and a-priori hurdle)<br>
+    <!-- source: docs/evaluation/latest.json -->Golden set&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; v1.0.0, 30 investigation + 15 research items, SIGNED_OFF by the owner on 2026-11-08 (10/10 sampled items OK) · primary cause 0.9667 · verdicts 0.8667 (mock LLM)<br>
     <!-- source: docs/evaluation/latest.json -->Safety&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4 injected faults x 4 invariants, invariants held 1.00; every fault marks the result DEGRADED (mock LLM)<br>
     <!-- source: docs/evaluation/latest.json -->Live-model metrics&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; planner quality, live injection resistance, narrative faithfulness, refusal rate, latency, cache hits, run-to-run variance: UNKNOWN / NOT RUN LIVE<br>
     <!-- source: docs/research/result_momentum_2026-11.md -->Real-data study R5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; VOID: point-in-time coverage 75.1 % against a required 95 %; no test statistic computed<br>
     <!-- source: docs/research/result_momentum_2026-11-v2.md -->R5 v2 (Stooq)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; VOID before registration: coverage 74.9 % against 95 %; pseudo-holdout 2024-2025 unspent<br>
     <!-- source: config/paper.json -->Paper trading&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SYNTHETIC feed; daily job enabled, forward record from 2026-11-09; no forward result yet (UNKNOWN)<br>
     Capability surface&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8 MCP servers · 39 tools, all read-only except one (paper order staging: HIGH risk, two human approvals)<br>
-    Tests&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; about 690 in the standard suite (the CI run on the release commit is the source of record); Python 3.11 and 3.12 in CI
+    Tests&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the count is taken from the CI run on the release commit, the source of record; Python 3.11 and 3.12 in CI
   </div>
 
   <div class="honest">
@@ -118,8 +119,9 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
       <p>Research, Alpha, Backtest, Portfolio risk, Critic, then human approval on the same harness:
          rank-IC statistics, an event-driven backtest with next-session fills, costs and a
          walk-forward split, a recomputed target portfolio checked against limits, and a
-         deterministic verdict. The PROMOTE hurdle comes from a measured null sweep. 30 synthetic
-         research scenarios.</p></div>
+         deterministic verdict: PROMOTE, REJECT or (since 0.8.0) INCONCLUSIVE. The IC hurdle is
+         fixed in advance (t &gt;= 3.0 for a searched result), and two templates are calibrated to
+         published moments. 30 synthetic research scenarios.</p></div>
     <div class="card"><h3>Deterministic quant analytics</h3>
       <p>Pure NumPy functions with known-answer tests: VWAP/TWAP, Perold implementation shortfall,
          slippage, effective spread, impact, volatility, depth and imbalance, cause attribution over
@@ -132,11 +134,15 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
     <div class="card"><h3>LLM layer (0.6.0)</h3>
       <p>Fails closed: <code>mock</code> or <code>anthropic</code>, set explicitly outside dev.
          Model ids pinned in <code>model_pins.toml</code>; strict schemas; any fallback marks the
-         result DEGRADED; <code>CEAP_LLM_DISABLED</code> is a kill switch. Offline proof only.</p></div>
+         result DEGRADED; <code>CEAP_LLM_DISABLED</code> is a kill switch. Since 0.8.0 the model
+         names figures as placeholders that code renders, and prose that fails the number, id or
+         citation audit is replaced by the template narrative. Offline proof only.</p></div>
     <div class="card"><h3>Agents and governance</h3>
       <p>The harness owns the state machine, retries, timeouts, approvals and the governance tail
          (critic, evidence validation, human approval); a plan cannot drop or reorder them. Every
-         model input sits in a data block; case memory is bounded and off in evaluation.</p></div>
+         model input sits in a data block; case memory is bounded and off in evaluation. Since
+         0.8.0 each agent has its own tool allowlist, HIGH-risk tools always need a human approval
+         from a different named person, and the policy fails closed without a symbol universe.</p></div>
     <div class="card"><h3>Retrieval with citations</h3>
       <p>Okapi BM25 (stdlib) over ten versioned, classified documents, with a measured chunking
          strategy and a minimum-support gate. The query is built by code, not the model. The
@@ -153,17 +159,22 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
          the committed report.</p></div>
     <div class="card"><h3>Platform and persistence</h3>
       <p>SQLite (WAL, single writer, forward-only migrations) for tasks, results, approvals, staged
-         orders and a hash-chained audit log that is never pruned; <code>ceap db</code> verifies the
-         chain. FastAPI gateway with hashed API keys and roles, Prometheus metrics, JSON logs,
+         orders and an HMAC-chained audit log that is never pruned; <code>ceap db anchor</code>
+         records the chain head outside the database and <code>ceap db verify-chain</code> checks
+         against it. CPU-bound tools run in a killable process pool under the server. FastAPI gateway with hashed API keys and roles, Prometheus metrics, JSON logs,
          OpenTelemetry-ready tracing.</p></div>
+    <div class="card"><h3>Execution simulator (0.8.0)</h3>
+      <p>A limit order book where passive orders fill only when traded through, impact caused by the
+         bot's own fills, TWAP/VWAP/POV and Almgren-Chriss schedulers, child orders, an auction
+         uncross, markouts and a predicted-versus-realised cost loop. Synthetic only.</p></div>
     <div class="card"><h3>Real-data study R5: VOID twice</h3>
       <p>A preregistered 12-1 momentum test on an approximately point-in-time S&amp;P 500, free data
          only, prices in a git-ignored cache that is never committed. The preregistration was hashed
          before any data was read. Coverage failed its gate both times, so no statistic was computed
          and the pseudo-holdout is unspent.</p></div>
     <div class="card"><h3>Paper trading (synthetic)</h3>
-      <p>Simulated next-close fills with the backtest's own cost model, an append-only hash-chained
-         ledger, desk controls (pre-trade checks, kill switch, NYSE calendar, reconciliation that
+      <p>Simulated next-close fills with the backtest's own cost model, an append-only HMAC-chained
+         ledger, desk controls (pre-trade checks, kill switch in the environment or the database, NYSE calendar, reconciliation that
          fails the run) and a daily forward record. It tests operations and controls, not
          profitability.</p></div>
   </div>

@@ -72,9 +72,12 @@ the layer fails closed and degrades visibly:
   in the tools -> system -> messages order). Every call leaves an `LLMCallRecord` (model, SDK pin,
   prompt id/version/sha, tokens including cache reads and writes, USD from pinned list prices,
   latency, redacted request body). Costs are attributed per task through a context variable, so
-  concurrent tasks never share a meter. `CEAP_TASK_BUDGET_USD` aborts a call *before* it is sent
-  when spent plus a local upper-bound estimate (characters / 4 for input, `max_tokens` for output;
-  `count_tokens` is a network call and is never used) would exceed the budget.
+  concurrent tasks never share a meter. Since 0.8.0 the budget is on by default
+  (`CEAP_TASK_BUDGET_USD` 2.00, `CEAP_TASK_TOKEN_BUDGET` 400000, plus a call cap): each call
+  reserves a local upper-bound estimate (characters / 4 for input, `max_tokens` for output;
+  `count_tokens` is a network call and is never used) before it is sent and settles to the actual
+  cost after, so concurrent calls cannot overshoot. A circuit breaker skips the primary model after
+  5 consecutive failures for 60 s. The mock client reports zero tokens and so zero cost.
 * **Prompt registry:** prompts are `llm/prompts/<id>.md` with a version header; the sha256 of the
   canonical bytes travels in request metadata, call records and `InvestigationReport.prompts`. A
   golden snapshot (`tests/cassettes/prompt_hashes.json`) fails CI when a prompt changes until the
@@ -418,14 +421,18 @@ it becomes `DOC` evidence.
 
 ## What is *not* here
 
-- **No trained ML models.** `scikit-learn` and `xgboost` are listed as an optional `ml` extra in
-  `pyproject.toml` but nothing in the codebase actually fits, loads or scores one. The "AI" in
-  CEAP is LLM orchestration (planning + narrative) plus deterministic quant analytics — not a
-  machine-learning pipeline. Don't assume one exists here.
+- **No ML library models.** `scikit-learn` and `xgboost` are listed as an optional `ml` extra in
+  `pyproject.toml` but nothing in the codebase fits, loads or scores one. The models that do exist
+  (change points, a ridge signal combination checked against an equal-weight baseline, isotonic
+  calibration, the pre-trade cost model) are small NumPy fits to synthetic data, described in
+  `docs/ml/README.md` and listed in the model inventory (`ceap.ml.inventory`, 0.8.0).
 - **No autonomous trading loop.** Agents propose; a human approves; the harness executes exactly
   what was approved and nothing else. There is no agent that decides to trade on its own.
-- **No memory/fine-tuning.** Every investigation and research task starts from a clean slate;
-  nothing persists across runs into the model itself.
+- **No fine-tuning.** Nothing persists into the model itself. The only cross-run state is the
+  bounded case memory written by the harness after a human decision, which is off in evaluation.
+- **No live-model metric.** The 0.8.0 per-agent evals, metric-sensitivity tests and OOD golden
+  split (`docs/evaluation/evaluation.md`, "AI evaluation") run on the mock and degraded clients;
+  their evidence class is `mock` until a local model is wired in (plan step B1, 0.9.0).
 
 ## Further reading
 

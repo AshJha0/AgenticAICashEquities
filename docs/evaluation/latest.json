@@ -8,7 +8,7 @@
   "false_positive_rate": 0.06,
   "completed": 1.0,
   "research_scenarios": 30,
-  "research_verdict_accuracy": 0.9667,
+  "research_verdict_accuracy": 0.8333,
   "golden": {
    "version": "1.0.0",
    "signoff": "SIGNED_OFF",
@@ -17,7 +17,7 @@
    "primary_cause_accuracy": 0.9667,
    "must_mention_rate": 1.0,
    "no_forbidden_claim_rate": 0.9667,
-   "verdict_accuracy": 1.0,
+   "verdict_accuracy": 0.8667,
    "must_flag_rate": 0.8667,
    "no_forbidden_flag_rate": 1.0
   },
@@ -123,9 +123,958 @@
  },
  "cost": {
   "investigations": 3,
-  "usd_per_investigation_estimate": 0.199488,
+  "usd_per_investigation_estimate": 0.200932,
   "calls_per_investigation": 4.0,
   "label": "local estimate: characters/4 token counts of mock-sized replies at pinned list prices; not a bill"
+ },
+ "agents": {
+  "evidence_class": "mock",
+  "cases_source": "hand_built",
+  "planner": {
+   "evidence_class": "mock",
+   "cases_source": "hand_built",
+   "gold_version": "1.0.0",
+   "cases": 10,
+   "tool_recall": {
+    "k": 28,
+    "n": 28,
+    "rate": 1.0,
+    "ci95": [
+     0.8794,
+     1.0
+    ]
+   },
+   "tool_precision": {
+    "k": 120,
+    "n": 120,
+    "rate": 1.0,
+    "ci95": [
+     0.969,
+     1.0
+    ]
+   },
+   "plan_valid": {
+    "k": 10,
+    "n": 10,
+    "rate": 1.0,
+    "ci95": [
+     0.7225,
+     1.0
+    ]
+   },
+   "repair": {
+    "k": 0,
+    "n": 10,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.2775
+    ]
+   },
+   "canonical_fallback": {
+    "k": 0,
+    "n": 10,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.2775
+    ]
+   },
+   "note": "tool counts are pooled over cases; tools within one plan are not independent, so the interval is indicative"
+  },
+  "critic": {
+   "evidence_class": "mock",
+   "cases_source": "hand_built",
+   "batches": 5,
+   "critique_valid": {
+    "k": 5,
+    "n": 5,
+    "rate": 1.0,
+    "ci95": [
+     0.5655,
+     1.0
+    ]
+   },
+   "detection": {
+    "k": 6,
+    "n": 15,
+    "rate": 0.4,
+    "ci95": [
+     0.1982,
+     0.6425
+    ]
+   },
+   "false_alarm": {
+    "k": 0,
+    "n": 10,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.2775
+    ]
+   },
+   "detection_by_kind": {
+    "contradicted": {
+     "k": 0,
+     "n": 3,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.5615
+     ]
+    },
+    "direction_mismatch": {
+     "k": 0,
+     "n": 3,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.5615
+     ]
+    },
+    "numeric_mismatch": {
+     "k": 0,
+     "n": 3,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.5615
+     ]
+    },
+    "uncited": {
+     "k": 3,
+     "n": 3,
+     "rate": 1.0,
+     "ci95": [
+      0.4385,
+      1.0
+     ]
+    },
+    "unresolved": {
+     "k": 3,
+     "n": 3,
+     "rate": 1.0,
+     "ci95": [
+      0.4385,
+      1.0
+     ]
+    }
+   }
+  },
+  "reporter": {
+   "evidence_class": "mock",
+   "cases_source": "hand_built",
+   "cases": 4,
+   "claims_usable": {
+    "k": 4,
+    "n": 4,
+    "rate": 1.0,
+    "ci95": [
+     0.5101,
+     1.0
+    ]
+   },
+   "faithfulness": {
+    "k": 7,
+    "n": 7,
+    "rate": 1.0,
+    "ci95": [
+     0.6457,
+     1.0
+    ]
+   },
+   "claim_drop": {
+    "k": 0,
+    "n": 7,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3543
+    ]
+   },
+   "injection_caught": {
+    "k": 16,
+    "n": 16,
+    "rate": 1.0,
+    "ci95": [
+     0.8064,
+     1.0
+    ]
+   },
+   "citation_verified": {
+    "k": 4,
+    "n": 4,
+    "rate": 1.0,
+    "ci95": [
+     0.5101,
+     1.0
+    ]
+   },
+   "note": "injection_caught measures the deterministic claim guardrail, not the model; faithfulness and claim_drop measure the model's own claims"
+  },
+  "rates": {
+   "plan_valid": {
+    "k": 10,
+    "n": 10,
+    "rate": 1.0,
+    "ci95": [
+     0.7225,
+     1.0
+    ]
+   },
+   "repair": {
+    "k": 0,
+    "n": 10,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.2775
+    ]
+   },
+   "claim_drop": {
+    "k": 0,
+    "n": 7,
+    "rate": 0.0,
+    "ci95": [
+     0.0,
+     0.3543
+    ]
+   },
+   "citation_verified": {
+    "k": 4,
+    "n": 4,
+    "rate": 1.0,
+    "ci95": [
+     0.5101,
+     1.0
+    ]
+   }
+  }
+ },
+ "sensitivity": {
+  "evidence_class": "mock",
+  "all_moved": true,
+  "rows": [
+   {
+    "metric": "planner tool_recall",
+    "degraded_client": "NarrowPlanner",
+    "direction": "down",
+    "baseline": 1.0,
+    "degraded": 0.5714,
+    "moved": true
+   },
+   {
+    "metric": "planner tool_precision",
+    "degraded_client": "NarrowPlanner",
+    "direction": "down",
+    "baseline": 1.0,
+    "degraded": 0.6667,
+    "moved": true
+   },
+   {
+    "metric": "plan_valid",
+    "degraded_client": "InvalidPlanner",
+    "direction": "down",
+    "baseline": 1.0,
+    "degraded": 0.0,
+    "moved": true
+   },
+   {
+    "metric": "repair",
+    "degraded_client": "InvalidPlanner",
+    "direction": "up",
+    "baseline": 0.0,
+    "degraded": 1.0,
+    "moved": true
+   },
+   {
+    "metric": "critic detection",
+    "degraded_client": "RubberStampCritic",
+    "direction": "down",
+    "baseline": 0.4,
+    "degraded": 0.0,
+    "moved": true
+   },
+   {
+    "metric": "reporter faithfulness",
+    "degraded_client": "ClaimFabricator",
+    "direction": "down",
+    "baseline": 1.0,
+    "degraded": 0.0,
+    "moved": true
+   },
+   {
+    "metric": "claim_drop",
+    "degraded_client": "ClaimFabricator",
+    "direction": "up",
+    "baseline": 0.0,
+    "degraded": 1.0,
+    "moved": true
+   },
+   {
+    "metric": "citation_verified",
+    "degraded_client": "CitationForger",
+    "direction": "down",
+    "baseline": 1.0,
+    "degraded": 0.0,
+    "moved": true
+   }
+  ]
+ },
+ "ood": {
+  "version": "1.0.0",
+  "signoff": "PENDING_OWNER",
+  "evidence_class": "mock",
+  "cases_source": "hand_built",
+  "overall": {
+   "items": 15,
+   "primary_ok": {
+    "k": 15,
+    "n": 15,
+    "rate": 1.0,
+    "ci95": [
+     0.7961,
+     1.0
+    ]
+   },
+   "coverage_ok": {
+    "k": 15,
+    "n": 15,
+    "rate": 1.0,
+    "ci95": [
+     0.7961,
+     1.0
+    ]
+   },
+   "mentions_ok": {
+    "k": 15,
+    "n": 15,
+    "rate": 1.0,
+    "ci95": [
+     0.7961,
+     1.0
+    ]
+   },
+   "no_forbidden_claim": {
+    "k": 15,
+    "n": 15,
+    "rate": 1.0,
+    "ci95": [
+     0.7961,
+     1.0
+    ]
+   }
+  },
+  "per_template": {
+   "illiquid_and_volatile": {
+    "items": 5,
+    "primary_ok": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    },
+    "coverage_ok": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    },
+    "mentions_ok": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    },
+    "no_forbidden_claim": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    }
+   },
+   "latency_and_large_order": {
+    "items": 5,
+    "primary_ok": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    },
+    "coverage_ok": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    },
+    "mentions_ok": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    },
+    "no_forbidden_claim": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    }
+   },
+   "venue_and_spreads": {
+    "items": 5,
+    "primary_ok": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    },
+    "coverage_ok": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    },
+    "mentions_ok": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    },
+    "no_forbidden_claim": {
+     "k": 5,
+     "n": 5,
+     "rate": 1.0,
+     "ci95": [
+      0.5655,
+      1.0
+     ]
+    }
+   }
+  },
+  "rows": [
+   {
+    "id": "G-OOD-01",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "VENUE_DEGRADATION",
+    "material": [
+     "VENUE_DEGRADATION",
+     "WIDE_SPREADS"
+    ],
+    "coverage_ok": true,
+    "template": "venue_and_spreads"
+   },
+   {
+    "id": "G-OOD-02",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "VENUE_DEGRADATION",
+    "material": [
+     "VENUE_DEGRADATION",
+     "WIDE_SPREADS"
+    ],
+    "coverage_ok": true,
+    "template": "venue_and_spreads"
+   },
+   {
+    "id": "G-OOD-03",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "VENUE_DEGRADATION",
+    "material": [
+     "VENUE_DEGRADATION",
+     "WIDE_SPREADS"
+    ],
+    "coverage_ok": true,
+    "template": "venue_and_spreads"
+   },
+   {
+    "id": "G-OOD-04",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "WIDE_SPREADS",
+    "material": [
+     "VENUE_DEGRADATION",
+     "WIDE_SPREADS"
+    ],
+    "coverage_ok": true,
+    "template": "venue_and_spreads"
+   },
+   {
+    "id": "G-OOD-05",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "VENUE_DEGRADATION",
+    "material": [
+     "VENUE_DEGRADATION",
+     "WIDE_SPREADS"
+    ],
+    "coverage_ok": true,
+    "template": "venue_and_spreads"
+   },
+   {
+    "id": "G-OOD-06",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "TECHNOLOGY_LATENCY",
+    "material": [
+     "LARGE_ORDER_IMPACT",
+     "TECHNOLOGY_LATENCY"
+    ],
+    "coverage_ok": true,
+    "template": "latency_and_large_order"
+   },
+   {
+    "id": "G-OOD-07",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "TECHNOLOGY_LATENCY",
+    "material": [
+     "LARGE_ORDER_IMPACT",
+     "TECHNOLOGY_LATENCY"
+    ],
+    "coverage_ok": true,
+    "template": "latency_and_large_order"
+   },
+   {
+    "id": "G-OOD-08",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "TECHNOLOGY_LATENCY",
+    "material": [
+     "LARGE_ORDER_IMPACT",
+     "TECHNOLOGY_LATENCY"
+    ],
+    "coverage_ok": true,
+    "template": "latency_and_large_order"
+   },
+   {
+    "id": "G-OOD-09",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "TECHNOLOGY_LATENCY",
+    "material": [
+     "LARGE_ORDER_IMPACT",
+     "TECHNOLOGY_LATENCY"
+    ],
+    "coverage_ok": true,
+    "template": "latency_and_large_order"
+   },
+   {
+    "id": "G-OOD-10",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "TECHNOLOGY_LATENCY",
+    "material": [
+     "LARGE_ORDER_IMPACT",
+     "TECHNOLOGY_LATENCY"
+    ],
+    "coverage_ok": true,
+    "template": "latency_and_large_order"
+   },
+   {
+    "id": "G-OOD-11",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "LOW_LIQUIDITY",
+    "material": [
+     "LOW_LIQUIDITY",
+     "MARKET_VOLATILITY"
+    ],
+    "coverage_ok": true,
+    "template": "illiquid_and_volatile"
+   },
+   {
+    "id": "G-OOD-12",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "LOW_LIQUIDITY",
+    "material": [
+     "LOW_LIQUIDITY",
+     "MARKET_VOLATILITY"
+    ],
+    "coverage_ok": true,
+    "template": "illiquid_and_volatile"
+   },
+   {
+    "id": "G-OOD-13",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "LOW_LIQUIDITY",
+    "material": [
+     "LOW_LIQUIDITY",
+     "MARKET_VOLATILITY"
+    ],
+    "coverage_ok": true,
+    "template": "illiquid_and_volatile"
+   },
+   {
+    "id": "G-OOD-14",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "LOW_LIQUIDITY",
+    "material": [
+     "LOW_LIQUIDITY",
+     "MARKET_VOLATILITY"
+    ],
+    "coverage_ok": true,
+    "template": "illiquid_and_volatile"
+   },
+   {
+    "id": "G-OOD-15",
+    "primary_ok": true,
+    "mentions_ok": true,
+    "missing_mentions": [],
+    "no_forbidden_claim": true,
+    "forbidden_claims": [],
+    "primary": "MARKET_VOLATILITY",
+    "material": [
+     "LOW_LIQUIDITY",
+     "MARKET_VOLATILITY"
+    ],
+    "coverage_ok": true,
+    "template": "illiquid_and_volatile"
+   }
+  ]
+ },
+ "retrieval": {
+  "evidence_class": "deterministic",
+  "queries": 159,
+  "min_support": 2.5,
+  "chunking": "section",
+  "corpus_hash": "ee8200cd3d904e456e62dc56b11fdab1220612a17930965ea1b14472764559e8",
+  "all_positive": {
+   "n": 124,
+   "recall_at_3": {
+    "k": 89,
+    "n": 124,
+    "rate": 0.7177,
+    "ci95": [
+     0.6329,
+     0.7895
+    ]
+   },
+   "recall_at_1": {
+    "k": 76,
+    "n": 124,
+    "rate": 0.6129,
+    "ci95": [
+     0.525,
+     0.694
+    ]
+   },
+   "mrr": 0.666,
+   "misses": [
+    "Q02",
+    "P02",
+    "P06",
+    "P21",
+    "P29",
+    "P41",
+    "P44",
+    "Y01",
+    "Y02",
+    "Y03",
+    "Y04",
+    "Y05",
+    "Y06",
+    "Y07",
+    "Y10",
+    "Y12",
+    "Y14",
+    "Y16",
+    "Y18",
+    "Y19",
+    "Y21",
+    "Y22",
+    "Y27",
+    "Y28",
+    "Y29",
+    "Y30",
+    "M03",
+    "M04",
+    "M07",
+    "M09",
+    "M11",
+    "M12",
+    "M17",
+    "M19",
+    "M20"
+   ]
+  },
+  "by_category": {
+   "heldout": {
+    "n": 10,
+    "recall_at_3": {
+     "k": 10,
+     "n": 10,
+     "rate": 1.0,
+     "ci95": [
+      0.7225,
+      1.0
+     ]
+    },
+    "recall_at_1": {
+     "k": 10,
+     "n": 10,
+     "rate": 1.0,
+     "ci95": [
+      0.7225,
+      1.0
+     ]
+    },
+    "mrr": 1.0,
+    "misses": []
+   },
+   "multi_hop": {
+    "n": 20,
+    "recall_at_3": {
+     "k": 11,
+     "n": 20,
+     "rate": 0.55,
+     "ci95": [
+      0.3421,
+      0.7418
+     ]
+    },
+    "recall_at_1": {
+     "k": 0,
+     "n": 20,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.1611
+     ]
+    },
+    "mrr": 0.2875,
+    "misses": [
+     "M03",
+     "M04",
+     "M07",
+     "M09",
+     "M11",
+     "M12",
+     "M17",
+     "M19",
+     "M20"
+    ]
+   },
+   "paraphrase": {
+    "n": 44,
+    "recall_at_3": {
+     "k": 38,
+     "n": 44,
+     "rate": 0.8636,
+     "ci95": [
+      0.7329,
+      0.936
+     ]
+    },
+    "recall_at_1": {
+     "k": 37,
+     "n": 44,
+     "rate": 0.8409,
+     "ci95": [
+      0.7063,
+      0.9207
+     ]
+    },
+    "mrr": 0.8485,
+    "misses": [
+     "P02",
+     "P06",
+     "P21",
+     "P29",
+     "P41",
+     "P44"
+    ]
+   },
+   "train": {
+    "n": 20,
+    "recall_at_3": {
+     "k": 19,
+     "n": 20,
+     "rate": 0.95,
+     "ci95": [
+      0.7639,
+      0.9911
+     ]
+    },
+    "recall_at_1": {
+     "k": 18,
+     "n": 20,
+     "rate": 0.9,
+     "ci95": [
+      0.699,
+      0.9721
+     ]
+    },
+    "mrr": 0.925,
+    "misses": [
+     "Q02"
+    ]
+   },
+   "typo": {
+    "n": 30,
+    "recall_at_3": {
+     "k": 11,
+     "n": 30,
+     "rate": 0.3667,
+     "ci95": [
+      0.2187,
+      0.5449
+     ]
+    },
+    "recall_at_1": {
+     "k": 11,
+     "n": 30,
+     "rate": 0.3667,
+     "ci95": [
+      0.2187,
+      0.5449
+     ]
+    },
+    "mrr": 0.3667,
+    "misses": [
+     "Y01",
+     "Y02",
+     "Y03",
+     "Y04",
+     "Y05",
+     "Y06",
+     "Y07",
+     "Y10",
+     "Y12",
+     "Y14",
+     "Y16",
+     "Y18",
+     "Y19",
+     "Y21",
+     "Y22",
+     "Y27",
+     "Y28",
+     "Y29",
+     "Y30"
+    ]
+   }
+  },
+  "negatives": {
+   "near_miss_negative": {
+    "leak": {
+     "k": 3,
+     "n": 25,
+     "rate": 0.12,
+     "ci95": [
+      0.0417,
+      0.2996
+     ]
+    },
+    "leaking": [
+     "X01",
+     "X04",
+     "X11"
+    ]
+   },
+   "negative": {
+    "leak": {
+     "k": 0,
+     "n": 10,
+     "rate": 0.0,
+     "ci95": [
+      0.0,
+      0.2775
+     ]
+    },
+    "leaking": []
+   }
+  }
+ },
+ "corpus": {
+  "documents": 10,
+  "pinned_corpus_hash": "ee8200cd3d904e456e62dc56b11fdab1220612a17930965ea1b14472764559e8",
+  "live_corpus_hash": "ee8200cd3d904e456e62dc56b11fdab1220612a17930965ea1b14472764559e8",
+  "pinned": true,
+  "max_age_days": 365,
+  "problems": [],
+  "warnings": [
+   "09_attribution_thresholds.md: release-note wording 'Since 0.5.0'; keep release history in the CHANGELOG",
+   "quant.md: release-note wording 'Since 0.6.0'; keep release history in the CHANGELOG"
+  ]
  },
  "live_only": {
   "planner_quality": "UNKNOWN / NOT RUN LIVE",

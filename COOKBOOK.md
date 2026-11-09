@@ -41,13 +41,20 @@ Contents:
 32. [Add a new signal](#32-add-a-new-signal)
 33. [Add a research scenario template](#33-add-a-research-scenario-template)
 34. [Day-to-day development: bootstrap, test tiers, lock, release](#34-day-to-day-development-bootstrap-test-tiers-lock-release)
-35. [Measure the PROMOTE hurdle (null sweep)](#35-measure-the-promote-hurdle-null-sweep)
+35. [Measure the false-PROMOTE rate at the hurdle (null sweep)](#35-measure-the-false-promote-rate-at-the-hurdle-null-sweep)
 36. [Profitability table and capacity sweep](#36-profitability-table-and-capacity-sweep)
 37. [Backtest under different execution assumptions](#37-backtest-under-different-execution-assumptions)
 38. [Keep state across restarts (SQLite)](#38-keep-state-across-restarts-sqlite)
 39. [Replay a task byte for byte](#39-replay-a-task-byte-for-byte)
 40. [Scrape metrics and correlate logs](#40-scrape-metrics-and-correlate-logs)
 41. [Hold API keys as hashes only](#41-hold-api-keys-as-hashes-only)
+42. [Produce the evaluation report and record a release](#42-produce-the-evaluation-report-and-record-a-release)
+43. [Paper-trade a signal and keep a forward record](#43-paper-trade-a-signal-and-keep-a-forward-record)
+44. [Run a parent order through the simulated book](#44-run-a-parent-order-through-the-simulated-book)
+45. [Fit market impact and compare it with the truth](#45-fit-market-impact-and-compare-it-with-the-truth)
+46. [Markout curves and a venue routing table from fills](#46-markout-curves-and-a-venue-routing-table-from-fills)
+47. [Predicted versus realised cost, weekly](#47-predicted-versus-realised-cost-weekly)
+48. [Regression cause attribution and the trading rules](#48-regression-cause-attribution-and-the-trading-rules)
 
 ---
 
@@ -501,7 +508,7 @@ The signal and dataset are parsed from the question when omitted ("momentum" →
 "reversal"/"mean reversion" → `reversal_5`, "low vol" → `low_vol_60`; a ticker like `R04` or
 `RS12`). `--dataset` picks the research scenario (R01–R07 templates, RS01–RS21 concrete).
 `--role` must have the `research` capability (`quant` or `admin`); `viewer`/`trader`/`engineer`
-do not. The proposal's VERDICT section carries `PROMOTE` or `REJECT` with any flags
+do not. The proposal's VERDICT section carries `PROMOTE`, `REJECT` or (since v0.8.0) `INCONCLUSIVE` with any flags
 (`NO_ALPHA`, `OOS_DECAY` (called `OVERFIT` before 0.4.0), `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`).
 
 ## 29. Run a research proposal from Python
@@ -617,15 +624,20 @@ then push the tag `vX.Y.Z`. `release.yml` runs `scripts/release_check.py` and bu
 the latest run of the `CI` workflow on that commit is green (since 0.7.1 other workflows, such as the
 daily paper job, do not count). Local dry run: `python scripts/release_check.py --tag vX.Y.Z --skip-checks`.
 
-## 35. Measure the PROMOTE hurdle (null sweep)
+## 35. Measure the false-PROMOTE rate at the hurdle (null sweep)
 
 ```bash
 ceap evaluate --suite null --seeds 50
 ```
 
 Prints the false-PROMOTE rate of the full 24-configuration search on pure-noise data at the
-committed hurdle, with its 95 % binomial band. `--seeds 500 --workers 6 --write-thresholds`
-re-derives the hurdle and writes it with the sweep hash to `data/reference/research_thresholds.json`.
+committed hurdle, with its 95 % binomial band. Since 0.8.0 the hurdle is fixed in advance (IC
+t >= 3.0 for a searched result, 1.645 for one preregistered test) and the sweep only measures it:
+`--seeds 500 --workers 6 --write-thresholds` records the measured rate, the sweep hash and the
+per-seed vector (`data/reference/research_thresholds.json`, `docs/research/null_sweep_per_seed.json`)
+and appends the run to `data/reference/sweep_ledger.jsonl`. It no longer chooses the hurdle (the
+flag's help text still says "chosen hurdle"). Background: `docs/research/README.md`, "Research
+realism toolkit".
 
 ## 36. Profitability table and capacity sweep
 
@@ -709,7 +721,13 @@ curl -si localhost:8000/health -H "X-Request-ID: my-trace-1"     # echoed back; 
 ```bash
 python -c "from ceap.api.auth import hash_api_key; print(hash_api_key('a-long-random-key'))"
 CEAP_API_KEY_HASHES='sha256$...$...:auditor:2027-01-31' ceap serve   # optional expiry date
+# 0.8.0: bind each key to a person, so four-eyes compares people, not keys
+CEAP_API_KEY_HASHES='sha256$...$...:approver:2027-01-31:subject=alice' ceap serve
 ```
+
+A mapped key acts as principal `user:alice`; two keys mapped to the same subject cannot request and
+approve the same action. `CEAP_API_KEY_SUBJECTS=role:xxxxxxxx=NAME` maps existing keys the same way.
+Since 0.8.0 HIGH-risk tools always need an approval, and an admin cannot decide one.
 
 ## 42. Produce the evaluation report and record a release
 

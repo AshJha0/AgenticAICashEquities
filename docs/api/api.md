@@ -12,7 +12,7 @@ defaults:
 | `dev-viewer-key` | viewer | `tools:read`, `investigate:read`, `research:read` |
 | `dev-trader-key` | trader | + `investigate`, `risk:medium` |
 | `dev-quant-key` | quant | + `research`, `data:export` |
-| `dev-admin-key` | admin | + `tools:write`, `risk:high`, `trading:execute`, `tasks:read-any`, `tasks:cancel-any`, `metrics:read` |
+| `dev-admin-key` | admin | + `tools:write`, `risk:high`, `trading:execute`, `tasks:read-any`, `tasks:cancel-any`, `metrics:read` (since 0.8.0 `risk:high` no longer skips the human approval for a HIGH-risk tool, and admin cannot decide approvals) |
 | `dev-approver-key`, `dev-approver2-key` | approver | read + `approvals:decide`, `tasks:read-any` |
 | `dev-auditor-key` | auditor | read + `tasks:read-any`, `metrics:read`; no actions |
 

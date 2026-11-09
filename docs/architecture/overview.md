@@ -79,12 +79,22 @@ non-overlapping holding-period IC after the execution lag, with a Newey-West t a
 `backtest` (decision at the close, fill at t+1; weight drift; spread + square-root impact, tier
 borrow, rf financing, Sharpe on excess returns; Reg SHO, weight and ADV caps logged; delisting
 bounds; locked in-sample split), `trial_ledger` (append-only, server-side trial count),
-`null_sweep` (the PROMOTE hurdle measured on 500 noise datasets x 24 configurations),
+`null_sweep` (until 0.7.1 it set the PROMOTE hurdle; since 0.8.0 the hurdle is a priori, t >= 3.0
+for a searched result, and the 500-seed sweep measures its false-PROMOTE rate),
 `profitability` (capacity sweep and profitability table), `portfolio_risk` (target portfolio *recomputed* from
 the signal at the report date — never trusts the backtest's own weights — gross/net/HHI/beta/ADV
 participation, limit checks over the out-of-sample history, beta ex-self with Vasicek shrinkage,
 factor / squeeze / liquidation stress) and `research_assessment` (`assess_research`: a deterministic
-`PROMOTE`/`REJECT` verdict plus flags — the Stage 2 analogue of `attribute_causes`).
+`PROMOTE`/`REJECT`/`INCONCLUSIVE` verdict plus flags — the Stage 2 analogue of `attribute_causes`;
+`INCONCLUSIVE` since 0.8.0). The 0.8.0 research toolkit (`adversarial`, `trial_accounting`,
+`overfitting`, `risk_research`, `alpha_decay`) is described in `docs/research/README.md`.
+
+**Execution (0.8.0, `ceap.execution`).** A separate package that *runs* an execution on synthetic
+data rather than measuring one: limit order book simulator (`lob`), propagator impact (`impact`),
+TWAP/VWAP/POV/Almgren-Chriss behind one `Schedule` (`schedule`), child orders (`child`), auctions
+(`auction`), markouts (`markouts`), the predicted-versus-realised cost loop (`cost_loop`) and
+trading rules (`rules`). It reuses the Perold IS from `ceap.analytics`. Guide:
+`docs/execution/execution.md`; diagram: `docs/DIAGRAMS.md` §15.
 
 ### 3.3 Data (`ceap.data`)
 
@@ -114,15 +124,18 @@ a run. The 0.3.x generator survives as `legacy_v03` for regression tests only.
 * Servers: `market_data`, `execution`, `risk`, `engineering`, `knowledge`, and (Stage 2)
   `research_data`, `alpha`, `backtest`. `execution.stage_orders` is the platform's only
   non-read-only tool (HIGH risk, `trading:execute`) — it builds *paper* orders from the
-  recomputed target portfolio into an in-memory, idempotent `StagedOrderBook`; nothing is routed
-  to a venue. `risk` gains `get_portfolio_exposure` / `check_portfolio_limits` /
+  recomputed target portfolio into an idempotent `StagedOrderBook` (persisted in SQLite and
+  pre-trade checked since 0.8.0, and blocked by the DB kill switch); nothing is routed to a venue. `risk` gains `get_portfolio_exposure` / `check_portfolio_limits` /
   `calculate_portfolio_stress`, which recompute the target portfolio rather than trusting a
   backtest's output.
 * `MCPClient` abstraction with `InProcessMCPClient` and `StdioMCPClient` (official SDK).
 * `MCPToolAdapter` turns a discovered descriptor into a domain `Tool` and attaches an
   `Evidence` record — tool id, arguments, correlation id and a SHA-256 digest of the payload — to
   every successful call.
-* `build_tool_registry` performs discovery and populates the `ToolRegistry`.
+* `build_tool_registry` performs discovery and returns a `PinnedToolRegistry`: each server's tool
+  catalogue is hashed at start-up and checked against `CEAP_MCP_CATALOGUE_PINS` (0.8.0).
+* CPU-bound tools (`run_backtest`, `evaluate_signal`) declare `cpu_bound=True` and, under the API
+  server, run in a killable process pool (`ceap.mcp.cpu_pool`, 0.8.0).
 
 ### 3.5 LLM (`ceap.llm`)
 
@@ -184,10 +197,15 @@ Consecutive independent `TOOL_CALL` steps are batched and executed concurrently 
 
 ### 3.8 Policy (`ceap.policy`)
 
-`RulePolicyEngine` evaluates ordered rules (deny list, read-only, required capabilities, argument
-guards, symbol universe, risk level) and returns ALLOW / DENY / REQUIRE_APPROVAL with the rule
-that fired. Roles map to capabilities in `permissions.py`. Approval gateways: automatic (dev),
-queued (human decides through the API, with timeout) and deny.
+`RulePolicyEngine` evaluates ordered rules (deny list, untrusted MCP server, per-agent allowlist,
+read-only, required capabilities, argument guards, JSON input schema, symbol universe, knowledge
+classification, risk level) and returns ALLOW / DENY / REQUIRE_APPROVAL with the rule that fired.
+Since 0.8.0 every symbol-bearing field is checked and the engine fails closed without a universe;
+HIGH-risk tools always need a human approval, decided by a different named person who is not an
+admin; each agent's calls carry its own allowlist (`agents.py`). Roles map to capabilities in
+`permissions.py`. Approval gateways: automatic (dev), queued (human decides through the API, with
+timeout; the content hash of the exact arguments is re-checked after the decision) and deny.
+Diagram: `docs/DIAGRAMS.md` §13; OWASP mapping: `docs/threat-model/owasp-llm-top10.md`.
 
 ### 3.9 RAG (`ceap.rag`)
 

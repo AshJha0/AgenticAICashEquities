@@ -123,7 +123,7 @@ python scripts/download_daily.py
 python scripts/fetch_real_reports.py
 ```
 
-## Research realism toolkit (0.10, WS-D)
+## Research realism toolkit (0.8.0, WS-D)
 
 These changes make the *synthetic* research evaluation harder to pass and easier to audit. None of
 them is a result about real markets. Evidence class in brackets.
@@ -181,6 +181,6 @@ D16), data-vintage hashes (D14, `ceap.data.real.vintage`), the IC term structure
 drawdown, CVaR and volatility-regime splits (D19), a robustness report per verdict (D6) and
 `scripts/rebuild_study.py` (D20).
 
-Not done in 0.10: a 500-name universe (D5; it multiplies every scenario's run time by about 14, and
+Not done in 0.8.0 (moved to 0.9.0): a 500-name universe (D5; it multiplies every scenario's run time by about 14, and
 with independent idiosyncratic noise the fundamental law then makes realistic ICs look like Sharpe
 ratios of 1.7, so it needs correlated noise first) and real-path delisting returns (D10).

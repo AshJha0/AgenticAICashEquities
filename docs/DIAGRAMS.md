@@ -9,7 +9,10 @@ Contents: 1. [End-to-end investigation pipeline](#1-end-to-end-investigation-pip
 6. [Investigation sequence](#6-investigation-sequence) · 7. [Attribution decision flow](#7-attribution-decision-flow) ·
 8. [Package dependencies](#8-package-dependencies) · 9. [Stage 2 extension](#9-stage-2-research-workflow-realised-in-030) ·
 10. [CI and the release gate](#10-ci-and-the-release-gate) · 11. [LLM, RAG, ML and evaluation (0.6.0)](#11-llm-rag-ml-and-evaluation-060) ·
-12. [Paper trading and the R5 real-data path (0.7.0)](#12-paper-trading-and-the-r5-real-data-path-070)
+12. [Paper trading and the R5 real-data path (0.7.0)](#12-paper-trading-and-the-r5-real-data-path-070) ·
+13. [Policy and approval flow (0.8.0)](#13-policy-and-approval-flow-080) ·
+14. [Audit chain and external anchor (0.8.0)](#14-audit-chain-and-external-anchor-080) ·
+15. [Execution package (0.8.0)](#15-execution-package-080)
 
 ## 1. End-to-end investigation pipeline
 
@@ -320,7 +323,7 @@ licences before anything is built.
 ```mermaid
 flowchart LR
     PR["pull request"] --> L["lint<br/>ruff · mypy · banned words<br/>check_docs.py · drift monitors"]
-    PR --> T["test 3.11 / 3.12<br/>xdist · coverage >= 80 %"]
+    PR --> T["test 3.11 / 3.12<br/>xdist · branch coverage >= 85 %<br/>pytest-timeout 120/600/1800 s"]
     PR --> LF["lock-fresh<br/>uv --universal --generate-hashes"]
     PR --> A["audit<br/>pip-audit"]
     PR --> S["secrets<br/>gitleaks + planted-key self-test"]
@@ -411,11 +414,85 @@ flowchart TD
         TGT --> PTC["pre-trade checks<br/>restricted, limits, 25 % ADV, price band"]
         PTC --> APR["QueuedApprovalGateway<br/>paper-auto, audited"]
         APR --> FILL["simulate_day(D+1)<br/>next-close fills, 10 % ADV cap"]
-        HALT["CEAP_PAPER_HALT"] -. "blocks new orders" .-> PTC
-        FILL --> LED["paper_ledger<br/>hash chain, append-only"]
+        HALT["CEAP_PAPER_HALT or<br/>ceap db kill-switch (0.8.0)"] -. "blocks new orders" .-> PTC
+        FILL --> LED["paper_ledger<br/>HMAC chain (0.8.0), append-only"]
         LED --> REC{"end-of-day reconciliation"}
         REC -- "break: exit 4, nothing committed" --> BRK["break report"]
         REC -- "clean" --> LOG["forward log / simulated log<br/>report, export CSV"]
     end
     LOAD -. "same cache, after the holdout only" .-> STQ
+```
+
+## 13. Policy and approval flow (0.8.0)
+
+`PolicyEngine` runs its rules in this order (`src/ceap/policy/engine.py`); the first DENY wins, then
+REQUIRE_APPROVAL, otherwise ALLOW. Since 0.8.0 a HIGH-risk tool always needs a human approval, an
+admin cannot decide one, and four-eyes compares named persons (API keys mapped with
+`subject=NAME`), not keys. The gateway re-checks the content hash of the exact arguments after the
+decision.
+
+```mermaid
+flowchart TD
+    REQ["ToolRequest<br/>(agent, principal, tool, arguments)"] --> R1["denied tools"]
+    R1 --> R2["untrusted MCP server?<br/>outside CEAP_MCP_TRUSTED_SERVERS: DENY"]
+    R2 --> R3["per-agent allowlist<br/>ceap.policy.agents ∩ principal"]
+    R3 --> R4["read-only / tools:write"]
+    R4 --> R5["capabilities"]
+    R5 --> R6["argument guards<br/>length, items, depth, whole-number limit"]
+    R6 --> R7["JSON schema of the tool"]
+    R7 --> R8["symbol universe<br/>every symbol-bearing field, x-ceap-symbol;<br/>no universe: DENY"]
+    R8 --> R9["knowledge classification"]
+    R9 --> R10{"risk level"}
+    R10 -- "CRITICAL" --> DENY["DENY"]
+    R10 -- "HIGH (always)" --> AP["REQUIRE_APPROVAL"]
+    R10 -- "MEDIUM without risk:medium" --> AP
+    R10 -- "LOW / READ" --> ALLOW["ALLOW"]
+    AP --> GW["approval gateway<br/>GET /approvals/{id}: tool, arguments, content_hash"]
+    GW --> FE{"approver is a different person,<br/>role approver (not admin)?"}
+    FE -- "no" --> DENY
+    FE -- "yes" --> HC{"content hash unchanged?"}
+    HC -- "no: 409 / refused" --> DENY
+    HC -- "yes" --> RUN["tool runs; decision in the audit log"]
+```
+
+## 14. Audit chain and external anchor (0.8.0)
+
+Each audit row and paper-ledger row links to the previous one with HMAC-SHA256 under
+`CEAP_AUDIT_HMAC_KEY`, which never lives in the database. Rows written before migration 0004 stay
+plain SHA-256 as a sealed legacy prefix. An anchor file committed to git (optionally with an
+OpenTimestamps proof of its `.sha256` sidecar) lets `verify-chain` catch a rewritten or truncated
+chain even by someone who holds the key.
+
+```mermaid
+flowchart LR
+    EV["audit event<br/>(redacted payload)"] --> ROW["row n<br/>hash_alg, prev_hash"]
+    KEY["CEAP_AUDIT_HMAC_KEY<br/>(+ _OLD_KEYS for rotation)"] -. "outside the DB" .-> ROW
+    ROW --> CH["chain head n"]
+    CH --> ANC["ceap db anchor<br/>heads + row counts -> file"]
+    ANC --> GIT["commit to git<br/>+ .sha256 sidecar for OpenTimestamps"]
+    GIT --> VER{"ceap db verify-chain --anchor FILE"}
+    CH --> VER
+    VER -- "head and row count match" --> OK["ok (dev_key flagged if no key set)"]
+    VER -- "rewritten or cut-off tail" --> BAD["break reported"]
+```
+
+## 15. Execution package (0.8.0)
+
+`ceap.execution` (guide: [execution/execution.md](execution/execution.md)) runs a parent order
+through a simulated limit order book. Everything here is synthetic; nothing routes a real order.
+
+```mermaid
+flowchart TD
+    PARENT["parent order"] --> SCH["Schedule (schedule.py)<br/>TWAP · VWAP · POV · Almgren-Chriss<br/>whole-share allocation"]
+    SCH --> CH["child-order logic (child.py)<br/>passive / aggressive, limits, cancel-replace"]
+    CH --> RULES["rules.py<br/>tick, round lot, LULD"]
+    RULES --> LOB["LOB simulator (lob.py)<br/>price-time FIFO, latency, icebergs,<br/>passive fill only when traded through"]
+    AUC["auction uncross (auction.py)"] --> FILLS
+    LOB --> FILLS["fills"]
+    FILLS --> IMP["propagator impact (impact.py)<br/>driven by own fills; fit vs truth"]
+    IMP -. "moves the price" .-> LOB
+    FILLS --> MK["markouts by venue and flag (markouts.py)<br/>bootstrap CIs, routing table"]
+    FILLS --> IS["implementation shortfall<br/>fill_rate, opportunity_priced"]
+    IS --> LOOP["predicted vs realised (cost_loop.py)<br/>SQLite, weekly recalibration, drift alert"]
+    IS --> ATT["cause attribution<br/>heuristic, or regression with CEAP_ATTRIBUTION=regression"]
 ```

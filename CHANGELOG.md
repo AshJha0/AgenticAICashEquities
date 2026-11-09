@@ -6,6 +6,86 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+## [0.8.0] - 2026-11-09
+
+The safety, research-realism, execution and AI-evaluation release: steps from the two-round review of
+2026-11-09 (`docs/review/2026-11-09/PLAN.md`, owner decisions D1-D4), built by seven parallel lanes
+and shipped as one combined PR. Full local suite with the API key unset: 935 passed, 0 failed.
+
+### Results that moved, and why (read before comparing with 0.7.x)
+
+- Research verdict accuracy 0.9667 -> 0.8333 (25/30, mock LLM): the synthetic premia were recalibrated
+  to realistic strength (D1), the IC hurdle is now fixed a priori (D3) and INCONCLUSIVE exists (D4).
+  Each pass bar is a 5 % one-sided lower bound derived in advance from the generator, not from a run;
+  the clear-case subset (21/24) sits exactly on its bar.
+- Owner-signed golden set, verdict accuracy 1.00 -> 0.8667 (13/15). G-RES-10 and G-RES-11 (template
+  `mixed`, signed-off expectation REJECT) no longer get REJECT under the three-way rule. The
+  signed-off expectations are unchanged; whether `mixed` should be REJECT or INCONCLUSIVE is an owner
+  decision at the next sign-off (`tests/golden/golden_set_research_v1_1.json`, PENDING).
+- New per-agent evaluation (B2, mock and hand-built cases): the critic detects 6/15 planted problems
+  (0.40, 95 % CI 0.20-0.64), including 0/3 contradictions and 0/3 direction mismatches. This is the
+  first measurement of the critic and a 0.9.0 work item, not a pass.
+- Retrieval: 3/25 near-miss negatives leak a passage (0.12, CI 0.04-0.30); 0/10 plain negatives.
+- Reproducibility fixes found during integration: allowlist derivation drew ids from the run's clock
+  on first use only (reports differed by process history); process-pool timeouts killed every worker,
+  losing results and changing clock reads. Both fixed with tests (thread/process parity test).
+
+### Breaking changes in 0.8.0
+
+Read these before upgrading from 0.7.1. Each is described in more detail in the entries below.
+
+- **Failing narrative is replaced, not shipped (A2, owner decision D4).** Model prose that fails the
+  number, evidence-id or citation audit no longer ships with a warning. The report carries the
+  deterministic template narrative, the degradation `LLM_NARRATIVE_SUPPRESSED` and
+  `critique.narrative_suppressed`; the rejected prose goes only to the audit log
+  (`reporter.narrative_rejected`). Consumers that read the narrative of a flagged report now get the
+  template text.
+- **The policy fails closed without a universe (A3, D4).** With no symbol universe configured, any
+  request that names a symbol is denied. Every symbol-bearing field is checked (lists, nested objects,
+  schema properties marked `x-ceap-symbol`), and arguments are validated against each tool's JSON
+  schema, so calls with extra or malformed arguments that used to pass are now refused.
+- **Admins need approval for HIGH risk (A4, D4).** `risk:high` no longer skips the human approval for
+  a HIGH-risk tool, and an admin cannot decide approvals, so an admin's request goes through four-eyes.
+- **Untrusted MCP servers are denied (A5).** Every tool of a server outside
+  `CEAP_MCP_TRUSTED_SERVERS` is denied, even when it declares itself read-only (in 0.7.1 it was
+  treated as read-only). `CEAP_MCP_CATALOGUE_PINS` refuses start-up on a catalogue mismatch.
+  `build_tool_registry` now returns a `PinnedToolRegistry`.
+- **API keys can map to a named subject (A13).** A key mapped with `:subject=NAME` (or
+  `CEAP_API_KEY_SUBJECTS`) acts as principal `user:NAME`, and four-eyes compares persons, not keys:
+  two keys mapped to the same person can no longer request and approve the same action. Unmapped keys
+  behave as before.
+- **Audit and ledger chains are HMAC-keyed (A6).** New env var `CEAP_AUDIT_HMAC_KEY` (rotation via
+  `CEAP_AUDIT_HMAC_OLD_KEYS`). Without it a published development key is used and reports say
+  `dev_key: true`; set it for any database you want to trust. A database written with a key verifies
+  only where that key (or an old key listed) is configured. Migration 0004 adds `hash_alg`; rows
+  written before it stay plain SHA-256 as a sealed legacy prefix.
+- **Process-pool tool isolation is server-only (G3).** `CEAP_CPU_TOOL_PROCESSES` defaults to 2 under
+  `ceap serve` and 0 (threads) in the CLI, the library and the tests. Workers use `spawn`, so a script
+  that sets it must keep its top level under `if __name__ == "__main__":`.
+- **Coverage gate (H2).** CI measures branch coverage (`--cov-branch`) with a floor of 85 % (was 80 %
+  line coverage). A PR that lowers branch coverage below 85 % fails.
+- **LLM budget and rate limit on by default (A10).** Per-task caps (`CEAP_TASK_BUDGET_USD` 2.00,
+  `CEAP_TASK_TOKEN_BUDGET` 400000) and a per-principal rate limit (429 with `Retry-After`) apply
+  unless set to `off`.
+- **Renamed or changed public API.**
+  - `ResearchVerdict` gains `INCONCLUSIVE` (contracts change); code that assumed only PROMOTE and
+    REJECT must handle it.
+  - Research templates `momentum_near_threshold` and `reversal_weak` are renamed
+    `momentum_realistic` and `reversal_realistic` and recalibrated (D1); the old names survive only as
+    the pre-0.8 calibration used by the signed-off golden set.
+  - Prompts move to `report@2`, `research_report@2`, `reporter_claims@2` and `reporter_prose@2`, and
+    are hash-verified at load (`PromptIntegrityError`).
+  - Cassette `prefix` interactions need `allow_prefix=True`; unused interactions fail
+    `assert_consumed`.
+  - `data_block` takes a `nonce`; the closing tag repeats it (`</data nonce="...">`).
+  - `Database.verify_chain(expected_head, expected_rows)` and `PaperLedger.verify(book, anchor)` gain
+    optional anchor arguments; `audit_hash` takes optional `keys`.
+  - `ShortfallComponents` gains `fill_rate` and `opportunity_priced`.
+  - `market_impact_bps` and `temporary_impact_bps` raise `DeprecationWarning` (removal in 1.0).
+  - The mock LLM reports zero tokens and zero cost (it reported characters / 4).
+  - The research IC hurdle is t >= 3.0 for a searched result (was 0.40), so fewer synthetic
+    scenarios PROMOTE.
+
 - Narrative guardrails (0.8.0 lane 1, plan WS-A steps A1, A2, A7, A8, A11, A12, A15, A19, A20).
   **Breaking (decision D4):** model prose that fails the number, evidence-id or citation audit is no
   longer shipped with a warning; the report carries the deterministic template narrative, the

@@ -52,8 +52,8 @@ The architectural boundary is enforced in code, not just described:
 | Authority (schema and symbol checks on every argument, per-agent tool allowlists, four-eyes by named person on HIGH risk, untrusted MCP servers denied) | `ceap.policy` | lets a capability skip the approval for a HIGH-risk tool |
 | Auditability | `Evidence` / `Finding` | a finding without resolvable evidence survives validation |
 
-**Current release: 0.7.1** (patch; details in `CHANGELOG.md`). 0.6.0 was merged but never tagged;
-its content shipped in the 0.7.0 tag.
+**Current release: v0.8.0** (safety, research realism, execution and AI-evaluation release; details
+in `CHANGELOG.md`). 0.6.0 was merged but never tagged; its content shipped in the 0.7.0 tag.
 
 - *Release gate:* only the latest run of the `CI` workflow on the tagged commit decides
   (`scripts/release_check.py`), so the daily paper job can no longer block a tag.
@@ -62,6 +62,38 @@ its content shipped in the 0.7.0 tag.
 - *R5 v2 attempt: VOID before registration.* With the hand-downloaded Stooq bulk file as primary
   vendor, in-sample coverage was <!-- source: docs/research/result_momentum_2026-11-v2.md --> 74.9 % against 95 %. No v2 preregistration was locked, no statistic was
   computed, and the pseudo-holdout is unspent.
+
+**What 0.8.0 adds (unreleased; the `## Unreleased` section of `CHANGELOG.md`, which starts with
+the breaking changes).** Plan and per-step status: [docs/review/2026-11-09/PLAN.md](docs/review/2026-11-09/PLAN.md).
+Evidence class: offline only, no live model call; research and execution numbers are synthetic.
+
+- *Guardrails:* the model names figures as typed placeholders and code renders them; prose that
+  fails the number, evidence-id or citation audit is replaced by the template narrative; per-claim
+  citations; data blocks with a nonce; a planner argument sanitiser; exact cassette matching.
+  See [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md).
+- *Policy:* JSON-schema validation and checks on every symbol-bearing field, fail closed without a
+  universe, HIGH risk always needs a human approval, per-agent tool allowlists, four-eyes bound to a
+  named person, untrusted MCP servers denied. OWASP LLM Top 10 mapping in
+  [docs/threat-model/owasp-llm-top10.md](docs/threat-model/owasp-llm-top10.md).
+- *Audit:* HMAC-keyed audit and ledger chains with an external anchor (`ceap db anchor`), persisted
+  staging with a pre-trade check, a DB-backed kill switch (`ceap db kill-switch`), wider redaction,
+  a knowledge-ingestion screen, and `fill_rate` in implementation shortfall
+  ([threat model](docs/threat-model/threat-model.md), COOKBOOK).
+- *Platform:* CPU work off the event loop, CPU-bound tools in a killable process pool (API server
+  only), LLM budget on by default, a per-principal rate limit, a paper dead-man's switch, a branch
+  coverage gate, pytest-timeout tiers and a hermetic unit tier.
+- *Research realism:* recalibrated premia, an a-priori IC hurdle (t >= 3.0 for a searched result),
+  a third verdict `INCONCLUSIVE`, adversarial generator families, a leakage canary, trial
+  accounting, PBO/CSCV, block bootstrap, Newey-West over gaps, an ML baseline, a risk toolkit and a
+  model inventory. See [docs/research/README.md](docs/research/README.md#research-realism-toolkit-080-ws-d).
+- *Execution:* a new `ceap.execution` package (limit order book simulator, TWAP/VWAP/POV and
+  Almgren-Chriss schedulers, child orders, auctions, propagator impact, markouts, a
+  predicted-versus-realised cost loop, regression attribution behind a flag) and a vectorised trade
+  generator. See [docs/execution/execution.md](docs/execution/execution.md) and COOKBOOK recipes 44-48.
+- *AI evaluation:* per-agent evals, metric-sensitivity tests, an out-of-distribution golden split,
+  159 retrieval queries with Wilson intervals, and corpus governance. See
+  [docs/evaluation/evaluation.md](docs/evaluation/evaluation.md#ai-evaluation-080-plan-ws-b-and-ws-c).
+  The new research golden items and the OOD split await owner sign-off.
 
 **What 0.7.0 adds** (details in `CHANGELOG.md`).
 
@@ -142,7 +174,7 @@ command in the lock's header (the CI job `lock-fresh` fails if the two disagree)
 | Check | Where | Fails when |
 |---|---|---|
 | ruff, mypy, banned-word check | `ci.yml` / `lint` | lint or type error; a banned word in any tracked file |
-| pytest on 3.11 and 3.12, coverage floor 80 % | `ci.yml` / `test` | a test fails or line coverage of `ceap` drops below 80 % |
+| pytest on 3.11 and 3.12, branch coverage floor 85 % | `ci.yml` / `test` | a test fails or branch coverage of `ceap` drops below 85 % (target 90 %) |
 | `lock-fresh` | `ci.yml` | the committed lock differs from a fresh `uv` regeneration |
 | `pip-audit` | `ci.yml` / `audit` | a locked dependency has a known vulnerability |
 | gitleaks, with a planted-key self-test | `ci.yml` / `secrets` | a secret is in the tree or the history |
@@ -152,9 +184,12 @@ command in the lock's header (the CI job `lock-fresh` fails if the two disagree)
 | every tier, random order, 1000 hypothesis examples | `nightly.yml` | a slow or nightly test fails, or a test depends on another's state |
 | release gate | `release.yml` on a `v*` tag | the latest `CI` workflow run on the tagged commit is not green, versions disagree, or the CHANGELOG section, banned-word or licence check fails |
 
-Test markers: `slow` (runs on PR; skip locally with `-m "not slow"`) and `nightly` (nightly only).
-Question text is redacted (emails, keys, tokens, account-like numbers) before it is logged, stored
-or put in a prompt; see `src/ceap/util/redact.py`.
+Test markers: `slow` (runs on PR; skip locally with `-m "not slow"`) and `nightly` (nightly only;
+the tests skip unless `CEAP_NIGHTLY=1`, which `nightly.yml` sets). `pytest-timeout` gives each test
+120 s, `slow` 600 s and `nightly` 1800 s. Tests that read `scripts/`, `docs/`, committed data or
+`.github/` live in `tests/repo`; `tests/unit` reads nothing outside `src` and `tests`.
+Question text is redacted (emails, keys, tokens, `name=value` secrets, phone numbers, high-entropy
+tokens) before it is logged, stored or put in a prompt; see `src/ceap/util/redact.py`.
 
 ### Example output (scenario T06, technology latency)
 
@@ -251,8 +286,11 @@ CREATED → PLANNING → VALIDATING_PLAN → EXECUTING ⇄ AWAITING_APPROVAL
    cross-agent contradictions, thin evidence capped) plus an optional LLM critique that can only
    lower confidence.
 6. **Validate evidence** – findings citing unknown evidence are dropped and recorded.
-7. **Finalise** – the Reporter hands structured facts to the LLM; the narrative is then audited:
-   every number must be traceable to the facts and every evidence id must exist.
+7. **Finalise** – the Reporter hands structured facts to the LLM, which names figures as
+   placeholders (`{fact.key}`) that code renders; the narrative is then audited: every number must be
+   traceable to the facts, every evidence id must exist and every policy claim needs its own verified
+   citation. Prose that fails is replaced by the deterministic template narrative
+   (`LLM_NARRATIVE_SUPPRESSED`), and the rejected text goes only to the audit log.
 
 ### Research lifecycle (Stage 2)
 
@@ -302,10 +340,15 @@ src/ceap/
 ├── harness/       engine (AgentHarness) · state_machine · executor · retry · cancellation · memory
 ├── agents/        planner · market · execution · quant · risk · engineering · critic · reporter ·
 │                  research · alpha · backtest · portfolio_risk
-├── policy/        rule engine · RBAC permissions · approval gateways (auto / queued / deny)
+├── policy/        rule engine (schema + symbol-field checks) · RBAC permissions · per-agent allowlists ·
+│                  approval gateways (auto / queued / deny, content-hash re-check)
 ├── rag/           BM25 (stdlib) · measured chunking · versioned corpus hash · query builder · held-out eval
-├── ml/            pre-trade cost model · anomaly · model registry (deterministic, labelled synthetic)
-├── persistence/   SQLite (WAL, single writer, forward-only migrations)
+├── ml/            pre-trade cost model · anomaly · model registry · model inventory (deterministic, labelled synthetic)
+├── execution/     LOB simulator · schedulers (TWAP/VWAP/POV/Almgren-Chriss) · child orders · auctions · impact ·
+│                  markouts · predicted-vs-realised cost loop · tick/lot/LULD rules (0.8.0, synthetic)
+├── paper/         paper trading: feed, fills, hash-chained ledger, pre-trade checks, kill switch, forward log
+├── eval/          per-agent evals, degraded clients, OOD golden split, corpus pins (0.8.0)
+├── persistence/   SQLite (WAL, single writer, forward-only migrations) · HMAC chain keys · chain anchors
 ├── util/          canonical bytes for hashing (LF, sorted-key JSON, UTC datetimes) · redaction, cassette scrubbing
 ├── observability/ tracing (in-memory + OpenTelemetry) · metrics (Prometheus text) · JSON logging
 ├── api/           FastAPI app · routes · auth · schemas · request parsing
@@ -315,10 +358,11 @@ src/ceap/
 ├── golden.py      frozen golden set (version + items hash)
 ├── drift.py       drift monitors (cassettes, RAG floors, golden version, model and SDK pins)
 └── cli.py         ceap investigate | research | scenarios | research-scenarios | profitability | evaluate |
-                   evaluation-report | tca-report | generate-data | serve
-tests/             unit · integration · mcp · agent · evaluation · adversarial
+                   evaluation-report | tca-report | generate-data | serve | db | replay | paper
+tests/             unit · repo · integration · mcp · agent · evaluation · adversarial · contract · properties · golden
 data/reference/knowledge/   runbooks, TCA methodology, venue config, limits, policies (RAG corpus)
-docs/              architecture · threat-model · api · evaluation (history.csv, latest.json) · ml · quant · ai-agents
+docs/              architecture · threat-model · api · evaluation (history.csv, latest.json) · ml · quant · ai-agents ·
+                   execution · research · review
 ```
 
 ---
@@ -352,7 +396,7 @@ volatility. Ground truth is derived from the generator's parameters (premium aga
 threshold), never from a run of the analytics. Orders are decided at the close and filled at the
 next session (`execution_lag_days=1`); 0.3.x filled at the same close, which was look-ahead.
 
-| Template | Signal | Ground truth (0.4.0, t+1 execution) |
+| Template | Signal | Ground truth (0.8.0, t+1 execution) |
 |---|---|---|
 | momentum_premium (RS01–03) | momentum_12_1 | PROMOTE |
 | no_alpha (RS04–06) | momentum_12_1 | REJECT · NO_ALPHA |
@@ -361,24 +405,30 @@ next session (`execution_lag_days=1`); 0.3.x filled at the same close, which was
 | cost_drag (RS13–15) | reversal_5 | REJECT · COST_DRAG |
 | concentration (RS16–18) | momentum_12_1 | REJECT · CONCENTRATION + LIMIT_BREACH |
 | mixed (RS19–21) | momentum_12_1 | REJECT · COST_DRAG, near threshold (was PROMOTE) |
-| momentum_near_threshold (RS22–24) | momentum_12_1 | PROMOTE, near threshold |
-| reversal_weak (RS25–27) | reversal_5 | REJECT · COST_DRAG |
+| momentum_realistic (RS22–24) | momentum_12_1 | INCONCLUSIVE · NO_ALPHA, near threshold (0.8.0; was momentum_near_threshold, PROMOTE) |
+| reversal_realistic (RS25–27) | reversal_5 | REJECT · COST_DRAG (0.8.0; was reversal_weak) |
 | momentum_crash (RS28–30) | momentum_12_1 | PROMOTE |
 
-The PROMOTE hurdle is measured, not chosen: a null sweep over 500 pure-noise datasets x 24
-configurations picks the lowest in-sample IC t whose false-PROMOTE rate stays under 5 % with the <!-- source: data/reference/research_thresholds.json -->
-other gates in place (deflated Sharpe over ledger-counted trials, out-of-sample IC t >= 1, net
-Sharpe >= 0.5, costs below half of gross). Result: t >= 0.40, false-PROMOTE 15/500 = 3.0 %
-(95 % band 1.7 % to 4.9 %), stored with the sweep hash in `data/reference/research_thresholds.json`.
-Sharpe is on excess returns over the Ken French daily risk-free rate (`data/reference/rf.csv`,
-with attribution); the hurdle was 0.65 with rf = 0 and fell to 0.40 once rf lowered long-only
-Sharpe ratios.
+Truth for each template is derived in closed form by `ceap.data.ground_truth` (rerun of
+`derive_ground_truth` on this build). Since v0.8.0 the platform has three verdicts: PROMOTE, REJECT and
+INCONCLUSIVE (every flag statistical and the 95 % interval of the net Sharpe covers both 0 and 0.5). <!-- source: src/ceap/domain/research.py -->
+`momentum_realistic` and `reversal_realistic` match published moments (rank IC about 0.025); the
+other templates are labelled "Stylised" with their multiple of a real premium.
+
+The PROMOTE hurdle is fixed in advance (0.8.0, plan step D3): in-sample IC t >= 3.0 for a result
+chosen from a search, which the default 24-configuration flow is, and 1.645 for one preregistered
+test. Until 0.7.1 it was read from the null sweep (t >= 0.40). Re-run at the new hurdle, the
+500-seed null sweep found 0 false PROMOTEs (simulation; per-seed vector in <!-- source: docs/research/null_sweep_per_seed.json -->
+`docs/research/null_sweep_per_seed.json`, sweep hash unchanged). Sharpe is on excess returns over
+the Ken French daily risk-free rate (`data/reference/rf.csv`, with attribution). Details in
+[docs/research/README.md](docs/research/README.md#research-realism-toolkit-080-ws-d).
 
 `ceap evaluate --suite research` reports verdict accuracy, flag coverage, false-flag rate,
-completion and number-audit warnings. With the mock model the current build scores 29/30 verdicts (<!-- metric: capability.research_verdict_accuracy -->0.9667)
-(23/24 clear, 6/6 near-threshold) and 0.90 flag coverage; the miss is a 5-year out-of-sample draw
-where a real premium did not show. All numbers are synthetic; nothing here says anything about
-real markets.
+completion and number-audit warnings. With the mock model the current build scores
+<!-- metric: capability.research_verdict_accuracy -->0.8333 verdict accuracy (25/30; 21/24 clear, 2/6 near-threshold; it was 29/30 <!-- source: CHANGELOG.md -->
+before the v0.8.0 recalibration), which meets the a-priori accuracy bars (clear 0.875, <!-- source: CHANGELOG.md -->
+near-threshold 1/3, all 0.80; the clear result sits exactly on its bar). All numbers are synthetic;
+nothing here says anything about real markets.
 
 ---
 
@@ -410,7 +460,7 @@ subprocesses with the official `mcp` SDK; the test suite includes a real stdio r
 
 paper, synthetic or free daily data, not trading. Approved targets are staged as PAPER orders,
 filled by a simulator at the next session's close with the backtest's cost model, and booked in an
-append-only, hash-chained SQLite ledger. The forward record starts on the fixed date in
+append-only, HMAC-chained SQLite ledger (`CEAP_AUDIT_HMAC_KEY`; anchor the heads with `ceap db anchor`). The forward record starts on the fixed date in
 `config/paper.json` and is never backfilled.
 
 ```bash
@@ -420,7 +470,8 @@ ceap paper backfill --from 2026-06-01 --to 2026-10-30 --db var/paper/paper.db
 ```
 
 The feed is synthetic today (scenario R01, re-dated so its out-of-sample rows are the forward
-period). Desk controls run every session: pre-trade risk checks, a kill switch (`CEAP_PAPER_HALT`),
+period). Desk controls run every session: pre-trade risk checks, a kill switch (`CEAP_PAPER_HALT`, or the
+DB-backed `ceap db kill-switch set|clear|status`, checked by the paper job and by `stage_orders`),
 borrow availability, the NYSE calendar, an end-of-day reconciliation that fails loudly, P&L
 attribution and a markdown/JSON artefact per run. A free daily feed plugs in through `ceap.paper.feed.register_feed`. The scheduled workflow
 `paper-daily.yml` runs when the repository variable `PAPER_DAILY_ENABLED` is `true`, which the owner
@@ -470,21 +521,26 @@ record's value is that it is append-only.
 | `CEAP_RATE_LIMIT_PER_MINUTE` / `CEAP_RATE_LIMIT_BURST` | `60` / `20` | per-principal token bucket on `POST /investigations` and `POST /research`; an empty bucket answers 429 with `Retry-After`; `off` disables. In-process, so per replica |
 | `CEAP_CPU_TOOL_PROCESSES` | `2` under the API server, `0` elsewhere | worker processes for CPU-bound MCP tools (`run_backtest`, `evaluate_signal`); the server starts them before it serves, and a step timeout or cancel terminates only that call's worker. `0` runs them in a thread (loop stays free, but a timed-out call runs to completion). Workers use `spawn`, so a script that sets this must keep its top level under `if __name__ == "__main__":` |
 | `CEAP_PREWARM_DATASETS` | – (`T01` in the Docker image) | scenario ids generated at start-up in a worker thread, so the first request does not pay the generation cost |
-| `CEAP_MCP_TRUSTED_SERVERS` | the built-in servers | comma-separated allowlist; tools of any other MCP server are read-only whatever they declare |
+| `CEAP_MCP_TRUSTED_SERVERS` | the built-in servers | comma-separated allowlist; every tool of any other MCP server is denied, whatever it declares (0.8.0; it was treated as read-only) |
+| `CEAP_MCP_CATALOGUE_PINS` | – | `server=<sha256>,...`; start-up is refused when a server's tool catalogue hash differs |
+| `CEAP_AUDIT_HMAC_KEY` / `CEAP_AUDIT_HMAC_OLD_KEYS` | published dev key | HMAC key for the audit log and paper ledger chains, kept outside the database; without it results report `dev_key: true`. Old keys allow rotation |
+| `CEAP_ATTRIBUTION` | heuristic | `regression` turns on the regression cause attribution (F8); off, output is byte-identical to 0.7.1 |
 | `CEAP_MCP_PRINCIPAL_ROLES` | – | roles a standalone stdio MCP server acts for; unset means no capabilities, so `stage_orders` is refused |
 | `CEAP_DEFAULT_DATASET` | `T01` | scenario dataset when a request names none |
 | `CEAP_STEP_TIMEOUT_SECONDS` | `30` | per tool call |
 | `CEAP_TASK_TIMEOUT_SECONDS` | `300` | per investigation |
 | `CEAP_MAX_RETRIES` | `2` | transient tool failures |
 | `CEAP_AUTO_APPROVE` | `true` in dev, else `false` | `false` queues approvals for `/approvals`; `true` outside dev refuses to start. A harness built without a gateway denies every approval |
-| `CEAP_API_KEYS` | dev keys (dev only) | `key:role,...` (roles: viewer, trader, quant, engineer, approver, admin; only `approver` decides approvals, and never one it requested or an earlier stage it approved); keys must be ≥ 8 characters; held only as salted digests in memory, never logged. `auditor` reads every principal's tasks and `/metrics` but acts on nothing; every other reader sees only its own tasks. Research needs the `research` capability (quant, admin); order staging needs `trading:execute` (admin) |
+| `CEAP_API_KEYS` | dev keys (dev only) | `key:role,...` (roles: viewer, trader, quant, engineer, approver, admin; only `approver` decides approvals, never `admin`, and never one its person requested or an earlier stage it approved; HIGH-risk tools always need an approval); keys must be ≥ 8 characters; held only as salted digests in memory, never logged. `auditor` reads every principal's tasks and `/metrics` but acts on nothing; every other reader sees only its own tasks. Research needs the `research` capability (quant, admin); order staging needs `trading:execute` (admin) |
 | `CEAP_MAX_CONCURRENT_INVESTIGATIONS` | `4` | background tasks run under a semaphore; a task waiting for a human approval gives its slot back |
+| `CEAP_NIGHTLY` | – | `1` runs the nightly-marked sweeps (set by `nightly.yml`) |
 | `CEAP_DB_PATH` | `:memory:` in dev, else `var/ceap.db` | SQLite file for tasks, results, approvals, staged orders, idempotency keys and the audit log; migrated forward on start (backup first); see `ceap db --help` |
 | `CEAP_APPROVAL_TIMEOUT_S` | `120` | an unanswered approval expires (decided by `timeout`) |
 | `CEAP_RETENTION_RESULTS_DAYS` / `_TRACES_DAYS` / `_LLM_IO_DAYS` | `90` / `30` / `7` | retention applied on start and by `ceap db prune` (`0` keeps forever); the audit log is never pruned |
 | `CEAP_DB_MAX_BYTES` | 1 GiB | size bound: oldest results are pruned first |
 | `CEAP_MAX_BODY_BYTES` | `65536` | larger request bodies get 413 |
-| `CEAP_API_KEY_HASHES` | – | pre-hashed keys `sha256$salt$digest:role[:YYYY-MM-DD]` (expiry optional); generate with `ceap.api.auth.hash_api_key` |
+| `CEAP_API_KEY_HASHES` | – | pre-hashed keys `sha256$salt$digest:role[:YYYY-MM-DD][:subject=NAME]` (expiry and subject optional); generate with `ceap.api.auth.hash_api_key`. A mapped key acts as `user:NAME`, so four-eyes compares persons |
+| `CEAP_API_KEY_SUBJECTS` | – | `role:xxxxxxxx=NAME,...`: map existing keys to named subjects |
 | `CEAP_MAX_RETAINED_RESULTS` | `200` | oldest investigation results are evicted beyond this |
 | `CEAP_KNOWLEDGE_DIR` | `data/reference/knowledge` | RAG corpus |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | – | mirrors harness spans to OpenTelemetry |
@@ -496,17 +552,19 @@ record's value is that it is append-only.
 Site: **https://ashjha0.github.io/AgenticAICashEquities/** (landing page with measured numbers; published from `docs/`, see [docs/GITHUB_PAGES.md](docs/GITHUB_PAGES.md)).
 
 * [LEARN.md](LEARN.md) – guided tour: concepts, how the repo implements them, real numbers, knowledge check
-* [COOKBOOK.md](COOKBOOK.md) – 43 copy-pasteable recipes
+* [COOKBOOK.md](COOKBOOK.md) – 48 copy-pasteable recipes (44-48: execution, 0.8.0)
 * [docs/SPECIFICATION.md](docs/SPECIFICATION.md) – the original 0.3 specification, kept for history, with pointers to the current docs
 * [docs/architecture/overview.md](docs/architecture/overview.md) – components, data flow, design decisions
 * [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md) – how LLM/AI/ML/agents actually work in this project (and what doesn't)
 * [docs/quant/quant.md](docs/quant/quant.md) – the deterministic quant layer: TCA, attribution, Stage 2 signal research (and what doesn't)
-* [docs/DIAGRAMS.md](docs/DIAGRAMS.md) – Mermaid diagrams: pipeline, state machine, tool-call path, evidence model, MCP topology, sequence, attribution, research workflow, CI, LLM/RAG/ML/evaluation, paper trading and the R5 real-data path
+* [docs/DIAGRAMS.md](docs/DIAGRAMS.md) – Mermaid diagrams: pipeline, state machine, tool-call path, evidence model, MCP topology, sequence, attribution, research workflow, CI, LLM/RAG/ML/evaluation, paper trading and the R5 real-data path, and (0.8.0) the policy and approval flow, audit anchoring and the execution package
 * [docs/ml/README.md](docs/ml/README.md) – the deterministic ML models (synthetic-labelled), model cards, calibration
-* [docs/threat-model/threat-model.md](docs/threat-model/threat-model.md) – assets, threats, controls, adversarial tests
+* [docs/execution/execution.md](docs/execution/execution.md) – the 0.8.0 execution package: order book simulator, schedulers, impact, markouts, cost loop (synthetic)
+* [docs/threat-model/threat-model.md](docs/threat-model/threat-model.md) – assets, threats, controls, adversarial tests; [OWASP LLM Top 10 mapping](docs/threat-model/owasp-llm-top10.md)
 * [docs/evaluation/evaluation.md](docs/evaluation/evaluation.md) – scenarios, thresholds, metrics, results
-* [docs/research/README.md](docs/research/README.md) – the R5 real-data study (VOID) and its preregistration
+* [docs/research/README.md](docs/research/README.md) – the R5 real-data study (VOID) and its preregistration; the 0.8.0 research realism toolkit
 * [docs/api/api.md](docs/api/api.md) – endpoints, auth, schemas
+* [docs/review/2026-11-09/PLAN.md](docs/review/2026-11-09/PLAN.md) – the 0.8.0 review and plan, with per-step status
 * [docs/INDEX.md](docs/INDEX.md) – everything above in one table
 
 ## Stage 2 (realised in 0.3.0)

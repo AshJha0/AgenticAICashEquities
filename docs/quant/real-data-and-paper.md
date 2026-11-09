@@ -28,7 +28,7 @@ the repository), so the earliest
 real-price start is about January 2027. Distinguishing a Sharpe of 1 from 0 needs about 1980
 sessions (LEARN §18a), so the forward record tests operations and controls, not profitability.
 
-**Research realism (0.10, WS-D), evidence class simulation.** Source: `docs/research/README.md`
+**Research realism (0.8.0, WS-D), evidence class simulation.** Source: `docs/research/README.md`
 ("Research realism toolkit"). None of this is a real-data result. The synthetic templates are now
 labelled realistic or stylised; the realistic momentum template (rank IC 0.025, gross Sharpe 0.42)
 gets the new `INCONCLUSIVE` verdict, because 14 years of in-sample data cannot separate it from zero
@@ -38,7 +38,7 @@ of every real download can now be hashed and diffed (`ceap.data.real.vintage`), 
 `scripts/rebuild_study.py` checks a study's preregistration hash before anything is re-run. The next
 real-data study (E1) runs under its own preregistration and is not part of this change.
 
-**Accuracy bars for the research evaluation (0.10), evidence class simulation.** The old bars (0.85 on
+**Accuracy bars for the research evaluation (0.8.0), evidence class simulation.** The old bars (0.85 on
 clear scenarios and on all thirty, 0.5 on near-threshold ones) were set before the D1 recalibration
 and the third verdict. They are replaced by a-priori bars derived from generator parameters, never
 from a run. For each scenario, `ceap.data.ground_truth.hit_probability` gives the chance of reproducing
@@ -46,9 +46,19 @@ the expected verdict. It treats the gate statistics as independent normals aroun
 expectations, so `P(PROMOTE) = prod Phi(z)`, and the realised full-period net Sharpe as normal with
 the Lo (2002) standard error, which gives the INCONCLUSIVE band. Flags defined by the scenario's
 parameters (concentration, limits) count as certain. Each bar is the 5 % one-sided lower bound of the
-Poisson-binomial hit count (`accuracy_bar`). With the 0.10 templates the expected accuracies and bars
+Poisson-binomial hit count (`accuracy_bar`). With the 0.8.0 templates the expected accuracies and bars
 are: clear 0.951 (bar 0.875, n = 24), near-threshold 0.665 (bar 1/3, n = 6), all 0.893 (bar 0.80,
 n = 30). The deterministic pipeline measured 21/24, 2/6 and 25/30, each at or above its bar. The
 clear result sits exactly on its bar, which is a margin of zero and worth watching. The independence
 assumption is an approximation: the gates share data, so the true spread of the hit count is
 probably wider.
+
+**Paper controls added in 0.8.0, evidence class design (tested offline, no forward result yet).**
+The paper ledger chain is HMAC-SHA256 under `CEAP_AUDIT_HMAC_KEY` (without it, a published
+development key is used and reports say `dev_key: true`); the public forward and simulated log CSVs
+stay plain SHA-256 so anyone can verify them. A DB-backed kill switch (`ceap db kill-switch
+set|clear|status`) is checked by the paper job and by `stage_orders`, next to `CEAP_PAPER_HALT`.
+`stage_orders` runs the pre-trade checks before staging and persists staged sets in SQLite. A failed
+`paper-daily` run opens a `paper-failure` issue, and the weekly `paper-staleness` workflow opens a
+`paper-stale` issue when the `forward-log` head is more than 2 NYSE sessions old. Source:
+`CHANGELOG.md` (Unreleased) and COOKBOOK recipe 43.
