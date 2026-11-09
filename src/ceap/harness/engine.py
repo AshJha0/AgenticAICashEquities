@@ -51,6 +51,7 @@ from ceap.harness.state_machine import HarnessState, StateMachine
 from ceap.llm.router import task_cost, task_scope
 from ceap.observability.metrics import metrics
 from ceap.observability.tracing import ExecutionTracer, InMemoryTracer
+from ceap.policy.agents import agent_policy_context
 from ceap.policy.approvals import (
     DISTINCT_FROM_KEY,
     SYSTEM_ACTORS,
@@ -860,6 +861,8 @@ class AgentHarness:
         task: Task,
     ) -> AgentResult:
         async with self.tracer.span(f"agent:{agent.id}", step_id=step_id) as span:
+            # A16: the agent's tool calls run with its own capability set and tool allowlist
+            agent_run = replace(run, policy_context=agent_policy_context(run.policy_context, agent.id))
             ctx = AgentContext(
                 task_id=task.id,
                 execution_id=run.execution_id,
@@ -878,9 +881,9 @@ class AgentHarness:
                     "cases": memory.scratch.get("cases") or (),  # R3B 3B.7: read-only views
                 },
                 tool_registry=self.tools,
-                policy_context=run.policy_context,
+                policy_context=agent_run.policy_context,
                 cancellation_event=run.cancellation,
-                tools=HarnessToolInvoker(executor, run, step_id, agent.id),
+                tools=HarnessToolInvoker(executor, agent_run, step_id, agent.id),
                 findings=tuple(memory.findings),
             )
             t0 = time.perf_counter()

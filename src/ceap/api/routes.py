@@ -45,7 +45,12 @@ from ceap.platform import (
     RequestNotPermitted,
     ResearchRequest,
 )
-from ceap.policy.approvals import ConcurrencySlot, FourEyesViolationError, QueuedApprovalGateway
+from ceap.policy.approvals import (
+    ConcurrencySlot,
+    FourEyesViolationError,
+    QueuedApprovalGateway,
+    approval_view,
+)
 from ceap.policy.permissions import METRICS_READ, READ_ANY
 
 log = logging.getLogger(__name__)
@@ -581,6 +586,7 @@ async def get_approval(
     approval = pending.get(approval_id)
     if approval is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"no pending approval {approval_id}")
+    view = approval_view(approval)
     return ApprovalReviewOut(
         id=approval.id,
         task_id=approval.task_id,
@@ -590,6 +596,9 @@ async def get_approval(
         requested_at=approval.requested_at,
         content_hash=approval.content_hash,
         review=to_jsonable(approval.arguments.get("review") or {}),
+        tool_id=view["tool_id"],
+        arguments=to_jsonable(view["arguments"]),
+        hash_verified=view["hash_verified"],
     )
 
 
@@ -607,7 +616,12 @@ async def decide_approval(
         )
     try:
         decision = gateway.decide(
-            approval_id, body.approved, principal.name, body.comment, action=body.action or ""
+            approval_id,
+            body.approved,
+            principal.name,
+            body.comment,
+            action=body.action or "",
+            content_hash=body.content_hash,
         )
     except FourEyesViolationError as exc:  # four-eyes: requester or earlier-stage approver (T17)
         raise HTTPException(status.HTTP_403_FORBIDDEN, str(exc)) from exc
