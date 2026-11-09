@@ -133,9 +133,9 @@ strict_equality = true
 extra_checks = true
 
 [[tool.mypy.overrides]]
-# Third-party packages without type information in the hashed lock (no pandas-stubs, types-PyYAML, types-jsonschema,
-# scikit-learn stubs). Named one by one so any other missing import still fails.
-module = ["jsonschema", "jsonschema.*", "yaml", "yaml.*", "pandas", "pandas.*", "sklearn", "sklearn.*"]
+# Third-party packages without type information (no pandas-stubs, types-PyYAML, types-jsonschema, sklearn stubs;
+# yfinance is an optional, lazily imported download tool for E1 and paper dividends). Named one by one.
+module = ["jsonschema", "jsonschema.*", "yaml", "yaml.*", "pandas", "pandas.*", "sklearn", "sklearn.*", "yfinance", "yfinance.*"]
 ignore_missing_imports = true
 
 [tool.mutmut]
