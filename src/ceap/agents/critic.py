@@ -8,7 +8,11 @@ Deterministic checks run first (they cannot be talked out of by a model):
    record is attached as contradicting evidence);
 3. cross-agent contradictions (e.g. "technology caused it" vs
    "latency normal") are flagged;
-4. thinly evidenced findings are capped.
+4. (0.9.0) the statement is checked against its own cited evidence: contradicting citations or
+   cited records that disagree, a number the evidence does not carry, a direction word against the
+   sign of the cited change (``ceap.agents.critic_checks``); each is capped (``CHECK_CAPS``) and
+   recorded as a contradiction with a flag in ``assessment["flags"]``;
+5. thinly evidenced findings are capped.
 
 An optional LLM critique then runs. Since R3B (3B.3) it cannot change a confidence itself: an
 assessment that disputes a finding is a *dispute*, which counts only when it names an alternative
@@ -26,6 +30,7 @@ import math
 from dataclasses import replace
 from typing import Any
 
+from ceap.agents.critic_checks import check_statement
 from ceap.agents.base import BaseAgent, degradation_records, finite, llm_disabled
 from ceap.analytics.attribution import MATERIAL_SCORE
 from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS, assess_research
@@ -64,6 +69,10 @@ CRITIC_REPAIR_INSTRUCTION = (
 )
 
 SINGLE_EVIDENCE_CAP = 0.7
+#: confidence cap per statement check (``ceap.agents.critic_checks``): a wrong number or direction
+#: is a factual error; a contested finding may still be right
+CHECK_CAPS = {"contradicted": 0.4, "numeric_mismatch": 0.2, "direction_mismatch": 0.2}
+CAP_FLAG = "single_evidence_cap"  # the cap alone is not a detected fault (critic_planted)
 RESEARCH_KIND = "research"
 _RESEARCH_FLAGS = {f.value for f in ResearchFlag}
 
@@ -128,9 +137,19 @@ class CriticAgent(BaseAgent):
                         f"{f.id}: quant attributes to technology but engineering telemetry is normal"
                     )
                     notes.append("engineering telemetry contradicts technology attribution")
+            # 0.9.0 (L3): statement-versus-evidence checks on the producer's own citations
+            flags: list[str] = []
+            cited = [memory.evidence[e].attributes for e in f.supporting_evidence if e in memory.evidence]
+            against = [memory.evidence[e].attributes for e in f.contradicting_evidence if e in memory.evidence]
+            for flag, note in check_statement(f.statement, cited, against):
+                flags.append(flag)
+                notes.append(note)
+                conf = min(conf, CHECK_CAPS[flag])
+                contradictions.append(f"{f.id}: {flag}: {note}")
             if len(set(f.supporting_evidence)) <= 1 and conf > SINGLE_EVIDENCE_CAP:
                 conf = SINGLE_EVIDENCE_CAP
                 notes.append("single evidence record; confidence capped")
+                flags.append(CAP_FLAG)
             assessments.append(
                 {
                     "finding_id": f.id,
@@ -138,6 +157,7 @@ class CriticAgent(BaseAgent):
                     "original_confidence": f.confidence,
                     "adjusted_confidence": round(conf, 3),
                     "notes": notes,
+                    "flags": flags,
                 }
             )
             adjusted.append(
