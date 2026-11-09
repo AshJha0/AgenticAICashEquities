@@ -753,3 +753,98 @@ blocks scripted downloads, so files must be placed by hand), refuses rows up to 
 produce a 12-1 signal before about January 2027. The scheduled workflow runs because the owner set
 the repository variable `PAPER_DAILY_ENABLED=true` on 2026-11-08 (D22); the forward record starts on
 2026-11-09.
+
+## 44. Run a parent order through the simulated book
+
+```python
+from ceap.execution.algo import ParentOrder, execute
+from ceap.execution.child import ChildPolicy
+from ceap.execution.lob import BUY, LOBSimulator
+from ceap.execution.schedule import POV, TWAP, VWAP, AlmgrenChriss
+
+parent = ParentOrder(BUY, 3_000, start_ms=60_000, end_ms=660_000, n_slices=10)  # 10 minutes
+for sched in (TWAP(), VWAP(0.4, 0.45), POV(0.10, 0.03, total=3_000),
+              AlmgrenChriss(sigma=0.3, eta=1e-4, gamma=1e-6, horizon=1.0, risk_aversion=1e-3)):
+    r = execute(LOBSimulator(seed=100), parent, sched, ChildPolicy(urgency=0.5))
+    print(sched.name, r.executed, round(r.passive_share, 2), r.components.as_dict())
+```
+
+The book is a price-time FIFO queue with latency; passive children fill only when a taker trades
+through the queue ahead of them, and the bot's own fills move the price (propagator impact). The cost
+is the same Perold split the post-trade TCA uses. One seed is one noisy draw: compare schedulers over
+many seeds (docs/execution/execution.md, section 3).
+
+## 45. Fit market impact and compare it with the truth
+
+```python
+from ceap.execution.impact import fit_propagator
+from ceap.execution.lob import LOBSimulator
+
+sim = LOBSimulator(seed=3)
+for t in range(0, 600_000, 2_000):           # buy 200 every 2 s for 10 minutes
+    sim.run_until(t)
+    sim.submit(1, 200)
+sim.run_until(900_000)
+flow = sim.agent_flow_grid(1_000, 0, 900_000)
+fit = fit_propagator(sim.mid_grid(1_000, 0, 900_000, efficient=True), flow, dt_s=1.0)
+print(fit.compare(sim.p.kernel))              # estimate, SE, truth and z for each parameter
+```
+
+Use `efficient=True` to check the mechanism; on the quoted mid (`efficient=False`) the bid-ask bounce
+biases the split towards a large, fast-reverting impact. One-directional flow like this identifies
+the permanent part poorly: vary the side for a cleaner fit.
+
+## 46. Markout curves and a venue routing table from fills
+
+```python
+from ceap.data.scenarios import get_scenario
+from ceap.data.synthetic import SyntheticMarketGenerator
+from ceap.execution.markouts import markout_curves, routing_table
+
+ds = SyntheticMarketGenerator().generate(get_scenario("venue_degradation"))
+for p in markout_curves(ds.executions, ds.quotes, horizons=(1, 30, 300, "close"), n_boot=300):
+    print(p.group, p.horizon, p.n, round(p.mean_bps, 2), (round(p.ci_low_bps, 2), round(p.ci_high_bps, 2)))
+for row in routing_table(ds.executions, ds.quotes, horizon=60):
+    print(row.venue, row.verdict, round(row.markout_bps, 2), round(row.suggested_weight, 3))
+```
+
+Positive markout = the price moved our way after the fill. A venue is `adverse` only when its whole
+CI is below zero.
+
+## 47. Predicted versus realised cost, weekly
+
+```python
+from datetime import date
+from ceap.execution.cost_loop import CostLoop, CostObservation
+
+loop = CostLoop("var/costs.sqlite")               # or ":memory:"
+pred = loop.predict(quantity=40_000, adv=1_000_000, sigma_daily_bps=120.0)
+loop.record(CostObservation(date(2026, 11, 9), "P-1", 40_000, 1_000_000, 120.0, pred, realised_bps=17.2))
+# ... record each parent as it completes, then once a week:
+calibration, drift = loop.weekly(as_of=date(2026, 11, 13))
+print(calibration, drift)                         # new Y and exponent; mean residual in SEs
+```
+
+`weekly` needs at least three observations to fit; `drift.alert` is `|z| >= 2` on the last seven days.
+`reliability_table(loop.observations())` gives the rows for a reliability plot.
+
+## 48. Regression cause attribution and the trading rules
+
+```bash
+CEAP_ATTRIBUTION=regression ceap investigate "Why did AAPL execution deteriorate between 14:00 and 15:00?" --dataset T03 --json result.json
+```
+
+(T03 is the wide-spreads scenario) or `attribute_causes(..., method="regression")` in Python. The heuristic verdict is unchanged; the
+regression's bps share per cause with CIs appears under `regression`. With only five matched peer
+sessions it leans on its ridge prior and says so.
+
+```python
+from ceap.execution.auction import AuctionOrder, uncross
+from ceap.execution.rules import LULDMonitor, luld_bands, round_lot_size, round_to_tick
+
+print(round_to_tick(10.019, side=1), round_lot_size(400.0), luld_bands(100.0, seconds_since_open=600))
+print(uncross([AuctionOrder(1, 500), AuctionOrder(-1, 400, 9.99), AuctionOrder(-1, 400, 10.01)], reference=10.0))
+```
+
+The tick, lot and LULD numbers are the published rules as recalled; check the current text before
+relying on them.

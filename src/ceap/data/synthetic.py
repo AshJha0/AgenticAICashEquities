@@ -132,7 +132,12 @@ class SyntheticDataset:
 
 
 def london(session_date: date, hh: int, mm: int = 0) -> datetime:
-    """Legacy name: a wall-clock time on ``session_date`` in the desk timezone (America/New_York)."""
+    """Deprecated alias of :func:`ceap.data.session.session_time` (F14, 0.8.0).
+
+    The name dates from when the desk clock was London; since 2T.1 it is America/New_York, so the
+    name misleads. It stays (without a warning) for existing importers; new code should call
+    ``session_time``. Removal is planned for 1.0.
+    """
     return session_time(session_date, hh, mm)
 
 
@@ -324,9 +329,7 @@ def simulate_parent(
         )
         if not filled:
             continue
-        fill_qty = (
-            child_qty if rng.random() > 0.3 else int(max(1, round(child_qty * rng.uniform(0.6, 0.95))))
-        )
+        fill_qty = child_qty if rng.random() > 0.3 else int(max(1, round(child_qty * rng.uniform(0.6, 0.95))))
         j = min(n - 1, i + max(1, int(latency_us / 1_000_000)))
         if halted is not None and halted[j]:
             continue
@@ -705,36 +708,71 @@ class SyntheticMarketGenerator:
 
         A late print carries the price of a quote ``LATE_PRINT_LAG_SECONDS`` earlier, as a
         trade reported out of sequence does; interval VWAP excludes it by default.
+
+        G2 (0.8.0): vectorised. The random draws are made per second in exactly the order v0.7
+        made them (side, size, venue, offset, late flag), so the output is bit-for-bit the same;
+        everything after the draws is array arithmetic plus one list comprehension. ``rng.choice``
+        is replaced by its own algorithm (cumulative weights searched with one uniform each),
+        which consumes the same draws without the per-call validation cost.
         """
         counts = rng.poisson(TRADES_PER_SECOND * profile)
+        busy = np.flatnonzero(counts)
+        if busy.size == 0:
+            return []
+        cdf = np.asarray(VENUE_WEIGHTS, dtype=float).cumsum()
+        cdf /= cdf[-1]
+        log_mean = math.log(MEAN_TRADE_SIZE)
+        # Per busy second v0.7 drew: sides U(c), sizes LN(c), venues U(c), offsets U(c), late U(c).
+        # The uniforms between two lognormal calls are contiguous in the stream, so one call of
+        # 3c_i + c_{i+1} uniforms per second yields the same numbers as four separate calls.
+        cs = counts[busy].tolist()
+        uniform_blocks = [rng.random(cs[0])]
+        size_blocks: list[np.ndarray] = []
+        for k, c in enumerate(cs):
+            size_blocks.append(rng.lognormal(log_mean, TRADE_SIZE_LOG_SD, c))
+            uniform_blocks.append(rng.random(3 * c + (cs[k + 1] if k + 1 < len(cs) else 0)))
+        # re-cut the stream into per-trade columns: block k+1 starts with second k's 3c_k uniforms
+        sec = np.repeat(busy, counts[busy])
+        tails = [b[: 3 * c] for b, c in zip(uniform_blocks[1:], cs, strict=True)]
+        heads = [uniform_blocks[0]] + [b[3 * c :] for b, c in zip(uniform_blocks[1:-1], cs[:-1], strict=True)]
+        side_u = np.concatenate(heads)
+        tri = np.concatenate([t.reshape(3, -1) for t in tails], axis=1)
+        sides = side_u < 0.5
+        qty = np.maximum(10, (np.concatenate(size_blocks) / 10).round() * 10).astype(int)
+        venue_idx = cdf.searchsorted(tri[0], side="right")
+        offsets = tri[1][np.lexsort((tri[1], sec))]  # sorted within each second, as v0.7 did
+        late = tri[2] < LATE_PRINT_PROB
+        when = ts[sec] + offsets
+        src = np.where(late, np.maximum(0, sec - LATE_PRINT_LAG_SECONDS), sec)
+        bid_r = [round(x, 2) for x in bids.tolist()]
+        ask_r = [round(x, 2) for x in asks.tolist()]
+        venues = [str(v) for v in VENUES]
+        prefix = f"T-{sym}-{ts[0]:.0f}-"
         trades: list[Trade] = []
-        seq = 0
-        for i, c in enumerate(counts):
-            if c == 0:
-                continue
-            sides = rng.random(c) < 0.5
-            qty = np.maximum(
-                10, (rng.lognormal(math.log(MEAN_TRADE_SIZE), TRADE_SIZE_LOG_SD, c) / 10).round() * 10
-            ).astype(int)
-            venues = rng.choice(VENUES, size=c, p=VENUE_WEIGHTS)
-            offsets = np.sort(rng.random(c))
-            late = rng.random(c) < LATE_PRINT_PROB
-            for k in range(c):
-                seq += 1
-                src = max(0, i - LATE_PRINT_LAG_SECONDS) if late[k] else i
-                px = asks[src] if sides[k] else bids[src]
-                condition = "LATE" if late[k] else ("ODD_LOT" if qty[k] < 100 else None)
-                trades.append(
-                    Trade(
-                        symbol=sym,
-                        timestamp=datetime.fromtimestamp(float(ts[i] + offsets[k]), tz=NY),
-                        price=round(float(px), 2),
-                        quantity=int(qty[k]),
-                        venue=str(venues[k]),
-                        trade_id=f"T-{sym}-{ts[0]:.0f}-{seq:07d}",
-                        condition=condition,
-                    )
+        append = trades.append
+        for seq, (t, buy, j, q, v, lt) in enumerate(
+            zip(
+                when.tolist(),
+                sides.tolist(),
+                src.tolist(),
+                qty.tolist(),
+                venue_idx.tolist(),
+                late.tolist(),
+                strict=True,
+            ),
+            start=1,
+        ):
+            append(
+                Trade(
+                    symbol=sym,
+                    timestamp=datetime.fromtimestamp(t, tz=NY),
+                    price=ask_r[j] if buy else bid_r[j],
+                    quantity=q,
+                    venue=venues[v],
+                    trade_id=f"{prefix}{seq:07d}",
+                    condition="LATE" if lt else ("ODD_LOT" if q < 100 else None),
                 )
+            )
         return trades
 
     # ----------------------------------------------------------- order books
@@ -789,7 +827,7 @@ class SyntheticMarketGenerator:
         logs: list[LogEntry] = []
         deployments: list[Deployment] = [
             Deployment(
-                timestamp=london(self.session_date, 9, 30),
+                timestamp=session_time(self.session_date, 9, 30),
                 service="risk-service",
                 version="3.2.0",
                 change_id="CHG-40311",
@@ -800,7 +838,7 @@ class SyntheticMarketGenerator:
         if spec.deployment_in_window:
             deployments.append(
                 Deployment(
-                    timestamp=london(self.session_date, 13, 52),
+                    timestamp=session_time(self.session_date, 13, 52),
                     service="smart-order-router",
                     version="2.14.1",
                     change_id="CHG-40388",

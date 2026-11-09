@@ -41,8 +41,12 @@ def vwap_by_bucket(
             else np.asarray(timestamps, dtype="int64")
         )
     buckets = (epoch // bucket_seconds) * bucket_seconds
-    result: list[tuple[float, float, float]] = []
-    for b in np.unique(buckets):
-        mask = buckets == b
-        result.append((float(b), vwap(prices[mask], quantities[mask]), float(quantities[mask].sum())))
-    return result
+    # F14: one pass with bincount instead of a boolean mask per bucket (O(n) rather than O(n*k))
+    starts, inverse = np.unique(buckets, return_inverse=True)
+    p = np.asarray(prices, dtype=float)
+    q = np.asarray(quantities, dtype=float)
+    volume = np.bincount(inverse, weights=q, minlength=starts.size)
+    notional = np.bincount(inverse, weights=p * q, minlength=starts.size)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        bucket_vwap = np.where(volume > 0, notional / np.where(volume > 0, volume, 1.0), np.nan)
+    return [(float(b), float(v), float(vol)) for b, v, vol in zip(starts, bucket_vwap, volume, strict=True)]

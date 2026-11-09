@@ -96,6 +96,19 @@ class QuoteIndex:
     def last_timestamp(self) -> datetime | None:
         return self._quotes[-1].timestamp if self._quotes else None
 
+    def last_timestamp_on(self, ts: datetime) -> datetime | None:
+        """Last quote on the calendar day of ``ts`` (in ``ts``'s time zone): that session's close.
+
+        Added for F7 markouts to the close, where a dataset can hold several sessions.
+        """
+        if not self._quotes:
+            return None
+        nxt = datetime.combine(ts.date() + timedelta(days=1), datetime.min.time(), tzinfo=ts.tzinfo)
+        idx = int(np.searchsorted(self._ts, nxt.timestamp(), side="left")) - 1
+        if idx < 0 or self._quotes[idx].timestamp.astimezone(ts.tzinfo).date() != ts.date():
+            return None
+        return self._quotes[idx].timestamp
+
     def sample_seconds(self) -> float:
         if len(self._ts) < 2:
             return 1.0

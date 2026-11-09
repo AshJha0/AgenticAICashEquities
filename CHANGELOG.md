@@ -99,6 +99,28 @@ refuses a tag whose version has no section.
   showed a zero opportunity cost.
 - `data/reference/ATTRIBUTION.md` says that the knowledge documents are fictional and that
   `classification: internal` is test metadata (I3).
+- Execution (WS-F, lane 6): new package `ceap.execution` with an event-driven limit order book
+  (price-time FIFO queues, millisecond clock, order-entry and market-data latency, icebergs, passive
+  fills only when traded through, informed-flow adverse selection; F1), propagator impact driven by
+  the bot's own fills with a fit reported against the truth (F2), TWAP/VWAP/POV/Almgren-Chriss behind
+  one `Schedule` interface with exact whole-share allocation (F3), child-order logic (F4), an auction
+  uncross with endogenous auction impact (F5, simulator half), a predicted-vs-realised cost loop in
+  SQLite with weekly recalibration and a drift alert (F6), markout curves by venue and liquidity flag
+  with bootstrap CIs plus a routing table (F7), and tick, round-lot and LULD rules (F12 part). Guide:
+  `docs/execution/execution.md`; COOKBOOK recipes 44-48. Deferred to the owning lanes: paper MOC caps
+  (F5 paper half), F10, F11, F13, and the sigma fat-finger band (F12 rest).
+- Attribution: `regression_attribution` (F8), a cross-sectional ridge regression giving each cause a
+  bps share with bootstrap CIs, next to the heuristic scores. Off by default; turn on with
+  `attribute_causes(..., method="regression")` or `CEAP_ATTRIBUTION=regression`. With the flag off the
+  output is byte-identical to 0.7.1.
+- Generator speed (G2): `SyntheticMarketGenerator._trades` vectorised with the random draws in the
+  same order, so every dataset is bit-for-bit unchanged (SHA-256 of three full scenarios identical
+  before and after; v0.7.1 digest pinned in a test). About 5x on `_trades` and 10x on `generate`
+  on the dev machine, short of the plan's 50x target (the rest is per-print object construction).
+  The ML registry's generator *source* hash changes as a result; model outputs do not.
+- Cleanups (F14): `market_impact_bps` and `temporary_impact_bps` now raise `DeprecationWarning`
+  (removal in 1.0); `london()` documented as a deprecated alias of `session_time`; `vwap_by_bucket`
+  uses one `bincount` pass. Markouts to the close use each fill's own session (`QuoteIndex.last_timestamp_on`).
 
 ## [0.7.1] - 2026-11-08
 
