@@ -145,12 +145,12 @@ def aggregate(per_seed: dict[int, dict[str, Any]]) -> dict[str, Any]:
     for key in GOLDEN_KEYS:
         items = [(s, r["golden"].get(key), r["golden"]) for s, r in per_seed.items()]
         n_key = "research_items" if key == "verdict_accuracy" else "investigation_items"
-        recs = [(s, v, round(v * g[n_key])) for s, v, g in items if v is not None]
-        if recs:
+        grecs = [(s, v, round(v * g[n_key])) for s, v, g in items if v is not None]
+        if grecs:
             n = sum(g[n_key] for _, v, g in items if v is not None)
             out[f"golden.{key}"] = {
-                **rate(sum(k for _, _, k in recs), n),
-                "per_seed": {str(s): v for s, v, _ in recs},
+                **rate(sum(k for _, _, k in grecs), n),
+                "per_seed": {str(s): v for s, v, _ in grecs},
             }
     return out
 
