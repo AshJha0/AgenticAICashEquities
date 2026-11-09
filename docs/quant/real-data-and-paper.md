@@ -37,3 +37,18 @@ preregistered test); the re-run null sweep gave 0 false PROMOTEs in 500 seeds at
 of every real download can now be hashed and diffed (`ceap.data.real.vintage`), and
 `scripts/rebuild_study.py` checks a study's preregistration hash before anything is re-run. The next
 real-data study (E1) runs under its own preregistration and is not part of this change.
+
+**Accuracy bars for the research evaluation (0.10), evidence class simulation.** The old bars (0.85 on
+clear scenarios and on all thirty, 0.5 on near-threshold ones) were set before the D1 recalibration
+and the third verdict. They are replaced by a-priori bars derived from generator parameters, never
+from a run. For each scenario, `ceap.data.ground_truth.hit_probability` gives the chance of reproducing
+the expected verdict. It treats the gate statistics as independent normals around their closed-form
+expectations, so `P(PROMOTE) = prod Phi(z)`, and the realised full-period net Sharpe as normal with
+the Lo (2002) standard error, which gives the INCONCLUSIVE band. Flags defined by the scenario's
+parameters (concentration, limits) count as certain. Each bar is the 5 % one-sided lower bound of the
+Poisson-binomial hit count (`accuracy_bar`). With the 0.10 templates the expected accuracies and bars
+are: clear 0.951 (bar 0.875, n = 24), near-threshold 0.665 (bar 1/3, n = 6), all 0.893 (bar 0.80,
+n = 30). The deterministic pipeline measured 21/24, 2/6 and 25/30, each at or above its bar. The
+clear result sits exactly on its bar, which is a margin of zero and worth watching. The independence
+assumption is an approximation: the gates share data, so the true spread of the hit count is
+probably wider.

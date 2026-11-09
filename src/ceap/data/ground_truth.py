@@ -360,3 +360,42 @@ def gate_z_scores(e: dict[str, float], th: Any, hurdle: float | None = None) -> 
         "cost_share": z_cost,
     }
 
+
+
+def hit_probability(gt: GroundTruth, thresholds: Any = None) -> float:
+    """A-priori probability that a run reproduces the expected verdict (0.10, accuracy bars).
+
+    Gate statistics are treated as independent normals around their expectations (``z`` margins from
+    :func:`gate_z_scores`, SE 1 each): ``P(PROMOTE) = prod Phi(z_k)``. The realised full-period net Sharpe
+    is ``N(net_sharpe_full, se_sharpe_full)``, so ``P(in band) = Phi((c se - sr) / se) - Phi((m - c se - sr)
+    / se)`` with ``c = inconclusive_z`` and ``m = sharpe_min``. Parameter-defined flags (concentration,
+    limits) are certain. ``INCONCLUSIVE`` needs a failure and the band; ``REJECT`` is the rest.
+    """
+    from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS
+
+    th = thresholds or DEFAULT_THRESHOLDS
+    if any(f in (ResearchFlag.CONCENTRATION, ResearchFlag.LIMIT_BREACH) for f in gt.flags):
+        return 1.0
+    m = gt.metrics
+    z = [v for k, v in m.items() if k.startswith("z_") and k != "z_inconclusive_band"]
+    p_promote = float(np.prod([_N.cdf(v) for v in z]))
+    sr, se, c = m["net_sharpe_full"], m["se_sharpe_full"], th.inconclusive_z
+    p_band = _N.cdf((c * se - sr) / se) - _N.cdf((th.sharpe_min - c * se - sr) / se)
+    statistical = not any(f is ResearchFlag.COST_DRAG or f is ResearchFlag.REGIME_BREAK for f in gt.flags)
+    p_inconclusive = (1.0 - p_promote) * p_band if statistical else 0.0
+    if gt.verdict is ResearchVerdict.PROMOTE:
+        return p_promote
+    if gt.verdict is ResearchVerdict.INCONCLUSIVE:
+        return p_inconclusive
+    return max(0.0, 1.0 - p_promote - p_inconclusive)
+
+
+def accuracy_bar(probabilities: list[float], alpha: float = 0.05) -> float:
+    """One-sided ``alpha`` lower bound on the hit share: the largest ``k / n`` with ``P(hits < k) <= alpha``
+    under the Poisson-binomial distribution of independent scenarios with the given hit probabilities."""
+    dist = np.array([1.0])
+    for p in probabilities:
+        dist = np.convolve(dist, [1.0 - p, p])
+    cdf = np.cumsum(dist)  # cdf[k] = P(hits <= k)
+    k = int(np.searchsorted(cdf, alpha, side="right"))  # first k with P(hits <= k) > alpha
+    return k / len(probabilities) if probabilities else 0.0

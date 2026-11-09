@@ -56,6 +56,10 @@ refuses a tag whose version has no section.
     `ceap.analytics.risk_research` and `ceap.analytics.alpha_decay`; D14 `ceap.data.real.vintage`;
     D20 `scripts/rebuild_study.py`; D22 model inventory (`ceap.ml.inventory`, new `ModelCard` fields);
     D23 `ic_ir_annualised` labelled descriptive and the flat borrow assumption stated.
+  - Research-evaluation accuracy bars are now a priori: 5 % one-sided Poisson-binomial lower bounds at
+    parameter-derived hit probabilities (`ground_truth.hit_probability`, `accuracy_bar`). Clear 0.85 ->
+    0.875, near-threshold 0.5 -> 1/3, all 0.85 -> 0.80. The old bars predate the D1 recalibration;
+    measured 21/24, 2/6 and 25/30 meet the new bars (clear exactly at its bar).
   - Golden set 1.0.0 -> 1.1.0 (two template renames, R08 expected verdict now INCONCLUSIVE); needs the
     `golden-change` label and owner sign-off.
 - **Breaking (D4), policy lane (A3):** the policy engine validates arguments against each tool's JSON schema, checks every symbol-bearing field at any depth (lists and nested objects too, plus schema properties flagged `x-ceap-symbol`), bounds the whole argument tree (string length, item count, depth, total values) and coerces `limit` to a whole number before its bound. With no universe configured, a request that names a symbol is denied.

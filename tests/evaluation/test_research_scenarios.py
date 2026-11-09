@@ -26,8 +26,13 @@ async def test_thirty_research_scenarios_against_parameter_derived_truth(platfor
     assert summary["number_warnings"] == 0
     assert summary["clear_verdict_accuracy"] >= 0.85, misses
     assert sum(r["flags_coverage"] for r in clear) / len(clear) >= 0.85, misses
-    # 0.10 D4: near-threshold rows can now land on any of three verdicts; the bar is chance among three (was 0.5)
-    assert summary["near_threshold_accuracy"] >= 1 / 3
+    # a-priori bar (0.10): 5 % lower bound at the parameter-derived hit probabilities of the near rows
+    from ceap.data.ground_truth import accuracy_bar, derive_ground_truth, hit_probability
+    from ceap.data.research_scenarios import all_research_scenarios
+
+    truths = [derive_ground_truth(s) for s in all_research_scenarios()]
+    assert summary["near_threshold_accuracy"] >= accuracy_bar([hit_probability(g) for g in truths if g.near_threshold])
+    assert summary["clear_verdict_accuracy"] >= accuracy_bar([hit_probability(g) for g in truths if not g.near_threshold])
     assert not any(r["staged"] for r in rows)
     # every template is recognised at least once
     by_template: dict[str, list[bool]] = {}
