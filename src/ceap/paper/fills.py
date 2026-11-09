@@ -288,6 +288,7 @@ def simulate_day(
         if borrow:
             ev.append(_event("borrow", cash_delta=-borrow))
         st.cash += interest - borrow
+    st.cash += dividends  # after financing, which accrues on the previous close's cash
 
     # 3. mark to today's close; cash out names that left the universe
     mark_pnl = 0.0
