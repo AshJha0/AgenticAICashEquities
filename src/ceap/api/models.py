@@ -164,6 +164,8 @@ class ApprovalReviewOut(BaseModel):
     tool_id: str = ""
     arguments: dict[str, Any] = Field(default_factory=dict)
     hash_verified: bool = True
+    #: 0.9.0 B7: advisory challenger-agreement block; None unless a challenger model planned the task
+    challenger: dict[str, Any] | None = None
 
 
 class ScenarioOut(BaseModel):

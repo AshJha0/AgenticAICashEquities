@@ -49,6 +49,8 @@ MAX_REPLANS = 1  # R3B 3B.6: one bounded re-plan on a tool or required-agent fai
 MAX_DISPUTE_CHECKS = 3  # R3B 3B.3: alternative checks run per task (one tool call each)
 DISPUTE_CAP = 0.3  # confidence of a finding overturned by a contradicting deterministic check
 HUMAN_APPROVAL_TOOL_ID = "harness.human_approval"
+#: scratch key for an optional challenger plan ``{"plan": <raw plan dict>, "model": str}`` (0.9.0 B7)
+CHALLENGER_PLAN_KEY = "challenger_plan"
 # task-input keys whose values a plan may use for the corresponding tool arguments
 # (a list-valued task input, e.g. the research universe, admits any of its elements)
 _PINNED_ARGS = {"symbol": ("symbol", "universe"), "dataset": ("dataset",), "signal": ("signal",)}
@@ -271,7 +273,31 @@ def _approval_payload(step: PlanStep, memory: InvestigationMemory) -> dict[str, 
             }
             for p in positions
         ]
+    challenger = memory.scratch.get(CHALLENGER_PLAN_KEY)
+    if challenger:
+        # 0.9.0 B7, off by default: only when a challenger model planned the same task does the
+        # approver get the advisory agreement block; the challenger never changes the plan.
+        from ceap.eval.challenger import approver_challenger_view
+
+        payload["challenger"] = approver_challenger_view(
+            _plan_as_dict(memory.scratch.get("plan")),
+            challenger.get("plan"),
+            str(challenger.get("model") or ""),
+        )
     return payload
+
+
+def _plan_as_dict(plan: Any) -> dict[str, Any] | None:
+    """The primary plan in the raw shape :func:`ceap.eval.challenger.tool_sequence` reads."""
+    if plan is None or isinstance(plan, dict):
+        return plan
+    return {
+        "steps": [
+            {"type": "TOOL_CALL", "tool_id": s.tool_request.tool_id}
+            for s in plan.steps
+            if s.type is StepType.TOOL_CALL and s.tool_request is not None
+        ]
+    }
 
 
 def _leaf_exception(exc: BaseException) -> BaseException:

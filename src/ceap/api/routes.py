@@ -630,6 +630,7 @@ async def get_approval(
         tool_id=view["tool_id"],
         arguments=to_jsonable(view["arguments"]),
         hash_verified=view["hash_verified"],
+        challenger=view.get("challenger"),
     )
 
 
