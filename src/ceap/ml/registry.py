@@ -140,6 +140,14 @@ class ModelCard:
     limitations: str = ""
     sklearn_version: str | None = None
     feature_reference: dict[str, dict[str, list[float]]] = field(default_factory=dict)
+    # 0.10 D22 model-risk inventory fields (SR 11-7 style); defaults keep pre-0.10 card files loadable
+    owner: str = "CEAP maintainers"
+    validator: str = "unassigned (no independent validation yet)"
+    validated_on: str = ""
+    status: str = "research"  # research | approved | retired
+    tier: str = "3"  # 1 = drives orders, 2 = shown to an approver, 3 = research only
+    review_cadence_days: int = 365
+    challenger: str = ""  # the naive model this one must beat
 
     def to_markdown(self) -> str:
         rows = "\n".join(f"| {k} | {v} |" for k, v in sorted(self.metrics.items()))
@@ -148,7 +156,12 @@ class ModelCard:
             f"*{self.label}.* Kind `{self.kind}`; created {self.created}; training data `{self.training_data_hash}`"
             + (f"; scikit-learn {self.sklearn_version}" if self.sklearn_version else "")
             + f".\n\n{self.description}\n\n**Intended use.** {self.intended_use}\n\n"
-            f"**Limitations.** {self.limitations}\n\n| Metric | Value |\n|---|---|\n{rows}\n"
+            f"**Limitations.** {self.limitations}\n\n"
+            f"**Inventory.** Owner {self.owner}; validator {self.validator}"
+            + (f" ({self.validated_on})" if self.validated_on else "")
+            + f"; status {self.status}; tier {self.tier}; review every {self.review_cadence_days} days"
+            + (f"; challenger: {self.challenger}" if self.challenger else "")
+            + f".\n\n| Metric | Value |\n|---|---|\n{rows}\n"
         )
 
 

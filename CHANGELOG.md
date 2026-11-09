@@ -31,6 +31,33 @@ refuses a tag whose version has no section.
     only); `assert_consumed` fails unused interactions; nonces are masked in the match key and the
     stored body. Cassettes regenerated through the existing writer.
   - A20: the mock client reports zero tokens and so zero cost (it used to report characters / 4).
+- Research realism, WS-D (D1-D23 except D5 and D10; synthetic evaluation only, no real-data result):
+  - D1: research templates carry a `calibration` label. `momentum_near_threshold` becomes
+    `momentum_realistic` (premium 1800 -> 1100 bps: rank IC 0.025, gross Sharpe 0.42) and
+    `reversal_weak` becomes `reversal_realistic` (transient share 0.40 -> 0.18: five-day rank IC
+    0.024); the other templates are described as "Stylised" with their multiple of a real premium.
+  - D3: a-priori IC hurdle, t >= 3.0 for a searched result and 1.645 for one preregistered test
+    (was 0.4, read from the null sweep). The null sweep now measures the false-PROMOTE rate at the
+    hurdle: 0 of 500 seeds at 3.0 (sweep hash unchanged, `ef474869e5fa…`); per-seed vector in
+    `docs/research/null_sweep_per_seed.json`; sweep runs logged in `data/reference/sweep_ledger.jsonl`
+    with the generator version (D20, D21).
+  - D4: new `ResearchVerdict.INCONCLUSIVE` (contracts change) when every flag is statistical and the
+    95 % interval of the full-period net Sharpe covers both 0 and 0.5. The golden test that listed a
+    non-existent `MONITOR` verdict now reads the enum.
+  - D2: adversarial generator families (hidden factor, regime switching, GARCH plus jumps, premium on
+    market beta) on a separate random stream, so every existing dataset hash is unchanged; power and
+    false-positive curves in `docs/research/adversarial_power.json` (`ceap.analytics.adversarial`).
+  - D7 leakage canary through `simulate_backtest`; shuffled-label `t_max` 4.0 -> 3.0. D8 trial
+    accounting (`ceap.analytics.trial_accounting`; the DSR trial count is floored at the 24-way search
+    or the preregistered variants). D9 PBO by CSCV and stationary block bootstrap
+    (`ceap.analytics.overfitting`). D11 Newey-West over gaps with the Andrews bandwidth. D12
+    equal-weight baseline, paired bootstrap and Diebold-Mariano test and coefficient paths for the
+    ridge; it now PROMOTEs only if it also beats the baseline. D13-D19 in
+    `ceap.analytics.risk_research` and `ceap.analytics.alpha_decay`; D14 `ceap.data.real.vintage`;
+    D20 `scripts/rebuild_study.py`; D22 model inventory (`ceap.ml.inventory`, new `ModelCard` fields);
+    D23 `ic_ir_annualised` labelled descriptive and the flat borrow assumption stated.
+  - Golden set 1.0.0 -> 1.1.0 (two template renames, R08 expected verdict now INCONCLUSIVE); needs the
+    `golden-change` label and owner sign-off.
 
 ## [0.7.1] - 2026-11-08
 

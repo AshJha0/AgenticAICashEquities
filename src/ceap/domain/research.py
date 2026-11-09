@@ -51,8 +51,15 @@ def validate_choice(signal: str, rebalance_days: int, long_short: bool, weightin
 
 
 class ResearchVerdict(str, Enum):
+    """Three verdicts (0.10 D4). ``INCONCLUSIVE`` means the evidence cannot separate "no edge" from "an edge
+    worth trading": the 95 % interval of the full-period net Sharpe covers both 0 and the minimum relevant
+    Sharpe, and no structural flag (costs, regime break, concentration, limits, incomplete analysis) applies.
+    It is not a promotion; it is a request for more data. A ``MONITOR`` verdict was considered and not
+    added: nothing in the platform would act on it differently from ``INCONCLUSIVE``."""
+
     PROMOTE = "PROMOTE"
     REJECT = "REJECT"
+    INCONCLUSIVE = "INCONCLUSIVE"
 
 
 class ResearchFlag(str, Enum):
@@ -174,7 +181,7 @@ class PeriodSignalStats:
     quantile_spread_bps_annual: float
     decay: dict[str, float] = field(default_factory=dict)
     ic_t_stat_nw: float = float("nan")  # Newey-West t of the overlapping horizon-h IC, lag h-1
-    ic_ir_annualised: float = float("nan")  # ic_ir * sqrt(252 / h)
+    ic_ir_annualised: float = float("nan")  # ic_ir * sqrt(252 / h); descriptive only, never a gate (D23)
     mean_ic_1d: float = float("nan")
     ic_t_stat_1d: float = float("nan")
     horizon_days: int = 1

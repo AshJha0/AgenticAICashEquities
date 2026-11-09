@@ -10,7 +10,8 @@
   t (Bartlett kernel, ``h - 1`` lags) and is descriptive.
 * In-sample statistics drop the last ``L + h`` in-sample dates so no in-sample
   forward return reads an out-of-sample price.
-* ``ic_ir_annualised = mean / sd * sqrt(252 / h)``.
+* ``ic_ir_annualised = mean / sd * sqrt(252 / h)`` - descriptive only (0.10 D23): it assumes independent
+  periods and is never a gate; the tests use the non-overlapping t and the Newey-West t.
 * ``rank_autocorrelation_turnover`` is ``1 - rank autocorrelation`` of the
   signal at the rebalance lag (range 0 to 2). It is *not* portfolio turnover;
   the backtest reports that.
@@ -155,21 +156,50 @@ def quantile_spread_series(
     return out
 
 
-def newey_west_t(x: np.ndarray, lags: int) -> float:
-    """t-statistic of the mean of ``x`` with a Newey-West (Bartlett) long-run variance."""
+def andrews_bandwidth(x: np.ndarray) -> float:
+    """Andrews (1991) AR(1) plug-in bandwidth for the Bartlett kernel: ``1.1447 (alpha n)^(1/3)`` with
+    ``alpha = 4 rho^2 / ((1 - rho)^2 (1 + rho)^2)``; ``rho`` is the lag-1 autocorrelation over finite pairs.
+    Evidence class: method (Andrews 1991, Econometrica 59(3))."""
     v = np.asarray(x, dtype=float)
-    v = v[np.isfinite(v)]
-    n = v.size
+    ok = np.isfinite(v)
+    n = int(ok.sum())
+    if n < 4:
+        return 0.0
+    d = np.where(ok, v - v[ok].mean(), 0.0)
+    pair = ok[1:] & ok[:-1]
+    den = float((d[ok] ** 2).sum())
+    rho = float((d[1:] * d[:-1])[pair].sum()) / den if den > 0 else 0.0
+    rho = max(min(rho, 0.97), -0.97)
+    alpha = 4.0 * rho * rho / ((1.0 - rho) ** 2 * (1.0 + rho) ** 2)
+    return 1.1447 * (alpha * n) ** (1.0 / 3.0)
+
+
+def newey_west_t(x: np.ndarray, lags: int | None) -> float:
+    """t-statistic of the mean of ``x`` with a Newey-West (Bartlett) long-run variance.
+
+    0.10 (D11): missing values are kept in place as gaps; the lag-k autocovariance uses only pairs whose
+    two ends are both observed and ``k`` days apart in the original series (dropping NaNs first would
+    treat observations either side of a gap as neighbours). ``lags=None`` picks the Andrews (1991)
+    automatic bandwidth, which grows for persistent series where a fixed ``h - 1`` is too short.
+    """
+    v = np.asarray(x, dtype=float)
+    ok = np.isfinite(v)
+    n = int(ok.sum())
     if n < 3:
         return float("nan")
-    d = v - v.mean()
+    bw = andrews_bandwidth(v) if lags is None else float(lags)
+    L = int(math.floor(bw)) if lags is None else int(lags)  # noqa: N806
+    mean = float(v[ok].mean())
+    d = np.where(ok, v - mean, 0.0)
     lrv = float(d @ d) / n
-    for k in range(1, min(lags, n - 1) + 1):
-        w = 1.0 - k / (lags + 1.0)
-        lrv += 2.0 * w * float(d[k:] @ d[:-k]) / n
+    for k in range(1, min(L, v.size - 1) + 1):
+        w = 1.0 - k / (bw + 1.0)
+        if w <= 0:
+            break
+        lrv += 2.0 * w * float(d[k:] @ d[:-k]) / n  # unobserved ends contribute zero (masked)
     if lrv <= 0:
         return float("nan")
-    return float(v.mean() / math.sqrt(lrv / n))
+    return float(mean / math.sqrt(lrv / n))
 
 
 def _nanmean(x: np.ndarray) -> float:
@@ -232,7 +262,7 @@ def period_signal_stats(
             for h in DECAY_HORIZONS
             if h in ics_by_horizon
         },
-        ic_t_stat_nw=newey_west_t(overlap, horizon - 1),
+        ic_t_stat_nw=newey_west_t(overlap, None if andrews_bandwidth(overlap) > horizon - 1 else horizon - 1),
         ic_ir_annualised=float(ic_ir * math.sqrt(TRADING_DAYS_PER_YEAR / horizon)) if math.isfinite(ic_ir) else nan,
         mean_ic_1d=m1,
         ic_t_stat_1d=t1,

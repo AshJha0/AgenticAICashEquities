@@ -29,6 +29,13 @@ Scoring
     Gross of costs. The CV score of a configuration is the per-day Sharpe of its concatenated
     test-block returns; that is what the ledger records.
 
+Baseline (0.10 D12)
+    The explicit baseline is the equal-weight composite of the three z-scores (no fitting). The
+    ridge is reported against it with a paired stationary block bootstrap of the out-of-sample Sharpe
+    difference and a Diebold-Mariano test on daily losses (minus the book return); the ridge PROMOTEs
+    only if it also beats the baseline at 5 %. Coefficient paths (the chosen penalty refitted on each
+    fold's training set) show whether the weights are stable across time.
+
 Out of sample
     The chosen ridge is refitted on every label-valid in-sample date and scored on the
     out-of-sample period, where its deflated Sharpe ratio (Bailey and Lopez de Prado 2014) is
@@ -215,6 +222,9 @@ class CombinationResult:
     model_version: str = MODEL_VERSION
     label: str = ""
     extras: dict[str, Any] = field(default_factory=dict)
+    baseline: SeriesStats | None = None
+    vs_baseline: dict[str, Any] = field(default_factory=dict)
+    coef_paths: tuple[dict[str, float], ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -228,7 +238,12 @@ class CombinationResult:
             "sharpe_variance": self.sharpe_variance if math.isfinite(self.sharpe_variance) else None,
             "out_of_sample": {"combination": self.combination.to_dict(), **{k: v.to_dict() for k, v in self.singles.items()}},
             "promote": self.promote,
-            "promote_rule": f"out-of-sample deflated Sharpe probability >= {PROMOTE_DSR}",
+            "promote_rule": f"out-of-sample deflated Sharpe probability >= {PROMOTE_DSR} and a higher Sharpe than "
+            "the equal-weight baseline at 5 % (paired block bootstrap)",
+            "baseline": None if self.baseline is None else self.baseline.to_dict(),
+            "vs_baseline": {k: (round(v, 6) if isinstance(v, float) and math.isfinite(v) else v)
+                            for k, v in self.vs_baseline.items()},
+            "coef_paths": [{k: round(v, 10) for k, v in c.items()} for c in self.coef_paths],
             "horizon_days": self.horizon,
             "folds": self.folds,
             "embargo_days": self.embargo,
@@ -289,6 +304,21 @@ def combine_signals(
         name: _series_stats(name, portfolio_returns(p, p.X[..., i], oos_dates), summ.n_trials, var)
         for i, name in enumerate(p.signals)
     }
+    from ceap.analytics.overfitting import diebold_mariano, paired_sharpe_difference
+
+    combo_r = portfolio_returns(p, predict(p, coef), oos_dates)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        base_score = np.nanmean(p.X, axis=2)
+    base_r = portfolio_returns(p, base_score, oos_dates)
+    baseline = _series_stats("equal_weight_baseline", base_r, summ.n_trials, var)
+    diff = paired_sharpe_difference(combo_r, base_r, mean_block=float(horizon), n_boot=500, seed=0)
+    dm = diebold_mariano(-combo_r, -base_r)
+    vs_baseline = {**{f"sharpe_{k}": v for k, v in diff.items()}, "dm_statistic": dm["statistic"],
+                   "dm_p_value": dm["p_value"]}
+    beats = bool(math.isfinite(diff["difference"]) and diff["difference"] > 0 and diff["p_value"] < 0.05)
+    paths = tuple(dict(zip(p.signals, (float(c) for c in fit_ridge(p, tr, best_alpha)), strict=True))
+                  for tr, _te in folds)
     return CombinationResult(
         dataset_hash=dh,
         alpha=best_alpha,
@@ -298,9 +328,12 @@ def combine_signals(
         sharpe_variance=summ.sharpe_variance,
         combination=combo,
         singles=singles,
-        promote=bool(math.isfinite(combo.dsr) and combo.dsr >= PROMOTE_DSR),
+        promote=bool(math.isfinite(combo.dsr) and combo.dsr >= PROMOTE_DSR and beats),
         horizon=horizon,
         folds=n_folds,
         embargo=embargo,
         label=synthetic_label(),
+        baseline=baseline,
+        vs_baseline=vs_baseline,
+        coef_paths=paths,
     )

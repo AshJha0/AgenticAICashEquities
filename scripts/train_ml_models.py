@@ -196,6 +196,23 @@ def write_cards(reg: ModelRegistry) -> None:
         "",
     ]
     body += [c.to_markdown() for c in cards]
+    from ceap.ml.inventory import MODEL_INVENTORY
+
+    body += [
+        "## Model inventory",
+        "",
+        "Every model whose output reaches a person or an order (`ceap.ml.inventory`). Nothing has been validated",
+        "independently yet; the validator column says so rather than naming a reviewer who does not exist.",
+        "",
+        "| Model | Kind | Tier | Status | Owner | Validator | Review (days) | Challenger |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    body += [
+        f"| {e.name} | {e.kind} | {e.tier} | {e.status} | {e.owner} | {e.validator} | {e.review_cadence_days} | "
+        f"{e.challenger} |"
+        for e in MODEL_INVENTORY
+    ]
+    body.append("")
     DOCS.mkdir(parents=True, exist_ok=True)
     (DOCS / "model_cards.md").write_text("\n".join(body), encoding="utf-8")
 

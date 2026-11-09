@@ -15,7 +15,16 @@ return itself, or rows aligned one day late) keeps a large rank IC even against 
 because the leaked value is carried along with the permutation of rows. The test computes the
 mean cross-sectional rank IC of ``feature[t]`` against ``label[t]`` where the rows of the
 (feature, label) pair are re-derived from a time-permuted price panel; in a causal pipeline the
-IC is centred on zero. It fails when ``|mean IC| t-statistic`` exceeds ``t_max``.
+IC is centred on zero. It fails when ``|mean IC| t-statistic`` exceeds ``t_max`` (0.10 D7: lowered from
+4.0 to 3.0; a causal feature's null t is standard normal, so 3.0 is still a 0.3 % two-sided false alarm).
+
+**End-to-end canary (0.10 D7).** The two tests above check a feature function; they cannot see an
+off-by-one in the backtest's own timing. :func:`leakage_canary` feeds ``simulate_backtest`` a feature
+equal to the *realised* holding-period return, delayed ``d`` days. With rebalance (and holding) period
+``h`` and execution lag ``L`` the feature window overlaps the earned window on ``h - d - L`` days, so the
+gross Sharpe must be very large while ``d + L < h`` and must collapse to noise exactly when
+``d + L >= h``. A backtest that filled before the lag, or earned the decision day's return, would keep a
+large Sharpe one delay too long.
 
 The tests are deterministic (seeded) and cheap on the 30-name research universe.
 """
@@ -24,6 +33,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -112,7 +122,7 @@ def shuffled_label_test(
     volume: np.ndarray | None = None,
     horizon: int = 1,
     seed: int = 0,
-    t_max: float = 4.0,
+    t_max: float = 3.0,
     name: str = "feature",
 ) -> LeakageResult:
     """Rebuild the price panel from time-shuffled daily returns, recompute feature and label, test IC.
@@ -148,3 +158,51 @@ def check_feature(
         perturbation_test(fn, close, volume, name=name),
         shuffled_label_test(fn, close, volume, horizon=horizon, name=name),
     )
+
+
+def _canary_fn(horizon: int, delay: int) -> FeatureFn:
+    """Feature at row t = realised return over days ``t+1 .. t+horizon``, shifted back by ``delay`` days."""
+
+    def fn(close: np.ndarray, volume: np.ndarray | None = None) -> np.ndarray:
+        c = np.asarray(close, dtype=float)
+        n = c.shape[0]
+        fwd = np.full(c.shape, np.nan)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            fwd[: n - horizon] = c[horizon:] / c[: n - horizon] - 1.0
+        out = np.full(c.shape, np.nan)
+        if delay < n:
+            out[delay:] = fwd[: n - delay]
+        return out
+
+    return fn
+
+
+def leakage_canary(
+    ds: Any, delays: Sequence[int] = (0, 1, 2, 3, 4, 5, 6), horizon: int = 5, execution_lag_days: int = 1
+) -> list[dict[str, float]]:
+    """Gross Sharpe of a long-short book on the delayed realised-return feature, one row per delay.
+
+    Each row also carries ``overlap = max(h - d - L, 0)``: the days of the earned holding window the
+    feature has seen. A correct pipeline has a very large Sharpe when ``overlap > 0`` and a noise-level one
+    when ``overlap == 0``. The canary signal is registered only for the duration of the call.
+    """
+    from ceap.analytics.backtest import simulate_backtest
+    from ceap.analytics.signals import SIGNALS, SignalSpec
+
+    rows: list[dict[str, float]] = []
+    for d in delays:
+        name = f"_leakage_canary_h{horizon}_d{d}"
+        SIGNALS[name] = SignalSpec(name, "leakage canary (realised return)", 0, horizon, horizon, _canary_fn(horizon, d))
+        try:
+            run = simulate_backtest(
+                ds, name, rebalance_days=horizon, execution_lag_days=execution_lag_days, cost_multiplier=0.0,
+                report_bounds=False,
+            )
+        finally:
+            del SIGNALS[name]
+        full = run.result.period("full")
+        rows.append({
+            "delay": float(d), "overlap": float(max(horizon - d - execution_lag_days, 0)),
+            "gross_sharpe": float(full.gross_sharpe) if full is not None else float("nan"),
+        })
+    return rows

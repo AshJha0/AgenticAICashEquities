@@ -23,6 +23,22 @@ Two generators share one :class:`HistoricalDataset` shape.
   some delist (one merger, one performance delisting); prices are NaN outside
   membership and ``members`` records it.
 
+Adversarial families (0.10 D2), written without reference to any signal code and
+drawn from a *separate* random stream, so every existing dataset is byte-identical:
+
+* ``hidden_factor_bps``: a latent factor with static loadings ``f_i ~ N(0, 1)``
+  whose daily return has mean ``hidden_factor_bps / 252`` per unit loading and
+  its own volatility (16 %/yr). The cross-sectional premium is real but comes
+  with correlated noise, so the fundamental law overstates breadth.
+* ``regime_switch``: the latent drift is multiplied by a two-state Markov chain
+  (+1 and -0.5, mean stay about 18 months), so a premium that pays on average
+  spends long spells reversing.
+* ``jump_intensity``: Poisson idiosyncratic jumps (per name per year, sizes
+  Student-t(3) with an 8 % scale) on top of the GARCH market.
+* ``market_corr_premium_bps``: expected return planted on market beta,
+  ``mu_i = c (beta_i - 1)``, so a cross-sectional signal that ranks it is
+  market exposure, not alpha.
+
 ``legacy_v03`` - the 0.3.x generator, kept verbatim for the execution-lag
 regression (2.1) and the re-baseline diff table (2.11): 1008 business days and
 a premium planted on the signal's own z-score (circular by construction).
@@ -282,8 +298,13 @@ def _spec_dict(spec: ResearchScenarioSpec) -> dict[str, Any]:
     return {
         f.name: (getattr(spec, f.name).value if hasattr(getattr(spec, f.name), "value") else getattr(spec, f.name))
         for f in dataclasses.fields(spec)
-        if f.name not in ("expected_verdict", "expected_flags", "tags")
+        if f.name not in ("expected_verdict", "expected_flags", "tags", "calibration")
+        # 0.10 D2 fields enter the hash only when used, so every pre-0.10 dataset keeps its hash
+        and not (f.name in _D2_FIELDS and getattr(spec, f.name) == f.default)
     }
+
+
+_D2_FIELDS = frozenset({"hidden_factor_bps", "regime_switch", "jump_intensity", "market_corr_premium_bps"})
 
 
 def _std_t(rng: np.random.Generator, df: float, shape: Any) -> np.ndarray:
@@ -434,6 +455,7 @@ class HistoricalGenerator:
         eps = z_idio * idio_scale * np.sqrt(1.0 - share * premium_mask)[None, :]
 
         r = beta[None, :] * market[:, None] + mu + dT + eps
+        r = r + self._adversarial(spec, n, m, beta, idio_scale)
 
         # ---- membership: late listings and delistings
         members = np.ones((n, m), dtype=bool)
@@ -502,6 +524,48 @@ class HistoricalGenerator:
             market_return=market,
             generator=GENERATOR_REALISTIC,
         )
+
+    @staticmethod
+    def _adversarial(
+        spec: ResearchScenarioSpec, n: int, m: int, beta: np.ndarray, idio_scale: np.ndarray
+    ) -> np.ndarray:
+        """Return contributions of the D2 adversarial families (zero, and no draws, when all are off)."""
+        out = np.zeros((n, m))
+        active = (spec.hidden_factor_bps > 0, spec.regime_switch, spec.jump_intensity > 0,
+                  spec.market_corr_premium_bps != 0)
+        if not any(active):
+            return out
+        rng = np.random.default_rng([spec.seed, 20_260_110])  # separate stream: base draws are untouched
+        if spec.hidden_factor_bps > 0:
+            load = rng.normal(0.0, 1.0, m)
+            g = spec.hidden_factor_bps / 10_000.0 / TRADING_DAYS_PER_YEAR + rng.normal(
+                0.0, 0.16 / np.sqrt(TRADING_DAYS_PER_YEAR), n
+            )
+            out += g[:, None] * load[None, :]
+        if spec.regime_switch and spec.premium_bps > 0:
+            # a second drift whose sign follows a two-state chain (stay probability 0.9975 a day, about 18 months)
+            s = spec.premium_bps / 10_000.0 / TRADING_DAYS_PER_YEAR
+            phi = 0.5 ** (1.0 / spec.half_life_days)
+            z = rng.normal(0.0, 1.0, (n, m))
+            mu2 = np.zeros((n, m))
+            mu2[0] = s * z[0]
+            for t in range(1, n):
+                mu2[t] = phi * mu2[t - 1] + np.sqrt(1.0 - phi * phi) * s * z[t]
+            state = np.empty(n)
+            state[0] = 1.0
+            flips = rng.random(n) > 0.9975
+            for t in range(1, n):
+                state[t] = (-0.5 if state[t - 1] > 0 else 1.0) if flips[t] else state[t - 1]
+            out += mu2 * state[:, None]
+        if spec.jump_intensity > 0:
+            hits = rng.random((n, m)) < spec.jump_intensity / TRADING_DAYS_PER_YEAR
+            sizes = 0.08 * rng.standard_t(3.0, (n, m))
+            out += np.where(hits, sizes, 0.0)
+        if spec.market_corr_premium_bps != 0:
+            c = spec.market_corr_premium_bps / 10_000.0 / TRADING_DAYS_PER_YEAR / 0.17  # beta_i - 1 has SD ~0.17
+            out += c * (beta - 1.0)[None, :]
+        del idio_scale
+        return out
 
     # --------------------------------------------------------------- legacy
     def _generate_legacy(self, spec: ResearchScenarioSpec) -> HistoricalDataset:
