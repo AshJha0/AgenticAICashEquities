@@ -15,6 +15,7 @@ from ceap.domain.tools import RiskLevel
 from ceap.mcp.common import DEFAULT_RESEARCH_DATASET, paginate, select_dataset, select_history, window_of
 from ceap.mcp.execution.staging import StagedOrderBook, StagedOrders, StagingRefusedError, report_hash
 from ceap.mcp.server import MCPServerDefinition
+from ceap.paper.pretrade import RiskLimits, check_staged_orders
 
 TRADING_EXECUTE = "trading:execute"
 
@@ -33,6 +34,7 @@ def _staged_view(staged: StagedOrders, already: bool) -> dict[str, Any]:
         "count": len(staged.orders),
         "buy_notional": staged.buy_notional,
         "sell_notional": staged.sell_notional,
+        "risk_blocks": [dict(b) for b in staged.risk_blocks],
         "orders": [to_jsonable(o) for o in staged.orders],
     }
 
@@ -42,10 +44,12 @@ def build_server(
     analytics: StandardExecutionAnalytics | None = None,
     history: HistoricalStore | None = None,
     staged: StagedOrderBook | None = None,
+    limits: RiskLimits | None = None,
 ) -> MCPServerDefinition:
     analytics = analytics or StandardExecutionAnalytics()
     history = history or HistoricalStore()
     book = staged or StagedOrderBook()
+    risk = limits or RiskLimits()
     server = MCPServerDefinition(
         "execution",
         "Order management and execution data with deterministic TCA: parent/child orders, fills, execution metrics, "
@@ -186,7 +190,8 @@ def build_server(
     @server.tool(
         "Stage a PAPER order list that moves the book to the signal's recomputed target portfolio at as_of. "
         "Nothing is routed to a venue. Idempotent per (signal, dataset, as_of, gross_notional, long_short). "
-        "Requires the trading:execute capability and human approval.",
+        "Pre-trade checks (restricted, hard to borrow, per-name and gross limits) run first; refused while "
+        "the kill switch is set. Requires the trading:execute capability and human approval.",
         read_only=False,
         risk_level=RiskLevel.HIGH,
         required_capabilities={TRADING_EXECUTE},
@@ -206,7 +211,15 @@ def build_server(
                 "staging refused: the recomputed target portfolio differs from the approved one "
                 "(the data changed between approval and staging); request a new approval"
             )
-        staged_set, already = book.stage(report)
+        halt = book.halt_reason()
+        if halt:
+            raise StagingRefusedError(f"staging refused: the kill switch is set ({halt})")
+        chk = check_staged_orders(
+            [(p.symbol, float(p.quantity), float(p.price), "") for p in report.positions if p.quantity != 0],
+            float(report.gross_notional),
+            risk,
+        )
+        staged_set, already = book.stage(report, chk.deltas, chk.blocks)
         return _staged_view(staged_set, already)
 
     @server.tool("List staged paper order sets, or return one by staging id.")

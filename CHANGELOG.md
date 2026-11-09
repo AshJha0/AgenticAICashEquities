@@ -6,6 +6,41 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+- Audit log and paper ledger chains are HMAC-SHA256 keyed (A6). The key comes from
+  `CEAP_AUDIT_HMAC_KEY`, never the database; without it a published development key is used and
+  reported as `dev_key: true`. Earlier keys go in `CEAP_AUDIT_HMAC_OLD_KEYS`. Before this change,
+  anyone who could write the SQLite file could flip an approval, recompute the hashes and still pass
+  `verify_chain()`. `verify_chain(expected_head, expected_rows)` now also catches a cut-off tail. New
+  `ceap db anchor` writes the chain heads to a file you can commit to git, plus a `.sha256` sidecar for
+  an OpenTimestamps proof; `ceap db verify-chain --anchor FILE` checks against it. Migration 0004
+  adds `hash_alg` per row. Rows written before 0004 stay plain SHA-256 and still verify, as a sealed
+  legacy prefix. The forward and simulated log CSVs stay plain SHA-256 so anyone can still verify
+  them; the forward-log export format is unchanged.
+- DB-backed kill switch (F11): `ceap db kill-switch set|clear|status`. Each set and clear is an
+  append-only row plus an audit entry in the same transaction. The paper job and MCP `stage_orders`
+  both check it; `CEAP_PAPER_HALT` still works. A halt raised by the DB switch logs
+  `source: kill_switch_db` instead of `env`.
+- `stage_orders` runs pre-trade checks before staging (restricted, hard to borrow, per-name and gross
+  limits; `ceap.paper.pretrade.check_staged_orders`) and reports `risk_blocks`. With a database, staged
+  sets persist in `staged_orders` (one row per `staging_id`), so a retry or a restart finds the same set.
+- SQLite durability (G7): file databases use `synchronous=FULL`. `Database.arun` times out
+  (`arun_timeout_s`, default 30 s; `DatabaseTimeoutError`). `/health` adds `writer_queue`,
+  `write_probe_ok` and `write_probe_ms` (the probe takes the write lock and releases it without
+  writing), and reports `degraded` when the probe fails.
+- Redaction (A9) also catches `name=value` secrets (`password=`, `api_key:`, `ANTHROPIC_API_KEY=` and
+  other `*_KEY`/`*_TOKEN` names), phone numbers and high-entropy opaque tokens. Hex content hashes and
+  readable ids are left alone.
+- Knowledge admission (A17): a document with instruction-like text ("ignore previous instructions",
+  role or prompt markers, requests to reveal prompts) or marked superseded is not indexed
+  (`KnowledgeBase.rejected`). `search(..., as_of=)` serves only documents with
+  `effective_date <= as_of` and, per `doc_key`, the latest version in force. The shipped corpus passes
+  unchanged, and neither the corpus nor the RAG calibration changed.
+- Implementation shortfall (F9): `ShortfallComponents` gains `fill_rate` and `opportunity_priced`. A
+  partial fill with no final price now reports `opportunity_priced: false`, where before it silently
+  showed a zero opportunity cost.
+- `data/reference/ATTRIBUTION.md` says that the knowledge documents are fictional and that
+  `classification: internal` is test metadata (I3).
+
 ## [0.7.1] - 2026-11-08
 
 Patch release after 0.7.0: release-gate fix, golden-set owner sign-off and the R5 v2 write-up

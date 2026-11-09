@@ -143,7 +143,7 @@ class Platform:
         self.history = history or HistoricalStore()
         self.llm = llm or build_router(self.settings)
         self.knowledge = knowledge or build_knowledge_base(self.settings.knowledge_dir)
-        self.mcp_client = mcp_client or build_in_process_client(self.store, self.knowledge, self.history)
+        self.mcp_client = mcp_client or build_in_process_client(self.store, self.knowledge, self.history, self.db)
         self.approvals = approvals or (
             AutoApprovalGateway()
             if self.settings.auto_approve

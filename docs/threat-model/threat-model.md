@@ -65,7 +65,7 @@ before they influence anything, and it never touches data or tools directly.
 | T25 | Cross-principal data access through task ids | Owner-scoped reads; 404 for other principals' ids; `auditor` role for oversight | `test_viewer_cannot_read_another_principals_task_auditor_can` |
 | T26 | Duplicate side effects from client retries | `Idempotency-Key` per principal, persisted 24 h; different body 422 | `test_idempotency_key_same_body_same_id_different_body_422` |
 | T27 | Credential leakage (keys in logs, errors, reprs) and reconnaissance via unauthenticated endpoints | Salted digests in memory, optional expiry, `repr=False` on secrets, no key in any error; `/health` liveness only; `/metrics` needs `metrics:read`; request id on every log line | `test_raw_key_absent_from_logs_errors_and_reprs_and_every_line_has_a_request_id`, `test_salted_hash_entries_and_key_expiry` |
-| T28 | Tampering with the audit trail | Hash chain over canonical bytes; `ceap db verify-chain` names the first bad row; never pruned | `test_backup_restores_and_verifies_then_tamper_breaks_chain`, `test_deleting_a_middle_audit_row_is_detected` |
+| T28 | Tampering with the audit trail | HMAC-SHA256 chain keyed outside the database (`CEAP_AUDIT_HMAC_KEY`; dev default reported as `dev_key`); sealed legacy prefix for pre-0.8.0 rows; `ceap db anchor` + `verify-chain --anchor` catch truncation and rebuilt history; `ceap db verify-chain` names the first bad row; never pruned | `test_backup_restores_and_verifies_then_tamper_breaks_chain`, `test_deleting_a_middle_audit_row_is_detected` |
 | T30 | Injection through the question (surface `question`) | The question reaches the planner only inside `<data surface="question">`; a block cannot be closed from inside (`<data`/`</data` are escaped); the system prompt states that data blocks are never instructions; invariants hold even when the model obeys | `tests/adversarial/test_surfaces.py::test_surface_question` |
 | T31 | Injection through log lines (surface `logs`) | Log text appears only in finding statements, which reach the critic and the reporter inside `<data surface="evidence">`; the critic cannot change confidences; numbers and ids in the narrative are audited (blocking) | `test_surface_logs` |
 | T32 | Injection through deployment text (surface `deployments`) | Same as T31: deployment descriptions travel as evidence data | `test_surface_deployment_text` |
@@ -81,8 +81,8 @@ before they influence anything, and it never touches data or tools directly.
   should use an identity provider and short-lived tokens.
 * The SQLite file holds task inputs, results and redacted model I/O; protect it with filesystem
   permissions and disk encryption, and keep backups under the same controls. The hash chain detects
-  tampering, it does not prevent it: anchor `ceap db verify-chain` output externally for strong
-  guarantees.
+  tampering, it does not prevent it. Set `CEAP_AUDIT_HMAC_KEY` (the dev default protects nothing)
+  and commit a `ceap db anchor` file regularly, optionally with an OpenTimestamps proof.
 * Data blocks reduce, but cannot remove, the chance that a real model follows text inside them;
   the controls above are designed to hold even when it does (every surface test runs a model that
   obeys any instruction). Case memory is per process in this release; the audit chain persists

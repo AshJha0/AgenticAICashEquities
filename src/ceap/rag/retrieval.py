@@ -9,6 +9,10 @@ Public API (stable; 3C.3 planner wiring and 3C.4 reporter citations build on it)
   ``BM25.coverage``) at least ``min_support`` (default ``DEFAULT_MIN_SUPPORT``). An empty list
   means "no policy found" and the caller must say so rather than cite the nearest miss.
   ``classifications`` restricts hits to documents of those classifications (role filtering, 3C.3).
+  ``as_of`` (ISO date, default today in UTC) hides documents whose ``effective_date`` is later, and
+  of several versions sharing a ``doc_key`` serves only the latest one in force on that date.
+- Documents are admitted by ``ceap.rag.ingestion.admit_documents`` first: a document with
+  instruction-like text or marked superseded is never indexed (``KnowledgeBase.rejected``).
 - ``KnowledgeBase.corpus_hash``: SHA-256 of the corpus, to record in reports.
 - ``RetrievalHit.to_dict()``: ``chunk_id, document_id, document, title, section, version,
   effective_date, classification, score, coverage, support, text``.
@@ -21,6 +25,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Collection
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ceap.rag.bm25 import BM25
@@ -29,6 +34,8 @@ from ceap.rag.ingestion import (
     Chunk,
     ChunkingStrategy,
     Document,
+    Rejection,
+    admit_documents,
     chunk_document,
     corpus_hash,
     load_documents,
@@ -78,6 +85,8 @@ class KnowledgeBase:
         chunking: ChunkingStrategy = DEFAULT_CHUNKING,
         min_support: float = DEFAULT_MIN_SUPPORT,
     ) -> None:
+        documents, rejected = admit_documents(documents)
+        self.rejected: list[Rejection] = rejected
         self.documents = {d.id: d for d in documents}
         self.chunking = chunking
         self.min_support = min_support
@@ -98,6 +107,7 @@ class KnowledgeBase:
         min_score: float = 0.0,
         classifications: Collection[str] | None = None,
         min_support: float | None = None,
+        as_of: str | None = None,
     ) -> list[RetrievalHit]:
         """Top ``k`` chunks by BM25 score, highest first, ties by corpus order; deterministic.
 
@@ -112,8 +122,9 @@ class KnowledgeBase:
         if not self.chunks or not query.strip() or k <= 0:
             return []
         k = min(int(k), MAX_K)
+        allowed = self.in_force(as_of)
         segments = [s for s in (part.strip() for part in query.split(";")) if s]
-        ranked = [self._search_segment(s, k, min_score, classifications, min_support) for s in segments]
+        ranked = [self._search_segment(s, k, min_score, classifications, min_support, allowed) for s in segments]
         if len(ranked) == 1:
             return ranked[0]
         hits: list[RetrievalHit] = []
@@ -132,6 +143,7 @@ class KnowledgeBase:
         min_score: float,
         classifications: Collection[str] | None,
         min_support: float | None,
+        allowed: frozenset[str] | None = None,
     ) -> list[RetrievalHit]:
         gate = self.min_support if min_support is None else min_support
         tokens = tokenize(query)
@@ -143,11 +155,31 @@ class KnowledgeBase:
                 break
             if classifications is not None and self.chunks[i].classification not in classifications:
                 continue
+            if allowed is not None and self.chunks[i].document_id not in allowed:
+                continue
             hit = RetrievalHit(self.chunks[i], scores[i], self._index.coverage(tokens, i))
             if hit.support < gate:
                 continue
             hits.append(hit)
         return hits
+
+    def in_force(self, as_of: str | None = None) -> frozenset[str]:
+        """Ids of the documents in force on ``as_of`` (ISO date; default today, UTC).
+
+        A document is in force when its ``effective_date`` is on or before ``as_of`` (a document
+        without an effective date is treated as always in force) and no other version with the same
+        ``doc_key`` is in force with a later effective date (ties broken by version string).
+        """
+        day = (as_of or datetime.now(UTC).date().isoformat())[:10]
+        best: dict[str, Document] = {}
+        for d in self.documents.values():
+            eff = d.effective_date[:10]
+            if eff and eff > day:
+                continue
+            cur = best.get(d.doc_key)
+            if cur is None or (eff, d.version) > (cur.effective_date[:10], cur.version):
+                best[d.doc_key] = d
+        return frozenset(d.id for d in best.values())
 
     def get(self, document_id: str) -> Document | None:
         return self.documents.get(document_id)

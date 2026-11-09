@@ -13,6 +13,17 @@ evidence later minted from it) says which revision of which document it came fro
 live elsewhere in the repository (``docs/quant/quant.md``) are pulled in through ``manifest.json``
 in the knowledge directory, which carries their metadata instead of front matter.
 
+Admission (0.8.0). :func:`admit_documents` runs before indexing and rejects a document when
+
+* its text contains instructions aimed at a model rather than a reader (:func:`screen_document`:
+  "ignore previous instructions", role or system-prompt markers, chat-template tokens, requests to
+  reveal prompts or call tools). A knowledge document is evidence, never a source of instructions,
+  so a hit quarantines the whole document and logs why; or
+* its metadata marks it superseded (``status: superseded`` / ``withdrawn``, or ``superseded_by``).
+
+Query-time filtering (``effective_date <= as_of``, latest version per ``doc_key``) lives in
+:mod:`ceap.rag.retrieval`.
+
 Three chunking strategies are available; the default is the one the retrieval eval picked
 (``ceap.rag.evaluation``; the table is in ``docs/ai-agents/ai-agents.md``).
 """
@@ -35,6 +46,20 @@ CHUNKING_STRATEGIES: tuple[ChunkingStrategy, ...] = ("section", "sentence", "fix
 DEFAULT_CHUNKING: ChunkingStrategy = "section"
 MANIFEST = "manifest.json"
 UNVERSIONED = "unversioned"
+SUPERSEDED_STATUSES = frozenset({"superseded", "withdrawn", "retired"})
+
+# Phrases that address a model, not a human reader. Kept narrow on purpose: a policy document may
+# say "the system" or "instructions" in ordinary prose, so each pattern needs the imperative form.
+INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("override", re.compile(
+        r"(?i)\b(?:ignore|disregard|forget|override)\s+(?:all\s+|any\s+|the\s+)?"
+        r"(?:previous|prior|above|earlier|preceding|your|system)\s+(?:instructions|prompts?|rules|guidelines)")),
+    ("role_change", re.compile(r"(?i)\byou\s+are\s+now\s+(?:a|an|the|in)\b|\bact\s+as\s+(?:a|an)\s+(?:unrestricted|jailbroken)")),
+    ("prompt_marker", re.compile(r"(?im)^\s*(?:system|assistant|developer)\s*:\s|<\|(?:im_start|im_end|system|endoftext)\|>|\[/?INST\]")),
+    ("exfiltrate", re.compile(r"(?i)\b(?:reveal|print|repeat|output|show)\s+(?:your|the)\s+(?:system\s+)?(?:prompt|instructions|api\s+key|secrets?)\b")),
+    ("tool_call", re.compile(r"(?i)\b(?:call|invoke|run|use)\s+the\s+\w+\s+tool\s+(?:to|and)\s+(?:approve|stage|send|delete|transfer)")),
+    ("approval", re.compile(r"(?i)\b(?:auto-?approve|approve\s+(?:this|all)\s+(?:order|request|trade)s?\s+without)")),
+)
 
 
 @dataclass(frozen=True)
@@ -61,6 +86,50 @@ class Document:
     @property
     def classification(self) -> str:
         return self.metadata.get("classification", "internal")
+
+
+    @property
+    def doc_key(self) -> str:
+        """Identity across versions: ``doc_key`` metadata, else the filename. Two documents with the
+        same key are two versions of one document; only the latest in force is served."""
+        return self.metadata.get("doc_key", self.filename)
+
+    @property
+    def superseded(self) -> bool:
+        status = self.metadata.get("status", "").strip().lower()
+        return status in SUPERSEDED_STATUSES or bool(self.metadata.get("superseded_by", "").strip())
+
+
+@dataclass(frozen=True)
+class Rejection:
+    document: str
+    reason: str
+    findings: tuple[str, ...] = ()
+
+
+def screen_document(doc: Document) -> tuple[str, ...]:
+    """Names of the injection patterns found in ``doc`` (title and body); empty when clean."""
+    text = f"{doc.title}\n{doc.text}"
+    return tuple(name for name, pattern in INJECTION_PATTERNS if pattern.search(text))
+
+
+def admit_documents(documents: Iterable[Document]) -> tuple[list[Document], list[Rejection]]:
+    """Split ``documents`` into those safe to index and those rejected (with the reason)."""
+    admitted: list[Document] = []
+    rejected: list[Rejection] = []
+    for doc in documents:
+        if doc.superseded:
+            rejected.append(Rejection(doc.filename, "superseded"))
+            log.warning("knowledge document %s is marked superseded; not indexed", doc.filename)
+            continue
+        findings = screen_document(doc)
+        if findings:
+            rejected.append(Rejection(doc.filename, "injected_instructions", findings))
+            log.warning("knowledge document %s quarantined: instruction-like text (%s)", doc.filename,
+                        ", ".join(findings))
+            continue
+        admitted.append(doc)
+    return admitted, rejected
 
 
 @dataclass(frozen=True)
