@@ -67,8 +67,13 @@ class PaperConfig:
 _EXECUTION_FIELDS = ("moc_auction", "auction_share", "auction_max_fraction", "lot_size", "engine", "lob_window_s")
 
 
+# panel-side execution keys (not FillParams): dividends (bool, default off), dividend_cache (path),
+# dividend_download (bool: refresh the cache from yfinance first; needs the optional package)
+_PANEL_FIELDS = ("dividends", "dividend_cache", "dividend_download")
+
+
 def _execution_fields(d: dict[str, Any] | None) -> dict[str, Any]:
-    d = dict(d or {})
+    d = {k: v for k, v in (d or {}).items() if k not in _PANEL_FIELDS}
     unknown = sorted(set(d) - set(_EXECUTION_FIELDS))
     if unknown:
         raise ValueError(f"unknown execution fields {unknown}; known: {list(_EXECUTION_FIELDS)}")

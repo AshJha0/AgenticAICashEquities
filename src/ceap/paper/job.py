@@ -104,6 +104,14 @@ class PaperJob:
         self.config = config
         self.feed = feed or get_feed(config.feed, scenario=config.scenario, forward_start=config.forward_start)
         self.panel: MarketPanel = self.feed.panel()
+        ex = config.execution or {}
+        if ex.get("dividends"):  # F13 data (0.9.0): opt-in, default off
+            from ceap.paper.dividends import DIVIDEND_CACHE, YFinanceDividends, attach_dividends, refresh
+
+            cache = Path(ex.get("dividend_cache") or DIVIDEND_CACHE)
+            if ex.get("dividend_download"):
+                refresh(self.panel.symbols, YFinanceDividends(), cache)
+            self.panel = attach_dividends(self.panel, cache)
         self.params = config.fill_params()
         self.ledger = PaperLedger(db)
         self.staged = StagedOrderRepository(db)
