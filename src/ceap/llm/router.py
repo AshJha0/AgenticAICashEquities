@@ -233,6 +233,17 @@ class LLMRouter(LLMClient):
         """
         est_usd, est_tokens = self._estimate(request, model)
         if task_id == UNATTRIBUTED:
+            # No task meter to accumulate against, but one call alone still may not exceed a cap.
+            if self.task_token_budget is not None and est_tokens > self.task_token_budget:
+                raise LLMBudgetExceededError(
+                    f"task token budget {self.task_token_budget} would be exceeded by one call: "
+                    f"local estimate {est_tokens} (estimated input + max_tokens output)"
+                )
+            if self.task_budget_usd is not None and est_usd > self.task_budget_usd:
+                raise LLMBudgetExceededError(
+                    f"task budget ${self.task_budget_usd:.4f} would be exceeded by one call: local estimate "
+                    f"${est_usd:.4f} (upper bound: estimated input + max_tokens output)"
+                )
             return _Reservation(task_id, 0.0, 0)
         with self._budget_lock:
             meter = self._meter(task_id)
