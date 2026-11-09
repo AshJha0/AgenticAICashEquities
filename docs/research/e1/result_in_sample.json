@@ -1,0 +1,83 @@
+{
+  "prereg_sha256": "06dac8d35e050500d517e99c5ea413a9b16877e5dbeddbc7c74f22354cf74fa2",
+  "data_sha256": {
+    "49_Industry_Portfolios_CSV.zip": "d1a3b0b9896e1e633ed2aa85e24ca144d7998f8ab2ff344e2379383ebeb7b836",
+    "F-F_Research_Data_Factors_CSV.zip": "b03d39e4bb253dda0f14893db3b78e64b40b8d6549a0fc0fd4111dae84c98618",
+    "F-F_Research_Data_5_Factors_2x3_CSV.zip": "17d7a575e71d6764a70ddec3f8d887756c0eebf3a60f64d6ba95d2adde3fed26",
+    "F-F_Momentum_Factor_CSV.zip": "27ed60e5b2caa9ea334a261cddfa864a9926f6bf45e9677c95dfd835c5abb315"
+  },
+  "n_industries": 49,
+  "in_sample": {
+    "start": "1927-01",
+    "end": "1989-12",
+    "months_scored": 756,
+    "months_dropped": [],
+    "breadth_void": false,
+    "mean_turnover": 1.363215412095929,
+    "breakeven_bps_per_side": 39.28273621947595,
+    "gross": {
+      "mean_monthly": 0.005355083144368859,
+      "nw_t": 2.5113253829969375,
+      "nw_lag": 3,
+      "sharpe_ann": 0.3479812676511897
+    },
+    "net10": {
+      "mean_monthly": 0.003991867732272929,
+      "nw_t": 1.864922703501349,
+      "nw_lag": 3,
+      "sharpe_ann": 0.25929710613223866,
+      "sharpe_ci95": [
+        -0.058582624256899404,
+        0.6269189709144002
+      ]
+    },
+    "net20": {
+      "mean_monthly": 0.0026286523201770003,
+      "nw_t": 1.2233232321782637,
+      "nw_lag": 3,
+      "sharpe_ann": 0.17066862291873472
+    },
+    "alpha": {
+      "ff3_umd": {
+        "alpha_monthly": 0.0013517016636619401,
+        "t_alpha": 0.8542613266049777,
+        "lag": 0,
+        "n": 756,
+        "start": "1927-01",
+        "end": "1989-12",
+        "betas": {
+          "Mkt-RF": -0.017252425105853775,
+          "SMB": -0.4128141424115048,
+          "HML": 0.09706382111899373,
+          "UMD": 0.6577708506528677
+        }
+      },
+      "ff5_umd": {
+        "alpha_monthly": 0.002576073797282692,
+        "t_alpha": 1.0364930775849985,
+        "lag": 2,
+        "n": 318,
+        "start": "1963-07",
+        "end": "1989-12",
+        "betas": {
+          "Mkt-RF": -0.042250863675179245,
+          "SMB": -0.2600544794471015,
+          "HML": -0.11305436546498976,
+          "RMW": -0.3409820365487328,
+          "CMA": 0.269337956723018,
+          "UMD": 0.9288594870706097
+        }
+      }
+    },
+    "h2": {
+      "mean_up": 0.008756905552918842,
+      "mean_down": -0.018201267281105986,
+      "n_up": 602,
+      "n_down": 124,
+      "b_down": -0.02695817283402485,
+      "t_b_down": -3.0400517475315176,
+      "lag": 2,
+      "h2_reject": true
+    }
+  }
+}
