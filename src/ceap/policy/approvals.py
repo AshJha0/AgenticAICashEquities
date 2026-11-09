@@ -18,6 +18,15 @@ from ceap.domain.common import new_id, utc_now
 from ceap.util.canonical import content_hash
 
 
+def request_content_hash(tool_id: str, arguments: Mapping[str, Any]) -> str:
+    """The content hash an approval binds to: the tool id and its exact arguments."""
+    payload = {"tool_id": tool_id, "arguments": dict(arguments)}
+    try:
+        return content_hash(payload)
+    except (TypeError, ValueError):  # non-canonical argument types: hash a stable text form
+        return content_hash(json.dumps(payload, sort_keys=True, default=str))
+
+
 @dataclass(frozen=True)
 class ApprovalRequest:
     id: str
@@ -33,12 +42,15 @@ class ApprovalRequest:
     def __post_init__(self) -> None:
         # The approver signs off on exactly these bytes; any later change to the payload is detectable.
         if not self.content_hash:
-            payload = {"tool_id": self.tool_id, "arguments": self.arguments}
-            try:
-                digest = content_hash(payload)
-            except (TypeError, ValueError):  # non-canonical argument types: hash a stable text form
-                digest = content_hash(json.dumps(payload, sort_keys=True, default=str))
-            object.__setattr__(self, "content_hash", digest)
+            object.__setattr__(self, "content_hash", self.current_hash())
+
+    def current_hash(self) -> str:
+        """The hash of ``tool_id`` and ``arguments`` as they are now (A14 re-check)."""
+        return request_content_hash(self.tool_id, self.arguments)
+
+    def intact(self) -> bool:
+        """True while the arguments still hash to the value the approver saw."""
+        return self.current_hash() == self.content_hash
 
     @staticmethod
     def create(
@@ -99,7 +111,24 @@ class AutoApprovalGateway(ApprovalGateway):
 
     async def request(self, approval: ApprovalRequest) -> ApprovalDecision:
         self.log.append(approval)
-        return ApprovalDecision(approval.id, True, "auto-approver", "auto-approved (dev mode)")
+        return bind_to_content(
+            approval, ApprovalDecision(approval.id, True, "auto-approver", "auto-approved (dev mode)")
+        )
+
+
+#: comment on an approval voided because the arguments changed after the decision
+HASH_MISMATCH = "arguments changed after approval; content hash no longer matches"
+
+
+def bind_to_content(approval: ApprovalRequest, decision: ApprovalDecision) -> ApprovalDecision:
+    """Re-check the content hash at the last moment before the tool runs (A14).
+
+    The gateway returns straight to the executor, which then runs the tool, so this is the final
+    check. An approval whose arguments no longer hash to what the approver saw becomes a refusal.
+    """
+    if decision.approved and not approval.intact():
+        return ApprovalDecision(approval.id, False, "policy", HASH_MISMATCH, action="reject")
+    return decision
 
 
 class DenyApprovalGateway(ApprovalGateway):
@@ -271,8 +300,16 @@ class QueuedApprovalGateway(ApprovalGateway):
         finally:
             self._pending.pop(approval.id, None)
             self._futures.pop(approval.id, None)
-        self.history.append(decision)
-        return decision
+        bound = bind_to_content(approval, decision)
+        if bound is not decision:
+            self._audit(
+                "policy",
+                "approval.hash_mismatch",
+                approval.id,
+                {"expected": approval.content_hash, "actual": approval.current_hash()},
+            )
+        self.history.append(bound)
+        return bound
 
     def decide(
         self,
@@ -282,7 +319,11 @@ class QueuedApprovalGateway(ApprovalGateway):
         comment: str = "",
         *,
         action: str = "",
+        content_hash: str | None = None,
     ) -> ApprovalDecision:
+        """Decide a pending request. ``content_hash``, when given, is the hash the approver reviewed;
+        a mismatch with the pending request is refused, so a decision cannot attach to different
+        arguments than the ones shown (A14)."""
         entry = self._futures.get(request_id)
         if entry is None:
             status = self.store.status(request_id)
@@ -292,7 +333,18 @@ class QueuedApprovalGateway(ApprovalGateway):
                 decided_by, "approval.late_decide", request_id, {"status": status, "approved": approved}
             )
             raise ApprovalConflictError(f"approval {request_id} is {status}; the decision was refused")
-        check_four_eyes(self._pending[request_id], decided_by)
+        pending = self._pending[request_id]
+        check_four_eyes(pending, decided_by)
+        if content_hash is not None and content_hash != pending.content_hash:
+            self._audit(
+                decided_by,
+                "approval.hash_mismatch",
+                request_id,
+                {"expected": pending.content_hash, "presented": content_hash},
+            )
+            raise ApprovalConflictError(
+                f"approval {request_id}: the reviewed content hash does not match the pending request"
+            )
         action = action or ("approve" if approved else "reject")
         if action not in DECISION_ACTIONS or (action == "approve") != approved:
             raise ValueError(f"action {action!r} does not match approved={approved}")
@@ -388,7 +440,7 @@ def review_payload(
     pre_trade = {
         "metric": "implementation_shortfall_bps",
         "estimate_bps": estimate,
-        "estimate_source": "baseline window (no pre-trade cost model in this release)",
+        "estimate_source": "baseline window (the parametric model in ceap.ml.pretrade_cost is not used by this view)",
         "realised_bps": realised,
         "diff_bps": None if realised is None or estimate is None else round(realised - estimate, 4),
     }
@@ -406,4 +458,23 @@ def review_payload(
             "contradictions": list((critique or {}).get("contradictions") or []),
             "critic_comments_are_model_text": True,
         },
+    }
+
+
+#: argument keys that carry harness bookkeeping rather than tool input; shown separately
+_VIEW_INTERNAL_KEYS = ("review",)
+
+
+def approval_view(approval: ApprovalRequest) -> dict[str, Any]:
+    """What the approver must see to sign off (A14): the tool, its exact arguments and the hash.
+
+    ``arguments`` is everything the tool receives except the review payload, which is returned
+    on its own. The hash covers both, and ``hash_verified`` says whether it still matches now.
+    """
+    return {
+        "tool_id": approval.tool_id,
+        "arguments": {k: v for k, v in approval.arguments.items() if k not in _VIEW_INTERNAL_KEYS},
+        "content_hash": approval.content_hash,
+        "hash_covers": ["tool_id", "arguments (including review)"],
+        "hash_verified": approval.intact(),
     }

@@ -49,7 +49,7 @@ The architectural boundary is enforced in code, not just described:
 | VWAP, IS, slippage, impact, volatility, liquidity, attribution | `ceap.analytics` (pure Python/NumPy) | – |
 | Capability interface | MCP servers + `MCPToolAdapter` | – |
 | Control plane (state machine, retry, timeout, approval, trace) | `ceap.harness` | lets an agent control the harness |
-| Authority | `ceap.policy` | – |
+| Authority (schema and symbol checks on every argument, per-agent tool allowlists, four-eyes by named person on HIGH risk, untrusted MCP servers denied) | `ceap.policy` | lets a capability skip the approval for a HIGH-risk tool |
 | Auditability | `Evidence` / `Finding` | a finding without resolvable evidence survives validation |
 
 **Current release: 0.7.1** (patch; details in `CHANGELOG.md`). 0.6.0 was merged but never tagged;

@@ -185,6 +185,13 @@ This is why a rogue or injected plan cannot skip governance: the harness doesn't
 for that decision in the first place. Policy (`ceap.policy`) separately gates every individual
 tool call by read-only/risk-level/required-capability, regardless of what the model requested.
 
+Since 0.8.0 each agent also has its own grant (`ceap.policy.agents`): a capability set and a list
+of the tools it may call. A call an agent makes runs with the intersection of that grant and the
+principal's capabilities, so the market agent cannot read logs and no agent can call a mutating
+tool. HIGH-risk tools always wait for a human, and that human must be a different named person
+with `approvals:decide`; admins do not hold it. The approver sees the exact arguments and their
+content hash, and the hash is checked again just before the tool runs.
+
 ## The critic: deterministic first, model second
 
 1. Every cited evidence id must resolve, or confidence drops to 0.1 and the finding is marked

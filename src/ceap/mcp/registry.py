@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import os
+from collections.abc import Mapping
+
 from ceap.data.historical import HistoricalStore
 from ceap.data.repositories import DatasetStore
 from ceap.domain.tools import ToolRegistry
-from ceap.mcp.adapter import MCPToolAdapter
+from ceap.mcp.adapter import MCPToolAdapter, catalogue_hash, check_catalogue
 from ceap.mcp.client import InProcessMCPClient, MCPClient
 from ceap.mcp.server import MCPServerDefinition
 from ceap.rag.retrieval import KnowledgeBase, build_knowledge_base
@@ -52,9 +55,51 @@ def build_in_process_client(
     return InProcessMCPClient(build_default_servers(store, knowledge, history))
 
 
-async def build_tool_registry(client: MCPClient, servers: list[str] | None = None) -> ToolRegistry:
-    registry = ToolRegistry()
+#: ``server=<sha256>,...``: catalogue hashes a deployment has reviewed; a mismatch refuses start-up
+CATALOGUE_PINS_ENV = "CEAP_MCP_CATALOGUE_PINS"
+
+
+class PinnedToolRegistry(ToolRegistry):
+    """A registry that remembers each server's catalogue hash from discovery (A5)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.catalogue_hashes: dict[str, str] = {}
+
+    async def verify_catalogue(self, client: MCPClient) -> None:
+        """Re-discover every server and raise :class:`CatalogueDriftError` if any catalogue changed."""
+        for server, recorded in self.catalogue_hashes.items():
+            check_catalogue(server, catalogue_hash(await client.discover_tools(server)), recorded)
+
+
+def catalogue_pins_from_env() -> dict[str, str]:
+    raw = os.getenv(CATALOGUE_PINS_ENV) or ""
+    pins: dict[str, str] = {}
+    for entry in (e.strip() for e in raw.split(",")):
+        if not entry:
+            continue
+        server, sep, digest = entry.partition("=")
+        if not sep or len(digest.strip()) != 64:
+            raise ValueError(f"{CATALOGUE_PINS_ENV} entries must be server=<64 hex sha256>")
+        pins[server.strip()] = digest.strip().lower()
+    return pins
+
+
+async def build_tool_registry(
+    client: MCPClient,
+    servers: list[str] | None = None,
+    *,
+    pins: Mapping[str, str] | None = None,
+) -> PinnedToolRegistry:
+    """Discover tools and wrap them as adapters. Each server's catalogue is hashed at start-up and
+    checked against ``pins`` (default: ``CEAP_MCP_CATALOGUE_PINS``); a mismatch refuses start-up."""
+    pins = catalogue_pins_from_env() if pins is None else pins
+    registry = PinnedToolRegistry()
     for server in servers or client.servers():
-        for descriptor in await client.discover_tools(server):
+        descriptors = await client.discover_tools(server)
+        digest = catalogue_hash(descriptors)
+        check_catalogue(server, digest, pins.get(server))
+        registry.catalogue_hashes[server] = digest
+        for descriptor in descriptors:
             registry.register(MCPToolAdapter(client, server, descriptor))
     return registry

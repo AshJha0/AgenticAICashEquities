@@ -58,6 +58,13 @@ refuses a tag whose version has no section.
     D23 `ic_ir_annualised` labelled descriptive and the flat borrow assumption stated.
   - Golden set 1.0.0 -> 1.1.0 (two template renames, R08 expected verdict now INCONCLUSIVE); needs the
     `golden-change` label and owner sign-off.
+- **Breaking (D4), policy lane (A3):** the policy engine validates arguments against each tool's JSON schema, checks every symbol-bearing field at any depth (lists and nested objects too, plus schema properties flagged `x-ceap-symbol`), bounds the whole argument tree (string length, item count, depth, total values) and coerces `limit` to a whole number before its bound. With no universe configured, a request that names a symbol is denied.
+- **Breaking (D4), A4:** HIGH-risk tools always need a human approval; `risk:high` no longer skips it. Admins cannot decide approvals, so an admin's request goes through four-eyes.
+- **Breaking, A5:** every tool of an MCP server outside `CEAP_MCP_TRUSTED_SERVERS` is denied, even when it declares itself read-only. Each server's tool catalogue is hashed at start-up; `CEAP_MCP_CATALOGUE_PINS=server=<sha256>,...` refuses start-up on a mismatch, and `PinnedToolRegistry.verify_catalogue` refuses on drift.
+- **A13:** API keys can be mapped to a named subject (`:subject=NAME` on a `CEAP_API_KEY_HASHES` entry, or `CEAP_API_KEY_SUBJECTS=role:xxxxxxxx=NAME`). A mapped key's principal is `user:NAME`, so four-eyes binds to the person, not the key.
+- **A14:** `GET /approvals/{id}` returns the tool id, its exact arguments, the content hash and `hash_verified`. `POST /approvals/{id}` accepts `content_hash`; a mismatch is 409. The gateway re-checks the hash after the decision and refuses an approval whose arguments changed. The review payload no longer says there is no pre-trade cost model.
+- **A16:** per-agent least privilege: each agent's tool calls run with its own capability set and tool allowlist (`ceap.policy.agents`), intersected with the principal's.
+- **A18:** OWASP LLM Top 10 mapping in `docs/threat-model/owasp-llm-top10.md`.
 
 ## [0.7.1] - 2026-11-08
 

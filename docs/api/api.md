@@ -47,7 +47,8 @@ paper order staging - the only non-read-only tool - and even then the harness as
 | GET | `/research/{id}/trace` | `research:read` | spans, state history, policy log, step results (incl. `gov-approval`, `gov-stage-approval`, `gov-stage-orders`) |
 | POST | `/research/{id}/cancel` | `research` | cooperative cancellation |
 | GET | `/approvals` | `approvals:decide` | pending human approvals (`CEAP_AUTO_APPROVE=false`) - research proposals carry `arguments.proposal` (verdict, flags, scores, rationale) and `arguments.target_portfolio`; staging approvals carry `arguments.orders_preview` |
-| POST | `/approvals/{id}` | `approvals:decide` | `{"approved": true, "comment": "..."}` |
+| GET | `/approvals/{id}` | `approvals:decide` | one pending request: `tool_id`, the exact `arguments` the tool will receive, `content_hash`, `hash_verified` and the `review` payload |
+| POST | `/approvals/{id}` | `approvals:decide` | `{"approved": true, "comment": "...", "content_hash": "<hash you reviewed>"}`; `content_hash` is optional, and a mismatch is 409 |
 
 Investigation and research ids live in separate namespaces: a research task is 404 under
 `/investigations/{id}` and vice versa.
@@ -154,6 +155,6 @@ checks, stress) and `attribution` is empty.
 | 401 | missing or invalid API key |
 | 403 | role lacks the capability (incl. `stage_orders` without `trading:execute`) |
 | 404 | unknown investigation / research task / approval, or an id from the other namespace |
-| 409 | report requested while running; approvals automatic in this environment; approval no longer pending (already decided, expired, or the server restarted) |
+| 409 | report requested while running; approval decided with a `content_hash` that differs from the pending request; approvals automatic in this environment; approval no longer pending (already decided, expired, or the server restarted) |
 | 413 | request body larger than `CEAP_MAX_BODY_BYTES` |
 | 422 | request could not be understood or validated (symbol, window, dataset coverage; signal, research window); a failed task's report (e.g. a declined proposal) |
