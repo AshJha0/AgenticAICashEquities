@@ -18,7 +18,7 @@ from ceap import __version__
 from ceap.api import ratelimit
 from ceap.api.middleware import RequestContextMiddleware
 from ceap.api.routes import router
-from ceap.mcp.cpu_pool import shutdown_default_pool
+from ceap.mcp.cpu_pool import default_pool, enable_process_pool, shutdown_default_pool
 from ceap.observability.logging import configure_logging
 from ceap.platform import Platform
 
@@ -66,6 +66,12 @@ def create_app(platform: Platform | None = None) -> FastAPI:
         app.state.platform = p
         app.state.ceap = state
         await p.registry()  # discover MCP tools eagerly
+        # G3: serve CPU tools from worker processes (unless CEAP_CPU_TOOL_PROCESSES says otherwise);
+        # start the workers now so their start-up cost is never inside a step timeout
+        enable_process_pool()
+        pool = default_pool()
+        if pool is not None:
+            await asyncio.to_thread(pool.warm)
         warm = _prewarm_datasets()
         if warm:  # G1: generate in a worker thread so /health answers while the cache fills
             state.prewarm = asyncio.create_task(_prewarm(p, warm), name="dataset-prewarm")
@@ -86,6 +92,7 @@ def create_app(platform: Platform | None = None) -> FastAPI:
             await asyncio.gather(*pending, return_exceptions=True)
         await p.mcp_client.close()
         shutdown_default_pool()  # terminate CPU-tool worker processes (G3)
+        enable_process_pool(0)  # back to threads for whatever runs in this process next
         if platform is None:  # the app built it, so the app closes it (releases the SQLite file)
             p.close()
 

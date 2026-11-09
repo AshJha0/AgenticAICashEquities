@@ -155,10 +155,12 @@ refuses a tag whose version has no section.
   load in the review) inside the request, and `/health` waited behind it; `/health` now answers
   while a dataset generates (`tests/integration/test_r080_offloop.py`).
 - G3: CPU-bound MCP tools declare `cpu_bound=True` (annotation `cpuBound`, `ToolMetadata.cpu_bound`)
-  and run their heavy part in a killable process pool (`ceap.mcp.cpu_pool`, `CEAP_CPU_TOOL_PROCESSES`,
-  default 2). A step or task timeout, or a cancel, now terminates the worker; before, `wait_for` could
-  not interrupt `run_backtest`. `run_backtest` and `evaluate_signal` use it; research datasets are
-  regenerated in the worker from their scenario (content hash checked) rather than pickled.
+  and run their heavy part in a killable process pool (`ceap.mcp.cpu_pool`, `CEAP_CPU_TOOL_PROCESSES`).
+  A step or task timeout, or a cancel, now terminates the worker; before, `wait_for` could not
+  interrupt `run_backtest`. The API server runs 2 workers and starts them before it serves; the CLI,
+  the library and the tests use threads. Each worker is its own slot, so a timeout terminates only its
+  own call. The caller's dataset is sent to the worker, and a research report is identical in process
+  and thread mode, with the same clock reads. `run_backtest` and `evaluate_signal` use the pool;
   `combine_signals` runs in a thread because it writes to the in-process trial ledger.
 - A10: the LLM budget is on by default and race-free. Every call reserves its upper-bound estimate
   before it is sent and settles after; per-task caps on calls, tokens (`CEAP_TASK_TOKEN_BUDGET`,
