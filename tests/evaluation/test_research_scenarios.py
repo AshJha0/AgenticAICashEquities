@@ -14,6 +14,7 @@ from ceap.evaluation import run_research_evaluation
 pytestmark = pytest.mark.evaluation
 
 
+@pytest.mark.slow  # 30 full research runs; over the 120 s default on a loaded machine (600 s slow tier)
 async def test_thirty_research_scenarios_against_parameter_derived_truth(platform):
     summary = await run_research_evaluation(platform=platform)
     rows = summary["rows"]
