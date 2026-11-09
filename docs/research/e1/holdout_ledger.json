@@ -7,5 +7,10 @@
     "F-F_Research_Data_Factors_CSV.zip": "b03d39e4bb253dda0f14893db3b78e64b40b8d6549a0fc0fd4111dae84c98618",
     "F-F_Research_Data_5_Factors_2x3_CSV.zip": "17d7a575e71d6764a70ddec3f8d887756c0eebf3a60f64d6ba95d2adde3fed26",
     "F-F_Momentum_Factor_CSV.zip": "27ed60e5b2caa9ea334a261cddfa864a9926f6bf45e9677c95dfd835c5abb315"
+  },
+  "crash_rerun": {
+    "at_utc": "2026-11-09T18:24:37.936074+00:00",
+    "git_head": "5af6120bad3fdcf6e9a7f65ebad07c476a290c9e",
+    "reason": "first opening crashed in live-window H2 (singular matrix: no DOWN month 2016+) after the ledger write and before any holdout number was written or shown"
   }
 }
