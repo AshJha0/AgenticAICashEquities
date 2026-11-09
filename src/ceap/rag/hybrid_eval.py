@@ -144,8 +144,33 @@ def abstain(kb: KnowledgeBase | None = None, queries: list[dict[str, Any]] | Non
     }
 
 
+def build_caches() -> None:
+    """Fill ``data/rag/`` caches for every chunk and eval query (needs ``pip install fastembed``)."""
+    from ceap.rag.dense import save_caches
+
+    kb = KnowledgeBase(load_documents(DEFAULT_KNOWLEDGE_DIR))
+    emb, rr = Embedder(), Reranker()
+    for v in VARIANTS:
+        h = HybridRetriever(kb, v, embedder=emb, reranker=rr)
+        for q in load_eval():
+            h.rank(q["query"])
+            h.top_rerank_score(q["query"])
+        save_caches(emb, rr)
+
+
 def main() -> None:
-    print(json.dumps({"compare": compare(), "abstain": abstain()}, indent=1))
+    """``python -m ceap.rag.hybrid_eval [--build] [--out PATH]``: optionally rebuild the model caches,
+    then write the JSON report (default ``docs/ai-agents/rag-hybrid-0.9.0.json``)."""
+    import sys
+    from pathlib import Path
+
+    if "--build" in sys.argv:
+        build_caches()
+    out = Path(sys.argv[sys.argv.index("--out") + 1]) if "--out" in sys.argv else (
+        Path(__file__).resolve().parents[3] / "docs" / "ai-agents" / "rag-hybrid-0.9.0.json"
+    )
+    out.write_text(json.dumps({"compare": compare(), "abstain": abstain()}, indent=1) + "\n", encoding="utf-8")
+    print(out)
 
 
 if __name__ == "__main__":
