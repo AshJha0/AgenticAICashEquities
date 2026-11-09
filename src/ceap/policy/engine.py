@@ -18,6 +18,7 @@ import jsonschema
 from ceap.domain.policy import PolicyContext, PolicyDecision, PolicyEngine, PolicyEvaluation
 from ceap.domain.tools import RiskLevel, ToolMetadata, ToolRequest
 from ceap.policy.agents import AGENT_ATTRIBUTE, AGENT_TOOLS_ATTRIBUTE
+from ceap.policy.approvals import request_content_hash
 from ceap.rag.query import allowed_classifications, parse_classifications
 
 Rule = Callable[[ToolRequest, ToolMetadata, PolicyContext], PolicyEvaluation | None]
@@ -68,6 +69,8 @@ class RulePolicyEngine(PolicyEngine):
     trusted_servers: frozenset[str] = field(default_factory=trusted_servers_from_env)
 
     def __post_init__(self) -> None:
+        #: one-time grants issued by the harness after a human approved exactly this call (A4)
+        self._granted: dict[tuple[str, str], int] = {}
         self._rules: list[Rule] = [
             self._rule_denied_tools,
             self._rule_untrusted_server,
@@ -80,6 +83,30 @@ class RulePolicyEngine(PolicyEngine):
             self._rule_knowledge_classification,
             self._rule_risk_level,
         ]
+
+    def grant_approved(self, task_id: str, tool_id: str, arguments: dict[str, Any]) -> str:
+        """Record that a human approval step already approved this exact call (A4).
+
+        Only the harness calls this, after a four-eyes approval step whose payload named this tool
+        and these arguments. The grant is used once and only for the same task, tool and argument
+        hash, so the HIGH-risk rule does not ask a second time for the same decision. Callers
+        outside the harness cannot reach it: it is not part of the request or the context.
+        """
+        digest = request_content_hash(tool_id, arguments)
+        key = (task_id, digest)
+        self._granted[key] = self._granted.get(key, 0) + 1
+        return digest
+
+    def _consume_grant(self, task_id: str, tool_id: str, arguments: dict[str, Any]) -> bool:
+        key = (task_id, request_content_hash(tool_id, arguments))
+        left = self._granted.get(key, 0)
+        if left <= 0:
+            return False
+        if left == 1:
+            self._granted.pop(key)
+        else:
+            self._granted[key] = left - 1
+        return True
 
     async def evaluate(
         self, request: ToolRequest, metadata: ToolMetadata, context: PolicyContext
@@ -297,6 +324,8 @@ class RulePolicyEngine(PolicyEngine):
                 PolicyDecision.DENY, "critical-risk tools are not invocable by agents", "risk-level", meta.id
             )
         if meta.risk_level is RiskLevel.HIGH:
+            if self._consume_grant(ctx.task_id, meta.id, req.arguments):
+                return None  # a four-eyes approval step already approved exactly this call
             return PolicyEvaluation(
                 PolicyDecision.REQUIRE_APPROVAL,
                 "high-risk tool requires approval by a second person (four-eyes)",
