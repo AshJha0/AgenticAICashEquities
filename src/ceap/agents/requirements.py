@@ -182,7 +182,13 @@ def agent_tool_ids(agent_id: str) -> frozenset[str] | None:
     """
     if agent_id not in REQUIREMENTS and agent_id not in ON_DEMAND_TOOLS:
         return None
-    planned = {r.tool_id for r in requirements_for(agent_id, CANONICAL_INPUT)}
+    # Read tool ids straight from the builder: constructing ToolRequest objects here would draw ids
+    # from the run's deterministic clock on first use only, shifting every later id in that run.
+    build = REQUIREMENTS.get(agent_id)
+    try:
+        planned = {t for t, _ in build(CANONICAL_INPUT)} if build is not None else set()
+    except KeyError:
+        planned = set()
     return frozenset(planned) | ON_DEMAND_TOOLS.get(agent_id, frozenset())
 
 
