@@ -85,6 +85,7 @@ from ceap.data.generator_params import (  # noqa: F401  (re-exported)
     PERFORMANCE_DELIST_DRIFT,
     PERFORMANCE_DELIST_RUNUP,
     RESEARCH_UNIVERSE,
+    RESEARCH_UNIVERSE_500,
     SPREAD_VOL_ELASTICITY,
     TIER_A,
     TIER_B,
@@ -92,8 +93,11 @@ from ceap.data.generator_params import (  # noqa: F401  (re-exported)
     TIER_OF,
     TIER_PROFILE,
     TRADING_DAYS_PER_YEAR,
+    UNIVERSES,
     VOLUME_VOL_ELASTICITY,
     WARMUP_DAYS,
+    is_nasdaq,
+    tier_of,
 )
 from ceap.data.research_scenarios import ResearchScenarioSpec, get_research_scenario
 from ceap.data.scenarios import BASE_PRICES
@@ -162,7 +166,7 @@ class HistoricalDataset:
         if self.members is None:
             self.members = np.isfinite(self.close)
         if not self.exchanges:
-            self.exchanges = tuple("NASDAQ" if s in NASDAQ else "NYSE" for s in self.symbols)
+            self.exchanges = tuple("NASDAQ" if is_nasdaq(s) else "NYSE" for s in self.symbols)
 
     # ------------------------------------------------------------ geometry
     @property
@@ -350,7 +354,7 @@ class HistoricalGenerator:
         self, rng: np.random.Generator, spec: ResearchScenarioSpec
     ) -> tuple[tuple[str, ...], np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         m = len(self.symbols)
-        tiers = tuple(TIER_OF.get(s, "C") for s in self.symbols)
+        tiers = tuple(tier_of(s) for s in self.symbols)
         base_price = np.empty(m)
         adv_notional = np.empty(m)
         spread_base = np.empty(m)
