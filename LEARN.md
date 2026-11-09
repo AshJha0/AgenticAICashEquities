@@ -8,6 +8,16 @@ worked examples. Everything cited here can be reproduced from the committed code
 If you only have an hour, read §3 (the architectural boundary), §7 (the harness as a control
 plane) and §10 (the critic and the audits) — they carry the platform's central ideas.
 
+**Learning path (0.9.0).** Three passes, each building on the last:
+
+1. *Orientation (about 2 hours).* §1-§4, then [the glossary](docs/glossary.md) for any term you
+   do not know, then the five [ADRs](docs/adr/README.md): they are the decisions the rest follows.
+2. *Mechanics (about a day).* §5-§12 with the code open beside them; do exercises 1-6 in
+   [docs/exercises.md](docs/exercises.md). Read [the test pyramid](docs/testing/test-pyramid.md)
+   before changing anything.
+3. *Research and extension (a few days).* §13-§18b, [COOKBOOK.md](COOKBOOK.md), then
+   [how to extend](docs/how-to-extend.md) and exercises 7-9.
+
 Contents:
 
 1. [The problem: explaining execution quality](#1-the-problem-explaining-execution-quality)

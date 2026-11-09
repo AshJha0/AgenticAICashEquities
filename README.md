@@ -563,7 +563,10 @@ Site: **https://ashjha0.github.io/AgenticAICashEquities/** (landing page with me
 * [docs/threat-model/threat-model.md](docs/threat-model/threat-model.md) – assets, threats, controls, adversarial tests; [OWASP LLM Top 10 mapping](docs/threat-model/owasp-llm-top10.md)
 * [docs/evaluation/evaluation.md](docs/evaluation/evaluation.md) – scenarios, thresholds, metrics, results
 * [docs/research/README.md](docs/research/README.md) – the R5 real-data study (VOID) and its preregistration; the 0.8.0 research realism toolkit
-* [docs/api/api.md](docs/api/api.md) – endpoints, auth, schemas
+* [docs/api/api.md](docs/api/api.md) – endpoints, auth, schemas; generated reference: [docs/api/openapi.json](docs/api/openapi.json) and a pdoc artifact from CI (0.9.0)
+* [docs/adr/](docs/adr/README.md) – architecture decision records: LLM never computes, policy engine as authority, hashed lock, MCP per domain, VOID policy (0.9.0)
+* [docs/testing/test-pyramid.md](docs/testing/test-pyramid.md) – the test layers, what each catches, mutation and metamorphic testing (0.9.0)
+* [docs/glossary.md](docs/glossary.md), [docs/how-to-extend.md](docs/how-to-extend.md), [docs/exercises.md](docs/exercises.md) – terms, extension recipes (signal, MCP tool, policy rule), graded exercises (0.9.0)
 * [docs/review/2026-11-09/PLAN.md](docs/review/2026-11-09/PLAN.md) – the 0.8.0 review and plan, with per-step status
 * [docs/INDEX.md](docs/INDEX.md) – everything above in one table
 

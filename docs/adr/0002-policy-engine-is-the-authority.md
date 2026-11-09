@@ -24,7 +24,9 @@ than continuing without the step.
 
 - Prompts carry no authority, so a successful injection can at worst produce a plan that the engine
   then denies.
-- Policy rules are data plus code and must be reviewed like code; a wrong rule is a real hole.
+- Policy rules are ordinary Python methods on the engine (`_rule_*`, evaluated in a fixed order; a
+  DENY wins, then REQUIRE_APPROVAL, otherwise ALLOW) and must be reviewed like any code; a wrong rule
+  is a real hole.
 - Approval-required actions (order staging) need a human approver identity, which the API carries
   in a header and the audit log records.
 
