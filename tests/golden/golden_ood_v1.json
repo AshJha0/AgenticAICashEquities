@@ -1,0 +1,605 @@
+{
+ "version": "1.0.0",
+ "frozen": "2026-11-09",
+ "split": "out_of_distribution",
+ "authored_from": "scenario parameters and the documented cause threshold table (09_attribution_thresholds.md); written before any run, not from platform output",
+ "held_out_templates": [
+  "venue_and_spreads",
+  "latency_and_large_order",
+  "illiquid_and_volatile"
+ ],
+ "change_policy": "edits only in a PR labelled golden-change, with a version bump and owner sign-off; the 45-item golden_set.json is not changed by this file",
+ "signoff": {
+  "status": "PENDING_OWNER",
+  "by": null,
+  "pr": null
+ },
+ "items_sha256": "8ea3117c912e09d52f2028856ff0e2f349b4eb9f687598d26af131edb95c5761",
+ "items": [
+  {
+   "id": "G-OOD-01",
+   "kind": "investigation",
+   "scenario": "OOD01",
+   "template": "venue_and_spreads",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "VENUE_DEGRADATION",
+    "WIDE_SPREADS"
+   ],
+   "must_mention_tools": [
+    "execution.get_venue_statistics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT"
+   ],
+   "spec": {
+    "id": "OOD01",
+    "template": "venue_and_spreads",
+    "name": "Degraded BATS with wide spreads",
+    "description": "Degraded BATS with wide spreads (out-of-distribution template, B6).",
+    "symbol": "AAPL",
+    "seed": 7100,
+    "side": "BUY",
+    "ground_truth": [
+     "VENUE_DEGRADATION",
+     "WIDE_SPREADS"
+    ],
+    "degraded_venue": "BATS",
+    "spread_multiplier": 2.0,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-02",
+   "kind": "investigation",
+   "scenario": "OOD02",
+   "template": "venue_and_spreads",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "VENUE_DEGRADATION",
+    "WIDE_SPREADS"
+   ],
+   "must_mention_tools": [
+    "execution.get_venue_statistics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT"
+   ],
+   "spec": {
+    "id": "OOD02",
+    "template": "venue_and_spreads",
+    "name": "Degraded BATS with wide spreads",
+    "description": "Degraded BATS with wide spreads (out-of-distribution template, B6).",
+    "symbol": "MSFT",
+    "seed": 7111,
+    "side": "SELL",
+    "ground_truth": [
+     "VENUE_DEGRADATION",
+     "WIDE_SPREADS"
+    ],
+    "degraded_venue": "BATS",
+    "spread_multiplier": 2.0,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-03",
+   "kind": "investigation",
+   "scenario": "OOD03",
+   "template": "venue_and_spreads",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "VENUE_DEGRADATION",
+    "WIDE_SPREADS"
+   ],
+   "must_mention_tools": [
+    "execution.get_venue_statistics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT"
+   ],
+   "spec": {
+    "id": "OOD03",
+    "template": "venue_and_spreads",
+    "name": "Degraded BATS with wide spreads",
+    "description": "Degraded BATS with wide spreads (out-of-distribution template, B6).",
+    "symbol": "NVDA",
+    "seed": 7122,
+    "side": "BUY",
+    "ground_truth": [
+     "VENUE_DEGRADATION",
+     "WIDE_SPREADS"
+    ],
+    "degraded_venue": "BATS",
+    "spread_multiplier": 2.0,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-04",
+   "kind": "investigation",
+   "scenario": "OOD04",
+   "template": "venue_and_spreads",
+   "symbol": "AMZN",
+   "question": "Analyse our AMZN execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "VENUE_DEGRADATION",
+    "WIDE_SPREADS"
+   ],
+   "must_mention_tools": [
+    "execution.get_venue_statistics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT"
+   ],
+   "spec": {
+    "id": "OOD04",
+    "template": "venue_and_spreads",
+    "name": "Degraded BATS with wide spreads",
+    "description": "Degraded BATS with wide spreads (out-of-distribution template, B6).",
+    "symbol": "AMZN",
+    "seed": 7133,
+    "side": "SELL",
+    "ground_truth": [
+     "VENUE_DEGRADATION",
+     "WIDE_SPREADS"
+    ],
+    "degraded_venue": "BATS",
+    "spread_multiplier": 2.0,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-05",
+   "kind": "investigation",
+   "scenario": "OOD05",
+   "template": "venue_and_spreads",
+   "symbol": "META",
+   "question": "Analyse our META execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "VENUE_DEGRADATION",
+    "WIDE_SPREADS"
+   ],
+   "must_mention_tools": [
+    "execution.get_venue_statistics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT"
+   ],
+   "spec": {
+    "id": "OOD05",
+    "template": "venue_and_spreads",
+    "name": "Degraded BATS with wide spreads",
+    "description": "Degraded BATS with wide spreads (out-of-distribution template, B6).",
+    "symbol": "META",
+    "seed": 7144,
+    "side": "BUY",
+    "ground_truth": [
+     "VENUE_DEGRADATION",
+     "WIDE_SPREADS"
+    ],
+    "degraded_venue": "BATS",
+    "spread_multiplier": 2.0,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-06",
+   "kind": "investigation",
+   "scenario": "OOD06",
+   "template": "latency_and_large_order",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "TECHNOLOGY_LATENCY",
+    "LARGE_ORDER_IMPACT"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics",
+    "execution.get_parent_orders"
+   ],
+   "must_not_claim": [
+    "MARKET_DATA_ANOMALY",
+    "WIDE_SPREADS",
+    "VENUE_DEGRADATION"
+   ],
+   "spec": {
+    "id": "OOD06",
+    "template": "latency_and_large_order",
+    "name": "Gateway latency with an oversized parent",
+    "description": "Gateway latency with an oversized parent (out-of-distribution template, B6).",
+    "symbol": "AAPL",
+    "seed": 7200,
+    "side": "BUY",
+    "ground_truth": [
+     "TECHNOLOGY_LATENCY",
+     "LARGE_ORDER_IMPACT"
+    ],
+    "latency_multiplier": 6.0,
+    "order_size_multiplier": 6.0,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-07",
+   "kind": "investigation",
+   "scenario": "OOD07",
+   "template": "latency_and_large_order",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "TECHNOLOGY_LATENCY",
+    "LARGE_ORDER_IMPACT"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics",
+    "execution.get_parent_orders"
+   ],
+   "must_not_claim": [
+    "MARKET_DATA_ANOMALY",
+    "WIDE_SPREADS",
+    "VENUE_DEGRADATION"
+   ],
+   "spec": {
+    "id": "OOD07",
+    "template": "latency_and_large_order",
+    "name": "Gateway latency with an oversized parent",
+    "description": "Gateway latency with an oversized parent (out-of-distribution template, B6).",
+    "symbol": "MSFT",
+    "seed": 7211,
+    "side": "SELL",
+    "ground_truth": [
+     "TECHNOLOGY_LATENCY",
+     "LARGE_ORDER_IMPACT"
+    ],
+    "latency_multiplier": 6.0,
+    "order_size_multiplier": 6.0,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-08",
+   "kind": "investigation",
+   "scenario": "OOD08",
+   "template": "latency_and_large_order",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "TECHNOLOGY_LATENCY",
+    "LARGE_ORDER_IMPACT"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics",
+    "execution.get_parent_orders"
+   ],
+   "must_not_claim": [
+    "MARKET_DATA_ANOMALY",
+    "WIDE_SPREADS",
+    "VENUE_DEGRADATION"
+   ],
+   "spec": {
+    "id": "OOD08",
+    "template": "latency_and_large_order",
+    "name": "Gateway latency with an oversized parent",
+    "description": "Gateway latency with an oversized parent (out-of-distribution template, B6).",
+    "symbol": "NVDA",
+    "seed": 7222,
+    "side": "BUY",
+    "ground_truth": [
+     "TECHNOLOGY_LATENCY",
+     "LARGE_ORDER_IMPACT"
+    ],
+    "latency_multiplier": 6.0,
+    "order_size_multiplier": 6.0,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-09",
+   "kind": "investigation",
+   "scenario": "OOD09",
+   "template": "latency_and_large_order",
+   "symbol": "AMZN",
+   "question": "Analyse our AMZN execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "TECHNOLOGY_LATENCY",
+    "LARGE_ORDER_IMPACT"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics",
+    "execution.get_parent_orders"
+   ],
+   "must_not_claim": [
+    "MARKET_DATA_ANOMALY",
+    "WIDE_SPREADS",
+    "VENUE_DEGRADATION"
+   ],
+   "spec": {
+    "id": "OOD09",
+    "template": "latency_and_large_order",
+    "name": "Gateway latency with an oversized parent",
+    "description": "Gateway latency with an oversized parent (out-of-distribution template, B6).",
+    "symbol": "AMZN",
+    "seed": 7233,
+    "side": "SELL",
+    "ground_truth": [
+     "TECHNOLOGY_LATENCY",
+     "LARGE_ORDER_IMPACT"
+    ],
+    "latency_multiplier": 6.0,
+    "order_size_multiplier": 6.0,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-10",
+   "kind": "investigation",
+   "scenario": "OOD10",
+   "template": "latency_and_large_order",
+   "symbol": "META",
+   "question": "Analyse our META execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "TECHNOLOGY_LATENCY",
+    "LARGE_ORDER_IMPACT"
+   ],
+   "must_mention_tools": [
+    "engineering.get_latency_metrics",
+    "execution.get_parent_orders"
+   ],
+   "must_not_claim": [
+    "MARKET_DATA_ANOMALY",
+    "WIDE_SPREADS",
+    "VENUE_DEGRADATION"
+   ],
+   "spec": {
+    "id": "OOD10",
+    "template": "latency_and_large_order",
+    "name": "Gateway latency with an oversized parent",
+    "description": "Gateway latency with an oversized parent (out-of-distribution template, B6).",
+    "symbol": "META",
+    "seed": 7244,
+    "side": "BUY",
+    "ground_truth": [
+     "TECHNOLOGY_LATENCY",
+     "LARGE_ORDER_IMPACT"
+    ],
+    "latency_multiplier": 6.0,
+    "order_size_multiplier": 6.0,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-11",
+   "kind": "investigation",
+   "scenario": "OOD11",
+   "template": "illiquid_and_volatile",
+   "symbol": "AAPL",
+   "question": "Analyse our AAPL execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LOW_LIQUIDITY",
+    "MARKET_VOLATILITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_order_book_statistics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "VENUE_DEGRADATION"
+   ],
+   "spec": {
+    "id": "OOD11",
+    "template": "illiquid_and_volatile",
+    "name": "Thin book in a volatile hour",
+    "description": "Thin book in a volatile hour (out-of-distribution template, B6).",
+    "symbol": "AAPL",
+    "seed": 7300,
+    "side": "BUY",
+    "ground_truth": [
+     "LOW_LIQUIDITY",
+     "MARKET_VOLATILITY"
+    ],
+    "depth_multiplier": 0.45,
+    "volatility_multiplier": 2.2,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-12",
+   "kind": "investigation",
+   "scenario": "OOD12",
+   "template": "illiquid_and_volatile",
+   "symbol": "MSFT",
+   "question": "Analyse our MSFT execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LOW_LIQUIDITY",
+    "MARKET_VOLATILITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_order_book_statistics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "VENUE_DEGRADATION"
+   ],
+   "spec": {
+    "id": "OOD12",
+    "template": "illiquid_and_volatile",
+    "name": "Thin book in a volatile hour",
+    "description": "Thin book in a volatile hour (out-of-distribution template, B6).",
+    "symbol": "MSFT",
+    "seed": 7311,
+    "side": "SELL",
+    "ground_truth": [
+     "LOW_LIQUIDITY",
+     "MARKET_VOLATILITY"
+    ],
+    "depth_multiplier": 0.45,
+    "volatility_multiplier": 2.2,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-13",
+   "kind": "investigation",
+   "scenario": "OOD13",
+   "template": "illiquid_and_volatile",
+   "symbol": "NVDA",
+   "question": "Analyse our NVDA execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LOW_LIQUIDITY",
+    "MARKET_VOLATILITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_order_book_statistics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "VENUE_DEGRADATION"
+   ],
+   "spec": {
+    "id": "OOD13",
+    "template": "illiquid_and_volatile",
+    "name": "Thin book in a volatile hour",
+    "description": "Thin book in a volatile hour (out-of-distribution template, B6).",
+    "symbol": "NVDA",
+    "seed": 7322,
+    "side": "BUY",
+    "ground_truth": [
+     "LOW_LIQUIDITY",
+     "MARKET_VOLATILITY"
+    ],
+    "depth_multiplier": 0.45,
+    "volatility_multiplier": 2.2,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-14",
+   "kind": "investigation",
+   "scenario": "OOD14",
+   "template": "illiquid_and_volatile",
+   "symbol": "AMZN",
+   "question": "Analyse our AMZN execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LOW_LIQUIDITY",
+    "MARKET_VOLATILITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_order_book_statistics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "VENUE_DEGRADATION"
+   ],
+   "spec": {
+    "id": "OOD14",
+    "template": "illiquid_and_volatile",
+    "name": "Thin book in a volatile hour",
+    "description": "Thin book in a volatile hour (out-of-distribution template, B6).",
+    "symbol": "AMZN",
+    "seed": 7333,
+    "side": "SELL",
+    "ground_truth": [
+     "LOW_LIQUIDITY",
+     "MARKET_VOLATILITY"
+    ],
+    "depth_multiplier": 0.45,
+    "volatility_multiplier": 2.2,
+    "tags": [
+     "ood"
+    ]
+   }
+  },
+  {
+   "id": "G-OOD-15",
+   "kind": "investigation",
+   "scenario": "OOD15",
+   "template": "illiquid_and_volatile",
+   "symbol": "META",
+   "question": "Analyse our META execution between 14:00 and 15:00 and explain why implementation shortfall changed.",
+   "primary": [
+    "LOW_LIQUIDITY",
+    "MARKET_VOLATILITY"
+   ],
+   "must_mention_tools": [
+    "market_data.get_order_book_statistics",
+    "market_data.get_market_statistics"
+   ],
+   "must_not_claim": [
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "VENUE_DEGRADATION"
+   ],
+   "spec": {
+    "id": "OOD15",
+    "template": "illiquid_and_volatile",
+    "name": "Thin book in a volatile hour",
+    "description": "Thin book in a volatile hour (out-of-distribution template, B6).",
+    "symbol": "META",
+    "seed": 7344,
+    "side": "BUY",
+    "ground_truth": [
+     "LOW_LIQUIDITY",
+     "MARKET_VOLATILITY"
+    ],
+    "depth_multiplier": 0.45,
+    "volatility_multiplier": 2.2,
+    "tags": [
+     "ood"
+    ]
+   }
+  }
+ ]
+}

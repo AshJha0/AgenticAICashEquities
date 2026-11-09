@@ -233,6 +233,92 @@ label on the PR. Owner sign-off of the ten `signoff_sample` items is recorded in
 2026-11-08 and marked all ten OK (AshJha0/AgenticAICashEquities#6). Regenerate deliberately with
 `python scripts/build_golden_set.py`.
 
+## AI evaluation (0.8.0, plan WS-B and WS-C)
+
+Before 0.8.0 no AI metric in this report depended on a model: every number came from
+deterministic code or from hand-built cassettes. The harness in `ceap.eval` is built to tell a
+good model from a bad one. It runs today with the mock client, and a local open-weight model (B1)
+plugs in through the same `LLMClient` interface without code changes. Each result names its
+evidence class: `mock`, `hand_built`, `local_model` or `recorded`. The class is read from the
+client, never assumed. Each rate carries a 95 % Wilson interval. The `ceap evaluation-report`
+command prints the table as the second block of the generated section above.
+
+**Per-agent evals (B2).** Only the planner, the critic and the reporter call the model (see
+`docs/ai-agents/ai-agents.md`), so only those three are evaluated:
+
+- *Planner.* Ten questions with hand-written gold plans (`src/ceap/eval/gold_plans.json`). Each
+  plan lists the tools the question needs (recall) and the tools in scope for an execution
+  investigation (precision). The score comes from the tool ids in the model's own last planning
+  reply, not from the canonical plan the agent falls back to. Plan-valid and repair rates come
+  from the agent's degradation record.
+- *Critic.* Five batches of five findings. Each batch plants three faults (uncited, unresolved,
+  contradicted by evidence, a numeric mismatch, a direction mismatch) next to two clean controls.
+  The batches go out in the critic's own request format. A planted finding counts as detected
+  when the model marks it unsupported or lowers its confidence by more than 0.05. Clean findings
+  give the false-alarm rate.
+- *Reporter.* Four hand-built fact sets go through the claims call. `validate_claims` keeps or
+  drops each claim, which gives faithfulness and claim-drop. Planted unfaithful claims test the
+  guardrail: an unknown evidence id, an unresolvable fact key, an untraceable number, and a claim
+  with no support. Their catch rate measures deterministic code, not the model, and the table
+  labels it that way. The prose call then sends the policy chunks, and every citation span is
+  audited, which gives citation-verified.
+
+With the mock, most of these rates sit at their best value by construction, because the mock was
+written to pass these checks. A mock 1.0 says the plumbing works. It says nothing about model
+quality. The critic is the exception. The mock checks only whether evidence is present, so it
+misses all three semantic fault kinds, and the table shows that by fault kind.
+
+**Metric sensitivity (B3).** Each metric is re-measured under a deliberately degraded client
+(`ceap.eval.clients`):
+
+- a planner that keeps only execution tools and adds research tools;
+- a planner that returns invalid JSON;
+- a critic that marks every finding supported;
+- a reporter that cites a fabricated evidence id and an untraceable number;
+- a reporter whose citations quote text that is not in the chunk.
+
+`tests/evaluation/test_ai_eval.py` fails if any of the eight metrics does not move in the
+expected direction. A metric that cannot fall cannot detect a bad model.
+
+**Out-of-distribution golden split (B6).** `tests/golden/golden_ood_v1.json` holds 15 items from
+three templates that the attribution rules never saw. Each template combines causes that no
+catalogue template combines, at magnitudes away from the catalogue points, on new seeds:
+
+- a degraded BATS (the catalogue only degrades ARCA) with 2.0x spreads;
+- 6x gateway latency, with no rejects and no deployment, plus a 6x parent;
+- depth at 0.45x in a 2.2x-volatility hour.
+
+The truth for each item was written from the scenario parameters and the threshold table before
+any run. The file has its own version and hash, so the 45 signed-off items in `golden_set.json` are
+unchanged and their sign-off stands. The OOD file still needs the owner's sign-off (status
+`PENDING_OWNER`) in the `golden-change` PR. The report gives primary-cause accuracy and coverage
+per template, with intervals, in complete runs only. Five items per template give wide intervals,
+and the intervals are reported as they are.
+
+**Retrieval (C1).** `data/reference/knowledge/eval.json` version 2 adds 119 queries to the
+original 40, for 159 in all. There are 44 paraphrases, 30 typo queries, 20 multi-hop questions and
+25 near-miss negatives. A multi-hop question counts as found only when every expected section is
+in the top three. A near-miss negative is an on-domain question the corpus does not answer. The
+new queries were written from the corpus text before scoring and are never tuned on.
+`ceap.rag.evaluation.extended_report` scores each category with the production gate. BM25 holds
+up on paraphrases and fails on typos and multi-hop questions, and some near-miss negatives leak
+past the gate. These are the numbers that C2 (hybrid retrieval) has to beat. They are recorded
+here and were not tuned.
+
+**Corpus governance (C3).** `src/ceap/eval/corpus_pin.json` pins the version, the effective date
+and the body hash of every corpus document. `ceap.eval.corpus.corpus_problems` fails on any of
+these:
+
+- a document added or removed without re-pinning;
+- a body edited without a version bump;
+- a version or date changed without re-pinning;
+- a missing version, or an effective date in the future.
+
+It warns, without failing, on two things: a document older than 365 days, and release-note
+wording inside a corpus file ("Since 0.5.0"), which belongs in the CHANGELOG. Two such warnings
+are open today, in `09_attribution_thresholds.md` and `docs/quant/quant.md`. Re-pin after a
+reviewed corpus change with `python -m ceap.eval.corpus --pin`.
+
 ## Regression history (3E.3)
 
 `docs/evaluation/history.csv` has one row per release from 0.4.0. Rows for 0.4.0 and 0.5.0 are the

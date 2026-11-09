@@ -1,0 +1,65 @@
+{
+ "corpus_hash": "ee8200cd3d904e456e62dc56b11fdab1220612a17930965ea1b14472764559e8",
+ "documents": [
+  {
+   "filename": "01_vwap_runbook.md",
+   "version": "vwap-3.4.0",
+   "effective_date": "2026-10-01",
+   "body_sha256": "8ffab568fd97f9769f775ded0187cf00afdca1c4eedabfe03ccde0c5c9ee67b6"
+  },
+  {
+   "filename": "02_tca_methodology.md",
+   "version": "1.2",
+   "effective_date": "2026-10-01",
+   "body_sha256": "fc51d7778b5535d51b2c848cf8a3afa9025f7282ece6c1387641d53038f639cd"
+  },
+  {
+   "filename": "03_venue_configuration.md",
+   "version": "1.1",
+   "effective_date": "2026-10-01",
+   "body_sha256": "4022e8a74fbfbcf7e87f0469b3b580d512570e87e7df67c20804966dfc54d32e"
+  },
+  {
+   "filename": "04_trading_limits.md",
+   "version": "2.0",
+   "effective_date": "2026-10-01",
+   "body_sha256": "91f06b7ff1a0422aaa0a5a751fa93b68a5b5b3284e2350d38cc157df92fb5e74"
+  },
+  {
+   "filename": "05_execution_policy.md",
+   "version": "1.0",
+   "effective_date": "2026-10-01",
+   "body_sha256": "214792cf9c54c60f017f567a70ed15b70efed23847a378fb25ce035481f343c2"
+  },
+  {
+   "filename": "06_market_data_architecture.md",
+   "version": "1.0",
+   "effective_date": "2026-10-01",
+   "body_sha256": "7a77d5b1d39abc18a6536a561031b7d56e5bd950b4ccd3cdf30d9d8ac821af6b"
+  },
+  {
+   "filename": "07_incident_runbook.md",
+   "version": "1.3",
+   "effective_date": "2026-10-01",
+   "body_sha256": "1dcda7ed111c23dd801db78ca3315b211a2bead40daa08519beb3b2fa264530e"
+  },
+  {
+   "filename": "08_execution_algorithm_documentation.md",
+   "version": "1.0",
+   "effective_date": "2026-10-01",
+   "body_sha256": "20781c078fab68835211fe98562af7f57af6b29ef0dec4f5317b4bb58bfc669b"
+  },
+  {
+   "filename": "09_attribution_thresholds.md",
+   "version": "1.1",
+   "effective_date": "2026-11-08",
+   "body_sha256": "fa1ad5d5e4193300367c76254af4a834969021dd416b759dbd49e102276a45a7"
+  },
+  {
+   "filename": "quant.md",
+   "version": "0.4.0",
+   "effective_date": "2026-11-07",
+   "body_sha256": "325a08443b65a592e0aa199a00300e97f85dc4ef23c167db9e18eae7ee43d017"
+  }
+ ]
+}
