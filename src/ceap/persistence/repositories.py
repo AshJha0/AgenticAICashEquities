@@ -179,6 +179,84 @@ class SqlApprovalStore:
 
         return self.db.run(expire)
 
+    def expire_stale(
+        self, older_than: datetime, reason: str, keep: frozenset[str] = frozenset()
+    ) -> list[str]:
+        """Expire PENDING rows requested before ``older_than`` whose id is not in ``keep`` (G8).
+
+        ``keep`` is the set of approvals a live gateway in this process is still waiting on: those
+        expire through their own timeout. Everything else PENDING and older than the cut-off is an
+        orphan (a waiter that died without a restart) and would otherwise sit in the queue for ever.
+        """
+        cutoff = canonical_datetime(older_than)
+
+        def expire(conn: sqlite3.Connection) -> list[str]:
+            rows = conn.execute(
+                "SELECT id FROM approvals WHERE status='PENDING' AND requested_at < ?", (cutoff,)
+            ).fetchall()
+            ids = [r[0] for r in rows if r[0] not in keep]
+            for approval_id in ids:
+                conn.execute(
+                    "UPDATE approvals SET status='EXPIRED', decided_by='timeout', decided_at=?, comment=? "
+                    "WHERE id=? AND status='PENDING'",
+                    (_now(), reason, approval_id),
+                )
+            return ids
+
+        return self.db.run(expire)
+
+    def decided_for(self, task_id: str, step_id: str, content_hash: str) -> dict[str, Any] | None:
+        """The latest APPROVED/REJECTED row for this task, step and content (resumable approvals, G5)."""
+        rows = self.db.query(
+            "SELECT * FROM approvals WHERE task_id=? AND step_id=? AND content_hash=? "
+            "AND status IN ('APPROVED','REJECTED') ORDER BY decided_at DESC LIMIT 1",
+            (task_id, step_id, content_hash),
+        )
+        return rows[0] if rows else None
+
+
+class RunJournalRepository:
+    """Step-boundary journal of a harness run (G5): one row per completed tool call or approval.
+
+    The key is the idempotency key of the :class:`~ceap.domain.tools.ToolRequest` (see
+    :func:`ceap.harness.durable.idempotency_key`), so a resumed run that reaches the same call with
+    the same arguments reads the recorded result instead of calling the tool again.
+    """
+
+    def __init__(self, db: Database) -> None:
+        self.db = db
+
+    def get(self, task_id: str, key: str) -> dict[str, Any] | None:
+        rows = self.db.query("SELECT * FROM run_journal WHERE task_id=? AND key=?", (task_id, key))
+        if not rows:
+            return None
+        row = rows[0]
+        return {**row, "payload": json.loads(row["payload_json"])}
+
+    def put(self, task_id: str, key: str, kind: str, step_id: str, payload: dict[str, Any]) -> bool:
+        def put(conn: sqlite3.Connection) -> bool:
+            cur = conn.execute(
+                "INSERT OR IGNORE INTO run_journal(task_id, key, kind, step_id, payload_json, created_at) "
+                "VALUES (?,?,?,?,?,?)",
+                (
+                    task_id,
+                    key,
+                    kind,
+                    step_id,
+                    json.dumps(to_jsonable(payload), sort_keys=True, default=str),
+                    _now(),
+                ),
+            )
+            return cur.rowcount == 1
+
+        return self.db.run(put)
+
+    def entries(self, task_id: str) -> list[dict[str, Any]]:
+        return self.db.query("SELECT * FROM run_journal WHERE task_id=? ORDER BY seq", (task_id,))
+
+    def clear(self, task_id: str) -> None:
+        self.db.run(lambda c: c.execute("DELETE FROM run_journal WHERE task_id=?", (task_id,)))
+
 
 class IdempotencyRepository:
     """``Idempotency-Key`` records, scoped per principal, kept for 24 hours (R4 item 4.4)."""
@@ -321,6 +399,9 @@ def apply_retention(db: Database, policy: RetentionPolicy) -> dict[str, int]:
                 "AND id NOT IN (SELECT task_id FROM results)",
                 (cutoff(policy.results_days),),
             )
+            # G5: the run journal of a task goes with its results (table exists from migration 0005)
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE name='run_journal'").fetchone():
+                conn.execute("DELETE FROM run_journal WHERE created_at < ?", (cutoff(policy.results_days),))
         if policy.traces_days is not None:
             out["traces"] = conn.execute(
                 "UPDATE results SET trace_json=NULL WHERE trace_json IS NOT NULL AND finished_at < ?",

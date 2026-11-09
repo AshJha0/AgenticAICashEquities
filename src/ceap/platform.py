@@ -7,6 +7,7 @@ Both the API and the CLI build a :class:`Platform` and call
 from __future__ import annotations
 
 import asyncio
+import os
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -38,6 +39,7 @@ from ceap.domain.research import DEFAULT_GROSS_NOTIONAL, DEFAULT_REBALANCE_DAYS,
 from ceap.domain.tasks import Task, TaskPriority
 from ceap.domain.tools import ToolRegistry
 from ceap.harness.cancellation import CancellationToken
+from ceap.harness.durable import SqlRunJournal
 from ceap.harness.engine import AgentHarness, HarnessResult
 from ceap.harness.memory import CaseMemory
 from ceap.llm.client import LLMClient
@@ -237,6 +239,8 @@ class Platform:
             approvals=self.approvals,
             settings=self.settings,
             case_memory=self.case_memory,
+            # G5 (0.9.0): opt-in step-boundary journal, CEAP_DURABLE_RUNS=1 (docs/RUNBOOK.md "Restart")
+            journal=SqlRunJournal(self.db) if os.getenv("CEAP_DURABLE_RUNS", "0") == "1" else None,
         )
 
     def build_task(self, req: InvestigationRequest) -> Task:

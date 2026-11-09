@@ -74,6 +74,7 @@ from ceap.harness.common import (  # noqa: F401 - re-exported, engine is the fac
     task_kind,
 )
 from ceap.harness.dispatch import DispatchMixin
+from ceap.harness.durable import RunJournal
 from ceap.harness.evidence import EvidenceMixin
 from ceap.harness.executor import RunContext, StepExecutor
 from ceap.harness.memory import (
@@ -107,7 +108,10 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
         settings: Settings | None = None,
         retry_policy: RetryPolicy | None = None,
         case_memory: CaseMemory | None = None,
+        journal: RunJournal | None = None,
     ) -> None:
+        # G5: step-boundary journal; with one, re-running a task id resumes instead of repeating
+        self.journal = journal
         self.planner = planner
         # R3B 3B.7 (D10): None or disabled in evaluation; written only here, after a human decision
         self.case_memory = case_memory
@@ -160,6 +164,7 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
             self.retry_policy,
             self.settings.step_timeout_seconds,
             on_awaiting,
+            journal=self.journal,
         )
         plan: Plan | None = None
         report: InvestigationReport | None = None

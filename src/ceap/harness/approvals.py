@@ -20,6 +20,7 @@ from ceap.harness.common import (
     _approval_payload,
     _w,
 )
+from ceap.harness.durable import APPROVAL_KIND, approval_key
 from ceap.harness.executor import RunContext, race_cancellation
 from ceap.harness.memory import (
     InvestigationMemory,
@@ -28,6 +29,7 @@ from ceap.harness.state_machine import HarnessState, StateMachine
 from ceap.policy.approvals import (
     DISTINCT_FROM_KEY,
     SYSTEM_ACTORS,
+    ApprovalDecision,
     ApprovalRequest,
     FourEyesViolationError,
     check_four_eyes,
@@ -62,13 +64,37 @@ class ApprovalsMixin:
             step.description,
             run.policy_context.principal,
         )
-        if sm.state is HarnessState.EXECUTING:
-            sm.transition(HarnessState.AWAITING_APPROVAL, "human approval step")
-        try:
-            decision = await race_cancellation(self.approvals.request(request), run.cancellation)
-        finally:
-            if sm.state is HarnessState.AWAITING_APPROVAL:
-                sm.transition(HarnessState.EXECUTING, "human approval decided")
+        journal = getattr(self, "journal", None)
+        akey = approval_key(step.id, request.content_hash)
+        prior = journal.get(run.task_id, akey) if journal is not None else None
+        if prior is not None:  # G5: resumed run - this exact content was already decided
+            decision = ApprovalDecision(
+                request.id,
+                bool(prior["payload"]["approved"]),
+                str(prior["payload"]["decided_by"]),
+                str(prior["payload"].get("comment") or ""),
+            )
+            self.tracer.event("approval.resumed", step_id=step.id, content_hash=request.content_hash)
+        else:
+            if sm.state is HarnessState.EXECUTING:
+                sm.transition(HarnessState.AWAITING_APPROVAL, "human approval step")
+            try:
+                decision = await race_cancellation(self.approvals.request(request), run.cancellation)
+            finally:
+                if sm.state is HarnessState.AWAITING_APPROVAL:
+                    sm.transition(HarnessState.EXECUTING, "human approval decided")
+            if journal is not None and decision.decided_by != "timeout":
+                journal.put(
+                    run.task_id,
+                    akey,
+                    APPROVAL_KIND,
+                    step.id,
+                    {
+                        "approved": decision.approved,
+                        "decided_by": decision.decided_by,
+                        "comment": decision.comment,
+                    },
+                )
         if decision.approved:
             try:  # defence in depth: enforce four-eyes whatever gateway implementation decided
                 check_four_eyes(request, decision.decided_by)
