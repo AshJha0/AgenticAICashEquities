@@ -36,4 +36,4 @@ jobs:
           python -m pip install --require-hashes -r requirements.lock
           python -m pip install -e . --no-deps
       - name: Every tier, random order (state-leak check), 1000 hypothesis examples
-        run: pytest -n auto -p randomly --cov=ceap --cov-branch --cov-report=term --cov-fail-under=COVFLOOR
+        run: pytest -n auto -p randomly --cov=ceap --cov-branch --cov-report=term --cov-fail-under=85

@@ -31,7 +31,7 @@ refuses a tag whose version has no section.
   (`scripts/check_forward_log_staleness.py`). README points to the last recorded session and asks the
   owner to protect `forward-log` against force-push (not changed here: rulesets are the owner's).
 - H2: CI and nightly measure branch coverage (`--cov-branch`); the floor is the measured total
-  rounded down (COVFLOOR %), target 90 %.
+  rounded down (85 %), target 90 %.
 - H5: repository-integrity tests (those reading `scripts/`, `docs/`, committed data or `.github/`)
   moved from `tests/unit` to `tests/repo`, which resolves the root explicitly (`tests/repo/repo_root.py`,
   `CEAP_REPO_ROOT`); `tests/unit` reads nothing outside `src` and `tests`.

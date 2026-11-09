@@ -592,7 +592,7 @@ so `ceap evaluate --suite research` and `tests/evaluation/test_research_scenario
 ```bash
 scripts/bootstrap.sh                                  # .venv from the hashed lock
 pytest -n auto -m "not nightly and not slow"          # quick local loop
-pytest -n auto -m "not nightly" --cov=ceap --cov-branch --cov-fail-under=COVFLOOR   # what PR CI runs
+pytest -n auto -m "not nightly" --cov=ceap --cov-branch --cov-fail-under=85   # what PR CI runs
 CEAP_NIGHTLY=1 HYPOTHESIS_PROFILE=nightly pytest -n auto -p randomly    # what nightly runs: random order, 1000 examples
 pytest tests/unit                                     # hermetic: reads nothing outside src/ and tests/
 pytest tests/repo                                     # repository integrity: scripts, docs, workflows
