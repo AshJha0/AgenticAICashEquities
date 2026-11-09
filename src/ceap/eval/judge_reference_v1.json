@@ -1,0 +1,857 @@
+{
+ "version": "judge_reference_v1",
+ "labels_source": "hand_built: assigned by the author per variant when written (CEAP 0.9.0 B5)",
+ "sha256": "4566dcd050d28b2cc84b588526be44c9aa7e427d8479737fe35507a3b0f41e60",
+ "items": [
+  {
+   "id": "J-AAPL-clean",
+   "variant": "clean",
+   "facts": {
+    "symbol": "AAPL",
+    "implementation_shortfall_bps": 6.2,
+    "primary_cause": "MARKET_VOLATILITY",
+    "key_evidence": "volatility ratio 2.3x the 20-day norm",
+    "confidence": 0.7
+   },
+   "narrative": "AAPL implementation shortfall was 6.2 bps. The evidence (volatility ratio 2.3x the 20-day norm) is consistent with elevated market volatility as the likely primary cause, at confidence 0.70; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-AAPL-unfaithful",
+   "variant": "unfaithful",
+   "facts": {
+    "symbol": "AAPL",
+    "implementation_shortfall_bps": 6.2,
+    "primary_cause": "MARKET_VOLATILITY",
+    "key_evidence": "volatility ratio 2.3x the 20-day norm",
+    "confidence": 0.7
+   },
+   "narrative": "AAPL implementation shortfall was 13.9 bps. The evidence (volatility ratio 2.3x the 20-day norm) is consistent with elevated market volatility as the likely primary cause, at confidence 0.70; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-AAPL-incomplete",
+   "variant": "incomplete",
+   "facts": {
+    "symbol": "AAPL",
+    "implementation_shortfall_bps": 6.2,
+    "primary_cause": "MARKET_VOLATILITY",
+    "key_evidence": "volatility ratio 2.3x the 20-day norm",
+    "confidence": 0.7
+   },
+   "narrative": "AAPL implementation shortfall was 6.2 bps. Several market conditions in the window are worth reviewing; confidence in any single driver is 0.70.",
+   "labels": {
+    "faithful": true,
+    "complete": false,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-AAPL-overclaim",
+   "variant": "overclaim",
+   "facts": {
+    "symbol": "AAPL",
+    "implementation_shortfall_bps": 6.2,
+    "primary_cause": "MARKET_VOLATILITY",
+    "key_evidence": "volatility ratio 2.3x the 20-day norm",
+    "confidence": 0.7
+   },
+   "narrative": "AAPL implementation shortfall was 6.2 bps. The evidence (volatility ratio 2.3x the 20-day norm) proves beyond doubt that elevated market volatility caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-AAPL-unfaithful_overclaim",
+   "variant": "unfaithful_overclaim",
+   "facts": {
+    "symbol": "AAPL",
+    "implementation_shortfall_bps": 6.2,
+    "primary_cause": "MARKET_VOLATILITY",
+    "key_evidence": "volatility ratio 2.3x the 20-day norm",
+    "confidence": 0.7
+   },
+   "narrative": "AAPL implementation shortfall was 13.9 bps. The evidence (volatility ratio 2.3x the 20-day norm) proves beyond doubt that elevated market volatility caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-MSFT-clean",
+   "variant": "clean",
+   "facts": {
+    "symbol": "MSFT",
+    "implementation_shortfall_bps": 11.8,
+    "primary_cause": "SPREAD_WIDENING",
+    "key_evidence": "quoted spread 3.1x its baseline",
+    "confidence": 0.65
+   },
+   "narrative": "MSFT implementation shortfall was 11.8 bps. The evidence (quoted spread 3.1x its baseline) is consistent with spread widening as the likely primary cause, at confidence 0.65; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-MSFT-unfaithful",
+   "variant": "unfaithful",
+   "facts": {
+    "symbol": "MSFT",
+    "implementation_shortfall_bps": 11.8,
+    "primary_cause": "SPREAD_WIDENING",
+    "key_evidence": "quoted spread 3.1x its baseline",
+    "confidence": 0.65
+   },
+   "narrative": "MSFT implementation shortfall was 25.1 bps. The evidence (quoted spread 3.1x its baseline) is consistent with spread widening as the likely primary cause, at confidence 0.65; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-MSFT-incomplete",
+   "variant": "incomplete",
+   "facts": {
+    "symbol": "MSFT",
+    "implementation_shortfall_bps": 11.8,
+    "primary_cause": "SPREAD_WIDENING",
+    "key_evidence": "quoted spread 3.1x its baseline",
+    "confidence": 0.65
+   },
+   "narrative": "MSFT implementation shortfall was 11.8 bps. Several market conditions in the window are worth reviewing; confidence in any single driver is 0.65.",
+   "labels": {
+    "faithful": true,
+    "complete": false,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-MSFT-overclaim",
+   "variant": "overclaim",
+   "facts": {
+    "symbol": "MSFT",
+    "implementation_shortfall_bps": 11.8,
+    "primary_cause": "SPREAD_WIDENING",
+    "key_evidence": "quoted spread 3.1x its baseline",
+    "confidence": 0.65
+   },
+   "narrative": "MSFT implementation shortfall was 11.8 bps. The evidence (quoted spread 3.1x its baseline) proves beyond doubt that spread widening caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-MSFT-unfaithful_overclaim",
+   "variant": "unfaithful_overclaim",
+   "facts": {
+    "symbol": "MSFT",
+    "implementation_shortfall_bps": 11.8,
+    "primary_cause": "SPREAD_WIDENING",
+    "key_evidence": "quoted spread 3.1x its baseline",
+    "confidence": 0.65
+   },
+   "narrative": "MSFT implementation shortfall was 25.1 bps. The evidence (quoted spread 3.1x its baseline) proves beyond doubt that spread widening caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-NVDA-clean",
+   "variant": "clean",
+   "facts": {
+    "symbol": "NVDA",
+    "implementation_shortfall_bps": 18.4,
+    "primary_cause": "PARTICIPATION_TOO_HIGH",
+    "key_evidence": "participation 24% against a 10% target",
+    "confidence": 0.75
+   },
+   "narrative": "NVDA implementation shortfall was 18.4 bps. The evidence (participation 24% against a 10% target) is consistent with participation above target as the likely primary cause, at confidence 0.75; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-NVDA-unfaithful",
+   "variant": "unfaithful",
+   "facts": {
+    "symbol": "NVDA",
+    "implementation_shortfall_bps": 18.4,
+    "primary_cause": "PARTICIPATION_TOO_HIGH",
+    "key_evidence": "participation 24% against a 10% target",
+    "confidence": 0.75
+   },
+   "narrative": "NVDA implementation shortfall was 38.3 bps. The evidence (participation 24% against a 10% target) is consistent with participation above target as the likely primary cause, at confidence 0.75; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-NVDA-incomplete",
+   "variant": "incomplete",
+   "facts": {
+    "symbol": "NVDA",
+    "implementation_shortfall_bps": 18.4,
+    "primary_cause": "PARTICIPATION_TOO_HIGH",
+    "key_evidence": "participation 24% against a 10% target",
+    "confidence": 0.75
+   },
+   "narrative": "NVDA implementation shortfall was 18.4 bps. Several market conditions in the window are worth reviewing; confidence in any single driver is 0.75.",
+   "labels": {
+    "faithful": true,
+    "complete": false,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-NVDA-overclaim",
+   "variant": "overclaim",
+   "facts": {
+    "symbol": "NVDA",
+    "implementation_shortfall_bps": 18.4,
+    "primary_cause": "PARTICIPATION_TOO_HIGH",
+    "key_evidence": "participation 24% against a 10% target",
+    "confidence": 0.75
+   },
+   "narrative": "NVDA implementation shortfall was 18.4 bps. The evidence (participation 24% against a 10% target) proves beyond doubt that participation above target caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-NVDA-unfaithful_overclaim",
+   "variant": "unfaithful_overclaim",
+   "facts": {
+    "symbol": "NVDA",
+    "implementation_shortfall_bps": 18.4,
+    "primary_cause": "PARTICIPATION_TOO_HIGH",
+    "key_evidence": "participation 24% against a 10% target",
+    "confidence": 0.75
+   },
+   "narrative": "NVDA implementation shortfall was 38.3 bps. The evidence (participation 24% against a 10% target) proves beyond doubt that participation above target caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-AMZN-clean",
+   "variant": "clean",
+   "facts": {
+    "symbol": "AMZN",
+    "implementation_shortfall_bps": 4.1,
+    "primary_cause": "ADVERSE_SELECTION",
+    "key_evidence": "post-fill markouts of -3.2 bps at 60 s",
+    "confidence": 0.6
+   },
+   "narrative": "AMZN implementation shortfall was 4.1 bps. The evidence (post-fill markouts of -3.2 bps at 60 s) is consistent with adverse selection as the likely primary cause, at confidence 0.60; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-AMZN-unfaithful",
+   "variant": "unfaithful",
+   "facts": {
+    "symbol": "AMZN",
+    "implementation_shortfall_bps": 4.1,
+    "primary_cause": "ADVERSE_SELECTION",
+    "key_evidence": "post-fill markouts of -3.2 bps at 60 s",
+    "confidence": 0.6
+   },
+   "narrative": "AMZN implementation shortfall was 9.7 bps. The evidence (post-fill markouts of -3.2 bps at 60 s) is consistent with adverse selection as the likely primary cause, at confidence 0.60; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-AMZN-incomplete",
+   "variant": "incomplete",
+   "facts": {
+    "symbol": "AMZN",
+    "implementation_shortfall_bps": 4.1,
+    "primary_cause": "ADVERSE_SELECTION",
+    "key_evidence": "post-fill markouts of -3.2 bps at 60 s",
+    "confidence": 0.6
+   },
+   "narrative": "AMZN implementation shortfall was 4.1 bps. Several market conditions in the window are worth reviewing; confidence in any single driver is 0.60.",
+   "labels": {
+    "faithful": true,
+    "complete": false,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-AMZN-overclaim",
+   "variant": "overclaim",
+   "facts": {
+    "symbol": "AMZN",
+    "implementation_shortfall_bps": 4.1,
+    "primary_cause": "ADVERSE_SELECTION",
+    "key_evidence": "post-fill markouts of -3.2 bps at 60 s",
+    "confidence": 0.6
+   },
+   "narrative": "AMZN implementation shortfall was 4.1 bps. The evidence (post-fill markouts of -3.2 bps at 60 s) proves beyond doubt that adverse selection caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-AMZN-unfaithful_overclaim",
+   "variant": "unfaithful_overclaim",
+   "facts": {
+    "symbol": "AMZN",
+    "implementation_shortfall_bps": 4.1,
+    "primary_cause": "ADVERSE_SELECTION",
+    "key_evidence": "post-fill markouts of -3.2 bps at 60 s",
+    "confidence": 0.6
+   },
+   "narrative": "AMZN implementation shortfall was 9.7 bps. The evidence (post-fill markouts of -3.2 bps at 60 s) proves beyond doubt that adverse selection caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-JPM-clean",
+   "variant": "clean",
+   "facts": {
+    "symbol": "JPM",
+    "implementation_shortfall_bps": 9.7,
+    "primary_cause": "LATE_START",
+    "key_evidence": "arrival 41 minutes after the order was released",
+    "confidence": 0.7
+   },
+   "narrative": "JPM implementation shortfall was 9.7 bps. The evidence (arrival 41 minutes after the order was released) is consistent with a late start as the likely primary cause, at confidence 0.70; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-JPM-unfaithful",
+   "variant": "unfaithful",
+   "facts": {
+    "symbol": "JPM",
+    "implementation_shortfall_bps": 9.7,
+    "primary_cause": "LATE_START",
+    "key_evidence": "arrival 41 minutes after the order was released",
+    "confidence": 0.7
+   },
+   "narrative": "JPM implementation shortfall was 20.9 bps. The evidence (arrival 41 minutes after the order was released) is consistent with a late start as the likely primary cause, at confidence 0.70; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-JPM-incomplete",
+   "variant": "incomplete",
+   "facts": {
+    "symbol": "JPM",
+    "implementation_shortfall_bps": 9.7,
+    "primary_cause": "LATE_START",
+    "key_evidence": "arrival 41 minutes after the order was released",
+    "confidence": 0.7
+   },
+   "narrative": "JPM implementation shortfall was 9.7 bps. Several market conditions in the window are worth reviewing; confidence in any single driver is 0.70.",
+   "labels": {
+    "faithful": true,
+    "complete": false,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-JPM-overclaim",
+   "variant": "overclaim",
+   "facts": {
+    "symbol": "JPM",
+    "implementation_shortfall_bps": 9.7,
+    "primary_cause": "LATE_START",
+    "key_evidence": "arrival 41 minutes after the order was released",
+    "confidence": 0.7
+   },
+   "narrative": "JPM implementation shortfall was 9.7 bps. The evidence (arrival 41 minutes after the order was released) proves beyond doubt that a late start caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-JPM-unfaithful_overclaim",
+   "variant": "unfaithful_overclaim",
+   "facts": {
+    "symbol": "JPM",
+    "implementation_shortfall_bps": 9.7,
+    "primary_cause": "LATE_START",
+    "key_evidence": "arrival 41 minutes after the order was released",
+    "confidence": 0.7
+   },
+   "narrative": "JPM implementation shortfall was 20.9 bps. The evidence (arrival 41 minutes after the order was released) proves beyond doubt that a late start caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-XOM-clean",
+   "variant": "clean",
+   "facts": {
+    "symbol": "XOM",
+    "implementation_shortfall_bps": 7.3,
+    "primary_cause": "VENUE_TOXICITY",
+    "key_evidence": "dark fills with -4.8 bps markouts on one venue",
+    "confidence": 0.55
+   },
+   "narrative": "XOM implementation shortfall was 7.3 bps. The evidence (dark fills with -4.8 bps markouts on one venue) is consistent with toxic venue flow as the likely primary cause, at confidence 0.55; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-XOM-unfaithful",
+   "variant": "unfaithful",
+   "facts": {
+    "symbol": "XOM",
+    "implementation_shortfall_bps": 7.3,
+    "primary_cause": "VENUE_TOXICITY",
+    "key_evidence": "dark fills with -4.8 bps markouts on one venue",
+    "confidence": 0.55
+   },
+   "narrative": "XOM implementation shortfall was 16.1 bps. The evidence (dark fills with -4.8 bps markouts on one venue) is consistent with toxic venue flow as the likely primary cause, at confidence 0.55; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-XOM-incomplete",
+   "variant": "incomplete",
+   "facts": {
+    "symbol": "XOM",
+    "implementation_shortfall_bps": 7.3,
+    "primary_cause": "VENUE_TOXICITY",
+    "key_evidence": "dark fills with -4.8 bps markouts on one venue",
+    "confidence": 0.55
+   },
+   "narrative": "XOM implementation shortfall was 7.3 bps. Several market conditions in the window are worth reviewing; confidence in any single driver is 0.55.",
+   "labels": {
+    "faithful": true,
+    "complete": false,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-XOM-overclaim",
+   "variant": "overclaim",
+   "facts": {
+    "symbol": "XOM",
+    "implementation_shortfall_bps": 7.3,
+    "primary_cause": "VENUE_TOXICITY",
+    "key_evidence": "dark fills with -4.8 bps markouts on one venue",
+    "confidence": 0.55
+   },
+   "narrative": "XOM implementation shortfall was 7.3 bps. The evidence (dark fills with -4.8 bps markouts on one venue) proves beyond doubt that toxic venue flow caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-XOM-unfaithful_overclaim",
+   "variant": "unfaithful_overclaim",
+   "facts": {
+    "symbol": "XOM",
+    "implementation_shortfall_bps": 7.3,
+    "primary_cause": "VENUE_TOXICITY",
+    "key_evidence": "dark fills with -4.8 bps markouts on one venue",
+    "confidence": 0.55
+   },
+   "narrative": "XOM implementation shortfall was 16.1 bps. The evidence (dark fills with -4.8 bps markouts on one venue) proves beyond doubt that toxic venue flow caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-TSLA-clean",
+   "variant": "clean",
+   "facts": {
+    "symbol": "TSLA",
+    "implementation_shortfall_bps": 23.6,
+    "primary_cause": "MARKET_VOLATILITY",
+    "key_evidence": "volatility ratio 3.4x the 20-day norm",
+    "confidence": 0.8
+   },
+   "narrative": "TSLA implementation shortfall was 23.6 bps. The evidence (volatility ratio 3.4x the 20-day norm) is consistent with elevated market volatility as the likely primary cause, at confidence 0.80; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-TSLA-unfaithful",
+   "variant": "unfaithful",
+   "facts": {
+    "symbol": "TSLA",
+    "implementation_shortfall_bps": 23.6,
+    "primary_cause": "MARKET_VOLATILITY",
+    "key_evidence": "volatility ratio 3.4x the 20-day norm",
+    "confidence": 0.8
+   },
+   "narrative": "TSLA implementation shortfall was 48.7 bps. The evidence (volatility ratio 3.4x the 20-day norm) is consistent with elevated market volatility as the likely primary cause, at confidence 0.80; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-TSLA-incomplete",
+   "variant": "incomplete",
+   "facts": {
+    "symbol": "TSLA",
+    "implementation_shortfall_bps": 23.6,
+    "primary_cause": "MARKET_VOLATILITY",
+    "key_evidence": "volatility ratio 3.4x the 20-day norm",
+    "confidence": 0.8
+   },
+   "narrative": "TSLA implementation shortfall was 23.6 bps. Several market conditions in the window are worth reviewing; confidence in any single driver is 0.80.",
+   "labels": {
+    "faithful": true,
+    "complete": false,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-TSLA-overclaim",
+   "variant": "overclaim",
+   "facts": {
+    "symbol": "TSLA",
+    "implementation_shortfall_bps": 23.6,
+    "primary_cause": "MARKET_VOLATILITY",
+    "key_evidence": "volatility ratio 3.4x the 20-day norm",
+    "confidence": 0.8
+   },
+   "narrative": "TSLA implementation shortfall was 23.6 bps. The evidence (volatility ratio 3.4x the 20-day norm) proves beyond doubt that elevated market volatility caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-TSLA-unfaithful_overclaim",
+   "variant": "unfaithful_overclaim",
+   "facts": {
+    "symbol": "TSLA",
+    "implementation_shortfall_bps": 23.6,
+    "primary_cause": "MARKET_VOLATILITY",
+    "key_evidence": "volatility ratio 3.4x the 20-day norm",
+    "confidence": 0.8
+   },
+   "narrative": "TSLA implementation shortfall was 48.7 bps. The evidence (volatility ratio 3.4x the 20-day norm) proves beyond doubt that elevated market volatility caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-META-clean",
+   "variant": "clean",
+   "facts": {
+    "symbol": "META",
+    "implementation_shortfall_bps": 5.5,
+    "primary_cause": "LIQUIDITY_SHORTFALL",
+    "key_evidence": "displayed depth 45% below its 20-day median",
+    "confidence": 0.6
+   },
+   "narrative": "META implementation shortfall was 5.5 bps. The evidence (displayed depth 45% below its 20-day median) is consistent with thin displayed liquidity as the likely primary cause, at confidence 0.60; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-META-unfaithful",
+   "variant": "unfaithful",
+   "facts": {
+    "symbol": "META",
+    "implementation_shortfall_bps": 5.5,
+    "primary_cause": "LIQUIDITY_SHORTFALL",
+    "key_evidence": "displayed depth 45% below its 20-day median",
+    "confidence": 0.6
+   },
+   "narrative": "META implementation shortfall was 12.5 bps. The evidence (displayed depth 45% below its 20-day median) is consistent with thin displayed liquidity as the likely primary cause, at confidence 0.60; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-META-incomplete",
+   "variant": "incomplete",
+   "facts": {
+    "symbol": "META",
+    "implementation_shortfall_bps": 5.5,
+    "primary_cause": "LIQUIDITY_SHORTFALL",
+    "key_evidence": "displayed depth 45% below its 20-day median",
+    "confidence": 0.6
+   },
+   "narrative": "META implementation shortfall was 5.5 bps. Several market conditions in the window are worth reviewing; confidence in any single driver is 0.60.",
+   "labels": {
+    "faithful": true,
+    "complete": false,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-META-overclaim",
+   "variant": "overclaim",
+   "facts": {
+    "symbol": "META",
+    "implementation_shortfall_bps": 5.5,
+    "primary_cause": "LIQUIDITY_SHORTFALL",
+    "key_evidence": "displayed depth 45% below its 20-day median",
+    "confidence": 0.6
+   },
+   "narrative": "META implementation shortfall was 5.5 bps. The evidence (displayed depth 45% below its 20-day median) proves beyond doubt that thin displayed liquidity caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-META-unfaithful_overclaim",
+   "variant": "unfaithful_overclaim",
+   "facts": {
+    "symbol": "META",
+    "implementation_shortfall_bps": 5.5,
+    "primary_cause": "LIQUIDITY_SHORTFALL",
+    "key_evidence": "displayed depth 45% below its 20-day median",
+    "confidence": 0.6
+   },
+   "narrative": "META implementation shortfall was 12.5 bps. The evidence (displayed depth 45% below its 20-day median) proves beyond doubt that thin displayed liquidity caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-KO-clean",
+   "variant": "clean",
+   "facts": {
+    "symbol": "KO",
+    "implementation_shortfall_bps": 3.2,
+    "primary_cause": "SPREAD_WIDENING",
+    "key_evidence": "quoted spread 2.2x its baseline",
+    "confidence": 0.65
+   },
+   "narrative": "KO implementation shortfall was 3.2 bps. The evidence (quoted spread 2.2x its baseline) is consistent with spread widening as the likely primary cause, at confidence 0.65; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-KO-unfaithful",
+   "variant": "unfaithful",
+   "facts": {
+    "symbol": "KO",
+    "implementation_shortfall_bps": 3.2,
+    "primary_cause": "SPREAD_WIDENING",
+    "key_evidence": "quoted spread 2.2x its baseline",
+    "confidence": 0.65
+   },
+   "narrative": "KO implementation shortfall was 7.9 bps. The evidence (quoted spread 2.2x its baseline) is consistent with spread widening as the likely primary cause, at confidence 0.65; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-KO-incomplete",
+   "variant": "incomplete",
+   "facts": {
+    "symbol": "KO",
+    "implementation_shortfall_bps": 3.2,
+    "primary_cause": "SPREAD_WIDENING",
+    "key_evidence": "quoted spread 2.2x its baseline",
+    "confidence": 0.65
+   },
+   "narrative": "KO implementation shortfall was 3.2 bps. Several market conditions in the window are worth reviewing; confidence in any single driver is 0.65.",
+   "labels": {
+    "faithful": true,
+    "complete": false,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-KO-overclaim",
+   "variant": "overclaim",
+   "facts": {
+    "symbol": "KO",
+    "implementation_shortfall_bps": 3.2,
+    "primary_cause": "SPREAD_WIDENING",
+    "key_evidence": "quoted spread 2.2x its baseline",
+    "confidence": 0.65
+   },
+   "narrative": "KO implementation shortfall was 3.2 bps. The evidence (quoted spread 2.2x its baseline) proves beyond doubt that spread widening caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-KO-unfaithful_overclaim",
+   "variant": "unfaithful_overclaim",
+   "facts": {
+    "symbol": "KO",
+    "implementation_shortfall_bps": 3.2,
+    "primary_cause": "SPREAD_WIDENING",
+    "key_evidence": "quoted spread 2.2x its baseline",
+    "confidence": 0.65
+   },
+   "narrative": "KO implementation shortfall was 7.9 bps. The evidence (quoted spread 2.2x its baseline) proves beyond doubt that spread widening caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-BAC-clean",
+   "variant": "clean",
+   "facts": {
+    "symbol": "BAC",
+    "implementation_shortfall_bps": 13.9,
+    "primary_cause": "PARTICIPATION_TOO_HIGH",
+    "key_evidence": "participation 31% against a 12% target",
+    "confidence": 0.7
+   },
+   "narrative": "BAC implementation shortfall was 13.9 bps. The evidence (participation 31% against a 12% target) is consistent with participation above target as the likely primary cause, at confidence 0.70; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-BAC-unfaithful",
+   "variant": "unfaithful",
+   "facts": {
+    "symbol": "BAC",
+    "implementation_shortfall_bps": 13.9,
+    "primary_cause": "PARTICIPATION_TOO_HIGH",
+    "key_evidence": "participation 31% against a 12% target",
+    "confidence": 0.7
+   },
+   "narrative": "BAC implementation shortfall was 29.3 bps. The evidence (participation 31% against a 12% target) is consistent with participation above target as the likely primary cause, at confidence 0.70; other contributors cannot be ruled out.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-BAC-incomplete",
+   "variant": "incomplete",
+   "facts": {
+    "symbol": "BAC",
+    "implementation_shortfall_bps": 13.9,
+    "primary_cause": "PARTICIPATION_TOO_HIGH",
+    "key_evidence": "participation 31% against a 12% target",
+    "confidence": 0.7
+   },
+   "narrative": "BAC implementation shortfall was 13.9 bps. Several market conditions in the window are worth reviewing; confidence in any single driver is 0.70.",
+   "labels": {
+    "faithful": true,
+    "complete": false,
+    "hedged": true
+   }
+  },
+  {
+   "id": "J-BAC-overclaim",
+   "variant": "overclaim",
+   "facts": {
+    "symbol": "BAC",
+    "implementation_shortfall_bps": 13.9,
+    "primary_cause": "PARTICIPATION_TOO_HIGH",
+    "key_evidence": "participation 31% against a 12% target",
+    "confidence": 0.7
+   },
+   "narrative": "BAC implementation shortfall was 13.9 bps. The evidence (participation 31% against a 12% target) proves beyond doubt that participation above target caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": true,
+    "complete": true,
+    "hedged": false
+   }
+  },
+  {
+   "id": "J-BAC-unfaithful_overclaim",
+   "variant": "unfaithful_overclaim",
+   "facts": {
+    "symbol": "BAC",
+    "implementation_shortfall_bps": 13.9,
+    "primary_cause": "PARTICIPATION_TOO_HIGH",
+    "key_evidence": "participation 31% against a 12% target",
+    "confidence": 0.7
+   },
+   "narrative": "BAC implementation shortfall was 29.3 bps. The evidence (participation 31% against a 12% target) proves beyond doubt that participation above target caused it; no other explanation is possible.",
+   "labels": {
+    "faithful": false,
+    "complete": true,
+    "hedged": false
+   }
+  }
+ ]
+}

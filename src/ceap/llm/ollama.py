@@ -87,7 +87,9 @@ def chat_body(request: LLMRequest, model: str, seed: int, temperature: float) ->
         fmt = output_schema(request.output_model)
         system = system + JSON_SUFFIX
     messages = [{"role": "system", "content": system}]
-    messages += [{"role": m.get("role", "user"), "content": _text(m.get("content", ""))} for m in request.messages]
+    messages += [
+        {"role": m.get("role", "user"), "content": _text(m.get("content", ""))} for m in request.messages
+    ]
     body: dict[str, Any] = {
         "model": model,
         "stream": False,
@@ -150,7 +152,9 @@ class LocalCassette(BaseModel):
 
 def write_local_cassette(path: Path, cassette: LocalCassette) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(cassette.model_dump(mode="json"), indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(cassette.model_dump(mode="json"), indent=1, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def load_local_cassette(path: Path) -> LocalCassette:
@@ -205,7 +209,12 @@ class OllamaLLMClient(LLMClient):
         if model not in LOCAL_MODELS:
             raise ValueError(f"local model {model!r} is not pinned (allowed: {LOCAL_MODELS})")
         self.model, self.seed, self.temperature = model, seed, temperature
-        self.url, self.timeout_s, self.recorder, self.transport = url.rstrip("/"), timeout_s, recorder, transport
+        self.url, self.timeout_s, self.recorder, self.transport = (
+            url.rstrip("/"),
+            timeout_s,
+            recorder,
+            transport,
+        )
         self.latencies: list[tuple[str, float]] = []
         # identical body + seed gives the same reply: answer repeats (e.g. an eval wrapper re-asking)
         # from memory instead of spending minutes of CPU on them

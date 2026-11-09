@@ -86,10 +86,14 @@ async def run_seed(client: LLMClient, golden_limit: int = GOLDEN_LIMIT) -> dict[
 
     agents = await agent_evals(client)
     untrace = await untraceable_rate(client)
-    monitor = AISLOMonitor(p95_ms={k: 1_800_000 for k in ("planning", "claims", "narrative", "critique", "judge")})
+    monitor = AISLOMonitor(
+        p95_ms={k: 1_800_000 for k in ("planning", "claims", "narrative", "critique", "judge")}
+    )
     router = LLMRouter(client, fallback=MockLLMClient())
     router.slo = monitor
-    golden = await golden_scores(Platform(llm=router, case_memory=CaseMemory(enabled=False)), limit=golden_limit)
+    golden = await golden_scores(
+        Platform(llm=router, case_memory=CaseMemory(enabled=False)), limit=golden_limit
+    )
     return {
         "agents": agents,
         "untraceable_number": untrace,
@@ -144,7 +148,10 @@ def aggregate(per_seed: dict[int, dict[str, Any]]) -> dict[str, Any]:
         recs = [(s, v, round(v * g[n_key])) for s, v, g in items if v is not None]
         if recs:
             n = sum(g[n_key] for _, v, g in items if v is not None)
-            out[f"golden.{key}"] = {**rate(sum(k for _, _, k in recs), n), "per_seed": {str(s): v for s, v, _ in recs}}
+            out[f"golden.{key}"] = {
+                **rate(sum(k for _, _, k in recs), n),
+                "per_seed": {str(s): v for s, v, _ in recs},
+            }
     return out
 
 
@@ -160,7 +167,9 @@ async def run(
             digest = load_local_cassette(path).provenance.digest
         else:
             digest = model_digest(model)
-            cas = LocalCassette(provenance=LocalProvenance(model=model, digest=digest, seed=seed, temperature=TEMPERATURE))
+            cas = LocalCassette(
+                provenance=LocalProvenance(model=model, digest=digest, seed=seed, temperature=TEMPERATURE)
+            )
             client = OllamaLLMClient(model, seed=seed, temperature=TEMPERATURE, recorder=cas)
         result = await run_seed(client, golden_limit)
         result["latency_ms"] = _latency(client)

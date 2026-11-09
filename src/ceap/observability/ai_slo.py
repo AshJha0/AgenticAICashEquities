@@ -59,7 +59,13 @@ OBJECTIVES: dict[str, tuple[float, str]] = {
     "untraceable_number": (0.02, "high"),
 }
 # p95 latency objective per purpose, ms. Hosted-API figures; a local CPU model is configured larger.
-P95_MS: dict[str, float] = {"planning": 60_000, "claims": 30_000, "narrative": 45_000, "critique": 30_000, "judge": 15_000}
+P95_MS: dict[str, float] = {
+    "planning": 60_000,
+    "claims": 30_000,
+    "narrative": 45_000,
+    "critique": 30_000,
+    "judge": 15_000,
+}
 
 
 @dataclass(frozen=True)
@@ -115,11 +121,15 @@ def event_from_response(request: Any, response: Any, latency_ms: float) -> AICal
     plan_valid = None
     if request.purpose == "planning":
         plan_valid = (
-            not fallback
-            and not repaired
-            and getattr(response, "parsed", None) is not None
-            and not getattr(response, "parse_errors", ())
-        ) if getattr(request, "output_model", None) is not None else not fallback and not repaired
+            (
+                not fallback
+                and not repaired
+                and getattr(response, "parsed", None) is not None
+                and not getattr(response, "parse_errors", ())
+            )
+            if getattr(request, "output_model", None) is not None
+            else not fallback and not repaired
+        )
     return AICallEvent(
         purpose=request.purpose,
         model=str(response.model),
@@ -193,13 +203,17 @@ class AISLOMonitor:
         labels = {"purpose": event.purpose, "model": event.model}
         self.registry.observe("gen_ai_client_operation_duration_ms", event.latency_ms, **labels)
         self.registry.inc("gen_ai_client_token_usage_total", event.input_tokens, token_type="input", **labels)
-        self.registry.inc("gen_ai_client_token_usage_total", event.output_tokens, token_type="output", **labels)
+        self.registry.inc(
+            "gen_ai_client_token_usage_total", event.output_tokens, token_type="output", **labels
+        )
         for k, v in self._values(event).items():
             if v is not None and k in RATES and v > 0:
                 self.registry.inc("ceap_ai_slo_events_total", 1, indicator=k, **labels)
         fired = self.check(event.purpose)
         for a in fired:
-            self.registry.inc("ceap_ai_slo_alerts_total", 1, kind=a.kind, indicator=a.indicator, purpose=a.purpose)
+            self.registry.inc(
+                "ceap_ai_slo_alerts_total", 1, kind=a.kind, indicator=a.indicator, purpose=a.purpose
+            )
         self.alerts.extend(fired)
         return fired
 
@@ -249,7 +263,16 @@ class AISLOMonitor:
                 w = s.window["log_latency"]
                 m = sum(w) / len(w)
                 if m > mu + 3 * sd / math.sqrt(len(w)):
-                    out.append(Alert("spc", purpose, "latency", round(math.exp(m), 1), round(math.exp(mu + 3 * sd / math.sqrt(len(w))), 1), len(w)))
+                    out.append(
+                        Alert(
+                            "spc",
+                            purpose,
+                            "latency",
+                            round(math.exp(m), 1),
+                            round(math.exp(mu + 3 * sd / math.sqrt(len(w))), 1),
+                            len(w),
+                        )
+                    )
         return out
 
     def snapshot(self) -> dict[str, Any]:
@@ -259,9 +282,17 @@ class AISLOMonitor:
             row: dict[str, Any] = {}
             for k in RATES:
                 w = s.window[k]
-                row[k] = {"value": round(sum(w) / len(w), 4) if w else None, "n": len(w), "objective": OBJECTIVES[k][0]}
+                row[k] = {
+                    "value": round(sum(w) / len(w), 4) if w else None,
+                    "n": len(w),
+                    "objective": OBJECTIVES[k][0],
+                }
             lat = list(s.latency)
-            row["p95_latency_ms"] = {"value": round(p95(lat), 1) if lat else None, "n": len(lat), "objective": self.p95_ms.get(purpose)}
+            row["p95_latency_ms"] = {
+                "value": round(p95(lat), 1) if lat else None,
+                "n": len(lat),
+                "objective": self.p95_ms.get(purpose),
+            }
             out[purpose] = row
         return out
 
