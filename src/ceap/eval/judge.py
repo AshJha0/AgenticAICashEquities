@@ -281,7 +281,7 @@ def main(argv: list[str] | None = None) -> None:
                 model=a.model, digest=model_digest(a.model), seed=a.seed, temperature=0.0
             )
         )
-        client = OllamaLLMClient(a.model, seed=a.seed, temperature=0.0, recorder=cas)
+        client = OllamaLLMClient(a.model, seed=a.seed, temperature=0.0, recorder=cas, checkpoint=path)
     doc = asyncio.run(calibrate(client))
     if not a.replay:
         write_local_cassette(path, cas)

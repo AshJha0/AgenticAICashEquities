@@ -170,7 +170,7 @@ async def run(
             cas = LocalCassette(
                 provenance=LocalProvenance(model=model, digest=digest, seed=seed, temperature=TEMPERATURE)
             )
-            client = OllamaLLMClient(model, seed=seed, temperature=TEMPERATURE, recorder=cas)
+            client = OllamaLLMClient(model, seed=seed, temperature=TEMPERATURE, recorder=cas, checkpoint=path)
         result = await run_seed(client, golden_limit)
         result["latency_ms"] = _latency(client)
         per_seed[seed] = result

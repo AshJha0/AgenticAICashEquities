@@ -281,7 +281,7 @@ def main(argv: list[str] | None = None) -> None:
                 model=a.model, digest=model_digest(a.model), seed=a.seed, temperature=TEMPERATURE
             )
         )
-        client = OllamaLLMClient(a.model, seed=a.seed, temperature=TEMPERATURE, recorder=cas)
+        client = OllamaLLMClient(a.model, seed=a.seed, temperature=TEMPERATURE, recorder=cas, checkpoint=path)
     doc = asyncio.run(run_corpus(client, a.per_surface))
     if not a.replay:
         write_local_cassette(path, cas)

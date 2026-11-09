@@ -139,7 +139,7 @@ def main(argv: list[str] | None = None) -> None:
             )
         )
         challenger = OllamaLLMClient(
-            CHALLENGER_LOCAL_MODEL, seed=a.seed, temperature=TEMPERATURE, recorder=cas
+            CHALLENGER_LOCAL_MODEL, seed=a.seed, temperature=TEMPERATURE, recorder=cas, checkpoint=chal_path
         )
     doc = asyncio.run(plan_agreement_eval(primary, challenger))
     if not a.replay:

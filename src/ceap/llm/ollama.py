@@ -205,6 +205,7 @@ class OllamaLLMClient(LLMClient):
         timeout_s: float = 1800.0,
         recorder: LocalCassette | None = None,
         transport: Any = None,
+        checkpoint: Path | None = None,
     ) -> None:
         if model not in LOCAL_MODELS:
             raise ValueError(f"local model {model!r} is not pinned (allowed: {LOCAL_MODELS})")
@@ -219,6 +220,17 @@ class OllamaLLMClient(LLMClient):
         # identical body + seed gives the same reply: answer repeats (e.g. an eval wrapper re-asking)
         # from memory instead of spending minutes of CPU on them
         self._memo: dict[str, LLMResponse] = {}
+        # checkpoint: the cassette is rewritten after every call, and a restarted run answers the
+        # requests already recorded there from the file (a long CPU run can then be resumed)
+        self.checkpoint = checkpoint
+        if checkpoint is not None and recorder is not None and checkpoint.exists():
+            old = load_local_cassette(checkpoint)
+            same = (old.provenance.model, old.provenance.seed, old.provenance.temperature)
+            if same == (model, seed, temperature):
+                for i in old.interactions:
+                    recorder.interactions.append(i)
+                    self._memo[i.request_sha256] = _response_of(i.response)
+                    self.latencies.append((i.purpose, i.latency_ms))
 
     @property
     def name(self) -> str:
@@ -266,6 +278,8 @@ class OllamaLLMClient(LLMClient):
                 )
             )
         self._memo[sha] = response
+        if self.checkpoint is not None and self.recorder is not None:
+            write_local_cassette(self.checkpoint, self.recorder)
         return response
 
 
