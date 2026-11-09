@@ -65,7 +65,8 @@ PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 
 
 def _platform(request: Request) -> Platform:
-    return request.app.state.platform
+    platform: Platform = request.app.state.platform
+    return platform
 
 
 def _task_kind(p: Platform, task_id: str) -> str | None:
@@ -659,4 +660,5 @@ async def decide_approval(
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     except RuntimeError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
-    return to_jsonable(decision)
+    out: dict[str, Any] = to_jsonable(decision)
+    return out

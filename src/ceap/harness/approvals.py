@@ -10,6 +10,7 @@ from dataclasses import replace
 
 from ceap.domain.plans import PlanStep
 from ceap.domain.tasks import ResultWarning, Task, WarningSeverity
+from ceap.harness.base import HarnessBase
 from ceap.harness.common import (
     APPROVAL_STEP_ID,
     APPROVED_PORTFOLIO_HASH,
@@ -38,7 +39,7 @@ from ceap.policy.approvals import (
 log = logging.getLogger("ceap.harness.engine")
 
 
-class ApprovalsMixin:
+class ApprovalsMixin(HarnessBase):
     """Human approval gates and staging grants."""
 
     async def _human_gate(

@@ -179,7 +179,8 @@ def portfolio_returns(p: Panel, score: np.ndarray, dates: np.ndarray, stop: int 
     weights = np.vstack([_weights(score[t]) for t in reb])
     w = weights[np.searchsorted(reb, held)]
     r = p.daily[days]
-    return np.sum(w * np.where(np.isfinite(r), r, 0.0), axis=1)
+    out: np.ndarray = np.sum(w * np.where(np.isfinite(r), r, 0.0), axis=1)
+    return out
 
 
 def _moments(r: np.ndarray) -> tuple[float, float, float]:

@@ -30,8 +30,8 @@ import math
 from dataclasses import replace
 from typing import Any
 
-from ceap.agents.critic_checks import check_statement
 from ceap.agents.base import BaseAgent, degradation_records, finite, llm_disabled
+from ceap.agents.critic_checks import check_statement
 from ceap.analytics.attribution import MATERIAL_SCORE
 from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS, assess_research
 from ceap.domain.agents import AgentContext, AgentResult
@@ -177,8 +177,8 @@ class CriticAgent(BaseAgent):
 
         overall = self._overall(assessments, contradictions)
         if research_assessment is not None:
-            flags = ", ".join(research_assessment["flags"]) or "no flags"
-            overall += f" Research assessment: {research_assessment['verdict']} ({flags})."
+            flag_text = ", ".join(research_assessment["flags"]) or "no flags"
+            overall += f" Research assessment: {research_assessment['verdict']} ({flag_text})."
         llm_overall = None
         degradations: list[Degradation] = []
         if self.llm is not None and llm_disabled(self.llm):

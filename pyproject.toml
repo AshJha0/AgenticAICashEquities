@@ -116,9 +116,7 @@ extra_checks = true
 warn_return_any = true
 
 [[tool.mypy.overrides]]
-# ceap.api: the same strict flags except warn_return_any. Three no-any-return sites remain
-# (routes.py x2, middleware.py x1) and api is edited by another 0.9.0 lane; set warn_return_any
-# = true here once they are annotated.
+# ceap.api: the same strict flag set as domain/analytics, warn_return_any included (0.9.0).
 module = ["ceap.api.*"]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
@@ -131,6 +129,7 @@ warn_unused_ignores = true
 no_implicit_reexport = true
 strict_equality = true
 extra_checks = true
+warn_return_any = true
 
 [[tool.mypy.overrides]]
 # Third-party packages without type information (no pandas-stubs, types-PyYAML, types-jsonschema, sklearn stubs;

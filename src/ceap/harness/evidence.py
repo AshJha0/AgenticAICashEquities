@@ -21,6 +21,7 @@ from ceap.domain.findings import Finding
 from ceap.domain.plans import PlanStep, StepType
 from ceap.domain.tasks import ResultWarning, Task
 from ceap.domain.tools import ToolRequest
+from ceap.harness.base import HarnessBase
 from ceap.harness.common import (
     CRITIC_AGENT_ID,
     DISPUTE_CAP,
@@ -40,7 +41,7 @@ from ceap.harness.memory import (
 log = logging.getLogger("ceap.harness.engine")
 
 
-class EvidenceMixin:
+class EvidenceMixin(HarnessBase):
     """Evidence validation, dispute resolution, hypotheses and case memory."""
 
     @staticmethod

@@ -16,6 +16,7 @@ from ceap.domain.policy import PolicyContext, PolicyDecision
 from ceap.domain.research import research_tool_arguments
 from ceap.domain.tasks import ResultWarning, Task
 from ceap.domain.tools import ToolRequest
+from ceap.harness.base import HarnessBase
 from ceap.harness.common import (
     _PINNED_ARGS,
     _WINDOW_ARGS,
@@ -49,7 +50,7 @@ from ceap.harness.memory import (
 log = logging.getLogger("ceap.harness.engine")
 
 
-class PlanningMixin:
+class PlanningMixin(HarnessBase):
     """Plan validation, governance tail, scoping and bounded re-planning."""
 
     async def _validate_plan(

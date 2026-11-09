@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 #: phrase -> (attribute stem, higher_is_better)
@@ -101,8 +101,8 @@ def direction(statement: str, higher_is_better: bool) -> int:
 
 def check_statement(
     statement: str,
-    supporting: list[Mapping[str, Any]],
-    contradicting: list[Mapping[str, Any]] = (),  # type: ignore[assignment]
+    supporting: Sequence[Mapping[str, Any]],
+    contradicting: Sequence[Mapping[str, Any]] = (),
 ) -> list[tuple[str, str]]:
     """``(flag, note)`` pairs for one finding; ``supporting`` / ``contradicting`` are the cited,
     resolved evidence records' attribute dicts."""

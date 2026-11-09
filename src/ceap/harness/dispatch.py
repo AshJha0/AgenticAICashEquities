@@ -17,6 +17,7 @@ from ceap.domain.plans import PlanStep
 from ceap.domain.reports import InvestigationReport
 from ceap.domain.tasks import ResultWarning, Task
 from ceap.domain.tools import ToolResult, ToolStatus
+from ceap.harness.base import HarnessBase
 from ceap.harness.cancellation import TaskCancelled
 from ceap.harness.common import (
     CRITIC_AGENT_ID,
@@ -40,7 +41,7 @@ from ceap.policy.agents import agent_policy_context
 log = logging.getLogger("ceap.harness.engine")
 
 
-class DispatchMixin:
+class DispatchMixin(HarnessBase):
     """Tool batches, agent runs and folding their results into memory."""
 
     # --------------------------------------------------------------- internals
