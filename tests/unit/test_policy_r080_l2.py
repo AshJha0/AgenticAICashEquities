@@ -13,7 +13,7 @@ from ceap.config import SettingsError
 from ceap.domain.policy import PolicyContext, PolicyDecision
 from ceap.domain.tools import RiskLevel, ToolMetadata, ToolRequest
 from ceap.mcp.adapter import CatalogueDriftError, catalogue_hash, check_catalogue
-from ceap.policy.agents import AGENT_PROFILES, agent_policy_context
+from ceap.policy.agents import agent_policy_context, agent_profiles
 from ceap.policy.approvals import (
     HASH_MISMATCH,
     ApprovalConflictError,
@@ -218,7 +218,7 @@ def test_a16_agent_cannot_call_other_tools_or_write() -> None:
 
 
 def test_a16_no_profile_grants_write_and_narrowing_never_widens() -> None:
-    assert all("tools:write" not in p.capabilities for p in AGENT_PROFILES.values())
+    assert all("tools:write" not in p.capabilities for p in agent_profiles().values())
     viewer = ctx(("viewer",))
     c = agent_policy_context(viewer, "risk")
     assert c.capabilities <= viewer.capabilities
@@ -240,3 +240,31 @@ def test_a4_stage_orders_without_valid_stage_approval_is_blocked() -> None:
     engine.grant_approved(c.task_id, stage.id, args)
     assert decide(engine, args, stage, c).decision is PolicyDecision.ALLOW
     assert decide(engine, args, stage, c).decision is PolicyDecision.REQUIRE_APPROVAL  # used once
+
+
+def test_a16_every_canonical_plan_tool_is_in_its_agents_allowlist() -> None:
+    from ceap.agents.requirements import CANONICAL_INPUT, REQUIREMENTS, requirements_for
+
+    for agent_id in REQUIREMENTS:
+        planned = {r.tool_id for r in requirements_for(agent_id, CANONICAL_INPUT)}
+        assert planned, f"{agent_id}: canonical input yields no plan steps"
+        allowed = agent_profiles()[agent_id].tools
+        assert allowed is not None and planned <= allowed, (agent_id, planned - (allowed or set()))
+
+
+def test_a16_every_ensure_call_in_agent_sources_is_allowlisted() -> None:
+    """Drift guard: a tool id passed to ``ensure`` in any agent module must be on the allowlist of
+    every agent that can reach that code (we accept it if any non-planner agent holds it)."""
+    import re
+    from pathlib import Path
+
+    import ceap.agents
+
+    root = Path(ceap.agents.__file__).parent
+    pattern = re.compile(r'ensure\(\s*\w+,\s*"([a-z_]+\.[a-z_]+)"', re.S)
+    held = set().union(*(p.tools or set() for p in agent_profiles().values()))
+    for path in root.glob("*.py"):
+        for tool_id in pattern.findall(path.read_text(encoding="utf-8")):
+            assert tool_id in held, f"{path.name} calls {tool_id} but no agent profile allows it"
+    market = agent_profiles()["market"].tools or set()
+    assert "engineering.get_service_metrics" in market  # change_point_scan runs in the market agent
