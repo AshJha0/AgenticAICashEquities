@@ -209,3 +209,44 @@ def test_reserved_money_key_is_refused(tmp_path) -> None:  # type: ignore[no-unt
         with pytest.raises(ValueError):
             db.run(lambda c: led.append_events(c, "b", "2026-01-06", [
                 {"kind": "mark", "cash_delta": 0.0, "detail": {MONEY_KEY: {}}}]))
+
+
+def _insert_v1_day(db: Database, led: PaperLedger, book: str, date: str, equity: float, state: BookState) -> None:
+    """A day row exactly as 0.8.0 wrote it (float equity, no money_v2 in the snapshot)."""
+    from ceap.paper.ledger import _day_body
+    from ceap.util.canonical import canonical_json
+
+    def go(conn):  # type: ignore[no-untyped-def]
+        prev = led._head(conn, "SELECT hash FROM paper_days WHERE book=? ORDER BY date DESC LIMIT 1", (book,))
+        d = {"date": date, "snapshot_json": canonical_json({"date": date, "equity": equity}).decode(),
+             "state_json": canonical_json(state.to_json()).decode(), "ledger_head": "x", "equity": equity}
+        digest, alg = led._link(conn, prev, _day_body(book, d))
+        conn.execute("INSERT INTO paper_days(book, date, equity, snapshot_json, state_json, ledger_head, prev_hash, "
+                     "hash, recorded_at, hash_alg) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                     (book, date, equity, d["snapshot_json"], d["state_json"], "x", prev, digest, "t", alg))
+
+    db.run(go)
+
+
+def test_day_rows_v1_then_v2_verify_reconcile_in_integers_and_resist_column_edits(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    with Database(tmp_path / "p.db") as db:
+        led = PaperLedger(db)
+        s0 = BookState.new(1_000.0)
+        _insert_v1_day(db, led, "b", "2026-01-05", 1_000.0 + 1e-7, s0)
+        s1 = BookState.new(1_000.0)
+        s1.cash = s1.equity = 1_000.0 + 0.1 + 0.2
+        db.run(lambda c: led.append_events(c, "b", "2026-01-06", [{"kind": "financing", "cash_delta": 0.1},
+                                                                  {"kind": "financing", "cash_delta": 0.2}]))
+        db.run(lambda c: led.append_day(c, "b", {"date": "2026-01-06", "equity": s1.equity}, s1, "h", "t"))
+        ok, _, reason = led.verify_keyed("days", "b")
+        assert ok, reason
+        rows = led.chain_rows("days", "b")
+        assert MONEY_KEY not in rows[0]["snapshot_json"]
+        assert json.loads(rows[1]["snapshot_json"])[MONEY_KEY] == {"equity": 1_000_300_000, "cash": 1_000_300_000}
+        assert rows[1]["equity"] == 1000.3 and MONEY_KEY not in led.days("b")[1]
+        rec = led.reconcile("b")
+        assert rec["ok"], rec
+        db.run(lambda c: c.execute("DROP TRIGGER paper_days_no_update"))
+        db.run(lambda c: c.execute("UPDATE paper_days SET equity = equity + 1 WHERE date='2026-01-06'"))
+        ok, where, _ = led.verify_keyed("days", "b")
+        assert not ok and where == "day 2026-01-06"
