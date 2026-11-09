@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": 2,
  "written": "2026-11-07",
  "note": "Written before any retrieval tuning. Tune only on split=train; held-out and negative are scored, never tuned on.",
  "queries": [
@@ -400,6 +400,1423 @@
    "split": "negative",
    "query": "who won the oscar for best picture",
    "expected": []
+  },
+  {
+   "id": "P01",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "VWAP ceiling on participation before it stops chasing volume",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Configuration in force"
+    }
+   ]
+  },
+  {
+   "id": "P02",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "how long is each VWAP slice",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Configuration in force"
+    }
+   ]
+  },
+  {
+   "id": "P03",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "does the VWAP algo use the dark pool for midpoint fills",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Configuration in force"
+    }
+   ]
+  },
+  {
+   "id": "P04",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "which strategy is the default for orders under five percent of volume",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Purpose"
+    }
+   ]
+  },
+  {
+   "id": "P05",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "how does the algorithm react when displayed depth drops",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Expected behaviour under stress"
+    }
+   ]
+  },
+  {
+   "id": "P06",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "pre-trade checklist for a VWAP parent order",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Operational checks"
+    }
+   ]
+  },
+  {
+   "id": "P07",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "definition of the arrival price benchmark",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Benchmarks"
+    }
+   ]
+  },
+  {
+   "id": "P08",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "is interval VWAP computed including our own fills",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Benchmarks"
+    }
+   ]
+  },
+  {
+   "id": "P09",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "how is the opportunity cost of unfilled shares priced",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Benchmarks"
+    }
+   ]
+  },
+  {
+   "id": "P10",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "how is effective spread cost measured",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Decomposition"
+    }
+   ]
+  },
+  {
+   "id": "P11",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "permanent versus temporary impact definition",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Decomposition"
+    }
+   ]
+  },
+  {
+   "id": "P12",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "why prefer VWAP slippage over IS for judging the algorithm",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Baseline comparison"
+    }
+   ]
+  },
+  {
+   "id": "P13",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "how long is the baseline window relative to the investigation window",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Baseline comparison"
+    }
+   ]
+  },
+  {
+   "id": "P14",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "realised volatility ratio that counts as a volatility cause",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Attribution thresholds"
+    },
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Cause threshold table"
+    }
+   ]
+  },
+  {
+   "id": "P15",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "default routing weight of XNAS",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Eligible venues"
+    }
+   ]
+  },
+  {
+   "id": "P16",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "minimum quantity on the dark midpoint venue",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Eligible venues"
+    }
+   ]
+  },
+  {
+   "id": "P17",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "ARCA timeout setting",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Eligible venues"
+    }
+   ]
+  },
+  {
+   "id": "P18",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "when does the router automatically reduce a venue's weight",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Smart-order-router behaviour"
+    }
+   ]
+  },
+  {
+   "id": "P19",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "cancel-on-timeout ratio that triggers a warning log",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Smart-order-router behaviour"
+    }
+   ]
+  },
+  {
+   "id": "P20",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "ARCA maintenance window symptoms lower fill rate extra slippage",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Known issues"
+    }
+   ]
+  },
+  {
+   "id": "P21",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "largest parent order allowed without splitting",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Cash equities book CASH_EQ_1"
+    }
+   ]
+  },
+  {
+   "id": "P22",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "gross notional cap per name",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Cash equities book CASH_EQ_1"
+    }
+   ]
+  },
+  {
+   "id": "P23",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "what severity incident does a limit breach raise",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Breach handling"
+    }
+   ]
+  },
+  {
+   "id": "P24",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "can agents change trading limits",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Breach handling"
+    }
+   ]
+  },
+  {
+   "id": "P25",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "size of the standard instantaneous stress move",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Stress"
+    }
+   ]
+  },
+  {
+   "id": "P26",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "factors considered for best possible result on client orders",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Best execution"
+    }
+   ]
+  },
+  {
+   "id": "P27",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "list of material causes in the standard catalogue",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Escalation"
+    }
+   ]
+  },
+  {
+   "id": "P28",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "which evidence types must a report cite",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Evidence standard"
+    }
+   ]
+  },
+  {
+   "id": "P29",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "how frequently are full depth snapshots taken",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Feed handling"
+    }
+   ]
+  },
+  {
+   "id": "P30",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "what counts as a stale quote run",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Quality monitoring"
+    }
+   ]
+  },
+  {
+   "id": "P31",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "what happens to crossed NBBO observations",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Quality monitoring"
+    }
+   ]
+  },
+  {
+   "id": "P32",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "why do aggressive slices get rejected when quotes are stale",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Impact on execution"
+    }
+   ]
+  },
+  {
+   "id": "P33",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "ack latency p99 SLO in microseconds",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Symptoms"
+    }
+   ]
+  },
+  {
+   "id": "P34",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "route latency ratio that confirms a technology cause",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "First response"
+    }
+   ]
+  },
+  {
+   "id": "P35",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "what to record in the incident ticket",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "First response"
+    }
+   ]
+  },
+  {
+   "id": "P36",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "smart-order-router 2.14.1 change",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Known change"
+    }
+   ]
+  },
+  {
+   "id": "P37",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "which strategy front-loads to cut arrival risk",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Strategies"
+    }
+   ]
+  },
+  {
+   "id": "P38",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "when should TWAP be used instead of VWAP",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Strategies"
+    }
+   ]
+  },
+  {
+   "id": "P39",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "where is acknowledgement latency measured",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Child order lifecycle"
+    }
+   ]
+  },
+  {
+   "id": "P40",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "what does paying above interval VWAP on a buy mean",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Reading a report"
+    }
+   ]
+  },
+  {
+   "id": "P41",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "residual z score needed before attributing causes",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Why these deterioration thresholds"
+    }
+   ]
+  },
+  {
+   "id": "P42",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "why are thresholds ratios against the baseline",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Why these deterioration thresholds"
+    }
+   ]
+  },
+  {
+   "id": "P43",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "what is required to change a methodology threshold",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Changing a threshold"
+    }
+   ]
+  },
+  {
+   "id": "P44",
+   "split": "extended",
+   "category": "paraphrase",
+   "query": "how are false discoveries controlled across many signals",
+   "expected": [
+    {
+     "document": "quant.md",
+     "section": "Multiple testing (2.8, 2.10, decision D4)"
+    }
+   ]
+  },
+  {
+   "id": "Y01",
+   "split": "extended",
+   "category": "typo",
+   "query": "maximun particpation rate vwap",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Configuration in force"
+    }
+   ]
+  },
+  {
+   "id": "Y02",
+   "split": "extended",
+   "category": "typo",
+   "query": "implementaton shortfal calculaton",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Benchmarks"
+    }
+   ]
+  },
+  {
+   "id": "Y03",
+   "split": "extended",
+   "category": "typo",
+   "query": "wich venue has a sped bump",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Eligible venues"
+    }
+   ]
+  },
+  {
+   "id": "Y04",
+   "split": "extended",
+   "category": "typo",
+   "query": "max postion per symbl cash equites",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Cash equities book CASH_EQ_1"
+    }
+   ]
+  },
+  {
+   "id": "Y05",
+   "split": "extended",
+   "category": "typo",
+   "query": "writen explanation deterioraton",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Escalation"
+    }
+   ]
+  },
+  {
+   "id": "Y06",
+   "split": "extended",
+   "category": "typo",
+   "query": "order bok snapshots how ofen",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Feed handling"
+    }
+   ]
+  },
+  {
+   "id": "Y07",
+   "split": "extended",
+   "category": "typo",
+   "query": "TOO_LATE_TO_ENTR rejects",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Symptoms"
+    }
+   ]
+  },
+  {
+   "id": "Y08",
+   "split": "extended",
+   "category": "typo",
+   "query": "twap vs pov strategys",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Strategies"
+    }
+   ]
+  },
+  {
+   "id": "Y09",
+   "split": "extended",
+   "category": "typo",
+   "query": "spreds widen algorithim behaviour",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Expected behaviour under stress"
+    }
+   ]
+  },
+  {
+   "id": "Y10",
+   "split": "extended",
+   "category": "typo",
+   "query": "permenant and temprary market impcat",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Decomposition"
+    }
+   ]
+  },
+  {
+   "id": "Y11",
+   "split": "extended",
+   "category": "typo",
+   "query": "arca acknowlegement delays maintainance",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Known issues"
+    }
+   ]
+  },
+  {
+   "id": "Y12",
+   "split": "extended",
+   "category": "typo",
+   "query": "trading limt breech",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Breach handling"
+    }
+   ]
+  },
+  {
+   "id": "Y13",
+   "split": "extended",
+   "category": "typo",
+   "query": "feed gap detcted metric",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Quality monitoring"
+    }
+   ]
+  },
+  {
+   "id": "Y14",
+   "split": "extended",
+   "category": "typo",
+   "query": "rollback deploymnet latency",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "First response"
+    }
+   ]
+  },
+  {
+   "id": "Y15",
+   "split": "extended",
+   "category": "typo",
+   "query": "ack latncy p50 normal",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Child order lifecycle"
+    }
+   ]
+  },
+  {
+   "id": "Y16",
+   "split": "extended",
+   "category": "typo",
+   "query": "smart order ruoter down weighting low fill rate",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Smart-order-router behaviour"
+    }
+   ]
+  },
+  {
+   "id": "Y17",
+   "split": "extended",
+   "category": "typo",
+   "query": "CHG-40388 rooting latency budgets",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Known change"
+    }
+   ]
+  },
+  {
+   "id": "Y18",
+   "split": "extended",
+   "category": "typo",
+   "query": "baselne window comparsion",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Baseline comparison"
+    }
+   ]
+  },
+  {
+   "id": "Y19",
+   "split": "extended",
+   "category": "typo",
+   "query": "stres scenario adverse mvoe",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Stress"
+    }
+   ]
+  },
+  {
+   "id": "Y20",
+   "split": "extended",
+   "category": "typo",
+   "query": "stale quots far touch router",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Impact on execution"
+    }
+   ]
+  },
+  {
+   "id": "Y21",
+   "split": "extended",
+   "category": "typo",
+   "query": "best excecution obligations",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Best execution"
+    }
+   ]
+  },
+  {
+   "id": "Y22",
+   "split": "extended",
+   "category": "typo",
+   "query": "chaging an atribution threshold",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Changing a threshold"
+    }
+   ]
+  },
+  {
+   "id": "Y23",
+   "split": "extended",
+   "category": "typo",
+   "query": "venu degradation fill rate gap",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Cause threshold table"
+    },
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Attribution thresholds"
+    }
+   ]
+  },
+  {
+   "id": "Y24",
+   "split": "extended",
+   "category": "typo",
+   "query": "operatinal checks before vwap order",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Operational checks"
+    }
+   ]
+  },
+  {
+   "id": "Y25",
+   "split": "extended",
+   "category": "typo",
+   "query": "efective spread twice signed distance",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Decomposition"
+    }
+   ]
+  },
+  {
+   "id": "Y26",
+   "split": "extended",
+   "category": "typo",
+   "query": "dark pol minimum quantiy",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Eligible venues"
+    }
+   ]
+  },
+  {
+   "id": "Y27",
+   "split": "extended",
+   "category": "typo",
+   "query": "evidance standard deterministic numbres",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Evidence standard"
+    }
+   ]
+  },
+  {
+   "id": "Y28",
+   "split": "extended",
+   "category": "typo",
+   "query": "crosed quotes threshhold",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Cause threshold table"
+    },
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Attribution thresholds"
+    }
+   ]
+  },
+  {
+   "id": "Y29",
+   "split": "extended",
+   "category": "typo",
+   "query": "larg IS small vwap slipage meaning",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Reading a report"
+    }
+   ]
+  },
+  {
+   "id": "Y30",
+   "split": "extended",
+   "category": "typo",
+   "query": "residul z 1.96 pooled peers",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Why these deterioration thresholds"
+    }
+   ]
+  },
+  {
+   "id": "M01",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "VWAP participation ceiling and the book's algorithmic participation limit",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Configuration in force"
+    },
+    {
+     "document": "04_trading_limits.md",
+     "section": "Cash equities book CASH_EQ_1"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M02",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "latency incident first response and the known router change to consider",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "First response"
+    },
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Known change"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M03",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "stale quote threshold and how stale quotes affect routing",
+   "expected": [
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Cause threshold table"
+    },
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Impact on execution"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M04",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "escalation level for deterioration and the attribution gate that catches it",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Escalation"
+    },
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Why these deterioration thresholds"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M05",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "venue fill rate down-weighting in the SOR and the venue degradation attribution threshold",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Smart-order-router behaviour"
+    },
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Attribution thresholds"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M06",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "ARCA acknowledgement delays and the ack latency SLO",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Known issues"
+    },
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Symptoms"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M07",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "child reject escalation in the VWAP runbook and reject rate technology threshold",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Operational checks"
+    },
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Attribution thresholds"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M08",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "large order approval at 4x usual size and the parent order share limit",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Operational checks"
+    },
+    {
+     "document": "04_trading_limits.md",
+     "section": "Cash equities book CASH_EQ_1"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M09",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "how IS is defined and why a large IS with small VWAP slippage indicates a market move",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Benchmarks"
+    },
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Reading a report"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M10",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "feed gap metric and reading execution reports in windows with stale quotes",
+   "expected": [
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Quality monitoring"
+    },
+    {
+     "document": "06_market_data_architecture.md",
+     "section": "Impact on execution"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M11",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "spread widening behaviour of VWAP and the wide spreads cause ratio",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Expected behaviour under stress"
+    },
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Attribution thresholds"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M12",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "depth falls slice impact and low liquidity threshold",
+   "expected": [
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Expected behaviour under stress"
+    },
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Attribution thresholds"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M13",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "limit breach blocks child orders and the stress scenario on end of window position",
+   "expected": [
+    {
+     "document": "04_trading_limits.md",
+     "section": "Breach handling"
+    },
+    {
+     "document": "04_trading_limits.md",
+     "section": "Stress"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M14",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "evidence standard for reports and changing a threshold traced by corpus hash",
+   "expected": [
+    {
+     "document": "05_execution_policy.md",
+     "section": "Evidence standard"
+    },
+    {
+     "document": "09_attribution_thresholds.md",
+     "section": "Changing a threshold"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M15",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "normal ack latency at p50 and the p99 SLO breach symptom",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Child order lifecycle"
+    },
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Symptoms"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M16",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "IEX speed bump venue and passive slices resting at the near touch",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Eligible venues"
+    },
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Configuration in force"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M17",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "effective spread cost and the baseline comparison deterioration of 1.5 bps",
+   "expected": [
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Decomposition"
+    },
+    {
+     "document": "02_tca_methodology.md",
+     "section": "Baseline comparison"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M18",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "cancel-on-timeout warn log and venue timeout error log lines",
+   "expected": [
+    {
+     "document": "03_venue_configuration.md",
+     "section": "Smart-order-router behaviour"
+    },
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Symptoms"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M19",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "which strategy to use for illiquid names and how VWAP behaves when depth falls",
+   "expected": [
+    {
+     "document": "08_execution_algorithm_documentation.md",
+     "section": "Strategies"
+    },
+    {
+     "document": "01_vwap_runbook.md",
+     "section": "Expected behaviour under stress"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "M20",
+   "split": "extended",
+   "category": "multi_hop",
+   "query": "deployment checks in the last two hours and the change id format to record",
+   "expected": [
+    {
+     "document": "07_incident_runbook.md",
+     "section": "First response"
+    },
+    {
+     "document": "07_incident_runbook.md",
+     "section": "Known change"
+    }
+   ],
+   "match": "all"
+  },
+  {
+   "id": "X01",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "maximum position per symbol in the fixed income book",
+   "expected": []
+  },
+  {
+   "id": "X02",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "options delta hedging policy for the derivatives desk",
+   "expected": []
+  },
+  {
+   "id": "X03",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "FX spot settlement cut-off times",
+   "expected": []
+  },
+  {
+   "id": "X04",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "crypto trading limits for the digital assets book",
+   "expected": []
+  },
+  {
+   "id": "X05",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "short selling locate requirements",
+   "expected": []
+  },
+  {
+   "id": "X06",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "MiFID transaction reporting deadline",
+   "expected": []
+  },
+  {
+   "id": "X07",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "bond ETF creation and redemption process",
+   "expected": []
+  },
+  {
+   "id": "X08",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "limit up limit down halt bands",
+   "expected": []
+  },
+  {
+   "id": "X09",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "client commission schedule for program trades",
+   "expected": []
+  },
+  {
+   "id": "X10",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "closing auction imbalance participation rules",
+   "expected": []
+  },
+  {
+   "id": "X11",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "VWAP algorithm for futures contracts roll schedule",
+   "expected": []
+  },
+  {
+   "id": "X12",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "market maker obligations on the primary exchange",
+   "expected": []
+  },
+  {
+   "id": "X13",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "how to onboard a new broker counterparty",
+   "expected": []
+  },
+  {
+   "id": "X14",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "margin call procedure for prime brokerage clients",
+   "expected": []
+  },
+  {
+   "id": "X15",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "dividend withholding tax on ADRs",
+   "expected": []
+  },
+  {
+   "id": "X16",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "credit default swap pricing model",
+   "expected": []
+  },
+  {
+   "id": "X17",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "trader bonus calculation methodology",
+   "expected": []
+  },
+  {
+   "id": "X18",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "regulatory capital charge for equity positions",
+   "expected": []
+  },
+  {
+   "id": "X19",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "kill switch procedure for the options market making engine",
+   "expected": []
+  },
+  {
+   "id": "X20",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "latency of the London Stock Exchange matching engine",
+   "expected": []
+  },
+  {
+   "id": "X21",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "insider list maintenance and personal account dealing",
+   "expected": []
+  },
+  {
+   "id": "X22",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "how to request access to the risk system",
+   "expected": []
+  },
+  {
+   "id": "X23",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "corporate action processing for stock splits",
+   "expected": []
+  },
+  {
+   "id": "X24",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "pre-hedging rules for block trades",
+   "expected": []
+  },
+  {
+   "id": "X25",
+   "split": "extended_negative",
+   "category": "near_miss_negative",
+   "query": "algorithm certification for a new exchange",
+   "expected": []
   }
- ]
+ ],
+ "extended_written": "2026-11-09",
+ "extended_note": "Extended splits (C1): written from the corpus text before scoring and never tuned on. Multi-hop queries (match=all) count as found only when every expected section is in the top k; near-miss negatives are on-domain questions the corpus does not answer."
 }

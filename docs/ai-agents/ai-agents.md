@@ -150,6 +150,27 @@ Execution / Engineering / Risk / Quant → Critic → Reporter.
 | Critic | are the conclusions actually supported? | adjusted findings + a critique (+ the deterministic `assess_research` verdict, for research) |
 | Reporter | write it up | an `InvestigationReport` (narrative + proposal), audited |
 
+### Which agents use the model (B9)
+
+Only three agents call the LLM: the **planner**, the **critic** and the **reporter**. Every other
+agent in the table (Market, Execution, Quant, Risk, Engineering, Research, Alpha, Backtest and
+Portfolio risk) is a deterministic module. It calls MCP tools and `ceap.analytics`, and the same
+inputs always give the same findings. None of them holds an `LLMClient`.
+
+What each of the three asks the model for, and what happens when the answer is bad:
+
+| Agent | Model call (purpose) | What the model decides | Fallback when the reply is unusable |
+|---|---|---|---|
+| Planner | `planning` | which read-only tools to call, and the scope choices (hypotheses, baselines) from enumerated options | one repair, then the canonical plan |
+| Critic | `critique` | whether to dispute a finding, and which named check to run | the deterministic critique alone |
+| Reporter | `claims`, then `narrative` | which claims to make and how to word them; which policy chunks to cite | claims dropped by the validator; templated narrative |
+
+The model never computes a number and never sets a confidence. So a bad model shows up as a worse
+plan, a missed dispute, a dropped claim or a rejected citation, never as a wrong metric. Those four
+things are what the per-agent evals in `ceap.eval.agents` measure (see
+`docs/evaluation/evaluation.md`, "AI evaluation"). Until a local model is wired in (B1), every one of
+those numbers comes from the mock client, and the report labels it `mock`.
+
 ## The harness owns governance — the model's plan does not
 
 `ceap.harness.engine.AgentHarness` runs an explicit state machine. Whatever the model's plan

@@ -6,6 +6,26 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+- AI eval (B2): per-agent evals in `ceap.eval.agents`. They cover planner tool recall and
+  precision against ten gold plans, critic detection of planted faults by kind plus its false-alarm
+  rate, and reporter faithfulness, claim-drop, planted-claim catch rate and citation-verified. Each
+  rate has a 95 % Wilson interval and an evidence class (`mock` until B1).
+- AI eval (B3): a metric sensitivity test. Five degraded clients (`ceap.eval.clients`) must move
+  all eight model metrics in the expected direction.
+- AI eval (B6): an out-of-distribution golden split, `tests/golden/golden_ood_v1.json`, with 15
+  items from three held-out cause-combination templates, scored per template. It is a separate
+  versioned file, so the 45 signed-off items and their hash are unchanged. The split is
+  `PENDING_OWNER`: it needs the `golden-change` label and owner sign-off.
+- Docs (B9): `docs/ai-agents/ai-agents.md` now says which agents call the model (planner, critic,
+  reporter) and which are deterministic.
+- Retrieval eval (C1): `eval.json` version 2 adds 119 queries (paraphrase, typo, multi-hop,
+  near-miss negative), for 159 in all. `extended_report` scores them by category with Wilson
+  intervals, and BM25's weak spots (typos, multi-hop, near-miss leaks) are recorded without tuning.
+- Corpus governance (C3): `src/ceap/eval/corpus_pin.json` pins each document's version, date and
+  body hash. `ceap.eval.corpus` fails on unpinned or unbumped edits and future dates, and warns on
+  stale documents and on release-note wording in corpus files.
+- `ceap evaluation-report` gains agents, sensitivity, ood, retrieval and corpus sections.
+
 ## [0.7.1] - 2026-11-08
 
 Patch release after 0.7.0: release-gate fix, golden-set owner sign-off and the R5 v2 write-up
