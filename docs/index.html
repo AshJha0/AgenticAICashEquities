@@ -46,8 +46,8 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
        statistics, technology telemetry and runbooks through MCP, computes every number with
        deterministic quant analytics, lets specialist agents interpret the evidence, has a critic
        challenge the findings, and writes a report in which every claim points at an evidence
-       record. Current release: v0.8.0. Python · MCP · LLM layer (offline-provable) · multi-agent
-       harness · policy engine · BM25 RAG · SQLite · FastAPI.</p>
+       record. Current release: v0.9.0, the last planned release. Python · MCP · LLM layer (offline-provable; local open-weight model for evaluation) · multi-agent
+       harness · policy engine · BM25 RAG (hybrid opt-in) · SQLite · FastAPI.</p>
     <nav>
       <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/README.md">README</a>
       <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/LEARN.md">Learn (guide)</a>
@@ -73,12 +73,15 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
 <div class="wrap">
   <h2>Measured, with the evidence class stated</h2>
   <div class="numbers">
-    Evidence class&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the evaluation results below come from the deterministic mock LLM on synthetic data; no test, demo or CI job calls a real model (decision D15)<br>
+    Evidence class&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the evaluation results below come from the deterministic mock LLM on synthetic data; no test, demo or CI job calls a hosted model (decision D15); 0.9.0 local-model runs are replayed from recorded cassettes<br>
     <!-- source: docs/evaluation/latest.json -->Execution evaluation&nbsp;&nbsp;&nbsp;&nbsp; 50 scenarios (mock LLM, synthetic) · primary-cause accuracy 0.98 · ground-truth coverage 0.98 · false-positive rate 0.06<br>
     <!-- source: docs/evaluation/latest.json -->Research evaluation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30 scenarios (mock LLM, synthetic) · verdict accuracy 0.8333 (25/30; 29/30 before the 0.8.0 recalibration and a-priori hurdle)<br>
-    <!-- source: docs/evaluation/latest.json -->Golden set&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; v1.0.0, 30 investigation + 15 research items, SIGNED_OFF by the owner on 2026-11-08 (10/10 sampled items OK) · primary cause 0.9667 · verdicts 0.8667 (mock LLM)<br>
+    <!-- source: docs/evaluation/latest.json -->Golden set&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; v1.0.0, 30 investigation + 15 research items, SIGNED_OFF by the owner on 2026-11-08 (10/10 sampled items OK); research golden v1.1 signed in 0.9.0 · primary cause 0.9667 · verdicts 0.8667 (mock LLM)<br>
     <!-- source: docs/evaluation/latest.json -->Safety&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4 injected faults x 4 invariants, invariants held 1.00; every fault marks the result DEGRADED (mock LLM)<br>
-    <!-- source: docs/evaluation/latest.json -->Live-model metrics&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; planner quality, live injection resistance, narrative faithfulness, refusal rate, latency, cache hits, run-to-run variance: UNKNOWN / NOT RUN LIVE<br>
+    Local model (0.9.0)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; qwen2.5:7b-instruct via Ollama on one machine (challenger llama3.1:8b): TBD-LOCAL-MODEL-RESULTS<br>
+    <!-- source: docs/ai-agents/rag-hybrid-0.9.0.md -->Critic checks (0.9.0)&nbsp;&nbsp;&nbsp; planted-fault detection 6/15 to 15/15, 0/10 false alarms, existing and held-out sets (synthetic; same author wrote faults and checks)<br>
+    <!-- source: docs/research/e1/result_holdout.json -->Real-data study E1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 49-industry momentum, Ken French data, holdout 1990-2015 opened once: NULL (net 10 bps NW t 1.16 &lt; 1.645)<br>
+    <!-- source: docs/evaluation/latest.json -->Hosted-model metrics&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; planner quality, live injection resistance, narrative faithfulness, refusal rate, latency, cache hits, run-to-run variance: UNKNOWN / NOT RUN LIVE<br>
     <!-- source: docs/research/result_momentum_2026-11.md -->Real-data study R5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; VOID: point-in-time coverage 75.1 % against a required 95 %; no test statistic computed<br>
     <!-- source: docs/research/result_momentum_2026-11-v2.md -->R5 v2 (Stooq)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; VOID before registration: coverage 74.9 % against 95 %; pseudo-holdout 2024-2025 unspent<br>
     <!-- source: config/paper.json -->Paper trading&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SYNTHETIC feed; daily job enabled, forward record from 2026-11-09; no forward result yet (UNKNOWN)<br>
@@ -172,6 +175,14 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
          only, prices in a git-ignored cache that is never committed. The preregistration was hashed
          before any data was read. Coverage failed its gate both times, so no statistic was computed
          and the pseudo-holdout is unspent.</p></div>
+    <div class="card"><h3>Real-data study E1: NULL</h3>
+      <p>Preregistered, hash-locked 49-industry momentum on free Ken French data. The 1990-2015
+         holdout was opened once and did not reject the null. One crash during the opening was
+         ledgered and disclosed. A NULL is not evidence that the effect is absent.</p></div>
+    <div class="card"><h3>Local model and stricter critic (0.9.0)</h3>
+      <p>A local open-weight model behind the same client interface, with recorded cassettes that CI
+         replays; a 200-attack injection corpus; a judge used only where it agrees with a reference.
+         The critic now reads each finding's words against its cited numbers and direction.</p></div>
     <div class="card"><h3>Paper trading (synthetic)</h3>
       <p>Simulated next-close fills with the backtest's own cost model, an append-only HMAC-chained
          ledger, desk controls (pre-trade checks, kill switch in the environment or the database, NYSE calendar, reconciliation that

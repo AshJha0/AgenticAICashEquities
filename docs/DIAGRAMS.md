@@ -12,7 +12,10 @@ Contents: 1. [End-to-end investigation pipeline](#1-end-to-end-investigation-pip
 12. [Paper trading and the R5 real-data path (0.7.0)](#12-paper-trading-and-the-r5-real-data-path-070) ·
 13. [Policy and approval flow (0.8.0)](#13-policy-and-approval-flow-080) ·
 14. [Audit chain and external anchor (0.8.0)](#14-audit-chain-and-external-anchor-080) ·
-15. [Execution package (0.8.0)](#15-execution-package-080)
+15. [Execution package (0.8.0)](#15-execution-package-080) ·
+16. [Critic statement checks (0.9.0)](#16-critic-statement-checks-090) ·
+17. [Local model evaluation and replay (0.9.0)](#17-local-model-evaluation-and-replay-090) ·
+18. [Harness mixins and the run journal (0.9.0)](#18-harness-mixins-and-the-run-journal-090)
 
 ## 1. End-to-end investigation pipeline
 
@@ -496,3 +499,55 @@ flowchart TD
     IS --> LOOP["predicted vs realised (cost_loop.py)<br/>SQLite, weekly recalibration, drift alert"]
     IS --> ATT["cause attribution<br/>heuristic, or regression with CEAP_ATTRIBUTION=regression"]
 ```
+
+## 16. Critic statement checks (0.9.0)
+
+`ceap.agents.critic_checks.check_statement` runs on every finding after the evidence checks; each
+flag caps confidence (`CHECK_CAPS` in `ceap/agents/critic.py`) and is recorded in
+`assessment["flags"]`.
+
+The three checks are independent: one finding can collect more than one flag.
+
+```mermaid
+flowchart TD
+    F["finding: statement + cited evidence ids"] --> R["resolve cited records<br/>(supporting, contradicting)"]
+    R --> C1{"cited records disagree<br/>or a contradicting record?"}
+    C1 -- yes --> X1["contradicted<br/>cap 0.4"]
+    R --> M["find the metric named<br/>(attribute name, or phrase table<br/>plus the attribute's other qualifiers)"]
+    M --> S["direction word present?<br/>yes: *change* attributes<br/>no: level attributes"]
+    S --> C2{"a printed number agrees<br/>(1 % / 0.005, within its printed<br/>rounding, or as a percent)?"}
+    C2 -- no --> X2["numeric_mismatch<br/>cap 0.2"]
+    S --> C3{"direction word vs sign of<br/>the cited change, given polarity"}
+    C3 -- disagree --> X3["direction_mismatch<br/>cap 0.2"]
+```
+
+## 17. Local model evaluation and replay (0.9.0)
+
+```mermaid
+flowchart LR
+    subgraph live ["live run (CEAP_LOCAL_MODEL=1, this machine)"]
+        RUN["ceap.eval.local_model<br/>injection · judge · challenger"] --> OC["OllamaLLMClient<br/>qwen2.5:7b-instruct /<br/>llama3.1:8b challenger"]
+        OC --> CAS["LocalCassette<br/>tests/cassettes/local_model/<br/>key = canonical request hash<br/>(checkpoint after every call)"]
+    end
+    subgraph ci ["CI (no Ollama)"]
+        REP["--replay"] --> LCC["LocalCassetteClient"] --> SC["scores + Wilson CIs<br/>docs/evaluation/local_model/"]
+    end
+    CAS --> LCC
+    OC --> SLO["AISLOMonitor<br/>plan-valid · repair · fallback ·<br/>untraceable numbers · p95 latency"]
+```
+
+## 18. Harness mixins and the run journal (0.9.0)
+
+```mermaid
+flowchart TD
+    E["engine.py: AgentHarness<br/>(__init__, execute)"] --> P["planning.py"]
+    E --> D["dispatch.py"]
+    E --> A["approvals.py"]
+    E --> V["evidence.py"]
+    P & D & A & V --> B["base.py: HarnessBase (typed shared state)"]
+    D -- "each tool call" --> K["idempotency key<br/>sha256(task | step | tool | args)"]
+    K --> J[("run journal<br/>0005_run_journal.sql<br/>CEAP_DURABLE_RUNS=1")]
+    J -- "re-run of same task id" --> D
+    A -- "same content hash" --> J
+```
+
