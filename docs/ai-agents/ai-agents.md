@@ -190,8 +190,10 @@ What each of the three asks the model for, and what happens when the answer is b
 The model never computes a number and never sets a confidence. So a bad model shows up as a worse
 plan, a missed dispute, a dropped claim or a rejected citation, never as a wrong metric. Those four
 things are what the per-agent evals in `ceap.eval.agents` measure (see
-`docs/evaluation/evaluation.md`, "AI evaluation"). Until a local model is wired in (B1), every one of
-those numbers comes from the mock client, and the report labels it `mock`.
+`docs/evaluation/evaluation.md`, "AI evaluation"). In
+`latest.json` every one of those numbers comes from the mock client and is labelled `mock`; the
+0.9.0 local-model runs measure the same evals with a local open-weight model (labelled
+`local_model`; see "A local open-weight model" below).
 
 ## The harness owns governance — the model's plan does not
 

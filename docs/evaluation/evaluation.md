@@ -142,7 +142,7 @@ seeds on PR, 500 nightly). At the 0.8.0 hurdle of 3.0 the 500-seed run gave 0/50
 
 These are the 0.7.1 figures, before the 0.8.0 recalibration, the new hurdle and the INCONCLUSIVE
 verdict. On this build the deterministic pipeline measured 21/24 clear, 2/6 near-threshold and 25/30
-overall (synthetic, mock LLM; source `CHANGELOG.md` Unreleased and
+overall (synthetic, mock LLM; source `CHANGELOG.md` [0.8.0] and
 `docs/quant/real-data-and-paper.md`), each at or above its a-priori bar, the clear result exactly on
 it. The generated block below and `latest.json` carry the current figures once regenerated.
 

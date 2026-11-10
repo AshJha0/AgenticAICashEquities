@@ -32,6 +32,6 @@ than continuing without the step.
 
 ## Evidence
 
-- `src/ceap/harness/engine.py` (dispatch path), `src/ceap/policy/`.
+- `src/ceap/harness/dispatch.py` (dispatch path; part of `engine.py` until the 0.9.0 split), `src/ceap/policy/`.
 - `tests/adversarial/test_research_adversarial.py` (hand-built staging step for a quant: denied,
   task fails closed); `tests/unit/test_policy.py`.

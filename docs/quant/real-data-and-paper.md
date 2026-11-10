@@ -61,7 +61,7 @@ set|clear|status`) is checked by the paper job and by `stage_orders`, next to `C
 `stage_orders` runs the pre-trade checks before staging and persists staged sets in SQLite. A failed
 `paper-daily` run opens a `paper-failure` issue, and the weekly `paper-staleness` workflow opens a
 `paper-stale` issue when the `forward-log` head is more than 2 NYSE sessions old. Source:
-`CHANGELOG.md` (Unreleased) and COOKBOOK recipe 43.
+`CHANGELOG.md` [0.8.0] and COOKBOOK recipe 43.
 
 ## Paper trading and the forward log (moved from the README in 0.9.0)
 
