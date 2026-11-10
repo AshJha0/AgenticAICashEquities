@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import replace
 from datetime import UTC, date, datetime
@@ -37,6 +38,14 @@ from ceap.paper.feed import Dividend, MarketPanel
 
 DIVIDEND_CACHE = Path("data/real_cache/dividends")
 REVISIONS = "revisions.jsonl"
+_SYMBOL = re.compile(r"[A-Za-z0-9][A-Za-z0-9.^=-]*")
+
+
+def _csv_path(cache: Path, symbol: str) -> Path:
+    """``cache/<symbol>.csv``; a symbol that could leave the cache directory is refused."""
+    if not _SYMBOL.fullmatch(symbol) or ".." in symbol:
+        raise ValueError(f"not a ticker symbol: {symbol!r}")
+    return cache / f"{symbol}.csv"
 
 
 class DividendSource(Protocol):
@@ -69,7 +78,7 @@ def series_hash(rows: Sequence[tuple[date, float]]) -> str:
 
 
 def read_cached(cache: Path, symbol: str) -> list[tuple[date, float]]:
-    p = cache / f"{symbol}.csv"
+    p = _csv_path(cache, symbol)
     if not p.exists():
         return []
     out = []
@@ -101,7 +110,7 @@ def refresh(symbols: Sequence[str], source: DividendSource, cache: Path = DIVIDE
         rows = sorted(source.fetch(sym))
         h = series_hash(rows)
         prev = _last_hash(cache, sym)
-        (cache / f"{sym}.csv").write_text(canonical_series(rows), encoding="ascii", newline="\n")
+        _csv_path(cache, sym).write_text(canonical_series(rows), encoding="ascii", newline="\n")
         rec = {"symbol": sym, "source": source.name, "fetched_at": now().isoformat(timespec="seconds"),
                "sha256": h, "rows": len(rows), "first": rows[0][0].isoformat() if rows else None,
                "last": rows[-1][0].isoformat() if rows else None, "revised": prev is not None and prev != h}
@@ -119,5 +128,5 @@ def attach_dividends(panel: MarketPanel, cache: Path = DIVIDEND_CACHE) -> Market
     meta = dict(panel.meta)
     meta["dividends"] = {"cache": str(cache), "count": len(divs),
                          "series_sha256": {s: series_hash(read_cached(cache, s)) for s in panel.symbols
-                                           if (cache / f"{s}.csv").exists()}}
+                                           if _csv_path(cache, s).exists()}}
     return replace(panel, dividends=tuple(divs), meta=meta)
