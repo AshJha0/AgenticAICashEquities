@@ -8,9 +8,60 @@ refuses a tag whose version has no section.
 
 ## [0.9.0] - Unreleased
 
-Final planned release, built as six parallel lanes (`docs/review/2026-11-09/PLAN.md`) and integrated
-on `int-090`. Lane notes are merged below with their numbers and disclosures; the coordinator
-polishes this section before the tag.
+The last planned release. It was built as six parallel lanes (plan and per-step status:
+`docs/review/2026-11-09/PLAN.md`) and integrated on one branch. Evidence class, unless a line says
+otherwise: synthetic data and the deterministic mock LLM. The two research studies use free real
+data; the local-model numbers come from one CPU machine.
+
+### Highlights
+
+- **A real model, measured locally.** `ceap.llm.ollama.OllamaLLMClient` runs a pinned open-weight
+  model (`qwen2.5:7b-instruct`, challenger `llama3.1:8b-instruct-q4_K_M`) behind `LLMClient`; runs
+  are recorded as cassettes and replayed in CI. Results: TBD-LOCAL-MODEL-RESULTS
+  (`docs/evaluation/local_model/README.md`). No hosted model was called.
+- **Critic statement checks.** `contradicted`, `numeric_mismatch` and `direction_mismatch`
+  (`ceap.agents.critic_checks`): planted-fault detection 6/15 -> 15/15 on the existing and a
+  held-out set, 0/10 false alarms (`python -m ceap.agents.critic_planted`; synthetic).
+- **E1, real data: NULL.** Preregistered 49-industry momentum on Ken French data; holdout 1990-2015
+  opened once, net 10 bps NW t 1.16 < 1.645 (`docs/research/e1/`).
+- **Hybrid retrieval, opt-in.** Reranking beat BM25 on R@3 (+0.065, CI +0.016 to +0.113); BM25 stays
+  the default under the rule fixed in advance.
+- **Platform.** Durable runs, approval sweep, runbook and alerts, chaos tests, paper-day replay gate,
+  harness split into mixins, `mypy src` clean, Windows CI, supply-chain workflows.
+- **Evaluation headline** (regenerated `docs/evaluation/latest.json`): TBD-LATEST-JSON.
+
+### Breaking changes
+
+- **H11 API keys.** Outside dev, a raw key needs at least 256 bits of estimated entropy and 16
+  distinct characters or the app refuses to start. Generate keys with `secrets.token_urlsafe(32)`.
+- **F12 halts on by default** in paper trading: a member with no print gets no new order.
+- **F10 ledger bodies v2.** New paper-ledger rows hash integer micro-dollars; 0.8.0 rows verify
+  unchanged, but tools that rewrite ledger rows must write `money_v2`.
+- **H6.** Private helpers moved from `ceap/harness/engine.py` into mixin modules; every public name
+  is re-exported from `engine`.
+
+### Fixed
+
+- Critic `numeric_mismatch` check now honours printed rounding (e.g. '1.1 bps' vs 1.0864) and
+  requires the attribute's other qualifiers for phrase matches; previously it lowered two correct
+  T05 findings (including the venue-degradation headline) to 0.2.
+- H3: `implementation_shortfall_bps` treats a non-finite `final_price` like `None` instead of
+  returning NaN.
+- E1: H2 reports NOT TESTABLE for a window with one market state instead of crashing (singular
+  matrix); the crash happened once during the holdout opening and is ledgered.
+
+### Results (filled before the tag)
+
+| Item | Value | Evidence |
+|---|---|---|
+| Local model, per-agent evals and golden slice | TBD-LOCAL-MODEL-RESULTS | `docs/evaluation/local_model/` |
+| Local model, injection obey rate per surface | TBD-LOCAL-MODEL-RESULTS | `ceap.eval.injection` |
+| Judge kappa per dimension | TBD-LOCAL-MODEL-RESULTS | `ceap.eval.judge` |
+| Execution evaluation (50 scenarios) | TBD-LATEST-JSON | `docs/evaluation/latest.json` |
+| Research evaluation (30 scenarios) | TBD-LATEST-JSON (lane L3 re-run: 23/24 clear, 2/6 near-threshold) | `docs/evaluation/latest.json` |
+| Golden set scores | TBD-LATEST-JSON | `docs/evaluation/latest.json` |
+
+The sections below are the lane notes, kept with their numbers and disclosures.
 
 ### Coordinator decisions (integration)
 
@@ -232,8 +283,8 @@ paper/backtest equivalence test and the daily forward-log job behave as in 0.8.0
   (jsonschema, yaml, pandas, sklearn). `ceap.domain` and `ceap.analytics` are type-checked with the
   full strict flag set (per-module override; mypy cannot set `strict` per module). Eight
   `no-any-return` sites in analytics got typed locals (annotation only, no behaviour change).
-  `ceap.api` has every strict flag except `warn_return_any`: three sites remain
-  (`api/routes.py:68`, `api/routes.py:662`, `api/middleware.py`), left for the API lane.
+  `ceap.api` had every strict flag except `warn_return_any`; the three remaining sites were
+  annotated at integration and `warn_return_any` is now on (see Integration fixes).
   `mypy src`: 0 errors in 207 files.
 - **H3 NaN final price.** `implementation_shortfall_bps` now treats a non-finite `final_price` like
   `None` (no opportunity leg) instead of returning NaN, matching `shortfall_components`.
