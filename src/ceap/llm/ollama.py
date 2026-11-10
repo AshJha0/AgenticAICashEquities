@@ -226,11 +226,16 @@ class OllamaLLMClient(LLMClient):
         if checkpoint is not None and recorder is not None and checkpoint.exists():
             old = load_local_cassette(checkpoint)
             same = (old.provenance.model, old.provenance.seed, old.provenance.temperature)
-            if same == (model, seed, temperature):
-                for i in old.interactions:
-                    recorder.interactions.append(i)
-                    self._memo[i.request_sha256] = _response_of(i.response)
-                    self.latencies.append((i.purpose, i.latency_ms))
+            if same != (model, seed, temperature):
+                # the first call would overwrite another run's recording with this one
+                raise ValueError(
+                    f"checkpoint {checkpoint} records {same}, not {(model, seed, temperature)}; "
+                    "move it aside or pass a different path"
+                )
+            for i in old.interactions:
+                recorder.interactions.append(i)
+                self._memo[i.request_sha256] = _response_of(i.response)
+                self.latencies.append((i.purpose, i.latency_ms))
 
     @property
     def name(self) -> str:
