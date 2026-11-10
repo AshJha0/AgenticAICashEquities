@@ -328,8 +328,10 @@ cannot talk it out of its job:
    printed) and `direction_mismatch` ("improved" when the cited change went the wrong way for that
    metric) cap it at 0.2. The flags are recorded in `assessment["flags"]`. COOKBOOK recipe 50 has
    worked examples.
-6. An optional LLM critique then runs — and may only **lower** confidence
-   (`test_critic_with_llm_can_only_lower_confidence`).
+6. An optional LLM critique then runs. It cannot set a confidence itself: to dispute a finding it
+   must name a deterministic re-check, which the harness runs and which can only **lower** the
+   confidence (`test_critic_with_llm_can_only_lower_confidence`; details in
+   `docs/ai-agents/ai-agents.md`, "The critic").
 
 After the critic, `VALIDATING_EVIDENCE` drops any finding whose evidence still does not
 resolve and records why.
