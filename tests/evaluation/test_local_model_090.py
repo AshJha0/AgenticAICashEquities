@@ -311,3 +311,24 @@ async def test_router_reports_to_slo_monitor():
     )
     assert router.slo.snapshot()["narrative"]["fallback"]["n"] == 1
     assert router.slo.spans[0]["attributes"]["gen_ai.operation.name"] == "chat"
+
+
+def test_pooled_file_written_only_by_multi_seed_live_or_replay_write(monkeypatch, tmp_path):
+    """Each single-seed live process used to overwrite the pooled aggregate; now only a multi-seed
+    live run or ``--replay --write`` writes it."""
+    import ceap.eval.local_model as lm
+
+    async def fake_run(model, seeds, *, replay=False, golden_limit=3):
+        return {"metrics": {"seeds": list(seeds)}}
+
+    monkeypatch.setattr(lm, "run", fake_run)
+    monkeypatch.setattr(lm, "RESULTS", tmp_path)
+    monkeypatch.setenv("CEAP_LOCAL_MODEL", "1")
+    monkeypatch.setattr("ceap.llm.ollama.live_enabled", lambda: True)
+    pooled = tmp_path / f"{lm.slug(lm.PRIMARY_LOCAL_MODEL)}.json"
+    lm.main(["--seeds", "2"])
+    assert not pooled.exists()
+    lm.main(["--replay", "--seeds", "1", "2", "3"])
+    assert not pooled.exists()
+    lm.main(["--replay", "--write", "--seeds", "1", "2", "3"])
+    assert pooled.exists()

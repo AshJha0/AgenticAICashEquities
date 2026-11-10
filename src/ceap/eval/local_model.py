@@ -24,7 +24,9 @@ full, golden ``golden_limit=3``. That bar is in the CLI default and in
 Worked example: ``python -m ceap.eval.local_model --model qwen2.5:7b-instruct --seeds 1 2 3``
 writes ``tests/cassettes/local_model/qwen2.5_7b-instruct_s1.json`` (and s2, s3) and
 ``docs/evaluation/local_model/qwen2.5_7b-instruct.json``. ``--replay`` re-scores from the cassettes
-with no Ollama, which is what CI does.
+with no Ollama, which is what CI does; ``--replay --write --seeds 1 2 3`` rewrites the pooled file
+after seeds were recorded one process at a time (a single-seed live run writes only its ``_s<seed>``
+checkpoint).
 """
 
 from __future__ import annotations
@@ -212,6 +214,10 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--seeds", type=int, nargs="+", default=list(DEFAULT_SEEDS))
     ap.add_argument("--golden-limit", type=int, default=GOLDEN_LIMIT)
     ap.add_argument("--replay", action="store_true")
+    ap.add_argument(
+        "--write", action="store_true",
+        help="with --replay: write the pooled aggregate (run once after every seed has been recorded)",
+    )
     a = ap.parse_args(argv)
     if not a.replay:
         from ceap.llm.ollama import live_enabled
@@ -219,7 +225,9 @@ def main(argv: list[str] | None = None) -> None:
         if not live_enabled():
             raise SystemExit("set CEAP_LOCAL_MODEL=1 to call the local model (or pass --replay)")
     doc = asyncio.run(run(a.model, tuple(a.seeds), replay=a.replay, golden_limit=a.golden_limit))
-    if not a.replay:
+    # A live run of one seed only checkpoints that seed: writing the pooled file there would let each
+    # seed process overwrite the others. The pooled file comes from a live multi-seed run or a replay.
+    if (a.replay and a.write) or (not a.replay and len(a.seeds) > 1):
         _write(RESULTS / f"{slug(a.model)}.json", doc)
     print(json.dumps(doc["metrics"], indent=1))
 
