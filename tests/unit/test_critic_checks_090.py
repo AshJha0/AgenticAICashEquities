@@ -43,3 +43,14 @@ def test_checks_examples():
     flags = [f for f, _ in check_statement("spread widened", [{"spread_change_bps": 1.9}, {"spread_change_bps": 0.1}])]
     assert flags == ["contradicted"]
     assert check_statement("no metric here at all", [{"x": 1.0}]) == []
+
+
+def test_printed_rounding_is_not_a_numeric_mismatch():
+    s = "Execution VWAP 229.4973 versus interval VWAP 229.4632: slippage 1.5 bps (baseline +0.4 bps, delta 1.1 bps)."
+    assert check_statement(s, [{"vwap_slippage_delta_bps": 1.0864382091155362}]) == []
+    assert check_statement("VWAP slippage delta was 1.4 bps", [{"vwap_slippage_delta_bps": 1.0864}])[0][0] == "numeric_mismatch"
+
+
+def test_phrase_match_needs_the_attribute_qualifiers():
+    s = "venue ARCA: fill-rate gap vs peers = 0.34, slippage excess = 3.9 bps"
+    assert [f for f, _ in check_statement(s, [{"vwap_slippage_delta_bps": -0.6867}])] == []

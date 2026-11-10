@@ -14,8 +14,11 @@ records with numbers (``is_change_bps = 6.4``). Three faults can be read off wit
 Formal statement: metric mentions come from :data:`METRICS` (phrase -> attribute stem, polarity) or
 from a literal attribute name in the statement. With a direction word present the candidates are
 the ``*change*`` attributes of that stem; without one, the level attributes. Two numbers agree when
-``|a - b| <= max(0.005, 0.01 * max(|a|, |b|))``, comparing absolute values (the direction check owns
-the sign) and also ``a / 100`` (a percent against a fraction). Attributes "disagree" across records
+``|a - b| <= max(0.005, 0.01 * max(|a|, |b|))``, or when ``a`` as printed is within its own rounding
+(half a unit in its last decimal: "1.1" agrees with 1.0864), comparing absolute values (the direction
+check owns the sign) and also ``a / 100`` (a percent against a fraction). A metric found only by its
+phrase matches an attribute only when the statement also names that attribute's other qualifiers
+("slippage excess" is not ``vwap_slippage_delta_bps``). Attributes "disagree" across records
 under the same tolerance widened to 10 %.
 
 Worked example: "Implementation shortfall improved by 6.4 bps" citing ``is_change_bps = 6.4``. The
@@ -59,6 +62,33 @@ def _close(a: float, b: float, rel: float = 0.01) -> bool:
 
 def _numbers(statement: str) -> list[float]:
     return [float(x) for x in _NUMBER.findall(statement)]
+
+
+def _printed(statement: str) -> list[tuple[float, float]]:
+    """``(value, half a unit in the last printed place)`` for each number in ``statement``."""
+    out = []
+    for x in _NUMBER.findall(statement):
+        decimals = len(x.split(".")[1]) if "." in x else 0
+        out.append((float(x), 0.5 * 10.0**-decimals))
+    return out
+
+
+def _agrees(printed: tuple[float, float], value: float) -> bool:
+    """A printed number agrees with ``value`` within the tolerance or its own rounding."""
+    n, half_ulp = printed
+    a, v = abs(n), abs(value)
+    return _close(a, v) or _close(a / 100.0, v) or abs(a - v) <= half_ulp + 1e-12
+
+
+#: attribute-name tokens that qualify nothing (units, and ``change``, which the direction check owns)
+_NEUTRAL_TOKENS = {"bps", "bp", "pct", "ms", "us", "ns", "change", "ratio"}
+
+
+def _qualifiers_named(key: str, stem: str, words: set[str]) -> bool:
+    """True when every qualifier in ``key`` beyond ``stem`` and units appears in the statement:
+    "slippage excess" names neither ``vwap`` nor ``delta``, so it is not ``vwap_slippage_delta_bps``."""
+    extra = set(key.lower().split("_")) - set(stem.split("_")) - _NEUTRAL_TOKENS
+    return extra <= words
 
 
 def _words(statement: str) -> list[str]:
@@ -126,10 +156,13 @@ def check_statement(
         assert stem is not None
         cands = [k for k in values if k.startswith(stem) or f"_{stem}" in k]
         cands = [k for k in cands if ("change" in k) == (sign != 0)]
+        words = set(_words(statement)) | set(re.findall(r"[a-z]+", statement.lower()))
+        cands = [k for k in cands if _qualifiers_named(k, stem, words)]
     nums = _numbers(statement)
+    printed = _printed(statement)
     cvals = [(k, v) for k in cands for v in values.get(k, [])]
     if nums and cvals:
-        ok = any(_close(abs(n), abs(v)) or _close(abs(n) / 100.0, abs(v)) for n in nums for _, v in cvals)
+        ok = any(_agrees(p, v) for p in printed for _, v in cvals)
         if not ok:
             out.append(
                 ("numeric_mismatch", f"statement numbers {nums} do not match cited {dict(cvals)}")
