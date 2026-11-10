@@ -50,6 +50,14 @@ data; the local-model numbers come from one CPU machine.
 - E1: H2 reports NOT TESTABLE for a window with one market state instead of crashing (singular
   matrix); the crash happened once during the holdout opening and is ledgered.
 
+- Local-model client refuses a checkpoint recorded for another (model, seed, temperature)
+  instead of silently overwriting it on the first call.
+- Paper dividends: a symbol that could leave the cache directory is refused.
+- `ceap.eval.local_model --replay --write` writes the pooled aggregate; a single-seed live run
+  no longer overwrites it (each seed process used to replace the others' numbers).
+- Harness invariant 7 (an untraceable narrative is blocking) is asserted unconditionally; the
+  test's feature flag read `engine.py`, which the engine split emptied of that code.
+
 ### Results (filled before the tag)
 
 | Item | Value | Evidence |
@@ -60,6 +68,18 @@ data; the local-model numbers come from one CPU machine.
 | Execution evaluation (50 scenarios) | TBD-LATEST-JSON | `docs/evaluation/latest.json` |
 | Research evaluation (30 scenarios) | TBD-LATEST-JSON (lane L3 re-run: 23/24 clear, 2/6 near-threshold) | `docs/evaluation/latest.json` |
 | Golden set scores | TBD-LATEST-JSON | `docs/evaluation/latest.json` |
+
+**Golden 13/15, diagnosed (not tuned).** G-RES-10/11 (template `mixed`, RS19/RS21) are labelled
+REJECT/COST_DRAG from the population truth: out-of-sample IC t 1.99 against the 1.0 bar. On the
+realised 14-year sample the platform measures 0.79 and 0.93, so the `OOS_DECAY` branch fires before
+the cost check (`research_assessment.py`), and the full-period net Sharpe interval [-0.16, 0.75]
+makes it INCONCLUSIVE. This is a near-threshold sampling miss, not a code defect; the thresholds and
+rule order were fixed before the result and are not changed after seeing it. Owner option A stands.
+
+**Known issues (low, found in the 0.9.0 review, left for 0.10.0).** Paper fills never fill an
+order when `lot_size` exceeds the per-session cap (it expires at TTL); the pre-trade sigma band is
+zero for a name whose window prices never move, so every move is blocked; the durable-run
+idempotency key is stable only for JSON-native arguments (all current callers).
 
 The sections below are the lane notes, kept with their numbers and disclosures.
 
