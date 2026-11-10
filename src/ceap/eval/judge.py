@@ -39,6 +39,7 @@ from pydantic import BaseModel, ConfigDict
 
 from ceap.llm.client import LLMClient
 from ceap.llm.models import LLMRequest
+from ceap.llm.prompts import DATA_BLOCK_NOTE, data_block
 
 REFERENCE_PATH = Path(__file__).with_name("judge_reference_v1.json")
 CALIBRATION_PATH = (
@@ -75,7 +76,11 @@ def judge_request(facts: dict[str, Any], narrative: str) -> LLMRequest:
         messages=[
             {
                 "role": "user",
-                "content": "FACTS:\n" + json.dumps(facts, sort_keys=True) + "\n\nNARRATIVE:\n" + narrative,
+                # the narrative is model-written and so untrusted; both go in nonce-delimited data blocks
+                "content": f"{DATA_BLOCK_NOTE}\nFACTS:\n"
+                + data_block("evidence", "facts", facts)
+                + "\n\nNARRATIVE:\n"
+                + data_block("evidence", "narrative", narrative),
             }
         ],
         purpose="judge",
