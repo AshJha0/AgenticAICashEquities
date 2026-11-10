@@ -151,6 +151,14 @@ per-principal token bucket (`ceap.api.ratelimit`, 429 with `Retry-After`) in fro
 that start tasks.
 Prompts live in `prompts.py` and state the boundary explicitly.
 
+Since 0.9.0 `ceap.llm.ollama.OllamaLLMClient` puts a local open-weight model behind the same
+interface (Ollama's JSON-schema `format`, the same Pydantic validation, `provenance = local_model`).
+It is used by the evaluation runners in `ceap.eval`, never by the platform's request path, and live
+calls need `CEAP_LOCAL_MODEL=1`; `LocalCassette` records replies keyed by the canonical request
+hash so CI replays them without Ollama. Every routed call also feeds
+`ceap.observability.ai_slo.AISLOMonitor` (plan-valid, repair, fallback, untraceable-number rate and
+p95 latency per purpose, with p-chart alerts).
+
 ### 3.6 Harness (`ceap.harness`)
 
 `AgentHarness.execute(task, policy_context, cancellation)` runs the explicit state machine
@@ -178,6 +186,14 @@ hypothesis table, and reads and writes the bounded case memory (`harness/memory.
 Consecutive independent `TOOL_CALL` steps are batched and executed concurrently with
 `asyncio.TaskGroup` under a semaphore.
 
+Since 0.9.0 `engine.py` is a facade (`AgentHarness.__init__` and `execute`); the rest lives in
+mixins that share a typed `HarnessBase` (`base.py`): `planning.py`, `dispatch.py`, `approvals.py`,
+`evidence.py`, with constants in `common.py`. `from ceap.harness.engine import ...` still works.
+`durable.py` adds an opt-in run journal (`CEAP_DURABLE_RUNS=1`): each tool call has an idempotency
+key `sha256(task | step | tool | canonical args)`, a re-run of the same task reads completed calls
+back, and a human decision for the same content hash is reused. Recovery steps are in
+`docs/RUNBOOK.md`.
+
 ### 3.7 Agents (`ceap.agents`)
 
 | Agent | Question | Output |
@@ -194,6 +210,14 @@ Consecutive independent `TOOL_CALL` steps are batched and executed concurrently 
 | Portfolio risk *(Stage 2)* | is the target portfolio within limits? | RISK findings from the recomputed target portfolio |
 | Critic | are the conclusions supported? | adjusted findings + critique (+ `assess_research` verdict for research tasks) |
 | Reporter | write it up | `InvestigationReport` (investigation narrative, or a Stage 2 proposal with narrative audits) |
+
+Since 0.9.0 the critic also runs deterministic statement-versus-evidence checks
+(`ceap.agents.critic_checks`) on every finding and records them in `assessment["flags"]`:
+`contradicted` (the finding's own citations disagree), `numeric_mismatch` (the statement names a
+metric the cited evidence carries, but no printed number agrees with it at the precision printed)
+and `direction_mismatch` (the direction word disagrees with the sign of the cited change). Worked
+example: "Implementation shortfall improved by 6.4 bps" citing `is_change_bps = 6.4` returns `direction_mismatch`, because shortfall is lower-is-better and the cited change is positive; "1.1 bps" agrees with 1.0864 because a printed number is read within its own rounding. A flagged finding has its confidence capped (`CHECK_CAPS` in `critic.py`: 0.4 for `contradicted`, 0.2 for the
+other two); a flag never raises a confidence.
 
 ### 3.8 Policy (`ceap.policy`)
 
@@ -218,6 +242,11 @@ classifications and the policy rule `knowledge-classification` denies more. Retr
 DOCUMENT evidence, and the reporter's citations are checked span by span (`DOC` evidence with
 document version and corpus hash). Held-out retrieval eval: `data/reference/knowledge/eval.json`,
 `ceap.rag.evaluation`. The hashed TF-IDF embedder of 0.5.x was removed.
+
+0.9.0 adds opt-in hybrid retrieval in `ceap.rag.dense` (bge-small embeddings, reciprocal rank fusion
+with BM25, a MiniLM cross-encoder reranker, all local CPU models through the optional `fastembed`,
+outputs cached by hash under `data/rag/`). BM25 stays the default; the measurement and the rule
+behind that choice are in `docs/ai-agents/rag-hybrid-0.9.0.md`.
 
 ### 3.10 Observability (`ceap.observability`)
 
@@ -459,26 +488,31 @@ src/ceap/
 │                  market_statistics · execution_metrics (TCA) · attribution ·
 │                  signals · signal_statistics · backtest · portfolio_risk · research_assessment
 ├── data/          synthetic market model (6 symbols, 5 venues), 10 scenario templates x 5 symbols = 50 scenarios;
+│                  500-name synthetic research universe (0.9.0);
 │                  historical (30-name, 20-year daily universe) · research_scenarios (10 templates x 3 seeds = 30)
 ├── mcp/           server definition (in-process + FastMCP export), client (in-process + stdio), adapter, registry,
 │                  market_data/ execution/ risk/ engineering/ knowledge/ research_data/ alpha/ backtest/
 │                  (each runnable: python -m ceap.mcp.<name>); execution/staging.py holds the paper order book
-├── llm/           LLMClient · MockLLMClient (deterministic) · AnthropicLLMClient · strict schemas · model pins ·
+├── llm/           LLMClient · MockLLMClient (deterministic) · AnthropicLLMClient · OllamaLLMClient (local, 0.9.0) ·
+│                  strict schemas · model pins ·
 │                  versioned prompts (llm/prompts/*.md) · cassette recording
-├── harness/       engine (AgentHarness) · state_machine · executor · retry · cancellation · memory
-├── agents/        planner · market · execution · quant · risk · engineering · critic · reporter ·
+├── harness/       engine (AgentHarness facade) + mixins planning · dispatch · approvals · evidence (0.9.0) ·
+│                  durable (run journal) · paper_gate · state_machine · executor · retry · cancellation · memory
+├── agents/        planner · market · execution · quant · risk · engineering · critic (+ critic_checks) · reporter ·
 │                  research · alpha · backtest · portfolio_risk
 ├── policy/        rule engine (schema + symbol-field checks) · RBAC permissions · per-agent allowlists ·
 │                  approval gateways (auto / queued / deny, content-hash re-check)
-├── rag/           BM25 (stdlib) · measured chunking · versioned corpus hash · query builder · held-out eval
+├── rag/           BM25 (stdlib, default) · opt-in dense/RRF/rerank (0.9.0) · measured chunking · corpus hash · held-out eval
 ├── ml/            pre-trade cost model · anomaly · model registry · model inventory (deterministic, labelled synthetic)
 ├── execution/     LOB simulator · schedulers (TWAP/VWAP/POV/Almgren-Chriss) · child orders · auctions · impact ·
 │                  markouts · predicted-vs-realised cost loop · tick/lot/LULD rules (0.8.0, synthetic)
+├── studies/      preregistered real-data studies (E1 industry momentum, 0.9.0)
 ├── paper/         paper trading: feed, fills, hash-chained ledger, pre-trade checks, kill switch, forward log
-├── eval/          per-agent evals, degraded clients, OOD golden split, corpus pins (0.8.0)
+├── eval/          per-agent evals, degraded clients, OOD golden split, corpus pins (0.8.0); local_model, injection,
+│                  judge, challenger (0.9.0)
 ├── persistence/   SQLite (WAL, single writer, forward-only migrations) · HMAC chain keys · chain anchors
 ├── util/          canonical bytes for hashing (LF, sorted-key JSON, UTC datetimes) · redaction, cassette scrubbing
-├── observability/ tracing (in-memory + OpenTelemetry) · metrics (Prometheus text) · JSON logging
+├── observability/ tracing (in-memory + OpenTelemetry) · metrics (Prometheus text) · JSON logging · AI SLOs (0.9.0)
 ├── api/           FastAPI app · routes · auth · schemas · request parsing
 ├── platform.py    composition root (InvestigationRequest · ResearchRequest)
 ├── evaluation.py  50-scenario execution evaluation · 30-scenario research evaluation

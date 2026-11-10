@@ -15,7 +15,7 @@ plane) and §10 (the critic and the audits) — they carry the platform's centra
 2. *Mechanics (about a day).* §5-§12 with the code open beside them; do exercises 1-6 in
    [docs/exercises.md](docs/exercises.md). Read [the test pyramid](docs/testing/test-pyramid.md)
    before changing anything.
-3. *Research and extension (a few days).* §13-§18b, [COOKBOOK.md](COOKBOOK.md), then
+3. *Research and extension (a few days).* §13-§18c, [COOKBOOK.md](COOKBOOK.md), then
    [how to extend](docs/how-to-extend.md) and exercises 7-9.
 
 Contents:
@@ -39,7 +39,8 @@ Contents:
 17. [Knowledge check (ten questions, answered from this repo)](#17-knowledge-check)
 18. [Stage 2: signal research](#18-stage-2-signal-research)
     (18a. [Paper trading](#18a-paper-trading-and-the-forward-record) ·
-    18b. [Running an execution, not only measuring it](#18b-running-an-execution-not-only-measuring-it-080))
+    18b. [Running an execution, not only measuring it](#18b-running-an-execution-not-only-measuring-it-080) ·
+    18c. [A local model, a stricter critic, two real-data answers](#18c-a-local-model-a-stricter-critic-two-real-data-answers-090))
 19. [Further reading](#19-further-reading)
 
 ---
@@ -321,7 +322,13 @@ cannot talk it out of its job:
 3. Cross-agent contradictions are flagged: quant attributing to technology while engineering
    reports normal latency and no errors caps the quant finding at 0.4.
 4. Single-evidence findings are capped at 0.7.
-5. An optional LLM critique then runs — and may only **lower** confidence
+5. Statement checks (0.9.0, `ceap.agents.critic_checks`): the finding's words are read against
+   its cited numbers. `contradicted` (the citations disagree) caps confidence at 0.4;
+   `numeric_mismatch` (no printed number agrees with the named metric, allowing for the precision
+   printed) and `direction_mismatch` ("improved" when the cited change went the wrong way for that
+   metric) cap it at 0.2. The flags are recorded in `assessment["flags"]`. COOKBOOK recipe 50 has
+   worked examples.
+6. An optional LLM critique then runs — and may only **lower** confidence
    (`test_critic_with_llm_can_only_lower_confidence`).
 
 After the critic, `VALIDATING_EVIDENCE` drops any finding whose evidence still does not
@@ -681,6 +688,37 @@ Start with [docs/execution/execution.md](docs/execution/execution.md) (plain ide
 and a worked example per part) and COOKBOOK recipes 44-48; the data flow is in
 [docs/DIAGRAMS.md §15](docs/DIAGRAMS.md#15-execution-package-080). Not done yet: paper MOC caps, money
 as integer micro-dollars, dividends and the sigma fat-finger band (0.9.0).
+
+## 18c. A local model, a stricter critic, two real-data answers (0.9.0)
+
+**Local model.** *Plain idea:* a mock model proves the control plane, not the model integration
+(§18). 0.9.0 measures a real model without sending anything to a hosted service, by running a
+small open-weight model on the same machine. *Formally:* `OllamaLLMClient` implements `LLMClient`;
+replies are validated by the same Pydantic schemas and tagged `provenance = local_model`; every
+call is recorded in a cassette keyed by the hash of the canonical request, so CI rescores the
+recorded replies with no model present. The questions asked of it: how often the plan is valid,
+how often a repair or fallback was needed, how often the narrative carried an untraceable number,
+how often a planted instruction in a data block was obeyed (200 attacks, canary-based, Wilson
+intervals), and whether a rubric judge agrees with a hand-built reference (a dimension counts only
+when Cohen's kappa > 0.6). *Results:* TBD-LOCAL-MODEL-RESULTS (evidence:
+`docs/evaluation/local_model/`; class: local model, this machine). A 7-billion-parameter model is
+not the hosted model the platform pins, so these numbers bound nothing about that model.
+
+**Stricter critic.** *Plain idea:* a finding can cite the right record and still misread it.
+*Formally:* §10 item 5. *Worked example:* "Implementation shortfall improved by 6.4 bps" citing
+`is_change_bps = 6.4` is flagged `direction_mismatch`: shortfall is lower-is-better, so
+"improved" needs a negative change. A first version of the numeric check compared "1.1 bps" with
+1.0864 at a fixed 1 % tolerance and wrongly lowered two correct T05 findings to 0.2; it now reads a
+printed number within its own rounding (CHANGELOG 0.9.0, fixes). On the planted-fault sets
+detection went from 6/15 to 15/15 with 0/10 false alarms (synthetic; <!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> details). The same author wrote
+the faults and the checks, so read that as a regression test, not an independent measure.
+
+**Two real-data answers.** E1 asked whether 49-industry momentum earns a premium net of costs in a
+holdout opened once (1990-2015). It did not reject the null: Newey-West t 1.16 against 1.645 (real
+Ken French data; `docs/research/e1/README.md`). A NULL is not proof that the effect is absent; the
+design could detect an annualised Sharpe of about 0.49 with 80 % power <!-- source: docs/research/e1/README.md -->. E2 explains why the
+stock-level R5 study was predictably VOID on free data: the free sources drop delisted names, which
+caps point-in-time coverage near 75 % <!-- source: docs/research/e2_why_r5_could_not_pass.md --> (`docs/research/e2_why_r5_could_not_pass.md`).
 
 ## 19. Further reading
 

@@ -1,4 +1,17 @@
-# Real-data study (round R5)
+# Research studies
+
+This folder holds the project's real-data studies and the research tooling notes. Every study here
+was preregistered and hash-locked before its data was read.
+
+| Study | Data | Outcome | Page |
+|---|---|---|---|
+| R5, 12-1 momentum on an approximately point-in-time S&P 500 (0.7.0, v2 in 0.7.1) | free daily prices, git-ignored cache | **VOID** twice (coverage 75.1 % then 74.9 % against 95 %); no statistic computed | this page, below |
+| E1, 49-industry momentum (0.9.0) | Ken French 49 industry portfolios, raw-file SHA-256 in `e1/data_hashes.json` | **NULL** on the 1990-2015 holdout (net 10 bps NW t 1.16 < 1.645); ETF gate PASS; replication gate NOT RUN | [e1/README.md](e1/README.md) |
+| E2, why stock-level R5 was predictably VOID on free data (0.9.0) | analysis of the R5 inputs | explanation, no new test | [e2_why_r5_could_not_pass.md](e2_why_r5_could_not_pass.md) |
+
+The 0.8.0 research realism toolkit is described [at the end of this page](#research-realism-toolkit-080-ws-d).
+
+## Real-data study (round R5)
 
 **Outcome: VOID** (owner decision, 2026-11-07). Coverage failed its gate and the cross-check could
 not run, so no test statistic was computed and no verdict is issued. Items 5.6 and 5.7 were not
@@ -181,6 +194,9 @@ D16), data-vintage hashes (D14, `ceap.data.real.vintage`), the IC term structure
 drawdown, CVaR and volatility-regime splits (D19), a robustness report per verdict (D6) and
 `scripts/rebuild_study.py` (D20).
 
-Not done in 0.8.0 (moved to 0.9.0): a 500-name universe (D5; it multiplies every scenario's run time by about 14, and
-with independent idiosyncratic noise the fundamental law then makes realistic ICs look like Sharpe
-ratios of 1.7, so it needs correlated noise first) and real-path delisting returns (D10).
+Moved from 0.8.0 and done in 0.9.0: a 500-name synthetic universe (D5,
+`ceap.data.generator_params.RESEARCH_UNIVERSE_500`; membership events scale with the universe and
+come from a separate random stream, so every 30-name dataset hash is unchanged) and delisting
+sensitivity on the real-data momentum book (D10, `ceap.data.real.momentum.delisting_band`, a grid of
+0, -30 %, -55 % and -100 % delisting returns; a sensitivity analysis, never the primary test).
+Details and tests: `CHANGELOG.md` [0.9.0], lane L4.
