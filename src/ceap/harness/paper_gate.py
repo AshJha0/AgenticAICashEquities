@@ -107,7 +107,8 @@ def compare_days(recorded: Any, replayed: Any, day: str, book: str = FORWARD_BOO
             continue
         report.compared += 1
         a, b = rec[d], rep[d]
-        if abs(float(a["equity"]) - float(b["equity"])) > EQUITY_ABS_TOL:
+        # written as "not within" so a NaN equity on either side is a difference, never a pass
+        if not abs(float(a["equity"]) - float(b["equity"])) <= EQUITY_ABS_TOL:
             report.differences.append(
                 {"date": d, "field": "equity", "detail": f"{a['equity']!r} != {b['equity']!r}"}
             )
