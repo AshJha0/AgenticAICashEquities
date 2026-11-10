@@ -59,3 +59,12 @@ def test_dividends_are_off_by_default_and_not_fill_params() -> None:
     assert PaperConfig().execution is None
     fp = PaperConfig(execution={"dividends": True, "dividend_cache": "x"}).fill_params()
     assert not hasattr(fp, "dividends")
+
+
+def test_symbol_that_escapes_the_cache_is_refused(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    import pytest
+
+    for bad in ("../evil", "..", "a/b", "a\b", ""):
+        with pytest.raises(ValueError, match="not a ticker"):
+            read_cached(tmp_path, bad)
+    assert read_cached(tmp_path, "BRK.B") == []

@@ -27,6 +27,7 @@ from ceap.llm.ollama import (
     chat_body,
     live_enabled,
     load_local_cassette,
+    write_local_cassette,
 )
 from ceap.llm.recording import CassetteStaleError
 from ceap.llm.router import LLMRouter
@@ -332,3 +333,14 @@ def test_pooled_file_written_only_by_multi_seed_live_or_replay_write(monkeypatch
     assert not pooled.exists()
     lm.main(["--replay", "--write", "--seeds", "1", "2", "3"])
     assert pooled.exists()
+
+
+def test_checkpoint_of_another_run_is_refused_not_overwritten(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    path = tmp_path / "cp.json"
+    old = LocalCassette(provenance=LocalProvenance(model=PRIMARY_LOCAL_MODEL, seed=1, temperature=0.0))
+    write_local_cassette(path, old)
+    before = path.read_text(encoding="utf-8")
+    cas = LocalCassette(provenance=LocalProvenance(model=PRIMARY_LOCAL_MODEL, seed=2, temperature=0.0))
+    with pytest.raises(ValueError, match="checkpoint"):
+        OllamaLLMClient(PRIMARY_LOCAL_MODEL, seed=2, recorder=cas, checkpoint=path)
+    assert path.read_text(encoding="utf-8") == before
