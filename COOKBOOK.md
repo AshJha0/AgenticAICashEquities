@@ -897,7 +897,7 @@ running with the pinned models pulled (`qwen2.5:7b-instruct`, challenger
 ```bash
 ollama pull qwen2.5:7b-instruct
 CEAP_LOCAL_MODEL=1 python -m ceap.eval.local_model --seeds 1 2 3        # records cassettes, checkpoints after every call
-python -m ceap.eval.local_model --replay --write                         # rescore the recorded replies, no Ollama needed
+python -m ceap.eval.local_model --replay --write --seeds 1 2 3            # rescore the recorded replies, no Ollama needed
 CEAP_LOCAL_MODEL=1 python -m ceap.eval.injection --seed 1               # 200-attack injection corpus (nightly-sized)
 python -m ceap.eval.judge --replay                                       # rubric judge kappa per dimension
 ```

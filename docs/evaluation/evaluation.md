@@ -419,6 +419,27 @@ and narrative fidelity (number and evidence audits). For Stage 2, also set
 `CEAP_LLM_PLANNING_MODEL` to a stronger planner than the narrator/critic model — see "What
 changed against a real model" above for why that matters and what it costs.
 
+## Evaluating with a local open-weight model (0.9.0)
+
+`python -m ceap.eval.local_model --seeds 1 2 3` with `CEAP_LOCAL_MODEL=1` runs the per-agent
+evals (planner 10 gold plans, critic 5 cases, reporter 4 cases), the first 3 investigation items of
+the signed golden set (plus 1 research item; the budget was fixed before any run) and the claims
+check against a local Ollama model (`qwen2.5:7b-instruct`; challenger `llama3.1:8b-instruct-q4_K_M`). Every reply is
+recorded under `tests/cassettes/local_model/` keyed by the canonical request hash, and
+`--replay --write` rescores the recorded replies with no model present. The prompt-injection corpus
+(`ceap.eval.injection`, 200 attacks, canary-based obey rate per surface with Wilson intervals) and
+the rubric judge (`ceap.eval.judge`, Cohen's kappa per dimension against 50 hand-built items; a
+dimension is used only when kappa > 0.6) run the same way. COOKBOOK recipe 49.
+
+Results: TBD-LOCAL-MODEL-RESULTS (`docs/evaluation/local_model/`). Evidence class: local model on
+one machine. These numbers describe a 7-8B open-weight model, not the pinned hosted models, whose
+rows above stay UNKNOWN / NOT RUN LIVE.
+
+The critic rows in the generated table above still show the 0.8.0 planted-fault detection (6/15).
+With the 0.9.0 statement checks `python -m ceap.agents.critic_planted` reports 15/15 on the existing
+and the held-out set with 0/10 false alarms (synthetic; `docs/ai-agents/rag-hybrid-0.9.0.md`). The
+table is regenerated from `latest.json` before the tag: TBD-LATEST-JSON.
+
 ## Scenario catalogue (moved from the README in 0.9.0)
 
 ### Execution scenarios
