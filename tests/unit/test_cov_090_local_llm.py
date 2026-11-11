@@ -102,11 +102,11 @@ async def test_checkpoint_written_each_call_and_resumed_without_a_second_post(tm
     r = await second.complete(_plain())
     assert r.content == "one" and calls == [1]
 
-    # a different seed does not reuse the old recordings
+    # a checkpoint of a different run (other seed) is refused rather than reused or overwritten
     cas3 = LocalCassette(provenance=LocalProvenance(model=PRIMARY_LOCAL_MODEL, seed=6, temperature=0.0))
-    third = OllamaLLMClient(seed=6, transport=_transport("three", calls), recorder=cas3, checkpoint=path)
-    assert cas3.interactions == []
-    assert (await third.complete(_plain())).content == "three" and calls == [1, 1]
+    with pytest.raises(ValueError, match="checkpoint"):
+        OllamaLLMClient(seed=6, transport=_transport("three", calls), recorder=cas3, checkpoint=path)
+    assert calls == [1]
 
 
 async def test_cassette_replay_consumes_duplicates_in_order_then_repeats_the_last(tmp_path):

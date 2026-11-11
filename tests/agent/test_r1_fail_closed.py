@@ -567,7 +567,7 @@ def test_1_9_sdk_pin_matches_lock_and_no_retired_model_ids():
 # ===================================================== 1.10 public hygiene
 def test_1_10_readme_banner_on_first_screen():
     head = "\n".join((ROOT / "README.md").read_text(encoding="utf-8").splitlines()[:30]).lower()
-    for phrase in ("synthetic data", "nothing trades", "paper orders", "no live model"):
+    for phrase in ("synthetic data", "nothing trades", "paper orders", "no hosted-model"):
         assert phrase in head, phrase
 
 
