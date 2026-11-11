@@ -12,8 +12,9 @@ the same replies, no Ollama, no key.
 
 ## Formal statement
 
-- Pin: a model is identified by name plus content digest (`src/ceap/llm/model_pins.toml`); a tag
-  alone can move.
+- Pin: a local model is identified by name plus the content digest Ollama reports
+  (`ceap.llm.ollama.model_digest`), recorded in every cassette's provenance block; a tag alone can
+  move. (`src/ceap/llm/model_pins.toml` pins the hosted model ids, not the local ones.)
 - Cassette (`ceap.llm.recording`): a list of interactions keyed by a hash of the canonical request
   body, with nonces masked, plus provenance (model digest). Replay serves the recorded reply for a
   matching request.
@@ -48,7 +49,9 @@ python -m ceap.eval.local_model --replay --seeds 1
 ```
 
 About 95 s on the test laptop. Then open one file in `tests/cassettes/local_model/`, find the
-provenance block and the model digest, and compare it with `src/ceap/llm/model_pins.toml`.
+provenance block and the model digest. If you have Ollama, compare it with the `digest` that
+`ollama list` (or `/api/tags`) reports for the same model: a different digest means a different
+model, even under the same tag.
 
 ## Pitfalls
 
