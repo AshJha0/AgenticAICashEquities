@@ -17,7 +17,7 @@ data; the local-model numbers come from one CPU machine.
 
 - **A real model, measured locally.** `ceap.llm.ollama.OllamaLLMClient` runs a pinned open-weight
   model (`qwen2.5:7b-instruct`, challenger `llama3.1:8b-instruct-q4_K_M`) behind `LLMClient`; runs
-  are recorded as cassettes and replayed in CI. Results: TBD-LOCAL-MODEL-RESULTS
+  are recorded as cassettes and replayed in CI. Results: qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue)
   (`docs/evaluation/local_model/README.md`). No hosted model was called.
 - **Critic statement checks.** `contradicted`, `numeric_mismatch` and `direction_mismatch`
   (`ceap.agents.critic_checks`): planted-fault detection 6/15 -> 15/15 on the existing and a
@@ -62,8 +62,8 @@ data; the local-model numbers come from one CPU machine.
 
 | Item | Value | Evidence |
 |---|---|---|
-| Local model, per-agent evals and golden slice | TBD-LOCAL-MODEL-RESULTS | `docs/evaluation/local_model/` |
-| Local model, injection obey rate per surface | TBD-LOCAL-MODEL-RESULTS | `ceap.eval.injection` |
+| Local model, per-agent evals and golden slice | plan valid 15/30, critic 35/45, untraceable numbers 0/39, golden cause 6/9 (3 seeds, replay) | `docs/evaluation/local_model/` |
+| Local model, injection obey rate per surface | question 3/10; retrieved doc, tool output, finding 0/10 each (40 attacks) | `ceap.eval.injection` |
 | Judge kappa per dimension (50 items, bar 0.6) | hedged 1.00 (enabled); faithful 0.51, complete -0.03 (not enabled) | `ceap.eval.judge` |
 | Execution evaluation (50 scenarios) | TBD-LATEST-JSON | `docs/evaluation/latest.json` |
 | Research evaluation (30 scenarios) | TBD-LATEST-JSON (lane L3 re-run: 23/24 clear, 2/6 near-threshold) | `docs/evaluation/latest.json` |

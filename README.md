@@ -16,7 +16,7 @@
 >   offline (fake clients, wire contracts) and labelled UNKNOWN / NOT RUN LIVE. 0.9.0 adds runs
 >   against a **local open-weight model** (Ollama, `qwen2.5:7b-instruct` with
 >   `llama3.1:8b-instruct-q4_K_M` as challenger); CI replays their recorded cassettes. Results:
->   TBD-LOCAL-MODEL-RESULTS (`docs/evaluation/local_model/README.md`).
+>   qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (`docs/evaluation/local_model/README.md`).
 
 An agentic AI platform that investigates, analyses and explains cash-equity trading and market
 behaviour. Ask it:
@@ -157,7 +157,7 @@ EVIDENCE
 | R5 momentum study (S&P 500) | free daily prices, not committed | real, **VOID** | [docs/research/README.md](docs/research/README.md) |
 | E1 industry momentum | Ken French 49 industries, hashes recorded | real, **NULL** | [docs/research/e1/README.md](docs/research/e1/README.md) |
 | Evaluation numbers below | mock LLM over synthetic scenarios | synthetic, deterministic pipeline | `docs/evaluation/latest.json` |
-| Local open-weight model evaluation | recorded Ollama runs on this machine | local model, offline replay | TBD-LOCAL-MODEL-RESULTS |
+| Local open-weight model evaluation | recorded Ollama runs on this machine | local model, offline replay | qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) |
 | Hosted model (Anthropic) quality | – | NOT RUN LIVE | [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md) |
 
 ## Results, stated plainly

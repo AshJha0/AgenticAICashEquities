@@ -903,7 +903,7 @@ python -m ceap.eval.judge --replay                                       # rubri
 ```
 
 A killed run resumes from the cassette. `CEAP_OLLAMA_URL` points at another Ollama host. Results go
-to `docs/evaluation/local_model/`; the headline numbers are TBD-LOCAL-MODEL-RESULTS. A judge
+to `docs/evaluation/local_model/`; the headline numbers are plan valid 15/30, critic 35/45, 0/39 untraceable numbers, injection obeyed 3/40; full table in docs/evaluation/local_model/README.md. A judge
 dimension counts only when its Cohen's kappa against the 50-item reference is above 0.6
 (`ceap.eval.judge.enabled_dimensions()`).
 
