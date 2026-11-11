@@ -244,10 +244,16 @@ def enabled_dimensions(path: Path = CALIBRATION_PATH) -> list[str]:
         doc = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return []
+    if not isinstance(doc, dict) or not isinstance(doc.get("dimensions"), dict):
+        return []  # a malformed verdict file enables nothing
+    dims = doc["dimensions"]
     return [
         d
-        for d in doc.get("enabled", [])
-        if d in DIMENSIONS and (doc["dimensions"][d]["kappa"] or 0) > KAPPA_BAR
+        for d in doc.get("enabled") or []
+        if d in DIMENSIONS
+        and isinstance(dims.get(d), dict)
+        and isinstance(dims[d].get("kappa"), (int, float))
+        and dims[d]["kappa"] > KAPPA_BAR
     ]
 
 

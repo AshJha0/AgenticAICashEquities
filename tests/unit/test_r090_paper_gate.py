@@ -55,3 +55,19 @@ def test_gate_finds_a_changed_equity_and_only_that(recorded, tmp_path):
             report = compare_days(db, honest, end)
     assert not report.ok
     assert {(d["date"], d["field"]) for d in report.differences} == {(day, "equity")}
+
+
+class _Rows:
+    def __init__(self, rows):
+        self._rows = rows
+
+    def query(self, sql, params):
+        return self._rows
+
+
+def test_gate_treats_a_nan_equity_as_a_difference():
+    row = {"date": "2026-01-02", "equity": 100.0, "snapshot_json": "{}", "state_json": "{}"}
+    bad = {**row, "equity": float("nan")}
+    report = compare_days(_Rows([row]), _Rows([bad]), "2026-01-02")
+    assert not report.ok
+    assert [d["field"] for d in report.differences] == ["equity"]
