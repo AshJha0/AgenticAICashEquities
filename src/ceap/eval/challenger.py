@@ -119,31 +119,44 @@ def main(argv: list[str] | None = None) -> None:
 
     ap = argparse.ArgumentParser(description="B7 challenger plan agreement")
     ap.add_argument("--seed", type=int, default=1)
-    ap.add_argument("--replay", action="store_true")
+    ap.add_argument("--replay", action="store_true", help="replay both models from their cassettes")
+    ap.add_argument(
+        "--replay-challenger",
+        action="store_true",
+        help="replay the challenger's cassette and record only the primary live",
+    )
     a = ap.parse_args(argv)
-    # the primary's planner replies for these questions are in its eval cassette (same requests)
-    prim_path = cassette_path(PRIMARY_LOCAL_MODEL, a.seed)
+    # The primary gets its own cassette for these questions: the eval planner's requests differ from
+    # the bare planner request used here, so the eval cassette never matched (every primary call missed).
+    prim_path = cassette_path(PRIMARY_LOCAL_MODEL, a.seed, "challenger_primary")
     chal_path = cassette_path(CHALLENGER_LOCAL_MODEL, a.seed, "challenger")
-    primary: Any = LocalCassetteClient(load_local_cassette(prim_path))
-    if a.replay:
-        challenger: Any = LocalCassetteClient(load_local_cassette(chal_path))
-    else:
-        if not live_enabled():
-            raise SystemExit("set CEAP_LOCAL_MODEL=1 to call the local model")
+    recorders: list[tuple[Any, Any]] = []
+
+    def live(model: str, path: Any) -> Any:
         cas = LocalCassette(
             provenance=LocalProvenance(
-                model=CHALLENGER_LOCAL_MODEL,
-                digest=model_digest(CHALLENGER_LOCAL_MODEL),
-                seed=a.seed,
-                temperature=TEMPERATURE,
+                model=model, digest=model_digest(model), seed=a.seed, temperature=TEMPERATURE
             )
         )
-        challenger = OllamaLLMClient(
-            CHALLENGER_LOCAL_MODEL, seed=a.seed, temperature=TEMPERATURE, recorder=cas, checkpoint=chal_path
-        )
+        recorders.append((path, cas))
+        return OllamaLLMClient(model, seed=a.seed, temperature=TEMPERATURE, recorder=cas, checkpoint=path)
+
+    if not a.replay and not live_enabled():
+        raise SystemExit("set CEAP_LOCAL_MODEL=1 to call the local model")
+    primary: Any = (
+        LocalCassetteClient(load_local_cassette(prim_path))
+        if a.replay
+        else live(PRIMARY_LOCAL_MODEL, prim_path)
+    )
+    challenger: Any = (
+        LocalCassetteClient(load_local_cassette(chal_path))
+        if a.replay or a.replay_challenger
+        else live(CHALLENGER_LOCAL_MODEL, chal_path)
+    )
     doc = asyncio.run(plan_agreement_eval(primary, challenger))
+    for path, cas in recorders:
+        write_local_cassette(path, cas)
     if not a.replay:
-        write_local_cassette(chal_path, cas)
         _write(RESULTS / "challenger_agreement.json", doc)
     print(json.dumps({k: v for k, v in doc.items() if k != "rows"}, indent=1))
 
