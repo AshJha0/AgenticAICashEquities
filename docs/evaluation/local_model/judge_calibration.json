@@ -1,0 +1,731 @@
+{
+ "dimensions": {
+  "complete": {
+   "agreement": 0.52,
+   "enabled": false,
+   "kappa": -0.0345
+  },
+  "faithful": {
+   "agreement": 0.74,
+   "enabled": false,
+   "kappa": 0.5113
+  },
+  "hedged": {
+   "agreement": 1.0,
+   "enabled": true,
+   "kappa": 1.0
+  }
+ },
+ "enabled": [
+  "hedged"
+ ],
+ "evidence_class": "local_model",
+ "items": 50,
+ "kappa_bar": 0.6,
+ "model": "qwen2.5:7b-instruct",
+ "reference": "judge_reference_v1",
+ "reference_sha256": "4566dcd050d28b2cc84b588526be44c9aa7e427d8479737fe35507a3b0f41e60",
+ "rows": [
+  {
+   "id": "J-AAPL-clean",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "All numbers match, both shortfall and cause are stated, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-AAPL-unfaithful",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Numbers and primary cause do not match the facts."
+   }
+  },
+  {
+   "id": "J-AAPL-incomplete",
+   "labels": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "Numbers and cause match facts, both required elements are present, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-AAPL-overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false,
+    "reason": "The narrative states a confidence level of 'beyond doubt' which is not hedged."
+   }
+  },
+  {
+   "id": "J-AAPL-unfaithful_overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": false,
+    "reason": "Numbers and cause in narrative differ from facts."
+   }
+  },
+  {
+   "id": "J-MSFT-clean",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "All numbers match, both shortfall and cause are stated, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-MSFT-unfaithful",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Numbers and primary cause do not match the facts."
+   }
+  },
+  {
+   "id": "J-MSFT-incomplete",
+   "labels": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "Numbers and cause match facts, both required elements are present, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-MSFT-overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false,
+    "reason": "The narrative claims certainty ('proves beyond doubt', 'no other explanation is possible') which does not match the facts."
+   }
+  },
+  {
+   "id": "J-MSFT-unfaithful_overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": false,
+    "reason": "Numbers and cause in narrative differ from facts."
+   }
+  },
+  {
+   "id": "J-NVDA-clean",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "All numbers and causal statements match the facts, both required elements are present, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-NVDA-unfaithful",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Numbers and primary cause do not match the facts."
+   }
+  },
+  {
+   "id": "J-NVDA-incomplete",
+   "labels": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Numbers and cause do not match facts."
+   }
+  },
+  {
+   "id": "J-NVDA-overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false,
+    "reason": "The narrative states a certainty in the cause that is not supported by the facts."
+   }
+  },
+  {
+   "id": "J-NVDA-unfaithful_overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": false,
+    "reason": "Numbers and primary cause in narrative differ from facts."
+   }
+  },
+  {
+   "id": "J-AMZN-clean",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "All numbers match, both shortfall and cause are stated, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-AMZN-unfaithful",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Numbers and primary cause do not match the facts."
+   }
+  },
+  {
+   "id": "J-AMZN-incomplete",
+   "labels": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Numbers and cause differ from facts."
+   }
+  },
+  {
+   "id": "J-AMZN-overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false,
+    "reason": "The narrative states a confidence of 'beyond doubt' which is not hedged."
+   }
+  },
+  {
+   "id": "J-AMZN-unfaithful_overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": false,
+    "reason": "Numbers and primary cause in narrative differ from facts."
+   }
+  },
+  {
+   "id": "J-JPM-clean",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "All numbers and causal statements match the facts, both shortfall and cause are stated, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-JPM-unfaithful",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Implementation shortfall figure differs from the facts."
+   }
+  },
+  {
+   "id": "J-JPM-incomplete",
+   "labels": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "No primary cause stated, and the narrative does not match the facts regarding the implementation shortfall."
+   }
+  },
+  {
+   "id": "J-JPM-overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false,
+    "reason": "The narrative states a confidence level of proof that is not supported by the facts."
+   }
+  },
+  {
+   "id": "J-JPM-unfaithful_overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": false,
+    "reason": "Numbers and cause in narrative differ from facts."
+   }
+  },
+  {
+   "id": "J-XOM-clean",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "All numbers match, both shortfall and cause are stated, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-XOM-unfaithful",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Implementation shortfall figure differs from the facts."
+   }
+  },
+  {
+   "id": "J-XOM-incomplete",
+   "labels": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true,
+    "reason": "Missing primary cause in narrative."
+   }
+  },
+  {
+   "id": "J-XOM-overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false,
+    "reason": "The narrative claims certainty in the cause, which differs from the facts."
+   }
+  },
+  {
+   "id": "J-XOM-unfaithful_overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": false,
+    "reason": "Numbers and primary cause in narrative differ from facts."
+   }
+  },
+  {
+   "id": "J-TSLA-clean",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "All numbers and causal statements match the facts, both required elements are present, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-TSLA-unfaithful",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Implementation shortfall and primary cause do not match the facts."
+   }
+  },
+  {
+   "id": "J-TSLA-incomplete",
+   "labels": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "Numbers match and both required elements are present with appropriate hedging."
+   }
+  },
+  {
+   "id": "J-TSLA-overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false,
+    "reason": "The narrative states a confidence level of 'beyond doubt' which is not consistent with the facts provided."
+   }
+  },
+  {
+   "id": "J-TSLA-unfaithful_overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": false,
+    "reason": "Numbers and cause in narrative differ from facts."
+   }
+  },
+  {
+   "id": "J-META-clean",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "All numbers and causal statements match the facts, both shortfall and cause are stated, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-META-unfaithful",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Numbers and primary cause do not match the facts."
+   }
+  },
+  {
+   "id": "J-META-incomplete",
+   "labels": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "Numbers and cause match facts, both required elements are present, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-META-overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false,
+    "reason": "The narrative claims certainty ('proves beyond doubt') which does not match the facts' confidence level."
+   }
+  },
+  {
+   "id": "J-META-unfaithful_overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": false,
+    "reason": "Numbers and cause in narrative differ from facts."
+   }
+  },
+  {
+   "id": "J-KO-clean",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "All numbers match, both shortfall and cause are stated, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-KO-unfaithful",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Numbers and primary cause do not match the facts."
+   }
+  },
+  {
+   "id": "J-KO-incomplete",
+   "labels": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "Numbers and cause match facts; includes both shortfall and primary cause; confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-KO-overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false,
+    "reason": "The narrative claims certainty ('proves beyond doubt', 'no other explanation is possible') which does not match the facts."
+   }
+  },
+  {
+   "id": "J-KO-unfaithful_overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": false,
+    "reason": "Numbers and cause in narrative differ from facts."
+   }
+  },
+  {
+   "id": "J-BAC-clean",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "All numbers and causal statements match the facts, both shortfall and cause are stated, and confidence language is appropriate."
+   }
+  },
+  {
+   "id": "J-BAC-unfaithful",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": true,
+    "reason": "Numbers and primary cause do not match the facts."
+   }
+  },
+  {
+   "id": "J-BAC-incomplete",
+   "labels": {
+    "complete": false,
+    "faithful": true,
+    "hedged": true
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": true,
+    "hedged": true,
+    "reason": "Numbers match and both required elements are present with appropriate hedging."
+   }
+  },
+  {
+   "id": "J-BAC-overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": true,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false,
+    "reason": "The narrative states a certainty in the cause that is not supported by the facts."
+   }
+  },
+  {
+   "id": "J-BAC-unfaithful_overclaim",
+   "labels": {
+    "complete": true,
+    "faithful": false,
+    "hedged": false
+   },
+   "verdict": {
+    "complete": false,
+    "faithful": false,
+    "hedged": false,
+    "reason": "Numbers and primary cause do not match the facts."
+   }
+  }
+ ],
+ "usable": 50
+}

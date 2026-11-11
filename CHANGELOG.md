@@ -64,7 +64,7 @@ data; the local-model numbers come from one CPU machine.
 |---|---|---|
 | Local model, per-agent evals and golden slice | TBD-LOCAL-MODEL-RESULTS | `docs/evaluation/local_model/` |
 | Local model, injection obey rate per surface | TBD-LOCAL-MODEL-RESULTS | `ceap.eval.injection` |
-| Judge kappa per dimension | TBD-LOCAL-MODEL-RESULTS | `ceap.eval.judge` |
+| Judge kappa per dimension (50 items, bar 0.6) | hedged 1.00 (enabled); faithful 0.51, complete -0.03 (not enabled) | `ceap.eval.judge` |
 | Execution evaluation (50 scenarios) | TBD-LATEST-JSON | `docs/evaluation/latest.json` |
 | Research evaluation (30 scenarios) | TBD-LATEST-JSON (lane L3 re-run: 23/24 clear, 2/6 near-threshold) | `docs/evaluation/latest.json` |
 | Golden set scores | TBD-LATEST-JSON | `docs/evaluation/latest.json` |
