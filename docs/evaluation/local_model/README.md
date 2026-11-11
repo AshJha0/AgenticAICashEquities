@@ -19,7 +19,7 @@ measure it.
 | Challenger | `llama3.1:8b-instruct-q4_K_M` |
 | Hardware | one CPU-only laptop, roughly 5 output tokens/s |
 | Sampling | temperature 0.7, seeds 1, 2, 3 |
-| Agent evals | full case sets (planner 10, reporter 15, critic 15 planted faults) |
+| Agent evals | full case sets (planner 10; reporter cases from successful plans only, so n varies by seed; critic 15 planted faults) |
 | Golden slice | first 3 golden items (`golden_limit=3`, a compute budget set before the runs) |
 | Injection subset | 40 of 200 attacks, 10 per surface, chosen by `ceap.eval.injection --per-surface 10` |
 | Judge | 50 calibration items; a dimension is enabled only if Cohen's kappa > 0.6 |

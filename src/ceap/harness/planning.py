@@ -50,6 +50,24 @@ from ceap.harness.memory import (
 log = logging.getLogger("ceap.harness.engine")
 
 
+def rename_replan_steps(steps: list[PlanStep]) -> list[PlanStep]:
+    """Prefix re-planned step ids with ``replan-`` and remap ``depends_on`` to the new ids.
+
+    A dependency on a step that is not re-run (already satisfied in memory, a stage step, or an agent
+    call) is dropped: its result already exists, and keeping the old id would fail validation as an
+    unknown dependency, which rejected every re-plan that had dependencies (0.9.0 review finding).
+    """
+    renamed = {s.id: f"replan-{s.id}" for s in steps}
+    return [
+        replace(
+            s,
+            id=renamed[s.id],
+            depends_on=tuple(renamed[d] for d in s.depends_on if d in renamed),
+        )
+        for s in steps
+    ]
+
+
 class PlanningMixin(HarnessBase):
     """Plan validation, governance tail, scoping and bounded re-planning."""
 
@@ -356,13 +374,15 @@ class PlanningMixin(HarnessBase):
             warnings.append(_w("REPLAN_FAILED", f"re-plan produced no plan: {result.error}"))
             return
         new_plan, _ = self._enforce_governance_steps(new_plan, task)
-        pending = [
-            replace(s, id=f"replan-{s.id}")
-            for s in new_plan.ordered_steps()
-            if s.tool_request is not None
-            and s.tool_request.tool_id != STAGE_TOOL_ID
-            and memory.find_exact(s.tool_request.tool_id, dict(s.tool_request.arguments)) is None
-        ]
+        pending = rename_replan_steps(
+            [
+                s
+                for s in new_plan.ordered_steps()
+                if s.tool_request is not None
+                and s.tool_request.tool_id != STAGE_TOOL_ID
+                and memory.find_exact(s.tool_request.tool_id, dict(s.tool_request.arguments)) is None
+            ]
+        )
         if not pending:
             return
         try:
