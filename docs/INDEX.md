@@ -7,6 +7,7 @@ see [GITHUB_PAGES.md](GITHUB_PAGES.md)).
 |---|---|
 | [../README.md](../README.md) | front page: what it is, quick start, real versus synthetic, results with their evidence |
 | [../LEARN.md](../LEARN.md) | guided tour: concepts, how the repo implements them, real numbers, knowledge check |
+| [learn/ai/README.md](learn/ai/README.md) | AI concepts tutorial track for students: LLMs, agents and the harness, guardrails, RAG, classical ML, honest evaluation, local models; each lesson has an offline exercise |
 | [../COOKBOOK.md](../COOKBOOK.md) | 53 copy-pasteable recipes (44-48: the 0.8.0 execution package; 49-53: 0.9.0 local model eval, critic checks, hybrid retrieval, E1, durable runs) |
 | [configuration.md](configuration.md) | every environment variable and every CI check (moved from the README in 0.9.0) |
 | [RUNBOOK.md](RUNBOOK.md) | operations: restart, stuck task or approval, event-loop lag, audit chain break, disk full, API keys, replay gate (0.9.0) |

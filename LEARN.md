@@ -43,6 +43,10 @@ Contents:
     18c. [A local model, a stricter critic, two real-data answers](#18c-a-local-model-a-stricter-critic-two-real-data-answers-090))
 19. [Further reading](#19-further-reading)
 
+New to applied AI? The [AI concepts tutorial track](docs/learn/ai/README.md) teaches each flavour of AI
+used here (LLMs, agents, guardrails, RAG, classical ML, evaluation, local models), one short lesson
+each with an offline exercise.
+
 ---
 
 ## 1. The problem: explaining execution quality
@@ -219,6 +223,8 @@ record so the report can cite it.
 
 ## 7. The harness as a control plane
 
+> Tutorial: [docs/learn/ai/02-agents-and-the-harness.md](docs/learn/ai/02-agents-and-the-harness.md).
+
 `AgentHarness.execute(task, policy_context, cancellation)` runs an explicit state machine:
 
 ```
@@ -357,6 +363,8 @@ flagged prose is suppressed.
 
 ## 11. Policy, approvals and RBAC
 
+> Tutorial: [docs/learn/ai/03-guardrails.md](docs/learn/ai/03-guardrails.md).
+
 `RulePolicyEngine` evaluates ordered rules; the first DENY wins, then REQUIRE_APPROVAL,
 otherwise ALLOW, and the evaluation names the rule:
 
@@ -392,6 +400,8 @@ binding the approval to content, not to a step name. Reads are owner-scoped; the
 reads everything and changes nothing.
 
 ## 12. RAG and enterprise knowledge
+
+> Tutorial: [docs/learn/ai/04-rag.md](docs/learn/ai/04-rag.md).
 
 Ten documents make up the corpus: nine Markdown files under `data/reference/knowledge/` (VWAP
 runbook, TCA methodology, venue configuration, trading limits, execution policy, market-data
@@ -444,6 +454,8 @@ ground truth. Because effects are injected only in the window, the previous hour
 clean baseline — which is also how the attribution model is defined.
 
 ## 14. Evaluation done honestly
+
+> Tutorial: [docs/learn/ai/06-evaluating-ai.md](docs/learn/ai/06-evaluating-ai.md).
 
 `ceap evaluate` runs the full platform over all 50 scenarios and reports:
 
