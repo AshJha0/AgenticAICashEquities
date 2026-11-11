@@ -372,7 +372,7 @@ hosted service: `ceap.llm.ollama.OllamaLLMClient` runs a pinned open-weight mode
 need `CEAP_LOCAL_MODEL=1`; each reply is recorded in a cassette keyed by the canonical request hash,
 so CI replays the runs. The compute budget and the metrics were fixed before the runs.
 
-Results: qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (evidence: `docs/evaluation/local_model/README.md`; class: local
+Results: <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (evidence: `docs/evaluation/local_model/README.md`; class: local
 model on one machine). They describe a 7-8B model, not the pinned hosted models.
 
 Also in 0.9.0: `ceap.observability.ai_slo.AISLOMonitor` tracks plan-valid, repair, fallback,

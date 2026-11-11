@@ -28,7 +28,7 @@ data; the local-model numbers come from one CPU machine.
   the default under the rule fixed in advance.
 - **Platform.** Durable runs, approval sweep, runbook and alerts, chaos tests, paper-day replay gate,
   harness split into mixins, `mypy src` clean, Windows CI, supply-chain workflows.
-- **Evaluation headline** (regenerated `docs/evaluation/latest.json`): TBD-LATEST-JSON.
+- **Evaluation headline** (regenerated `docs/evaluation/latest.json`): execution primary-cause accuracy 0.98 over 50 scenarios (false-positive rate 0.06); research verdict accuracy 0.8333 over 30; golden investigation cause 0.9667, golden research verdict 0.8667 (13/15; G-RES-10/11 `mixed` diagnosed as near-threshold sampling, not tuned). Unchanged from the 0.8.0 numbers.
 
 ### Breaking changes
 
@@ -65,9 +65,9 @@ data; the local-model numbers come from one CPU machine.
 | Local model, per-agent evals and golden slice | plan valid 15/30, critic 35/45, untraceable numbers 0/39, golden cause 6/9 (3 seeds, replay) | `docs/evaluation/local_model/` |
 | Local model, injection obey rate per surface | question 3/10; retrieved doc, tool output, finding 0/10 each (40 attacks) | `ceap.eval.injection` |
 | Judge kappa per dimension (50 items, bar 0.6) | hedged 1.00 (enabled); faithful 0.51, complete -0.03 (not enabled) | `ceap.eval.judge` |
-| Execution evaluation (50 scenarios) | TBD-LATEST-JSON | `docs/evaluation/latest.json` |
-| Research evaluation (30 scenarios) | TBD-LATEST-JSON (lane L3 re-run: 23/24 clear, 2/6 near-threshold) | `docs/evaluation/latest.json` |
-| Golden set scores | TBD-LATEST-JSON | `docs/evaluation/latest.json` |
+| Execution evaluation (50 scenarios) | primary cause 0.98, false positives 0.06 | `docs/evaluation/latest.json` |
+| Research evaluation (30 scenarios) | verdict accuracy 0.8333 (lane L3 re-run: 23/24 clear, 2/6 near-threshold) | `docs/evaluation/latest.json` |
+| Golden set scores | investigation cause 0.9667, must-mention 1.00; research verdict 0.8667 (13/15) | `docs/evaluation/latest.json` |
 
 **Golden 13/15, diagnosed (not tuned).** G-RES-10/11 (template `mixed`, RS19/RS21) are labelled
 REJECT/COST_DRAG from the population truth: out-of-sample IC t 1.99 against the 1.0 bar. On the
@@ -79,7 +79,14 @@ rule order were fixed before the result and are not changed after seeing it. Own
 **Known issues (low, found in the 0.9.0 review, left for 0.10.0).** Paper fills never fill an
 order when `lot_size` exceeds the per-session cap (it expires at TTL); the pre-trade sigma band is
 zero for a name whose window prices never move, so every move is blocked; the durable-run
-idempotency key is stable only for JSON-native arguments (all current callers).
+idempotency key is stable only for JSON-native arguments (all current callers). `industry_momentum`'s
+Andrews lag divides by zero on constant residuals (degenerate input only). The B7 challenger
+agreement is **not measured**: its comparison path matched neither model's recordings and marked
+live primary replies unusable, so no number is published (llama replies kept in the cassette).
+
+**Fixed in the review:** a re-plan with step dependencies was always rejected (`depends_on` kept the
+old step ids); a NaN paper equity passed the replay gate; a malformed judge calibration file could
+enable dimensions; the judge put the model-written narrative into its prompt outside a data block.
 
 The sections below are the lane notes, kept with their numbers and disclosures.
 

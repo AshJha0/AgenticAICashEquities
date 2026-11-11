@@ -218,7 +218,7 @@ LLM: mock (deterministic); no live model call (D15). Complete run: True.
 | robustness | truncation: degraded | True (LLM_CANONICAL_PLAN, LLM_PLAN_INVALID_AFTER_REPAIR, LLM_REPAIR_RETRY, LLM_STOP_MAX_TOKENS) |
 | robustness | exception: degraded | True (LLM_CALL_FAILED) |
 | robustness | hostile_plan: degraded | True (LLM_PLAN_INVALID_AFTER_REPAIR, LLM_REPAIR_RETRY) |
-| cost | usd_per_investigation_estimate (local estimate) | 0.2009 |
+| cost | usd_per_investigation_estimate (local estimate) | 0.201 |
 | cost | calls_per_investigation | 4 |
 | live only | planner quality against a real model | UNKNOWN / NOT RUN LIVE |
 | live only | real-model prompt-injection resistance | UNKNOWN / NOT RUN LIVE |
@@ -438,7 +438,7 @@ rows above stay UNKNOWN / NOT RUN LIVE.
 The critic rows in the generated table above still show the 0.8.0 planted-fault detection (6/15).
 With the 0.9.0 statement checks `python -m ceap.agents.critic_planted` reports 15/15 on the existing
 and the held-out set with 0/10 false alarms (synthetic; `docs/ai-agents/rag-hybrid-0.9.0.md`). The
-table is regenerated from `latest.json` before the tag: TBD-LATEST-JSON.
+table is regenerated from `latest.json` before the tag (done for 0.9.0).
 
 ## Scenario catalogue (moved from the README in 0.9.0)
 

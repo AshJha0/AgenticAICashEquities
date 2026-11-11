@@ -123,7 +123,7 @@
  },
  "cost": {
   "investigations": 3,
-  "usd_per_investigation_estimate": 0.200932,
+  "usd_per_investigation_estimate": 0.201028,
   "calls_per_investigation": 4.0,
   "label": "local estimate: characters/4 token counts of mock-sized replies at pinned list prices; not a bill"
  },

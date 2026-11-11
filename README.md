@@ -16,7 +16,7 @@
 >   offline (fake clients, wire contracts) and labelled UNKNOWN / NOT RUN LIVE. 0.9.0 adds runs
 >   against a **local open-weight model** (Ollama, `qwen2.5:7b-instruct` with
 >   `llama3.1:8b-instruct-q4_K_M` as challenger); CI replays their recorded cassettes. Results:
->   qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (`docs/evaluation/local_model/README.md`).
+>   <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (`docs/evaluation/local_model/README.md`).
 
 An agentic AI platform that investigates, analyses and explains cash-equity trading and market
 behaviour. Ask it:
@@ -157,7 +157,7 @@ EVIDENCE
 | R5 momentum study (S&P 500) | free daily prices, not committed | real, **VOID** | [docs/research/README.md](docs/research/README.md) |
 | E1 industry momentum | Ken French 49 industries, hashes recorded | real, **NULL** | [docs/research/e1/README.md](docs/research/e1/README.md) |
 | Evaluation numbers below | mock LLM over synthetic scenarios | synthetic, deterministic pipeline | `docs/evaluation/latest.json` |
-| Local open-weight model evaluation | recorded Ollama runs on this machine | local model, offline replay | qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) |
+| Local open-weight model evaluation | recorded Ollama runs on this machine | local model, offline replay | <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) |
 | Hosted model (Anthropic) quality | – | NOT RUN LIVE | [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md) |
 
 ## Results, stated plainly
@@ -166,7 +166,7 @@ All of these measure the deterministic pipeline on synthetic data unless the lin
 None says anything about real markets or about a hosted model's quality.
 
 - **Execution investigations:** <!-- metric: capability.primary_accuracy -->0.98 primary-cause accuracy over 50 scenarios (<!-- metric: capability.coverage -->0.98 ground-truth coverage, <!-- metric: capability.false_positive_rate -->0.06 false-positive rate). The test bar is 90 % primary accuracy and coverage.
-- **Research proposals:** <!-- metric: capability.research_verdict_accuracy -->0.8333 verdict accuracy over 30 scenarios in the committed `latest.json`. A re-run on the 0.9.0 branch with the critic change gave 23/24 clear verdicts (<!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> lane L3 notes; RS02 missed for COST_DRAG); `latest.json` is regenerated before the tag: TBD-LATEST-JSON.
+- **Research proposals:** <!-- metric: capability.research_verdict_accuracy -->0.8333 verdict accuracy over 30 scenarios in the committed `latest.json`. A re-run on the 0.9.0 branch with the critic change gave 23/24 clear verdicts (<!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> lane L3 notes; RS02 missed for COST_DRAG); the regenerated 0.9.0 `latest.json` keeps 0.8333.
 - **Null control:** the 500-seed null sweep at the a-priori hurdle (IC t >= 3.0 for a searched result) found 0 false PROMOTEs (simulation; <!-- source: docs/research/null_sweep_per_seed.json --> per-seed vector committed).
 - **Critic (0.9.0):** deterministic statement checks raised planted-fault detection from 6/15 to 15/15 on the existing set and on a held-out set committed before the change, with 0/10 false alarms on each (synthetic; <!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> details; re-checked after the numeric-rounding fix with `python -m ceap.agents.critic_planted`). The same author wrote the planted sets and the checks, so this is a regression check, not an independent measure.
 - **Retrieval (0.9.0):** a cross-encoder reranker beat BM25 on R@3 by +0.065 (paired 95 % CI +0.016 to +0.113) over 124 queries (<!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> details). BM25 stays the default because the reranker needs a model at query time, the rule fixed before the run. Near-miss abstention is still open: 3/25 near-miss negatives leak.
