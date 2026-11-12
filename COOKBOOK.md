@@ -617,7 +617,9 @@ python scripts/check_contracts.py origin/main         # lists any public ceap.do
 
 Every test has a 120 s timeout (`pytest-timeout`); `slow` tests get 600 s and `nightly` tests
 1800 s unless they set `@pytest.mark.timeout(...)` themselves. The 20 slowest tests are printed at
-the end of every run. Nightly-marked tests skip unless `CEAP_NIGHTLY=1`.
+the end of every run. Nightly-marked tests skip unless `CEAP_NIGHTLY=1`. On a loaded machine set
+`CEAP_TEST_TIMEOUT_SCALE=2` (multiplies the `slow` and `nightly` ceilings; CI leaves it unset); the
+coverage recipe is in [docs/testing/test-pyramid.md](docs/testing/test-pyramid.md).
 
 Adding a dependency: edit `pyproject.toml`, then run the `uv pip compile ...` command printed in
 the header of `requirements.lock` (uv is free: `pip install uv`). Commit both files; the
