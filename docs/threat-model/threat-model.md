@@ -88,6 +88,12 @@ The same controls, arranged by the OWASP LLM Top 10, are in [owasp-llm-top10.md]
 
 * API keys are static and configured via environment (now hashable and expirable); production
   should use an identity provider and short-lived tokens.
+* Stored API keys are salted HMAC-SHA256 digests (`ceap.api.auth.hash_api_key`), not a slow
+  password hash such as scrypt or argon2. That is deliberate: the keys are random tokens and
+  `check_key_strength` (H11) refuses weak raw keys outside dev, so there is no small guessable
+  space for a slow hash to protect. CodeQL's `py/weak-sensitive-data-hashing` rule flags this as
+  password hashing; the alert was dismissed as a false positive on 2026-11-12 with this reason.
+  If human-chosen passwords are ever accepted, switch to a slow KDF first.
 * The SQLite file holds task inputs, results and redacted model I/O; protect it with filesystem
   permissions and disk encryption, and keep backups under the same controls. The hash chain detects
   tampering, it does not prevent it. Set `CEAP_AUDIT_HMAC_KEY` (the dev default protects nothing)
