@@ -6,7 +6,7 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
-## [0.9.0] - Unreleased
+## [0.9.0] - 2026-11-12
 
 The last planned release. It was built as six parallel lanes (plan and per-step status:
 `docs/review/2026-11-09/PLAN.md`) and integrated on one branch. Evidence class, unless a line says
