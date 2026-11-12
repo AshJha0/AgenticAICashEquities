@@ -27,7 +27,9 @@ From [docs/evaluation/local_model/README.md](../../evaluation/local_model/README
 - Judge: `hedged` kappa 1.00 (enabled); `faithful` 0.51 and `complete` -0.03 (not enabled). The
   judge scores only hedging in 0.9.0. The labels were written by Claude, not independent humans, so
   kappa shows agreement with those labels only.
-- Small n: the golden slice was 3 items per seed; primary cause 6/9, CI 0.35-0.88.
+- A fallback can fake a result: the end-to-end golden slice first published for 0.9.0 (primary
+  cause 6/9) was answered by the mock fallback, not the model, and was withdrawn on 2026-11-12. An
+  evaluation run must fail on a fallback, not continue.
 - Seeds share the case set, so the pooled interval is too narrow; read the per-seed values first
   (reporter faithful 0.67 / 0.40 / 0.79).
 - Replay versus live: during live runs backtest tools timed out under the model's CPU load (seed 1
