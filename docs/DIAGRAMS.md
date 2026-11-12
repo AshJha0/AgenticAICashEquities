@@ -15,7 +15,9 @@ Contents: 1. [End-to-end investigation pipeline](#1-end-to-end-investigation-pip
 15. [Execution package (0.8.0)](#15-execution-package-080) ·
 16. [Critic statement checks (0.9.0)](#16-critic-statement-checks-090) ·
 17. [Local model evaluation and replay (0.9.0)](#17-local-model-evaluation-and-replay-090) ·
-18. [Harness mixins and the run journal (0.9.0)](#18-harness-mixins-and-the-run-journal-090)
+18. [Harness mixins and the run journal (0.9.0)](#18-harness-mixins-and-the-run-journal-090) ·
+19. [Hybrid retrieval and the judge gate (0.9.0)](#19-hybrid-retrieval-and-the-judge-gate-090) ·
+20. [Study E1 (0.9.0)](#20-study-e1-090)
 
 ## 1. End-to-end investigation pipeline
 
@@ -49,7 +51,7 @@ flowchart TD
     EXEC --> REG["ToolRegistry<br/>MCPToolAdapter → MCPClient"]
     DISP --> REG
 
-    REG --> MD["market_data MCP<br/>8 tools"] & EX["execution MCP<br/>6 tools · TCA inside"] & RK["risk MCP<br/>4 tools"] & EN["engineering MCP<br/>5 tools"] & KN["knowledge MCP<br/>3 tools · RAG"]
+    REG --> MD["market_data MCP<br/>8 tools"] & EX["execution MCP<br/>8 tools · TCA inside"] & RK["risk MCP<br/>7 tools"] & EN["engineering MCP<br/>5 tools"] & KN["knowledge MCP<br/>3 tools · RAG"]
     MD & EX --> AN["Quant analytics — ceap.analytics<br/>VWAP · TWAP · IS · slippage · spread · impact<br/>volatility · liquidity · market statistics"]
     MD & EX & RK & EN --> DS["Synthetic dataset — ceap.data<br/>seeded · 50 scenarios · baseline + window"]
     KN --> KB["Knowledge base (R3C)<br/>10 versioned docs · 65 section chunks · BM25<br/>query built by code · role-filtered"]
@@ -74,8 +76,10 @@ stateDiagram-v2
     AWAITING_APPROVAL --> EXECUTING : approval decided
     EXECUTING --> CRITIQUING : critic step
     CRITIQUING --> EXECUTING : critique complete
+    CRITIQUING --> VALIDATING_EVIDENCE : critic run by the harness
     EXECUTING --> VALIDATING_EVIDENCE : validation step
     VALIDATING_EVIDENCE --> EXECUTING : evidence validated
+    VALIDATING_EVIDENCE --> FINALISING : straight to finalise
     EXECUTING --> FINALISING : finalise step
     FINALISING --> COMPLETED : report produced
     COMPLETED --> [*]
@@ -98,7 +102,7 @@ own calls alike (`HarnessToolInvoker`).
 flowchart LR
     REQ["ToolRequest<br/>tool_id · arguments · correlation_id"] --> KNOWN{"tool in<br/>registry?"}
     KNOWN -- no --> ERR["ToolResult ERROR<br/>unknown tool"]
-    KNOWN -- yes --> POL["RulePolicyEngine.evaluate<br/>denied-tools → read-only → capabilities<br/>→ argument-guard → symbol-universe → risk-level"]
+    KNOWN -- yes --> POL["RulePolicyEngine.evaluate<br/>denied-tools → untrusted-server → agent-allowlist → read-only<br/>→ capabilities → argument-guard → input-schema<br/>→ symbol-universe → knowledge-classification → risk-level"]
     POL -- DENY --> DEN["ToolResult DENIED<br/>rule + reason in policy_log"]
     POL -- REQUIRE_APPROVAL --> APR["ApprovalGateway<br/>state → AWAITING_APPROVAL"]
     APR -- rejected / timeout --> DEN
@@ -189,7 +193,7 @@ flowchart LR
     FM --> STDIO["stdio transport<br/>official mcp SDK"]
     STDIO --> SC["StdioMCPClient<br/>ClientSession per server"]
     IP & SC --> DISC["build_tool_registry<br/>discover_tools → MCPToolAdapter"]
-    DISC --> REG["ToolRegistry<br/>37 tools: market_data.* · execution.* · risk.* · engineering.* · knowledge.*<br/>research_data.* · alpha.* · backtest.* (Stage 2) — all read-only except execution.stage_orders"]
+    DISC --> REG["ToolRegistry<br/>39 tools: market_data.* · execution.* · risk.* · engineering.* · knowledge.*<br/>research_data.* · alpha.* · backtest.* (Stage 2) — all read-only except execution.stage_orders"]
     REG --> HARN["Harness executor<br/>policy reads readOnlyHint · riskLevel · requiredCapabilities"]
 ```
 
@@ -242,7 +246,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    IN["window ExecutionMetrics + MarketStatistics<br/>baseline ExecutionMetrics + MarketStatistics<br/>engineering summary"] --> D["deteriorated?<br/>ΔIS ≥ 1.5 bps OR ΔVWAP-slippage ≥ 1.5 bps"]
+    IN["window ExecutionMetrics + MarketStatistics<br/>baseline ExecutionMetrics + MarketStatistics<br/>engineering summary"] --> D["deteriorated?<br/>IS residual z ≥ 1.96 vs pre-trade estimate<br/>(fallback: ΔIS or ΔVWAP-slippage ≥ 1.5 bps)"]
     IN --> V["MARKET_VOLATILITY<br/>vol ratio > 1.6"]
     IN --> S["WIDE_SPREADS<br/>spread ratio > 1.4"]
     IN --> L["LOW_LIQUIDITY<br/>min(depth, TOB) ratio < 0.65"]
@@ -263,26 +267,35 @@ flowchart TD
 
 ## 8. Package dependencies
 
-Arrows point from a package to what it imports. `domain` imports nothing from the platform except
-the dependency-free leaf `ceap.util` (canonical hashing, redaction; added in 0.4.0);
-`analytics` and `data` depend only on `domain`; the LLM SDK, MCP SDK and FastAPI are each
-confined to one package.
+Arrows point from a package to what it imports at module level (imports inside functions, used to
+break cycles, are not shown). Checked against the source for 0.9.0 with
+`grep -rhoE '^(from|import) ceap\.[a-z_]+' src/ceap/<package>`. `domain` imports only the
+dependency-free leaf `ceap.util`; the LLM SDK, MCP SDK and FastAPI are each confined to one
+package. Two edges are less clean than the layering suggests and are shown as they are:
+`analytics.tca_aggregate` imports `ceap.data`, `ceap.ml` and `ceap.policy` (the monthly TCA report
+uses the pre-trade model and runs its own approval step), and `rag.hybrid_eval` imports `ceap.eval.stats`.
 
 ```mermaid
 flowchart BT
     util["ceap.util<br/>(stdlib only)"]
     domain["ceap.domain<br/>(imports only ceap.util)"] --> util
-    analytics["ceap.analytics"] --> domain
-    data["ceap.data"] --> domain
-    data --> analytics
-    rag["ceap.rag"]
-    mcp["ceap.mcp<br/>(mcp SDK confined here)"] --> domain & data & analytics & rag
-    llm["ceap.llm<br/>(anthropic SDK confined here)"] --> config["ceap.config"]
-    policy["ceap.policy"] --> domain & util
-    obs["ceap.observability"] --> util
-    harness["ceap.harness"] --> domain & policy & obs & config
-    agents["ceap.agents"] --> domain & analytics & harness & llm
-    platform["ceap.platform"] --> agents & harness & mcp & llm & policy & rag & data
+    data["ceap.data"] --> domain & analytics
+    analytics["ceap.analytics"] --> domain & util
+    analytics -. "tca_aggregate" .-> data & policy & ml["ceap.ml"]
+    ml --> analytics & util
+    rag["ceap.rag"] -. "hybrid_eval" .-> eval
+    policy["ceap.policy"] --> domain & rag & util
+    obs["ceap.observability"] --> domain & util
+    llm["ceap.llm<br/>(anthropic SDK; Ollama over HTTP)"] --> config["ceap.config"] & domain & util
+    persistence["ceap.persistence<br/>(SQLite)"] --> domain & util
+    execution["ceap.execution (0.8.0)"] --> analytics & data & domain
+    mcp["ceap.mcp<br/>(mcp SDK confined here)"] --> domain & data & analytics & rag & paper & util
+    paper["ceap.paper"] --> analytics & data & execution & persistence & policy & util
+    agents["ceap.agents"] --> domain & analytics & data & harness & llm & ml & rag & eval
+    harness["ceap.harness"] --> domain & policy & obs & config & llm & mcp & agents & analytics & util
+    eval["ceap.eval (0.9.0 local model)"] --> agents & analytics & data & llm & rag
+    studies["ceap.studies (E1)"] --> data
+    platform["ceap.platform"] --> agents & harness & mcp & llm & policy & rag & data & persistence & obs
     api["ceap.api<br/>(FastAPI confined here)"] --> platform
     cli["ceap.cli"] --> platform
     evaluation["ceap.evaluation"] --> platform
@@ -326,6 +339,9 @@ licences before anything is built.
 ```mermaid
 flowchart LR
     PR["pull request"] --> L["lint<br/>ruff · mypy · banned words<br/>check_docs.py · drift monitors"]
+    PR --> W["test-windows"]
+    PR --> BM["benchmarks gate"]
+    PR --> AR["api-reference<br/>checked-in OpenAPI"]
     PR --> T["test 3.11 / 3.12<br/>xdist · branch coverage >= 85 %<br/>pytest-timeout 120/600/1800 s"]
     PR --> LF["lock-fresh<br/>uv --universal --generate-hashes"]
     PR --> A["audit<br/>pip-audit"]
@@ -334,12 +350,12 @@ flowchart LR
     PR --> C["changelog<br/>or label no-changelog"]
     PR --> K["contracts<br/>or label contracts-change"]
     PR --> GC["golden-change<br/>label + owner sign-off"]
-    L & T & LF & A & S & D & C & K & GC --> M["merge to main<br/>CI re-runs on main"]
+    L & T & W & BM & AR & LF & A & S & D & C & K & GC --> M["merge to main<br/>CI re-runs on main"]
     M --> TAG["tag vX.Y.Z"]
     TAG --> G{"release_check.py<br/>latest CI workflow run green? versions agree?<br/>CHANGELOG section? banned words? licences?"}
     G -- no --> X["no release"]
     G -- yes --> P["build wheel, sdist, image<br/>gh release create"]
-    N["nightly.yml<br/>all tiers · random order · 1000 examples"] -.-> M
+    N["nightly.yml<br/>all tiers · random order · 1000 examples<br/>mutation ratchet · API fuzz"] -.-> M
 ```
 
 ## 11. LLM, RAG, ML and evaluation (0.6.0)
@@ -428,7 +444,7 @@ flowchart TD
 
 ## 13. Policy and approval flow (0.8.0)
 
-`PolicyEngine` runs its rules in this order (`src/ceap/policy/engine.py`); the first DENY wins, then
+`RulePolicyEngine` runs its rules in this order (`src/ceap/policy/engine.py`); the first DENY wins, then
 REQUIRE_APPROVAL, otherwise ALLOW. Since 0.8.0 a HIGH-risk tool always needs a human approval, an
 admin cannot decide one, and four-eyes compares named persons (API keys mapped with
 `subject=NAME`), not keys. The gateway re-checks the content hash of the exact arguments after the
@@ -551,3 +567,46 @@ flowchart TD
     A -- "same content hash" --> J
 ```
 
+The approval sweep (`ceap.api.loopmon.approval_sweeper`, interval `CEAP_APPROVAL_SWEEP_S`) expires
+pending approvals older than `CEAP_APPROVAL_TIMEOUT_S`, so a restart cannot leave a step waiting
+forever.
+
+## 19. Hybrid retrieval and the judge gate (0.9.0)
+
+Two gates fixed before their runs. Retrieval: BM25 is the default; `HybridRetriever` is opt-in
+because the reranker needs a model at query time. Judge: a rubric dimension is used only when
+Cohen's kappa against a hand-labelled reference exceeds 0.6 (`KAPPA_BAR` in `ceap/eval/judge.py`);
+the committed calibration enables `hedged` only (`docs/evaluation/local_model/judge_calibration.json`).
+
+```mermaid
+flowchart LR
+    subgraph RAG ["ceap.rag"]
+        Q["query built by code"] --> BM["BM25 (default)"]
+        Q -. "opt-in" .-> HY["HybridRetriever (dense.py)<br/>embeddings + rank fusion + reranker<br/>hashed model cache"]
+        BM & HY --> AB{"min_support gate<br/>(abstain: no policy found)"}
+        AB -- "supported" --> DOC["DOCUMENT evidence"]
+        AB -- "below support" --> NONE["no citation"]
+    end
+    subgraph JG ["ceap.eval.judge"]
+        REF[("judge_reference_v1<br/>hand labels, sha256")] --> CALI["calibrate(): kappa per dimension"]
+        CALI --> GATE{"kappa > 0.6?"}
+        GATE -- "yes" --> EN["dimension enabled"]
+        GATE -- "no" --> OFF["dimension off; reported, not used"]
+    end
+```
+
+## 20. Study E1 (0.9.0)
+
+`ceap.studies.industry_momentum` refuses to run when the preregistration hash differs from
+`prereg_lock.json`, and refuses a second holdout opening. Guide: [research/e1/README.md](research/e1/README.md).
+
+```mermaid
+flowchart LR
+    PRE["prereg_industry_momentum_2026-11.md<br/>+ prereg_lock.json (committed first)"] --> LOAD["Ken French 49 industries<br/>data/real_cache/kf (git-ignored)<br/>raw SHA-256 in data_hashes.json"]
+    LOAD --> IS["in-sample 1927-1989<br/>result_in_sample.json"]
+    IS --> LED{"holdout_ledger.json<br/>already opened?"}
+    LED -- "yes" --> REFUSE["refuse"]
+    LED -- "no: open once" --> HO["holdout 1990-2015<br/>Newey-West t on net returns, 10 bps/side"]
+    HO --> V["NULL: t 1.16 < 1.645<br/>result_holdout.json"]
+    HO --> LIVE["live 2016 on: descriptive only"]
+```

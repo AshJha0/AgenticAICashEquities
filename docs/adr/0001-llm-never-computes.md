@@ -19,8 +19,8 @@ confidence either: confidence comes from the evidence model.
 Formally: every numeric token in model output must be traceable to a fact, carrying an evidence id
 produced by a tool call in the same task, that renders to that token; otherwise the output is flagged.
 
-Worked example: the TCA tool returns `implementation_shortfall_bps = 12.4` with evidence `EV-3`. A
-narrative saying "shortfall rose to 12.4 bps [EV-3]" passes; "shortfall rose to 14 bps" is flagged,
+Worked example: the TCA tool returns `implementation_shortfall_bps = 12.4` with evidence `TCA-16395dc6`. A
+narrative saying "shortfall rose to 12.4 bps [TCA-16395dc6]" passes; "shortfall rose to 14 bps" is flagged,
 because no fact renders to 14.
 
 ## Consequences
@@ -28,7 +28,8 @@ because no fact renders to 14.
 - The platform runs end to end with `MockLLMClient` and no API key; a weak model shows up as a
   worse plan or narrative, never as a wrong metric.
 - The number audit is code that has to keep up with how models phrase numbers (units, rounding,
-  direction words). Plan item A1 (0.9.0) moves it to typed placeholders for this reason.
+  direction words). For this reason 0.8.0 (plan item A1) moved figures to typed placeholders
+  (`{fact.key}`) that code renders; the free-text audit remains for anything else.
 - Some fluent answers are rejected because a number cannot be traced. That is the intended trade.
 
 ## Evidence

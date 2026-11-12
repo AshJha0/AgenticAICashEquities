@@ -150,7 +150,9 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
       <p>Okapi BM25 (stdlib) over ten versioned, classified documents, with a measured chunking
          strategy and a minimum-support gate. The query is built by code, not the model. The
          reporter writes claims, then prose whose quoted spans are checked against the cited
-         passages.</p></div>
+         passages. Since 0.9.0 an opt-in hybrid retriever (dense embeddings, rank fusion, reranker)
+         beat BM25 on recall at 3 in a held-out comparison, but BM25 stays the default because it
+         needs no model at query time.</p></div>
     <div class="card"><h3>Deterministic ML</h3>
       <p>Change-point detection (robust z-scores, CUSUM, PELT onset), ridge signal combination with
          leakage tests, held-out calibration, and a pre-trade cost model. Every model is labelled
@@ -164,7 +166,8 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
       <p>SQLite (WAL, single writer, forward-only migrations) for tasks, results, approvals, staged
          orders and an HMAC-chained audit log that is never pruned; <code>ceap db anchor</code>
          records the chain head outside the database and <code>ceap db verify-chain</code> checks
-         against it. CPU-bound tools run in a killable process pool under the server. FastAPI gateway with hashed API keys and roles, Prometheus metrics, JSON logs,
+         against it. CPU-bound tools run in a killable process pool under the server. Since 0.9.0 runs can
+         be made durable (a step journal, <code>CEAP_DURABLE_RUNS=1</code>) and pending approvals expire on a sweep. FastAPI gateway with hashed API keys and roles, Prometheus metrics, JSON logs,
          OpenTelemetry-ready tracing.</p></div>
     <div class="card"><h3>Execution simulator (0.8.0)</h3>
       <p>A limit order book where passive orders fill only when traded through, impact caused by the
@@ -193,8 +196,8 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
   <h2>What it is not</h2>
   <div class="boundary">
     <div><strong>No live trading</strong>no order leaves the process; the only write path stages paper orders behind two human approvals</div>
-    <div><strong>No real-model numbers</strong>nothing here has been measured with a live model; those rows read UNKNOWN / NOT RUN LIVE</div>
-    <div><strong>No profitable strategy</strong>the real-data study is VOID and the paper record runs on synthetic data; nothing here is evidence of an edge</div>
+    <div><strong>No hosted-model numbers</strong>no hosted model was called; those rows read UNKNOWN / NOT RUN LIVE. The 0.9.0 local-model numbers describe a 7B open-weight model on one laptop only</div>
+    <div><strong>No profitable strategy</strong>the real-data studies are VOID (R5) and NULL (E1), and the paper record runs on synthetic data; nothing here is evidence of an edge</div>
     <div><strong>No real desk data</strong>execution scenarios, research scenarios and the paper feed are synthetic and seeded</div>
   </div>
 
@@ -362,7 +365,7 @@ ceap serve</pre>
   </div>
 
   <footer>AgenticAICashEquities 0.9.0 — an evidence-first agentic platform for education and
-    demonstration, built on synthetic data apart from the VOID R5 study. See the
+    demonstration, built on synthetic data apart from the VOID R5 study and the NULL E1 study. See the
     <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/README.md">README</a>,
     <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/INDEX.md">docs index</a> and
     <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/CHANGELOG.md">CHANGELOG</a>.</footer>
