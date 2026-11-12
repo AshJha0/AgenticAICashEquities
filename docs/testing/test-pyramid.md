@@ -65,7 +65,11 @@ pytest -m "slow and not nightly" -p no:xdist --cov=src/ceap --cov-append     # s
 ```
 
 `CEAP_TEST_TIMEOUT_SCALE` (default 1) multiplies the `slow` and `nightly` ceilings, e.g. `2` on a
-busy laptop; CI leaves it unset. To measure one module, still pass `--cov=src/ceap` and read that
+busy laptop; CI leaves it unset. It does not change the harness's own per-step tool timeout
+(`CEAP_STEP_TIMEOUT_SECONDS`, default 30 s): under heavy load a research backtest can exceed it,
+the step degrades as designed, and a test that expects the full result (for example
+`test_agents_flag_what_the_scenarios_embed`) fails for that reason alone. On a loaded machine set
+`CEAP_STEP_TIMEOUT_SECONDS=90` as well; on an idle machine and in CI the default holds. To measure one module, still pass `--cov=src/ceap` and read that
 module's row: `--cov=ceap.<module>` imports the package early and trips numpy's "cannot load more
 than once" error.
 
