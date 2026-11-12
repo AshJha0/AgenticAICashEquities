@@ -14,7 +14,7 @@ side effects, each with known-answer unit tests.
 | | Execution-quality (TCA), Stage 1 | Signal research, Stage 2 |
 |---|---|---|
 | Question | why did execution quality change? | does this signal actually work? |
-| Deterministic scorer | `attribute_causes` → primary/secondary cause | `assess_research` → `PROMOTE`/`REJECT` + flags |
+| Deterministic scorer | `attribute_causes` → primary/secondary cause | `assess_research` → `PROMOTE`/`REJECT`/`INCONCLUSIVE` + flags |
 | Synthetic data | `ceap.data.synthetic` — tick-level quotes/fills, 6 symbols, 1 hour window | `ceap.data.historical` — daily bars, 30 names, 20 years, NYSE calendar |
 | Ground truth | 10 templates × 5 symbols = 50 scenarios | 10 templates × 3 seeds = 30 scenarios, derived from generator parameters |
 | Evaluation | `ceap evaluate --suite investigation` | `ceap evaluate --suite research` and `--suite null` |
@@ -168,37 +168,47 @@ signal/horizon families (momentum at 21 days: 5.6 %), inside the [3.0 %, 7.5 %] 
   The gate is `DSR >= 0.5`: the observed Sharpe must beat the expected best of the trials run.
 - **Locked holdout**: `in_sample_end` is fixed per dataset; a caller may shorten the in-sample
   window but never move the boundary into the holdout.
-- **The PROMOTE hurdle is measured, not chosen.** `ceap evaluate --suite null --seeds 500` runs
-  all 24 configurations on 500 pure-noise datasets through the full gate chain. A seed is a false
-  PROMOTE at hurdle `h` when any configuration passes every gate. The hurdle is the lowest `t` on
-  a 0.05 grid whose Clopper-Pearson 95 % upper bound is at most 5 %.
+- **The PROMOTE hurdle is fixed in advance; the null sweep measures it.** Since 0.8.0 (plan step
+  D3) the in-sample IC t hurdle is `3.0` for a result chosen from a search (the default
+  24-configuration flow) and `1.645` (one-sided 5 %) when exactly one preregistered trial counts
+  (Harvey, Liu and Zhu 2016; `MINED_HURDLE` and `SINGLE_TEST_HURDLE` in
+  `ceap.analytics.research_assessment`). `ceap evaluate --suite null --seeds 500` runs all 24
+  configurations on 500 pure-noise datasets through the full gate chain; a seed is a false PROMOTE
+  at hurdle `h` when any configuration passes every gate. The sweep reports the rate, with its
+  Clopper-Pearson 95 % band, across a grid of hurdles. Until 0.7.1 the hurdle was read off that
+  curve (the lowest `t` whose upper bound is at most 5 %, which gave 0.40).
 
 | Sweep (committed in `data/reference/research_thresholds.json`) | Value |
 |---|---|
 | Seeds x configurations | 500 x 24 |
-| Chosen in-sample IC t hurdle | **0.40** (0.65 before rf was committed) |
-| False PROMOTEs at the hurdle | 15 / 500 = 3.0 %, 95 % band [1.7 %, 4.9 %] |
+| In-sample IC t hurdle (a priori) | **3.0** for a search, 1.645 for one preregistered test |
+| False PROMOTEs at 3.0 | 0 / 500, 95 % upper bound 0.74 % |
+| Lowest hurdle with upper bound <= 5 % (`lowest_hurdle_with_upper_le_5pct`) | 0.40, the 0.7.1 hurdle, where 15 / 500 = 3.0 % were false |
 | False PROMOTEs with no IC hurdle at all | 17 / 500 = 3.4 % (upper bound 5.4 %) |
 | Sweep hash | `ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4` |
 
-What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,
+What the numbers mean: on twenty years of data the other gates (deflated Sharpe over 24 trials,
 out-of-sample IC t >= 1, out-of-sample net Sharpe >= 0.5, costs below half of gross) already hold
-the false-PROMOTE rate near 5 %, so the in-sample IC hurdle only has to remove the last few. A
-fixed `t >= 3` would have been chosen before measuring and would have rejected the realistic
-premia below. With the Ken French rf series committed, long-only books pay rf in their excess
-return, fewer noise configurations clear the Sharpe gates, and the hurdle fell from 0.65 (rf = 0)
-to 0.40 - the sweep was re-run, not the number edited.
+the false-PROMOTE rate near 3 %, before any IC hurdle. A hurdle read off the sweep is itself fitted
+to the noise set, which is why 0.8.0 fixed it in advance. The price is power: at `t >= 3` the
+realistic premia in the power table below are detected far less often than at 0.40.
 
 ### The assessment (`assess_research`)
 
 | Flag | Condition |
 |---|---|
-| `NO_ALPHA` | in-sample non-overlapping IC t < 0.40 (null-sweep hurdle), fewer than 30 periods, or deflated Sharpe < 0.5 |
+| `NO_ALPHA` | in-sample non-overlapping IC t below the a-priori hurdle (3.0, or 1.645 for one preregistered trial), fewer than 30 periods, or deflated Sharpe < 0.5 |
 | `REGIME_BREAK` | out-of-sample IC t <= -2: the premium reversed |
 | `OOS_DECAY` | out-of-sample IC t < 1, or net out-of-sample Sharpe < 0.5 without a cost explanation (0.4 name `OVERFIT`: nothing is fitted) |
 | `COST_DRAG` | gross out-of-sample Sharpe >= 0.5 but net below it, or costs >= 50 % of gross |
 | `CONCENTRATION` | top three names carry > 50 % of positive P&L |
 | `LIMIT_BREACH` | a limit fails as of the report date or on any out-of-sample rebalance date |
+
+The verdict is `PROMOTE` with no flag and `REJECT` otherwise, except that (0.8.0, D4) it is
+`INCONCLUSIVE` when every flag is statistical (`NO_ALPHA` or `OOS_DECAY`) and the 95 % interval of
+the full-period net Sharpe, with the Lo (2002) standard error `sqrt((1 + SR^2/2) / years)`, covers
+both 0 and 0.5. Worked example: a net Sharpe of 0.3 over 5 years has SE `sqrt(1.045/5) = 0.457`, so
+the interval is [-0.60, 1.20], which covers both, and the verdict is INCONCLUSIVE rather than REJECT.
 
 Every assessment carries a `HypothesisTable`: each test run (in-sample IC t, deflated Sharpe,
 out-of-sample IC t, out-of-sample Sharpe t) with its statistic, p-value, sample size and pass or
@@ -212,6 +222,23 @@ Vasicek weight `w = s2_prior / (s2_prior + se^2)`. Stress adds a reversal of the
 factor (5 % per unit of z-score), a +20 % short squeeze and the cost and days of liquidating at
 10 % of ADV. Limits are evaluated on every out-of-sample rebalance date and the worst date per
 limit is reported.
+
+**Two known numerical issues (open in 0.9.0).** Both come from guards that test for an exact zero
+where a tolerance is needed.
+
+- `ceap.analytics.risk_research.factor_regression` returns `r2 = 1 - SSE/TSS` only when
+  `TSS > 0`. For a constant `y`, `TSS` is a rounding residue (about 1e-31 for `y = 0.3` over 120
+  months) rather than 0, so the guard passes and `r2` is noise: a check with two random factors
+  gave anything from -3.3 to 0.82 depending on the constant, and reports of about 0.93 have been
+  seen. The correct answer is "undefined" (NaN). Treat any R² on a series with no variation as
+  meaningless.
+- `ceap.analytics.portfolio_risk.raw_betas_ex_self` skips a name only when `sxx <= 0`. When the
+  market excluding the name is constant up to rounding, `sxx` is tiny but positive and the beta
+  explodes (a check with a flat four-name market gave a beta of about 4e15). The Vasicek shrinkage
+  then sees a huge standard error and pulls the name close to 1, but the raw beta is still reported.
+
+The fix for both is a relative tolerance (for example `TSS <= 1e-12 * n * mean(y)^2`), not yet
+made; this note is the record until it is.
 
 ### Capacity and profitability (2.6, 2.14)
 
@@ -265,17 +292,17 @@ in place of observations. A scenario whose gate margins are within one standard 
 **near-threshold**: its realised verdict is partly luck and it is reported separately.
 
 The power curve (`docs/quant_power_curve.json`, `python -m ceap.analytics.power`) compares
-detection by the IC gates with the closed-form prediction across premia:
+detection by the IC gates with the closed-form prediction across premia. The committed file was
+measured at the 0.7.1 hurdle of 0.40 (its `hurdle` field), not the current 3.0:
 
 | Premium (bps a year, cross-sectional sd) | 0 | 600 | 900 | 1200 | 1500 | 1800 | 2400 |
 |---|---|---|---|---|---|---|---|
 | Expected in-sample t | 0.0 | 0.5 | 1.1 | 2.0 | 3.0 | 4.1 | 6.7 |
-| Predicted detection | 4 % | 11 % | 26 % | 52 % | 77 % | 93 % | 100 % |
-| Observed detection (40 seeds) | 13 % | 20 % | 35 % | 60 % | 80 % | 93 % | 100 % |
+| Predicted detection | 5 % | 13 % | 29 % | 54 % | 78 % | 93 % | 100 % |
+| Observed detection (40 seeds) | 15 % | 20 % | 38 % | 60 % | 80 % | 93 % | 100 % |
 
-The closed form is slightly conservative (realised t runs about 15 % above expectation); the
-0-premium point (5 of 40 seeds against an expected 1.6) is within sampling error but worth
-watching.
+The closed form is slightly conservative (realised t runs about 15 to 20 % above expectation);
+the 0-premium point (6 of 40 seeds against an expected 2.2) is the one to watch.
 
 ## Evaluated honestly
 
@@ -283,16 +310,15 @@ watching.
 (not tuned away) false positive.
 
 `ceap evaluate --suite research`: 30 scenarios (10 templates x 3 seeds) against parameter-derived
-truth. Deterministic pipeline: **23/24 clear scenarios** verdict-correct (the miss is a strong
-momentum premium whose 5-year out-of-sample net Sharpe came in at 0.21 against an expected 1.34,
-a 1.8-standard-error draw) and **6/6 near-threshold** scenarios; 29/30 overall. The full
-pipeline with the mock model gives the same 29/30 (flags 27/30, every run completed and approved,
-no unresolved finding, no narrative number warning); see `docs/evaluation/evaluation.md`. Under t+1 execution the
+truth. Since the 0.8.0 recalibration (a-priori hurdle, INCONCLUSIVE verdict) the mock-model
+pipeline scores **25/30**: 21/24 clear and 2/6 near-threshold, each at or above its a-priori
+accuracy bar (clear 0.875, near-threshold 1/3, all 0.80; the clear result sits exactly on its
+bar). Before it, at the 0.40 hurdle, the score was 29/30. See `docs/evaluation/evaluation.md`. Under t+1 execution the
 reversal and the costly-momentum templates flip from PROMOTE to REJECT and stay REJECT (decision
 D5); the per-scenario table is in the CHANGELOG.
 
 `ceap evaluate --suite null`: false-PROMOTE rate of the full search at the committed hurdle, with
-its binomial band (50 seeds on PR, 500 nightly).
+its binomial band (50 seeds on PR, 500 nightly); 0/500 at 3.0.
 
 Thresholds are calibrated on synthetic data. On real return history they would need
 recalibration and version control like any other code; R5 ran one preregistered real-data test

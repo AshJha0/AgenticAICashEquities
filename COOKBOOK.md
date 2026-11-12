@@ -511,7 +511,7 @@ ceap research "Does 12-1 momentum work on R01? Evaluate it out-of-sample with co
 
 The signal and dataset are parsed from the question when omitted ("momentum" → `momentum_12_1`,
 "reversal"/"mean reversion" → `reversal_5`, "low vol" → `low_vol_60`; a ticker like `R04` or
-`RS12`). `--dataset` picks the research scenario (R01–R07 templates, RS01–RS21 concrete).
+`RS12`). `--dataset` picks the research scenario (R01–R10 templates, RS01–RS30 concrete: ten templates x three seeds).
 `--role` must have the `research` capability (`quant` or `admin`); `viewer`/`trader`/`engineer`
 do not. The proposal's VERDICT section carries `PROMOTE`, `REJECT` or (since v0.8.0) `INCONCLUSIVE` with any flags
 (`NO_ALPHA`, `OOS_DECAY` (called `OVERFIT` before 0.4.0), `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`).
@@ -571,7 +571,7 @@ curl -s http://127.0.0.1:8000/research/TASK-.../report -H "X-API-Key: dev-quant-
 ```
 
 `dev-admin-key` is the only default key with `trading:execute`; pass `"stage_orders": true` in
-the body as admin to also stage paper orders. `GET /research-scenarios?all=true` lists all 21
+the body as admin to also stage paper orders. `GET /research-scenarios?all=true` lists all 30
 concrete research scenarios the way `GET /scenarios?all=true` lists the 50 execution ones.
 
 ## 32. Add a new signal
@@ -642,8 +642,8 @@ committed hurdle, with its 95 % binomial band. Since 0.8.0 the hurdle is fixed i
 t >= 3.0 for a searched result, 1.645 for one preregistered test) and the sweep only measures it:
 `--seeds 500 --workers 6 --write-thresholds` records the measured rate, the sweep hash and the
 per-seed vector (`data/reference/research_thresholds.json`, `docs/research/null_sweep_per_seed.json`)
-and appends the run to `data/reference/sweep_ledger.jsonl`. It no longer chooses the hurdle (the
-flag's help text still says "chosen hurdle"). Background: `docs/research/README.md`, "Research
+and appends the run to `data/reference/sweep_ledger.jsonl`. It no longer chooses the hurdle.
+Background: `docs/research/README.md`, "Research
 realism toolkit".
 
 ## 36. Profitability table and capacity sweep

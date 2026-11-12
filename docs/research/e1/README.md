@@ -56,8 +56,8 @@ detect an annualised Sharpe of about 0.49 with 80 % power." Replication not veri
 ## Reproduce
 
 ```bash
-python scripts/fetch_kf_industries.py     # free, no sign-up; refuses later runs if hashes change
-python scripts/run_e1_industry_momentum.py  # in-sample only
+python scripts/fetch_kf_industries.py     # free, no sign-up; rewrites data_hashes.json (git diff shows a vendor change)
+python scripts/run_e1_industry_momentum.py  # in-sample only; refuses cached files whose hash differs from data_hashes.json
 ```
 The holdout cannot be reopened: `--open-holdout` refuses because the ledger records the opening.
 Code: `src/ceap/studies/industry_momentum.py`; tests: `tests/test_industry_momentum.py`.
