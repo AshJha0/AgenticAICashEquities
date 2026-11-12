@@ -27,8 +27,8 @@ than continuing without the step.
 - Policy rules are ordinary Python methods on the engine (`_rule_*`, evaluated in a fixed order; a
   DENY wins, then REQUIRE_APPROVAL, otherwise ALLOW) and must be reviewed like any code; a wrong rule
   is a real hole.
-- Approval-required actions (order staging) need a human approver identity, which the API carries
-  in a header and the audit log records.
+- Approval-required actions (order staging) need a human approver identity: the API maps each key
+  (`X-API-Key`) to a named subject, four-eyes compares those subjects, and the audit log records them.
 
 ## Evidence
 

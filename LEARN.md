@@ -262,7 +262,7 @@ representation cannot drift. Annotations carry `readOnlyHint`, a risk level and 
 capabilities. The same definition is exported to a real `FastMCP` server (`to_fastmcp()`,
 `run_stdio()`), and `python -m ceap.mcp.market_data` starts it over stdio.
 
-Eight servers, 37 tools — every one read-only except `execution.stage_orders` (Stage 2):
+Eight servers, 39 tools — every one read-only except `execution.stage_orders` (Stage 2):
 
 | Server | Tools |
 |---|---|
@@ -272,8 +272,8 @@ Eight servers, 37 tools — every one read-only except `execution.stage_orders` 
 | engineering | search_logs, get_service_metrics, get_deployments, get_latency_metrics, get_services |
 | knowledge | search_documents, get_document, list_documents |
 | research_data *(Stage 2)* | get_universe, get_daily_bars, get_universe_summary |
-| alpha *(Stage 2)* | list_signals, evaluate_signal |
-| backtest *(Stage 2)* | run_backtest |
+| alpha *(Stage 2)* | list_signals, evaluate_signal, combine_signals |
+| backtest *(Stage 2)* | run_backtest, trial_count (the shared trial ledger used to deflate searched results) |
 
 `MCPClient` has two implementations: `InProcessMCPClient` (tests, CLI, API) and
 `StdioMCPClient` (official SDK sessions to subprocesses; `tests/mcp` includes a real
@@ -378,6 +378,7 @@ otherwise ALLOW, and the evaluation names the rule:
 | argument-guard | page limits ≤ 5,000 and a whole number; strings ≤ 2,000 chars, ≤ 1,000 items, depth ≤ 8, at every level of the argument tree |
 | input-schema (0.8.0) | arguments validate against the tool's JSON schema |
 | symbol-universe | every symbol-bearing field (lists, nested objects, `x-ceap-symbol` properties) must be in the permitted universe; with no universe configured, a request that names a symbol is denied (fail closed, 0.8.0) |
+| knowledge-classification | a knowledge read may ask only for the document classifications the principal's roles allow; omitted means public and internal |
 | risk-level | CRITICAL never; HIGH always needs a human approval (no capability skips it since 0.8.0); MEDIUM needs `risk:medium` or approval |
 
 Four-eyes binds to a person: an API key mapped with `subject=NAME` acts as `user:NAME`, and an
@@ -429,6 +430,13 @@ query set, not "semantic search". Three ideas carry over to any RAG system:
 - *Check every quote.* The writer cites document blocks; code compares each quoted span with the
   exact chunk that was sent and only then records it as evidence, with the document version and the
   corpus hash. "No policy found" is a valid answer; a confident citation of nothing is not.
+
+**Hybrid retrieval (0.9.0, opt-in).** `ceap.rag.dense.HybridRetriever` adds dense embeddings,
+rank fusion and a cross-encoder reranker over a hashed model cache. On 124 held-out queries the
+reranker beat BM25 on recall at 3 by +0.065 (paired 95 % CI +0.016 to +0.113; <!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> details), but BM25
+stays the default because a default must run without downloading a model. The abstention gate
+(`min_support`, 0.8.0) is unchanged and near-miss abstention is still open: 3/25 near-miss
+negatives leak. COOKBOOK recipe 51 runs the comparison.
 
 ## 13. The synthetic market and the 50 scenarios
 
@@ -522,6 +530,8 @@ See `docs/evaluation/evaluation.md`.
   different answer yesterday" into a diff.
 
 ## 16. Ten pitfalls this platform is built to avoid
+
+Ten from Stage 1, plus an eleventh that Stage 2 added.
 
 1. **Letting the model do arithmetic.** Numbers come from `ceap.analytics`; the narrative is
    audited against them.
@@ -620,7 +630,8 @@ makes venue fill rate use accepted quantity in §5.
 **The synthetic data plays the same trick as §13, one level up.** `HistoricalGenerator` embeds a
 scenario's premium by computing the *same signal function* the analytics later measure it with —
 so the generator and the measurement can't silently drift into disagreement — over a seeded
-30-name, 20-year daily universe. *(0.4.0 changed this: ground truth now comes from the generator's
+30-name, 20-year daily universe (0.9.0 adds a 500-name universe,
+`ceap.data.generator_params.RESEARCH_UNIVERSE_500`). *(0.4.0 changed this: ground truth now comes from the generator's
 parameters, never from running the analytics, and fills happen at the next session instead of the
 same close. Under that honest timing the reversal and mixed templates flip from `PROMOTE` to
 `REJECT`/`COST_DRAG`; see the README table and the CHANGELOG.)* Ten templates × three seeds give 30
