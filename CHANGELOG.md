@@ -6,6 +6,26 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Corrections to the 0.9.0 notes (docs only, found by the 2026-11-12 review)
+
+- **The local-model "golden slice" was not measured.** 0.9.0 published primary cause 6/9,
+  must-mention 9/9, no forbidden claim 6/9 and verdict 3/3 as results for `qwen2.5:7b-instruct`.
+  They are output of the deterministic mock. The recorded cassettes hold no call from the golden
+  run, so on replay every request missed the cassette and `LLMRouter` answered from its
+  `MockLLMClient` fallback (`src/ceap/eval/local_model.py:94`, `src/ceap/llm/router.py:404-417`).
+  A replay of seed 1 with a counter gave 0 cassette hits and 15 mock answers and reproduced the
+  published scores. The live runs scored 0/3 on primary cause in each seed, with the backtest tools
+  timing out under the model's CPU load, so they are not a measurement of the model either. The rows
+  are withdrawn from the README, this file, `docs/evaluation/local_model/README.md`,
+  `docs/evaluation/evaluation.md`, `docs/ai-agents/ai-agents.md` and `docs/learn/ai/06-evaluating-ai.md`.
+  The planner, reporter and critic numbers come from recorded model replies and are unchanged. The
+  committed result files still carry the golden block and are regenerated with the 0.10.0 re-run.
+- **The paper forward log has not run daily.** The `forward-log` branch holds one manual run, made
+  at 03:42 UTC on 2026-11-10, with rows for 2026-11-09 and 2026-11-10; the second row was written
+  before that session opened, and no scheduled run has been recorded since (checked 2026-11-12). The
+  README and the site said it "runs daily". They now say what is on the branch. A date guard and a
+  clean restart of the record are planned for 0.10.0.
+
 ## [0.9.0] - 2026-11-12
 
 The last planned release. It was built as six parallel lanes (plan and per-step status:
@@ -17,7 +37,7 @@ data; the local-model numbers come from one CPU machine.
 
 - **A real model, measured locally.** `ceap.llm.ollama.OllamaLLMClient` runs a pinned open-weight
   model (`qwen2.5:7b-instruct`, challenger `llama3.1:8b-instruct-q4_K_M`) behind `LLMClient`; runs
-  are recorded as cassettes and replayed in CI. Results: qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue)
+  are recorded as cassettes and replayed in CI. Results: qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue)
   (`docs/evaluation/local_model/README.md`). No hosted model was called.
 - **Critic statement checks.** `contradicted`, `numeric_mismatch` and `direction_mismatch`
   (`ceap.agents.critic_checks`): planted-fault detection 6/15 -> 15/15 on the existing and a
@@ -64,7 +84,7 @@ data; the local-model numbers come from one CPU machine.
 
 | Item | Value | Evidence |
 |---|---|---|
-| Local model, per-agent evals and golden slice | plan valid 15/30, critic 35/45, untraceable numbers 0/39, golden cause 6/9 (3 seeds, replay) | `docs/evaluation/local_model/` |
+| Local model, per-agent evals | plan valid 15/30, critic 35/45, untraceable numbers 0/39 (3 seeds, replay). Golden slice: not measured; the 6/9 first published here was mock-fallback output (corrected 2026-11-12, see Unreleased) | `docs/evaluation/local_model/` |
 | Local model, injection obey rate per surface | question 3/10; retrieved doc, tool output, finding 0/10 each (40 attacks) | `ceap.eval.injection` |
 | Judge kappa per dimension (50 items, bar 0.6) | hedged 1.00 (enabled); faithful 0.51, complete -0.03 (not enabled) | `ceap.eval.judge` |
 | Execution evaluation (50 scenarios) | primary cause 0.98, false positives 0.06 | `docs/evaluation/latest.json` |

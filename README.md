@@ -16,7 +16,7 @@
 >   offline (fake clients, wire contracts) and labelled UNKNOWN / NOT RUN LIVE. 0.9.0 adds runs
 >   against a **local open-weight model** (Ollama, `qwen2.5:7b-instruct` with
 >   `llama3.1:8b-instruct-q4_K_M` as challenger); CI replays their recorded cassettes. Results:
->   <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (`docs/evaluation/local_model/README.md`).
+>   <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (`docs/evaluation/local_model/README.md`).
 
 An agentic AI platform that investigates, analyses and explains cash-equity trading and market
 behaviour. Ask it:
@@ -157,7 +157,7 @@ EVIDENCE
 | R5 momentum study (S&P 500) | free daily prices, not committed | real, **VOID** | [docs/research/README.md](docs/research/README.md) |
 | E1 industry momentum | Ken French 49 industries, hashes recorded | real, **NULL** | [docs/research/e1/README.md](docs/research/e1/README.md) |
 | Evaluation numbers below | mock LLM over synthetic scenarios | synthetic, deterministic pipeline | `docs/evaluation/latest.json` |
-| Local open-weight model evaluation | recorded Ollama runs on this machine | local model, offline replay | <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) |
+| Local open-weight model evaluation | recorded Ollama runs on this machine | local model, offline replay | <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) |
 | Hosted model (Anthropic) quality | – | NOT RUN LIVE | [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md) |
 
 ## Results, stated plainly
@@ -172,7 +172,7 @@ None says anything about real markets or about a hosted model's quality.
 - **Retrieval (0.9.0):** a cross-encoder reranker beat BM25 on R@3 by +0.065 (paired 95 % CI +0.016 to +0.113) over 124 queries (<!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> details). BM25 stays the default because the reranker needs a model at query time, the rule fixed before the run. Near-miss abstention is still open: 3/25 near-miss negatives leak.
 - **E1, real data:** 49-industry momentum, preregistered and hash-locked; holdout 1990-2015 opened once: **NULL** (net of 10 bps, Newey-West t 1.16 against 1.645; <!-- source: docs/research/e1/result_holdout.json --> result file).
 - **R5, real data:** **VOID** twice: point-in-time coverage <!-- source: docs/research/result_momentum_2026-11.md --> 75.1 % and then <!-- source: docs/research/result_momentum_2026-11-v2.md --> 74.9 % against a required 95 %, because free sources lack delisted names. No statistic was computed; the pseudo-holdout is unspent. Why stock-level R5 could not pass on free data: [docs/research/e2_why_r5_could_not_pass.md](docs/research/e2_why_r5_could_not_pass.md).
-- **Paper forward log:** runs daily on synthetic data from 2026-11-09. It checks operations and controls, not profitability; telling a true Sharpe of 1 from 0 needs about 1980 sessions (<!-- source: tests/unit/paper/test_forward_and_ledger.py --> power formula, LEARN section 18a). Forward result: UNKNOWN.
+- **Paper forward log:** a daily job on synthetic data, with a record that starts on 2026-11-09. As of 2026-11-12 the `forward-log` branch holds one manual run (rows for 2026-11-09 and 2026-11-10, the second written before that session opened) and no scheduled run; it is not yet a daily record (see CHANGELOG, Unreleased). It checks operations and controls, not profitability; telling a true Sharpe of 1 from 0 needs about 1980 sessions (<!-- source: tests/unit/paper/test_forward_and_ledger.py --> power formula, LEARN section 18a). Forward result: UNKNOWN.
 
 ---
 

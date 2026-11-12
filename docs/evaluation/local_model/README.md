@@ -20,7 +20,7 @@ measure it.
 | Hardware | one CPU-only laptop, roughly 5 output tokens/s |
 | Sampling | temperature 0.7, seeds 1, 2, 3 |
 | Agent evals | full case sets (planner 10; reporter cases from successful plans only, so n varies by seed; critic 15 planted faults) |
-| Golden slice | first 3 golden items (`golden_limit=3`, a compute budget set before the runs) |
+| Golden slice | first 3 golden items (`golden_limit=3`, a compute budget set before the runs); **not measured**, see the correction below |
 | Injection subset | 40 of 200 attacks, 10 per surface, chosen by `ceap.eval.injection --per-surface 10` |
 | Judge | 50 calibration items; a dimension is enabled only if Cohen's kappa > 0.6 |
 
@@ -41,10 +41,20 @@ Wilson interval; the per-seed values are what to read first (see below).
 | Reporter: claims dropped by the harness | 14/39 | 0.36 | 0.23-0.52 | 0.33 / 0.60 / 0.21 |
 | Reporter: untraceable numbers reaching the report | 0/39 | 0.00 | 0.00-0.09 | 0 / 0 / 0 |
 | Critic: planted faults detected | 35/45 | 0.78 | 0.64-0.87 | 0.73 / 0.80 / 0.80 |
-| Golden slice: primary cause | 6/9 | 0.67 | 0.35-0.88 | 0.67 / 0.67 / 0.67 |
-| Golden slice: must-mention | 9/9 | 1.00 | 0.70-1.00 | 1.00 / 1.00 / 1.00 |
-| Golden slice: no forbidden claim | 6/9 | 0.67 | 0.35-0.88 | 0.67 / 0.67 / 0.67 |
-| Golden slice: verdict | 3/3 | 1.00 | 0.44-1.00 | 1.00 / 1.00 / 1.00 |
+| Golden slice (end to end) | not measured | – | – | withdrawn 2026-11-12, see below |
+
+**Correction, 2026-11-12: the golden slice was not measured.** This table first carried four golden
+rows (primary cause 6/9, must-mention 9/9, no forbidden claim 6/9, verdict 3/3). They were output of
+the deterministic mock, not of the model. The cassettes hold no call from the golden run, so on
+replay every request missed the cassette and the router answered from its `MockLLMClient` fallback
+(`src/ceap/eval/local_model.py:94`, `src/ceap/llm/router.py:404-417`). A replay of seed 1 with a
+counter gave 0 cassette hits and 15 mock answers and reproduced the published scores exactly. The
+live runs scored 0/3 on primary cause in each seed (`qwen2.5_7b-instruct_s1.json` to `_s3.json`),
+with the backtest tools timing out under the model's CPU load, so they do not measure the model
+either. The `golden` blocks in the committed JSON files are kept as recorded and must not be read as
+model results; they are regenerated with the 0.10.0 re-run, where an evaluation run fails on a
+fallback. The planner, reporter and critic rows above are scored from recorded model replies and are
+not affected.
 
 Plain reading: a 7B model on a laptop produces a valid plan about half the time and the harness
 repairs most of the rest; it never picks a tool outside the task (precision 1.00) but misses about a
@@ -83,13 +93,13 @@ re-running is a known issue for the next release.
 - **Seeds share the case set.** Pooling k/n across three seeds treats them as independent draws,
   which they are not: the pooled interval is too narrow. Read the per-seed values and their range
   next to it.
-- **Small samples.** The golden slice has 3 items and the injection subset 40 attacks. The
-  intervals are wide; these are first measurements, not settled rates.
-- **Published numbers come from replay, not the live run.** During the live runs the backtest
-  tools timed out under the model's own CPU load, which marked some golden cases incomplete (seed
-  1 live: golden cause 0/3; replay of the same cassette: 2/3). The model's replies are identical
-  in both; only the deterministic tools differ. Replay runs the tools without that load, so it is
-  the measurement of record. Agent metrics were identical live and on replay.
+- **Small samples.** The planner set has 10 cases, the critic set 15 planted faults and the
+  injection subset 40 attacks. The intervals are wide; these are first measurements, not settled
+  rates.
+- **Published agent numbers come from replay, not the live run.** Agent metrics were identical
+  live and on replay. An earlier version of this note said the same held for the golden slice
+  (seed 1 live 0/3, replay 2/3, "the model's replies are identical in both"). That was wrong: the
+  replayed golden answers came from the mock fallback (see the correction above).
 - **Judge labels are not independent.** The 50 calibration labels were written by Claude, not by
   independent human raters. A kappa above 0.6 shows the judge agrees with those labels, not with
   expert humans.
