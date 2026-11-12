@@ -8,8 +8,10 @@ import pytest
 
 import ceap.paper.job as job_mod
 from ceap.paper.config import PaperConfig
-from ceap.paper.job import PaperJob, PaperJobError
 from ceap.persistence.db import Database
+
+PaperJob = job_mod.PaperJob
+PaperJobError = job_mod.PaperJobError
 
 pytestmark = pytest.mark.real_paper_clock
 
