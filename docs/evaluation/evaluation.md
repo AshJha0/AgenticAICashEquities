@@ -141,10 +141,10 @@ seeds on PR, 500 nightly). At the 0.8.0 hurdle of 3.0 the 500-seed run gave 0/50
 ### Current results (mock LLM, 0.7.1 build; superseded)
 
 These are the 0.7.1 figures, before the 0.8.0 recalibration, the new hurdle and the INCONCLUSIVE
-verdict. On this build the deterministic pipeline measured 21/24 clear, 2/6 near-threshold and 25/30
-overall (synthetic, mock LLM; source `CHANGELOG.md` [0.8.0] and
-`docs/quant/real-data-and-paper.md`), each at or above its a-priori bar, the clear result exactly on
-it. The generated block below and `latest.json` carry the current figures once regenerated.
+verdict. The current build measures 25/30 overall (`latest.json`, 0.8333): 23/24 clear and 2/6
+near-threshold on the 0.9.0 re-run (synthetic, mock LLM; source `CHANGELOG.md` [0.9.0]). The 0.8.0
+notes gave 21/24 clear next to 2/6 and 25/30, which do not add up; the re-run count is the one
+that matches the total. The generated block below carries the current figures.
 
 ```
 scenarios                 30
@@ -496,11 +496,11 @@ test. Until 0.7.1 it was read from the null sweep (t >= 0.40). Re-run at the new
 500-seed null sweep found 0 false PROMOTEs (simulation; per-seed vector in <!-- source: docs/research/null_sweep_per_seed.json -->
 `docs/research/null_sweep_per_seed.json`, sweep hash unchanged). Sharpe is on excess returns over
 the Ken French daily risk-free rate (`data/reference/rf.csv`, with attribution). Details in
-[docs/research/README.md](docs/research/README.md#research-realism-toolkit-080-ws-d).
+[docs/research/README.md](../research/README.md#research-realism-toolkit-080-ws-d).
 
 `ceap evaluate --suite research` reports verdict accuracy, flag coverage, false-flag rate,
 completion and number-audit warnings. With the mock model the current build scores
-<!-- metric: capability.research_verdict_accuracy -->0.8333 verdict accuracy (25/30; 21/24 clear, 2/6 near-threshold; it was 29/30 <!-- source: CHANGELOG.md -->
+<!-- metric: capability.research_verdict_accuracy -->0.8333 verdict accuracy (25/30; 23/24 clear, 2/6 near-threshold on the 0.9.0 re-run; it was 29/30 <!-- source: CHANGELOG.md -->
 before the v0.8.0 recalibration), which meets the a-priori accuracy bars (clear 0.875, <!-- source: CHANGELOG.md -->
-near-threshold 1/3, all 0.80; the clear result sits exactly on its bar). All numbers are synthetic;
+near-threshold 1/3, all 0.80). All numbers are synthetic;
 nothing here says anything about real markets.
