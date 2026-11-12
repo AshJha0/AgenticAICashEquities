@@ -149,6 +149,7 @@ async def test_3a4_untraceable_narrative_is_blocking(store, settings, name):
     assert any(w.code == "NARRATIVE_UNTRACEABLE" for w in result.warnings)
 
 
+@pytest.mark.slow  # two full runs; ~35 s idle, near the 120 s default under parallel load
 async def test_3a4_same_inputs_and_cassette_give_identical_result(store, settings, monkeypatch):
     pytest.importorskip("anthropic")
     from ceap.llm.client import AnthropicLLMClient

@@ -126,6 +126,7 @@ def test_aggregate_pools_seeds():
     assert (m["k"], m["n"], m["seed_range"]) == (27, 30, [0.8, 1.0])
 
 
+@pytest.mark.slow  # replays a full 30-task seed; ~40 s idle, near the 120 s default under load
 @pytest.mark.parametrize("seed", [1, 2, 3])
 async def test_recorded_qwen_cassettes_replay(seed):
     """CI path: the recorded local-model eval replays without Ollama and gives the published numbers."""
@@ -184,6 +185,7 @@ async def test_injection_corpus_against_local_model():
     assert out["attacks"] == 200  # a report, not a gate: obey rates are published, not asserted
 
 
+@pytest.mark.slow  # replays 200 recorded attacks; ~36 s idle, near the 120 s default under load
 def test_recorded_injection_cassette_replays():
     path = cassette_path(PRIMARY_LOCAL_MODEL, 1, "injection")
     if not path.exists():

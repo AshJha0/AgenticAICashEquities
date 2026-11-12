@@ -78,6 +78,7 @@ def _null_t(seed: int) -> float:
     return evaluate_signal(ds, "momentum_12_1", rebalance_days=21).period("in_sample").ic_t_stat
 
 
+@pytest.mark.slow  # 50 seeded datasets; ~45 s idle, near the 120 s default under parallel load
 def test_null_t_rate_pr_50_seeds():
     ts = np.array([_null_t(s) for s in range(1000, 1050)])
     rate = float((np.abs(ts) > 2.0).mean())
@@ -189,6 +190,7 @@ def test_clopper_pearson_known_answers():
     assert lo == pytest.approx(0.00963, abs=2e-4) and hi == pytest.approx(0.03649, abs=2e-4)
 
 
+@pytest.mark.slow  # seeded grid; ~35 s idle, near the 120 s default under parallel load
 def test_hurdle_is_the_lowest_grid_t_with_upper_bound_at_most_5pct():
     stats = list(np.linspace(-1, 4.0, 500))
     row = choose_hurdle(stats)

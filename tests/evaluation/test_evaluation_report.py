@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import csv
 
+import pytest
+
 from ceap.evaluation_report import (
     HISTORY_FIELDS,
     HISTORY_PATH,
@@ -16,6 +18,7 @@ from ceap.evaluation_report import (
 )
 
 
+@pytest.mark.slow  # builds the whole evaluation table; ~75 s idle, over 120 s under parallel load
 async def test_3e2_one_command_produces_the_table_and_no_cell_claims_a_live_number(tmp_path):
     report = await build_report(limit=1, research_limit=1)
     assert set(report) >= {"capability", "safety", "robustness", "cost", "live_only"}
