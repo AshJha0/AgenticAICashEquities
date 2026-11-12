@@ -91,7 +91,7 @@ and passes the exact-zero guard; both need a tolerance.
 
 ### Tests
 
-- About 186 new behaviour tests: critical paths (staging, kill switch, approvals, critic, risk agent
+- 182 new behaviour tests: critical paths (staging, kill switch, approvals, critic, risk agent
   and risk maths), analytics and evaluation (research-study drivers, eval runs, report renderers),
   and the CLI, db/replay commands, replay harness, anchors and MCP client.
 - Seven 30-75 s tests moved to the `slow` tier (600 s ceiling). Under parallel load they crossed the
