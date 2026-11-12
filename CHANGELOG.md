@@ -99,6 +99,7 @@ and passes the exact-zero guard; both need a tolerance.
 - `CEAP_TEST_TIMEOUT_SCALE` multiplies the `slow`/`nightly` ceilings on a loaded machine; CI leaves
   it unset. Local coverage recipe: `docs/testing/test-pyramid.md`.
 - Coverage: 93 % branch across the whole `ceap` package (1326 tests: fast tier on 3 workers, slow tier serially, combined). The CI and nightly floor rises from 85 % to 90 %.
+- Docs audit corrections to `docs/quant/quant.md` (a-priori hurdle, INCONCLUSIVE verdict, power figures, research score 25/30, the two numerical issues) are in `docs/quant/quant-errata-0.9.0.md`: quant.md is a pinned RAG corpus file, so editing it would move the corpus pin, the retrieval caches, the preregistered RAG results and the report cassettes. They are folded back in at the 0.10.0 corpus re-measurement.
 
 **Fixed in the review:** a re-plan with step dependencies was always rejected (`depends_on` kept the
 old step ids); a NaN paper equity passed the replay gate; a malformed judge calibration file could
