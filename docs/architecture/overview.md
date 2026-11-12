@@ -159,6 +159,12 @@ hash so CI replays them without Ollama. Every routed call also feeds
 `ceap.observability.ai_slo.AISLOMonitor` (plan-valid, repair, fallback, untraceable-number rate and
 p95 latency per purpose, with p-chart alerts).
 
+Also in `ceap.eval` (0.9.0): a 200-attack prompt-injection corpus scored with canaries and Wilson
+intervals (`injection.py`), a rubric judge whose dimensions are used only when Cohen's kappa against
+a hand-labelled reference exceeds 0.6 (`judge.py`; the committed calibration enables `hedged` only),
+and a challenger-model view for approvers, off by default (`challenger.py`). Diagrams:
+`docs/DIAGRAMS.md` §17 and §19.
+
 ### 3.6 Harness (`ceap.harness`)
 
 `AgentHarness.execute(task, policy_context, cancellation)` runs the explicit state machine
@@ -271,7 +277,8 @@ writers. WAL and `busy_timeout` let `ceap db` read while the server writes. Sche
 `PRAGMA user_version`; `migrations/NNNN_*.sql` apply forward only, each in its own transaction, after
 an online backup of the file. Tables: `tasks`, `results`, `approvals`, `staged_orders`, `audit_log`
 (v1); `llm_calls`, `trial_ledger`, `idempotency_keys` (v2); the paper tables (v3); `hash_alg` columns,
-`chain_epoch` and `kill_switch_events` (v4, 0.8.0). Repositories (`repositories.py`) are thin,
+`chain_epoch` and `kill_switch_events` (v4, 0.8.0); `run_journal` (v5, 0.9.0, used only with
+`CEAP_DURABLE_RUNS=1`). Repositories (`repositories.py`) are thin,
 one per table. Startup recovery turns in-flight tasks into `INTERRUPTED` and pending approvals into
 `EXPIRED`. The Postgres path stays open: repositories speak plain SQL and own no connection logic.
 
@@ -284,6 +291,13 @@ is what catches a cut-off tail or a chain rebuilt by a key holder. `killswitch.p
 append-only, audited set/clear log that the paper job and `stage_orders` both read. File databases
 use `synchronous=FULL`, `arun` has a timeout, and `Database.health()` (served on `/health`) reports
 the writer queue and a write probe.
+
+### 3.10c Studies (`ceap.studies`, 0.9.0)
+
+`industry_momentum` runs study E1 on Ken French 49-industry returns. It refuses to run when the
+preregistration hash differs from `docs/research/e1/prereg_lock.json`, refuses holdout months
+unless asked to open the holdout, and refuses a second opening (`holdout_ledger.json`). Result:
+NULL; see `docs/research/e1/README.md` and `docs/DIAGRAMS.md` §20.
 
 ### 3.11 API (`ceap.api`)
 
@@ -364,7 +378,7 @@ never by the plan — see §3.6 and `docs/DIAGRAMS.md` §9.
                                               |
                                   staged_orders (PAPER_RESEARCH)
                                               |
- DailyFeed (synthetic | free daily) -> simulate_day(D+1): splits, financing, mark, fills, expiry
+ DailyFeed (synthetic | free daily) -> simulate_day(D+1): splits, dividends, financing, mark, fills, expiry
                                               |
           paper_ledger (HMAC chain) + paper_days (HMAC chain) + paper_forward_log | paper_simulated_log
                                               |
@@ -542,8 +556,8 @@ python -m ceap.mcp.risk            # get_position, get_exposure, check_limit, ca
 python -m ceap.mcp.engineering     # search_logs, get_service_metrics, get_deployments, get_latency_metrics, get_services
 python -m ceap.mcp.knowledge       # search_documents, get_document, list_documents (RAG)
 python -m ceap.mcp.research_data   # get_universe, get_daily_bars, get_universe_summary
-python -m ceap.mcp.alpha           # list_signals, evaluate_signal
-python -m ceap.mcp.backtest        # run_backtest
+python -m ceap.mcp.alpha           # list_signals, evaluate_signal, combine_signals
+python -m ceap.mcp.backtest        # run_backtest, trial_count
 ```
 
 Tool annotations carry `readOnlyHint`, a risk level and required capabilities, which the policy

@@ -38,6 +38,8 @@ hand at every release against:
 - `docs/evaluation/latest.json` (the committed `ceap evaluation-report --json` output) — accuracy, coverage, false-positive rate, research verdicts, golden-set results and sign-off,
 - `docs/research/result_momentum_2026-11.md` and `result_momentum_2026-11-v2.md` — R5 coverage figures,
 - `config/paper.json` — paper feed and forward start,
+- `docs/evaluation/local_model/qwen2.5_7b-instruct.json` and `judge_calibration.json` — local-model numbers (0.9.0),
+- `docs/research/e1/result_holdout.json` — the E1 holdout t-statistic (0.9.0),
 - `python -c "from ceap.mcp.registry import build_default_servers as b; s=b(); print(len(s), sum(len(v.list_tools()) for v in s.values()))"` — server count and tool count,
 - `python -c "from ceap.data import DatasetStore; print(DatasetStore().get('T01').summary())"` — dataset sizes,
 - `python -c "from ceap.data.historical import HistoricalStore; print(HistoricalStore().get('R01').summary())"` — research dataset sizes.

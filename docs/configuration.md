@@ -72,5 +72,6 @@ modules named in each row; CI jobs are in `.github/workflows/`.
 
 Test markers: `slow` (runs on PR; skip locally with `-m "not slow"`) and `nightly` (nightly only;
 the tests skip unless `CEAP_NIGHTLY=1`, which `nightly.yml` sets). `pytest-timeout` gives each test
-120 s, `slow` 600 s and `nightly` 1800 s. Tests that read `scripts/`, `docs/`, committed data or
+120 s, `slow` 600 s and `nightly` 1800 s; `CEAP_TEST_TIMEOUT_SCALE` (default 1, tests only)
+multiplies the `slow` and `nightly` ceilings on a loaded machine, and CI leaves it unset. Tests that read `scripts/`, `docs/`, committed data or
 `.github/` live in `tests/repo`; `tests/unit` reads nothing outside `src` and `tests`.

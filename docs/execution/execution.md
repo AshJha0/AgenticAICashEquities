@@ -178,8 +178,9 @@ price, then time. `auction_impact_bps` uncrosses with and without our order. Evi
 continuous-book interaction, no imbalance-only orders).
 
 **Worked example.** MOC buy 500, buys 300 @ 10.02 and 200 @ 10.00; sells 400 @ 9.99, 400 @ 10.01,
-300 @ 10.03. At 10.01, 800 shares match with no imbalance; the 10.00 buy and the 10.03 sell get
-nothing.
+300 @ 10.03, reference price 10.00. At 10.01, 800 shares match with no imbalance. 10.02 also
+matches 800 with no imbalance, so the tie goes to the price closer to the reference: 10.01. The
+10.00 buy and the 10.03 sell get nothing (`tests/unit/execution/test_auction_costloop_rules.py`).
 
 `auction_capacity` sizes an MOC at a fraction of expected auction volume
 (`ADV x CLOSING_AUCTION_ADV_FRACTION`, 0.06 in the generator; public commentary puts US closes

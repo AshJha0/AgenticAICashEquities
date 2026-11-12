@@ -185,7 +185,7 @@ What each of the three asks the model for, and what happens when the answer is b
 |---|---|---|---|
 | Planner | `planning` | which read-only tools to call, and the scope choices (hypotheses, baselines) from enumerated options | one repair, then the canonical plan |
 | Critic | `critique` | whether to dispute a finding, and which named check to run | the deterministic critique alone |
-| Reporter | `claims`, then `narrative` | which claims to make and how to word them; which policy chunks to cite | claims dropped by the validator; templated narrative |
+| Reporter | `claims` (uses the `narrative` pin), then `narrative` | which claims to make and how to word them; which policy chunks to cite | claims dropped by the validator; templated narrative |
 
 The model never computes a number and never sets a confidence. So a bad model shows up as a worse
 plan, a missed dispute, a dropped claim or a rejected citation, never as a wrong metric. Those four
@@ -317,12 +317,12 @@ warning.
 
 Investigation reports are written in two model calls.
 
-1. **Claims** (prompt `reporter_claims@1`, structured output `ClaimsOutput`): the model returns
+1. **Claims** (prompt `reporter_claims`, introduced at version 1, now `@2`; structured output `ClaimsOutput`): the model returns
    `claims[{section, text, fact_keys, evidence_ids, needs_policy_support}]`. Code keeps a claim only
    if every fact key resolves in the facts, every evidence id exists and every number traces to the
    facts; a claim with neither fact keys nor evidence ids is dropped. Dropped claims stay in the
    report with their reasons (`critique.knowledge.dropped_claims`).
-2. **Prose** (prompt `reporter_prose@1`, citations on, no structured output: the API does not allow
+2. **Prose** (prompt `reporter_prose`, now `@2`; citations on, no structured output: the API does not allow
    both in one call): each retrieved chunk is a `document` block of custom content with one content
    block, wrapped as untrusted `rag` data, with `cache_control` on the last document (two
    breakpoints in all, with the system block). The validated claims and facts follow in a text block.

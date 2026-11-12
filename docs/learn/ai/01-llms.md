@@ -18,8 +18,8 @@ which tools to call, and writing a narrative around numbers that code has alread
   `p_i = exp(z_i / T) / sum_j exp(z_j / T)`. Lower `T` concentrates mass on the top token; a fixed
   seed makes a given server and model reproducible, not a different model.
 - Structured output: the request carries a JSON schema; a reply is usable only if it parses and
-  validates. CEAP treats every reply as one of: valid without repair, repaired (a bounded fix such
-  as dropping unknown tools), or unusable, in which case the deterministic `canonical_plan` is used.
+  validates. CEAP treats every reply as one of: valid without repair, repaired (exactly one more
+  model call whose target is the list of schema and semantic errors), or unusable, in which case the deterministic `canonical_plan` is used.
 - The boundary (`src/ceap/__init__.py`): LLM = reasoning and orchestration assistance; Python
   analytics = deterministic computation. Every number in a report comes from `ceap.analytics` or a
   tool call.
@@ -71,7 +71,7 @@ column of the source table (valid 0.50, repaired 0.40, fallback 0.10). Then open
 
 <details><summary>1. Why does CEAP ask for schema-constrained JSON rather than free text for plans?</summary>
 So a plan can be validated mechanically: unknown tools, bad arguments and missing fields are
-detected, repaired within bounds, or replaced by the canonical plan.</details>
+detected, repaired once, sanitised, or replaced by the canonical plan.</details>
 
 <details><summary>2. What does a higher temperature do?</summary>
 It flattens the next-token distribution, so less likely tokens are sampled more often.</details>

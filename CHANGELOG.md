@@ -55,6 +55,8 @@ data; the local-model numbers come from one CPU machine.
 - Paper dividends: a symbol that could leave the cache directory is refused.
 - `ceap.eval.local_model --replay --write` writes the pooled aggregate; a single-seed live run
   no longer overwrites it (each seed process used to replace the others' numbers).
+- Paper ledger hashes an integer quantity as the REAL column reads it back: an int 10 was hashed
+  as 10 but read back as 10.0, so verification failed.
 - Harness invariant 7 (an untraceable narrative is blocking) is asserted unconditionally; the
   test's feature flag read `engine.py`, which the engine split emptied of that code.
 
@@ -83,6 +85,20 @@ idempotency key is stable only for JSON-native arguments (all current callers). 
 Andrews lag divides by zero on constant residuals (degenerate input only). The B7 challenger
 agreement is **not measured**: its comparison path matched neither model's recordings and marked
 live primary replies unusable, so no number is published (llama replies kept in the cassette).
+`factor_regression` reports R² ≈ 0.93 for a constant y, and `raw_betas_ex_self` returns huge betas
+for a near-constant market series: the total sum of squares or variance lands a few ulps above zero
+and passes the exact-zero guard; both need a tolerance.
+
+### Tests
+
+- 182 new behaviour tests: critical paths (staging, kill switch, approvals, critic, risk agent
+  and risk maths), analytics and evaluation (research-study drivers, eval runs, report renderers),
+  and the CLI, db/replay commands, replay harness, anchors and MCP client.
+- Seven 30-75 s tests moved to the `slow` tier (600 s ceiling). Under parallel load they crossed the
+  120 s default and pytest-timeout ended the xdist worker, losing its coverage data.
+- `CEAP_TEST_TIMEOUT_SCALE` multiplies the `slow`/`nightly` ceilings on a loaded machine; CI leaves
+  it unset. Local coverage recipe: `docs/testing/test-pyramid.md`.
+- Coverage: <!-- COVERAGE -->
 
 **Fixed in the review:** a re-plan with step dependencies was always rejected (`depends_on` kept the
 old step ids); a NaN paper equity passed the replay gate; a malformed judge calibration file could

@@ -24,7 +24,7 @@ defaults:
 | `dev-viewer-key` | viewer | `tools:read`, `investigate:read`, `research:read` |
 | `dev-trader-key` | trader | + `investigate`, `risk:medium` |
 | `dev-quant-key` | quant | + `research`, `data:export` |
-| `dev-admin-key` | admin | + `tools:write`, `risk:high`, `trading:execute`, `tasks:read-any`, `tasks:cancel-any`, `metrics:read` (since 0.8.0 `risk:high` no longer skips the human approval for a HIGH-risk tool, and admin cannot decide approvals) |
+| `dev-admin-key` | admin | + `tools:write`, `risk:high`, `trading:execute`, `engineering:deep`, `tasks:read-any`, `tasks:cancel-any`, `metrics:read` (since 0.8.0 `risk:high` no longer skips the human approval for a HIGH-risk tool, and admin cannot decide approvals) |
 | `dev-approver-key`, `dev-approver2-key` | approver | read + `approvals:decide`, `tasks:read-any` |
 | `dev-auditor-key` | auditor | read + `tasks:read-any`, `metrics:read`; no actions |
 
@@ -50,7 +50,7 @@ paper order staging - the only non-read-only tool - and even then the harness as
 | GET | `/investigations/{id}/result?include_trace=true` | `investigate:read` | full result: plan, findings, evidence, policy log, step results, trace |
 | GET | `/investigations/{id}/trace` | `investigate:read` | spans, state history, policy log, step results |
 | POST | `/investigations/{id}/cancel` | `investigate` | cooperative cancellation |
-| GET | `/research-scenarios?all=false` | – | research scenario templates (or all 21 with `all=true`) |
+| GET | `/research-scenarios?all=false` | – | research scenario templates (or all 30 with `all=true`) |
 | POST | `/research` | `research` | start a signal research task (202 Accepted); 403 when `stage_orders` is requested without `trading:execute` |
 | GET | `/research` | `research:read` | list research tasks with status |
 | GET | `/research/{id}` | `research:read` | status |
@@ -121,10 +121,11 @@ POST /research
 }
 ```
 
-* `signal` (`momentum_12_1`, `reversal_5`, `low_vol_60`) and `dataset` (R01–R07, RS01–RS21) are
+* `signal` (`momentum_12_1`, `reversal_5`, `low_vol_60`) and `dataset` (R01–R10, RS01–RS30) are
   parsed from the question when omitted ("momentum", "reversal", "low vol"; "R04"); dates as
   "from YYYY-MM-DD to YYYY-MM-DD". `start`, `end` and `in_sample_end` default to the dataset's
-  walk-forward split (one warm-up year, two in-sample years, one out-of-sample year);
+  walk-forward split (for R01: start 2007-09-07 after a warm-up year, in-sample to 2021-09-10,
+  out-of-sample to 2026-09-18);
   `rebalance_days` defaults to the signal's.
 * The request is validated before it is accepted: unknown signal or dataset, a window outside
   coverage or inside the warm-up, an `in_sample_end` outside the window → 422; a principal without

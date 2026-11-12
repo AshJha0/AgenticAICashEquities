@@ -5,7 +5,10 @@
 > added (fail-closed configuration, the SQLite platform and hash-chained audit log, the strict LLM
 > layer, BM25 retrieval with citations, deterministic ML, the evaluation report and golden set, the
 > R5 real-data study published VOID, and paper trading on synthetic data), and some statuses below
-> are out of date (for example, storage is now SQLite, not in-memory). For the current platform read
+> are out of date (for example, storage is now SQLite, not in-memory). Nor does it describe 0.8.0
+> (the execution simulator, per-agent allowlists, keyed audit chains) or 0.9.0 (a local open-weight
+> model with replayed cassettes, critic statement checks, opt-in hybrid retrieval, durable runs, and
+> study E1, NULL). For the current platform read
 > [../README.md](../README.md), [architecture/overview.md](architecture/overview.md),
 > [ai-agents/ai-agents.md](ai-agents/ai-agents.md), [evaluation/evaluation.md](evaluation/evaluation.md),
 > [quant/real-data-and-paper.md](quant/real-data-and-paper.md) and [../CHANGELOG.md](../CHANGELOG.md).
@@ -154,7 +157,7 @@ reject rate and per-venue statistics.
 decision price × target quantity, normalised to bps), slippage (execution − benchmark), fill
 rate, participation rate, average spread, realised spread, market impact, execution latency,
 venue fill rate, venue slippage, price drift, volatility.
-*Status: realised* — `ceap.analytics.*`; `tests/unit/test_analytics.py` (known-answer tests
+*Status: realised* — `ceap.analytics.*`; `tests/unit/analytics/` (known-answer tests
 including sign conventions and opportunity cost). "Realised spread" is delivered as effective
 spread plus temporary impact.
 

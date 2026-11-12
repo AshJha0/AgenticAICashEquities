@@ -54,5 +54,24 @@ pytest tests/properties --no-cov                    # properties and metamorphic
 HYPOTHESIS_PROFILE=nightly pytest tests/properties  # 1000 examples each
 ```
 
+**A reliable coverage number on a loaded machine.** A pytest-timeout expiry ends the whole xdist
+worker on Windows, and that worker's coverage data goes with it ("node down"), so a parallel run
+under load can report a coverage figure that is too low. In 0.9.0 seven 30-75 s tests moved to the
+`slow` tier (600 s ceiling) for this reason. To measure locally:
+
+```bash
+pytest -m "not slow and not nightly" -n 3 --cov=src/ceap --cov-report=     # fast tier, parallel
+pytest -m "slow and not nightly" -p no:xdist --cov=src/ceap --cov-append     # slow tier, serial
+```
+
+`CEAP_TEST_TIMEOUT_SCALE` (default 1) multiplies the `slow` and `nightly` ceilings, e.g. `2` on a
+busy laptop; CI leaves it unset. It does not change the harness's own per-step tool timeout
+(`CEAP_STEP_TIMEOUT_SECONDS`, default 30 s): under heavy load a research backtest can exceed it,
+the step degrades as designed, and a test that expects the full result (for example
+`test_agents_flag_what_the_scenarios_embed`) fails for that reason alone. On a loaded machine set
+`CEAP_STEP_TIMEOUT_SECONDS=90` as well; on an idle machine and in CI the default holds. To measure one module, still pass `--cov=src/ceap` and read that
+module's row: `--cov=ceap.<module>` imports the package early and trips numpy's "cannot load more
+than once" error.
+
 Mutation testing needs Linux (mutmut does not run natively on Windows): `pip install mutmut==3.8.1`,
 `mutmut run`, then `python scripts/mutation_ratchet.py`.
