@@ -1,0 +1,963 @@
+{
+ "interactions": [
+  {
+   "latency_ms": 63696.3,
+   "purpose": "judge",
+   "request_sha256": "a192ed2776794823e6d65445e85044f7b3733f6667d59eeda0381a44279a3549",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"All numbers match, both shortfall and cause are stated, and confidence language is appropriate.\"\n}",
+    "input_tokens": 472,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 45,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "All numbers match, both shortfall and cause are stated, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 64641.2,
+   "purpose": "judge",
+   "request_sha256": "1562c4b4c897f277765743001d179cfddfdb210108a1f51f5d29c3466aa175ed",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Numbers and primary cause do not match the facts.\"\n}",
+    "input_tokens": 481,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Numbers and primary cause do not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 36383.3,
+   "purpose": "judge",
+   "request_sha256": "58a476f126e995ab92b9932d4ba501b2f558e304fc2c1854ef27c3935b1ec412",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"Numbers and cause match facts, both required elements are present, and confidence language is appropriate.\"\n}",
+    "input_tokens": 453,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 46,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "Numbers and cause match facts, both required elements are present, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 35833.8,
+   "purpose": "judge",
+   "request_sha256": "9fe188e359a1f465a32310e43ee77ff5d613e6a4867595bd5a10073da7a2d7c1",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": false,\n  \"reason\": \"The narrative states a confidence level of 'beyond doubt' which is not hedged.\"\n}",
+    "input_tokens": 467,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 46,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": false,
+     "reason": "The narrative states a confidence level of 'beyond doubt' which is not hedged."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 35208.5,
+   "purpose": "judge",
+   "request_sha256": "495cb59196c18ff5ead7fc390739cb6cb9b3a899dfa4f95eea9aabc2c7aa2aa0",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": false,\n  \"reason\": \"Numbers and cause in narrative differ from facts.\"\n}",
+    "input_tokens": 468,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 37,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": false,
+     "reason": "Numbers and cause in narrative differ from facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 64282.4,
+   "purpose": "judge",
+   "request_sha256": "cc22d4f73dd37e1609eff703a98ad50b056ccb4ec27a2dc0a5b77160c6bd2df4",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"All numbers match, both shortfall and cause are stated, and confidence language is appropriate.\"\n}",
+    "input_tokens": 467,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 45,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "All numbers match, both shortfall and cause are stated, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 65188.1,
+   "purpose": "judge",
+   "request_sha256": "d934cbae3799ea4f8f1357555a81cf22953e5fc38ac2995f5687d2e68a43f016",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Numbers and primary cause do not match the facts.\"\n}",
+    "input_tokens": 469,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Numbers and primary cause do not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 63462.4,
+   "purpose": "judge",
+   "request_sha256": "6d035212ce4febb98d4ac5e258f6964ef1e15b8517cd48712e5452b3274203e3",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"Numbers and cause match facts, both required elements are present, and confidence language is appropriate.\"\n}",
+    "input_tokens": 446,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 46,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "Numbers and cause match facts, both required elements are present, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 58141.4,
+   "purpose": "judge",
+   "request_sha256": "3e5f95f54af079ccbfd91ab08e9118e292055c1dc4a682d5fc2abbd46ef66ba2",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": false,\n  \"reason\": \"The narrative claims certainty ('proves beyond doubt', 'no other explanation is possible') which does not match the facts.\"\n}",
+    "input_tokens": 458,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 52,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": false,
+     "reason": "The narrative claims certainty ('proves beyond doubt', 'no other explanation is possible') which does not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 68176.9,
+   "purpose": "judge",
+   "request_sha256": "00844a0fb833e5318b212138cca243e9bd44c648b4185937d1f688b096ef45c7",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": false,\n  \"reason\": \"Numbers and cause in narrative differ from facts.\"\n}",
+    "input_tokens": 452,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 37,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": false,
+     "reason": "Numbers and cause in narrative differ from facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 32725.2,
+   "purpose": "judge",
+   "request_sha256": "0b5cf181b61f55adab41e30399a629eccd5fd982967c5e6c7531be10987278c5",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"All numbers and causal statements match the facts, both required elements are present, and confidence language is appropriate.\"\n}",
+    "input_tokens": 482,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 49,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "All numbers and causal statements match the facts, both required elements are present, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 38255.9,
+   "purpose": "judge",
+   "request_sha256": "5ab2552756716407090f3095d60130ad35d3ff4e22b4a381cf5a98e5ea2cc6b0",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Numbers and primary cause do not match the facts.\"\n}",
+    "input_tokens": 476,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Numbers and primary cause do not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 30554.3,
+   "purpose": "judge",
+   "request_sha256": "d5893550c550869474bd868ddca11e2cafe519ab86553fc9a6b2077d4c0c9094",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Numbers and cause do not match facts.\"\n}",
+    "input_tokens": 456,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 36,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Numbers and cause do not match facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 34825.8,
+   "purpose": "judge",
+   "request_sha256": "b7bcc4ff37f1e63011776c9f8c9e8b1ba8711bad48c768a487e98af0d4101b50",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": false,\n  \"reason\": \"The narrative states a certainty in the cause that is not supported by the facts.\"\n}",
+    "input_tokens": 463,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 44,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": false,
+     "reason": "The narrative states a certainty in the cause that is not supported by the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 33044.3,
+   "purpose": "judge",
+   "request_sha256": "f96fad9b8c0b32bdaba8d3765af0ff4d9fa2318c94a65304d52e42c3c0718a58",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": false,\n  \"reason\": \"Numbers and primary cause in narrative differ from facts.\"\n}",
+    "input_tokens": 471,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": false,
+     "reason": "Numbers and primary cause in narrative differ from facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 65054.7,
+   "purpose": "judge",
+   "request_sha256": "3b3d4245c4694a96fd98273cfb2368c348681fdca4be3c04d8cfa5eebf046915",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"All numbers match, both shortfall and cause are stated, and confidence language is appropriate.\"\n}",
+    "input_tokens": 477,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 45,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "All numbers match, both shortfall and cause are stated, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 68563.0,
+   "purpose": "judge",
+   "request_sha256": "f22c9b29cced6da9ab934faa885f3d34df8ac43926ee476ba300ca7196757c3a",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Numbers and primary cause do not match the facts.\"\n}",
+    "input_tokens": 479,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Numbers and primary cause do not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 57577.3,
+   "purpose": "judge",
+   "request_sha256": "40082f5718b1bef43de532b705e8dd71cbf6a54e9a7f01dca6349c2fe4bf340f",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Numbers and cause differ from facts.\"\n}",
+    "input_tokens": 457,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 35,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Numbers and cause differ from facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 43222.7,
+   "purpose": "judge",
+   "request_sha256": "ba8b27fb4078564d6952042329a4a45cf93b987876e2ef9b0e740e1459b22544",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": false,\n  \"reason\": \"The narrative states a confidence of 'beyond doubt' which is not hedged.\"\n}",
+    "input_tokens": 460,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 45,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": false,
+     "reason": "The narrative states a confidence of 'beyond doubt' which is not hedged."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 89516.1,
+   "purpose": "judge",
+   "request_sha256": "8f4efd6e2417473be8a68ca78dd73f4ea433a65f571e280d07048fa08a728f34",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": false,\n  \"reason\": \"Numbers and primary cause in narrative differ from facts.\"\n}",
+    "input_tokens": 470,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": false,
+     "reason": "Numbers and primary cause in narrative differ from facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 71135.9,
+   "purpose": "judge",
+   "request_sha256": "e7ecf9c5d270482b65766cfba004e1350f7c9ac6e08c497d16492d516f4ef7a2",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"All numbers and causal statements match the facts, both shortfall and cause are stated, and confidence language is appropriate.\"\n}",
+    "input_tokens": 460,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 50,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "All numbers and causal statements match the facts, both shortfall and cause are stated, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 35110.5,
+   "purpose": "judge",
+   "request_sha256": "e7457679860542411f79ff49f9bbc10319590abdae4c46ee2098097f12a69f4a",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"Implementation shortfall figure differs from the facts.\"\n}",
+    "input_tokens": 471,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 36,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Implementation shortfall figure differs from the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 48392.8,
+   "purpose": "judge",
+   "request_sha256": "4c3e8f035bc4d8e8feb2f0c4cf9f98ba717b78147a2a062134b400d891a30d1a",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"No primary cause stated, and the narrative does not match the facts regarding the implementation shortfall.\"\n}",
+    "input_tokens": 453,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 46,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "No primary cause stated, and the narrative does not match the facts regarding the implementation shortfall."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 60889.2,
+   "purpose": "judge",
+   "request_sha256": "f71e041f6111f271a0572818bc5327b4b1a7389f617695db105c877ae3f73e9e",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": false,\n  \"reason\": \"The narrative states a confidence level of proof that is not supported by the facts.\"\n}",
+    "input_tokens": 459,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 44,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": false,
+     "reason": "The narrative states a confidence level of proof that is not supported by the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 48483.4,
+   "purpose": "judge",
+   "request_sha256": "7c899c06671c9a27d7fd5e0a124c6b0f4b4bcc6430cdcef9093ba225abd736d8",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": false,\n  \"reason\": \"Numbers and cause in narrative differ from facts.\"\n}",
+    "input_tokens": 452,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 37,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": false,
+     "reason": "Numbers and cause in narrative differ from facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 59859.5,
+   "purpose": "judge",
+   "request_sha256": "bfbd45796aafb6628ddf58e047d803e6242698557a381c71bab51ed8ea509d66",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"All numbers match, both shortfall and cause are stated, and confidence language is appropriate.\"\n}",
+    "input_tokens": 480,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 45,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "All numbers match, both shortfall and cause are stated, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 88472.8,
+   "purpose": "judge",
+   "request_sha256": "e97469a52671668a9d81e4978905e14a5c9a6e0c4747ba90c33229ec9f8b03ea",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"Implementation shortfall figure differs from the facts.\"\n}",
+    "input_tokens": 475,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 36,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Implementation shortfall figure differs from the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 68948.0,
+   "purpose": "judge",
+   "request_sha256": "65eef43f371595c18bcfa1dd315edd3cd47a95778adfbb6204a8c2522db6daf0",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Missing primary cause in narrative.\"\n}",
+    "input_tokens": 447,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 34,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": true,
+     "hedged": true,
+     "reason": "Missing primary cause in narrative."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 94420.7,
+   "purpose": "judge",
+   "request_sha256": "f2598a682468116fa71c707d7c1bda2e3f091eab0c05162da10c77e644ee0032",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": false,\n  \"reason\": \"The narrative claims certainty in the cause, which differs from the facts.\"\n}",
+    "input_tokens": 471,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 42,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": false,
+     "reason": "The narrative claims certainty in the cause, which differs from the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 106872.4,
+   "purpose": "judge",
+   "request_sha256": "7bea0dd3493df99c2ff07bdd914aa14f43a34a04ab8fa99afbc00e0df2399484",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": false,\n  \"reason\": \"Numbers and primary cause in narrative differ from facts.\"\n}",
+    "input_tokens": 470,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": false,
+     "reason": "Numbers and primary cause in narrative differ from facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 107626.8,
+   "purpose": "judge",
+   "request_sha256": "cd8d9d3c49c4fa7acccb6484e7d91d622cf817f66baf24c2d4046b04e3eb863b",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"All numbers and causal statements match the facts, both required elements are present, and confidence language is appropriate.\"\n}",
+    "input_tokens": 484,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 49,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "All numbers and causal statements match the facts, both required elements are present, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 35853.0,
+   "purpose": "judge",
+   "request_sha256": "ac5e91756880b9221d9493aaa329186b7d499b8dbe874687631fae73924dca86",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Implementation shortfall and primary cause do not match the facts.\"\n}",
+    "input_tokens": 476,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 39,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Implementation shortfall and primary cause do not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 49800.3,
+   "purpose": "judge",
+   "request_sha256": "3d96c64b0a0ffaa457d93f86002be871a7c34215ba67a64b8e5ddf3fe84457c9",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"Numbers match and both required elements are present with appropriate hedging.\"\n}",
+    "input_tokens": 459,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 41,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "Numbers match and both required elements are present with appropriate hedging."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 50657.8,
+   "purpose": "judge",
+   "request_sha256": "c466e12cb67282296ac0d2587cb853009f95495dd78376260078ea1795f9735e",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": false,\n  \"reason\": \"The narrative states a confidence level of 'beyond doubt' which is not consistent with the facts provided.\"\n}",
+    "input_tokens": 473,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 49,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": false,
+     "reason": "The narrative states a confidence level of 'beyond doubt' which is not consistent with the facts provided."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 60407.1,
+   "purpose": "judge",
+   "request_sha256": "61f345c37a8dc72e8e6473537f72e5fc44e26d8a96a304e7465f62630624db16",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": false,\n  \"reason\": \"Numbers and cause in narrative differ from facts.\"\n}",
+    "input_tokens": 473,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 37,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": false,
+     "reason": "Numbers and cause in narrative differ from facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 51438.2,
+   "purpose": "judge",
+   "request_sha256": "18f2cfc73b3bdb3b6de67840583c36194cb91e3d68d28b817bcfeb5da947044a",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"All numbers and causal statements match the facts, both shortfall and cause are stated, and confidence language is appropriate.\"\n}",
+    "input_tokens": 474,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 50,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "All numbers and causal statements match the facts, both shortfall and cause are stated, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 100526.2,
+   "purpose": "judge",
+   "request_sha256": "ad416dd8a791e67d2241ad74cb6b1f4bb4c20c6398150b899ed4f048fa9ce2c4",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Numbers and primary cause do not match the facts.\"\n}",
+    "input_tokens": 471,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Numbers and primary cause do not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 119677.7,
+   "purpose": "judge",
+   "request_sha256": "072d98db8165948673d5475849d6570621003afd92d123831b2b087541bd39e4",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"Numbers and cause match facts, both required elements are present, and confidence language is appropriate.\"\n}",
+    "input_tokens": 443,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 46,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "Numbers and cause match facts, both required elements are present, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 107099.2,
+   "purpose": "judge",
+   "request_sha256": "91e31208ef974d71a2c96b00c14b176a0d18ccfa4a98ab2fda069a7719b2e414",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": false,\n  \"reason\": \"The narrative claims certainty ('proves beyond doubt') which does not match the facts' confidence level.\"\n}",
+    "input_tokens": 467,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 48,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": false,
+     "reason": "The narrative claims certainty ('proves beyond doubt') which does not match the facts' confidence level."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 97560.7,
+   "purpose": "judge",
+   "request_sha256": "4cbe70bf1c717e3ad8f289b5569453b65d5838e88ac453d97c53357887c1cc83",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": false,\n  \"reason\": \"Numbers and cause in narrative differ from facts.\"\n}",
+    "input_tokens": 460,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 37,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": false,
+     "reason": "Numbers and cause in narrative differ from facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 91454.9,
+   "purpose": "judge",
+   "request_sha256": "a78100e0346249fecfdc1ce86f700adacc9d91578dcd62cefa36050885c83dbc",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"All numbers match, both shortfall and cause are stated, and confidence language is appropriate.\"\n}",
+    "input_tokens": 465,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 45,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "All numbers match, both shortfall and cause are stated, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 44696.2,
+   "purpose": "judge",
+   "request_sha256": "8dc9daca6a7e77332704ba624d65d00c2409deb6c7f74c316c083e5cc06b82eb",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Numbers and primary cause do not match the facts.\"\n}",
+    "input_tokens": 461,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Numbers and primary cause do not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 65806.8,
+   "purpose": "judge",
+   "request_sha256": "b333082e3a37ff63580f92e3d778473e3ed626e09f2d24f1007ae1a69cdca2ac",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"Numbers and cause match facts; includes both shortfall and primary cause; confidence language is appropriate.\"\n}",
+    "input_tokens": 444,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 46,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "Numbers and cause match facts; includes both shortfall and primary cause; confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 49204.7,
+   "purpose": "judge",
+   "request_sha256": "555af9ae028b564650b8d996950ef14a9a488da63c81698e8bfb11add150885f",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": false,\n  \"reason\": \"The narrative claims certainty ('proves beyond doubt', 'no other explanation is possible') which does not match the facts.\"\n}",
+    "input_tokens": 454,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 52,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": false,
+     "reason": "The narrative claims certainty ('proves beyond doubt', 'no other explanation is possible') which does not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 69622.4,
+   "purpose": "judge",
+   "request_sha256": "07f155518335ca9770ccf768b41b38a959074edc9a47161734f4c1c805fa54bd",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": false,\n  \"reason\": \"Numbers and cause in narrative differ from facts.\"\n}",
+    "input_tokens": 446,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 37,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": false,
+     "reason": "Numbers and cause in narrative differ from facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 60046.4,
+   "purpose": "judge",
+   "request_sha256": "d2fadf8cf8e51d42ef5df61ca16a4b740baf1d4eb89837a3d320c3917d5756d8",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"All numbers and causal statements match the facts, both shortfall and cause are stated, and confidence language is appropriate.\"\n}",
+    "input_tokens": 485,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 50,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "All numbers and causal statements match the facts, both shortfall and cause are stated, and confidence language is appropriate."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 88842.9,
+   "purpose": "judge",
+   "request_sha256": "5fd9d0f646f103d0dbf74bf8d1a0d3fec970cb43c24771f1e74a4ad81a795278",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": true,\n  \"reason\": \"Numbers and primary cause do not match the facts.\"\n}",
+    "input_tokens": 483,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": true,
+     "reason": "Numbers and primary cause do not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 115077.3,
+   "purpose": "judge",
+   "request_sha256": "904c966c7ad1d35ab0c499193cbc2ecde476541885ce37fe6894ee42462dec1c",
+   "response": {
+    "content": "{\n  \"faithful\": true,\n  \"complete\": true,\n  \"hedged\": true,\n  \"reason\": \"Numbers match and both required elements are present with appropriate hedging.\"\n}",
+    "input_tokens": 453,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 41,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": true,
+     "hedged": true,
+     "reason": "Numbers match and both required elements are present with appropriate hedging."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 119153.3,
+   "purpose": "judge",
+   "request_sha256": "14e21910ab76a6df4490b54515674de9d9bb663c0f790b9ca3218ebfc730b3d1",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": true,\n  \"hedged\": false,\n  \"reason\": \"The narrative states a certainty in the cause that is not supported by the facts.\"\n}",
+    "input_tokens": 466,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 44,
+    "parse_errors": [],
+    "parsed": {
+     "complete": true,
+     "faithful": false,
+     "hedged": false,
+     "reason": "The narrative states a certainty in the cause that is not supported by the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  },
+  {
+   "latency_ms": 85706.2,
+   "purpose": "judge",
+   "request_sha256": "a47e472f4c455575d5c43eace0d5d4ee13e0d0c095bf2aaf4be43e80c69b6eec",
+   "response": {
+    "content": "{\n  \"faithful\": false,\n  \"complete\": false,\n  \"hedged\": false,\n  \"reason\": \"Numbers and primary cause do not match the facts.\"\n}",
+    "input_tokens": 468,
+    "model": "qwen2.5:7b-instruct",
+    "output_tokens": 38,
+    "parse_errors": [],
+    "parsed": {
+     "complete": false,
+     "faithful": false,
+     "hedged": false,
+     "reason": "Numbers and primary cause do not match the facts."
+    },
+    "stop_reason": "end_turn"
+   }
+  }
+ ],
+ "provenance": {
+  "digest": "845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e",
+  "model": "qwen2.5:7b-instruct",
+  "note": "",
+  "provenance": "local_model",
+  "runtime": "ollama",
+  "seed": 1,
+  "temperature": 0.0
+ }
+}

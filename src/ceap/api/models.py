@@ -82,7 +82,7 @@ class ResearchCreate(BaseModel):
         examples=["Does 12-1 momentum work on the R01 universe? Evaluate it out-of-sample with costs."],
     )
     signal: str | None = Field(default=None, description="Signal id; parsed from the question when omitted")
-    dataset: str | None = Field(default=None, description="Research dataset id (R01..R07, RS01..RS21)")
+    dataset: str | None = Field(default=None, description="Research dataset id (R01..R10, RS01..RS30)")
     start: date | None = Field(default=None, description="First research date (defaults to the dataset's)")
     end: date | None = None
     in_sample_end: date | None = Field(default=None, description="Walk-forward split (defaults to the dataset's)")
@@ -164,6 +164,8 @@ class ApprovalReviewOut(BaseModel):
     tool_id: str = ""
     arguments: dict[str, Any] = Field(default_factory=dict)
     hash_verified: bool = True
+    #: 0.9.0 B7: advisory challenger-agreement block; None unless a challenger model planned the task
+    challenger: dict[str, Any] | None = None
 
 
 class ScenarioOut(BaseModel):

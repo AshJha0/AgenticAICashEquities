@@ -80,6 +80,12 @@ class RetrievalHit:
         }
 
 
+def index_text(c: Chunk) -> str:
+    """The text a chunk is indexed under: title and section with the body (headings carry most of
+    the topical signal). Shared by BM25 and the optional dense index (``ceap.rag.dense``)."""
+    return f"{c.title} {' '.join(c.sections) or c.section} {c.text}"
+
+
 class KnowledgeBase:
     def __init__(
         self,
@@ -97,9 +103,7 @@ class KnowledgeBase:
         self.min_support = min_support
         self.chunks: list[Chunk] = [c for d in documents for c in chunk_document(d, strategy=chunking)]
         # Title and section are indexed with the body: headings carry most of the topical signal.
-        self._index = BM25(
-            [tokenize(f"{c.title} {' '.join(c.sections) or c.section} {c.text}") for c in self.chunks]
-        )
+        self._index = BM25([tokenize(index_text(c)) for c in self.chunks])
         self.corpus_hash = corpus_hash(documents)
 
     def __len__(self) -> int:
@@ -167,6 +171,15 @@ class KnowledgeBase:
                 continue
             hits.append(hit)
         return hits
+
+    def bm25_scores(self, query: str) -> list[float]:
+        """Raw BM25 score of every chunk for ``query`` (no gate, no filters)."""
+        return self._index.scores(tokenize(query))
+
+    def scores_and_coverage(self, query: str) -> list[tuple[float, float]]:
+        """``(BM25 score, coverage)`` of every chunk for ``query``; support is their product."""
+        tokens = tokenize(query)
+        return [(s, self._index.coverage(tokens, i)) for i, s in enumerate(self._index.scores(tokens))]
 
     def in_force(self, as_of: str | None = None) -> frozenset[str]:
         """Ids of the documents in force on ``as_of`` (ISO date; default today, UTC).

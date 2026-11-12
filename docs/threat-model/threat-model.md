@@ -49,7 +49,7 @@ The same controls, arranged by the OWASP LLM Top 10, are in [owasp-llm-top10.md]
 | T7 | Unauthorised API access | API keys mapped to roles; capability checks per endpoint (`investigate`, `investigate:read`, `approvals:decide`) | `tests/integration/test_api.py::test_auth_and_rbac` |
 | T8 | Silent tool failure leading to wrong conclusions | Tool failures are recorded as step results and warnings; agents read only plan-fetched data (`fetched()`, R3B 3B.1) and fail loudly (`PlanDataMissingError`) when a fetch failed; the harness re-plans once with the failure reason (3B.6); missing metrics produce explicit "no executions" findings | `test_agent_failure_is_contained`, `test_3b6_forced_tool_failure_triggers_exactly_one_replan` |
 | T9 | Tampering with evidence in transit | Every tool result evidence record carries a SHA-256 digest of the payload and the correlation id | `tests/mcp::test_adapter_wraps_results_and_errors` |
-| T10 | Model outage | Router falls back to the deterministic client only at run time and records it (rung 3); the result is `DEGRADED` with a `LLM_ERROR_FALLBACK` warning, never a clean `COMPLETED` | `test_1_5_rung3_client_failure_uses_deterministic_path` |
+| T10 | Model outage | Router falls back to the deterministic client only at run time and records it (rung 3); the result is `DEGRADED` with a `LLM_ERROR_FALLBACK` (router) or `LLM_CALL_FAILED` (planner) warning, never a clean `COMPLETED` | `test_1_5_rung3_client_failure_uses_deterministic_path` |
 | T11 | Approval bypass | REQUIRE_APPROVAL parks the step in `AWAITING_APPROVAL`; denial or timeout marks the step DENIED and the investigation continues without it | `test_approval_flow_transitions_state`, `test_approval_denied_marks_step_denied` |
 | T12 | Governance bypass (plan drops or reorders the critic/validation steps) | Harness strips any planner-supplied governance steps and appends critic → validation → finalise; a critic is forced if agents ran after it | `test_critic_placed_before_specialists_is_moved_after_them` |
 | T13 | Scope escape through arguments (plan points at another dataset, symbol or window) | Plan validation pins `symbol`/`dataset` to the task, accepts window arguments only at the task boundaries, rejects non-scalar or oversized argument sets; the planner re-pins before the harness sees the plan; agents reuse cached tool output only on an exact argument match | `test_plan_cannot_point_at_another_dataset_or_symbol`, `test_planner_repins_and_records_foreign_arguments`, `test_agents_do_not_reuse_tool_output_with_different_arguments` |
@@ -88,6 +88,12 @@ The same controls, arranged by the OWASP LLM Top 10, are in [owasp-llm-top10.md]
 
 * API keys are static and configured via environment (now hashable and expirable); production
   should use an identity provider and short-lived tokens.
+* Stored API keys are salted HMAC-SHA256 digests (`ceap.api.auth.hash_api_key`), not a slow
+  password hash such as scrypt or argon2. That is deliberate: the keys are random tokens and
+  `check_key_strength` (H11) refuses weak raw keys outside dev, so there is no small guessable
+  space for a slow hash to protect. CodeQL's `py/weak-sensitive-data-hashing` rule flags this as
+  password hashing; the alert was dismissed as a false positive on 2026-11-12 with this reason.
+  If human-chosen passwords are ever accepted, switch to a slow KDF first.
 * The SQLite file holds task inputs, results and redacted model I/O; protect it with filesystem
   permissions and disk encryption, and keep backups under the same controls. The hash chain detects
   tampering, it does not prevent it. Set `CEAP_AUDIT_HMAC_KEY` (the dev default protects nothing)

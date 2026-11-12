@@ -462,7 +462,7 @@ def review_payload(
 
 
 #: argument keys that carry harness bookkeeping rather than tool input; shown separately
-_VIEW_INTERNAL_KEYS = ("review",)
+_VIEW_INTERNAL_KEYS = ("review", "challenger")
 
 
 def approval_view(approval: ApprovalRequest) -> dict[str, Any]:
@@ -470,11 +470,17 @@ def approval_view(approval: ApprovalRequest) -> dict[str, Any]:
 
     ``arguments`` is everything the tool receives except the review payload, which is returned
     on its own. The hash covers both, and ``hash_verified`` says whether it still matches now.
+    When a challenger model planned the same task (0.9.0 B7, off by default) its advisory
+    agreement block is returned as ``challenger``; without one the key is absent.
     """
-    return {
+    view: dict[str, Any] = {
         "tool_id": approval.tool_id,
         "arguments": {k: v for k, v in approval.arguments.items() if k not in _VIEW_INTERNAL_KEYS},
         "content_hash": approval.content_hash,
         "hash_covers": ["tool_id", "arguments (including review)"],
         "hash_verified": approval.intact(),
     }
+    challenger = approval.arguments.get("challenger")
+    if challenger:
+        view["challenger"] = challenger
+    return view

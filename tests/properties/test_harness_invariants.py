@@ -18,7 +18,6 @@ every example must satisfy all invariants. Profiles in ``tests/conftest.py``: 10
 
 from __future__ import annotations
 
-import inspect
 import json
 import time
 import uuid
@@ -27,7 +26,6 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-import ceap.harness.engine
 from cassettes.golden import cassette_path, deterministic_uuid4
 from ceap.domain.tasks import TaskStatus
 from ceap.llm.pins import load_pins
@@ -50,9 +48,8 @@ ALWAYS_FAULTY = {
     "hostile_huge",
     "id_fabricator",
 }
-# invariant 7 is enforced by the harness once the R3A engine patch lands (notes: r3a-engine.patch)
+# invariant 7: an untraceable narrative is blocking (harness dispatch, since 0.8.0)
 NARRATIVE_FABRICATORS = {"number_fabricator", "id_fabricator"}
-AUDIT_BLOCKING_LANDED = "NARRATIVE_UNTRACEABLE" in inspect.getsource(ceap.harness.engine)
 
 
 def _allowed_windows(req) -> set[tuple[str, str]]:
@@ -98,7 +95,7 @@ def check_invariants(
     # 7 narrative traces to facts (blocking)
     critique = result.report.critique
     untraceable = critique.get("narrative_number_warnings") or critique.get("narrative_evidence_warnings")
-    if untraceable and (AUDIT_BLOCKING_LANDED or name not in NARRATIVE_FABRICATORS):
+    if untraceable:
         assert result.status is TaskStatus.DEGRADED, (name, untraceable[:3])
     # 8 call cap, 9 wall time
     assert len(client.calls) <= MAX_CALLS, (name, len(client.calls))
@@ -146,17 +143,13 @@ async def test_3a4_invariants_hold_under_obedient_injection(store, settings, tem
 
 
 @pytest.mark.parametrize("name", sorted(NARRATIVE_FABRICATORS))
-@pytest.mark.xfail(
-    not AUDIT_BLOCKING_LANDED,
-    strict=True,
-    reason="narrative audit becomes blocking with the R3A engine patch",
-)
 async def test_3a4_untraceable_narrative_is_blocking(store, settings, name):
     _, result, *_ = await _investigate(store, settings, name, "T01", True)
     assert result.status is TaskStatus.DEGRADED
     assert any(w.code == "NARRATIVE_UNTRACEABLE" for w in result.warnings)
 
 
+@pytest.mark.slow  # two full runs; ~35 s idle, near the 120 s default under parallel load
 async def test_3a4_same_inputs_and_cassette_give_identical_result(store, settings, monkeypatch):
     pytest.importorskip("anthropic")
     from ceap.llm.client import AnthropicLLMClient

@@ -151,6 +151,20 @@ per-principal token bucket (`ceap.api.ratelimit`, 429 with `Retry-After`) in fro
 that start tasks.
 Prompts live in `prompts.py` and state the boundary explicitly.
 
+Since 0.9.0 `ceap.llm.ollama.OllamaLLMClient` puts a local open-weight model behind the same
+interface (Ollama's JSON-schema `format`, the same Pydantic validation, `provenance = local_model`).
+It is used by the evaluation runners in `ceap.eval`, never by the platform's request path, and live
+calls need `CEAP_LOCAL_MODEL=1`; `LocalCassette` records replies keyed by the canonical request
+hash so CI replays them without Ollama. Every routed call also feeds
+`ceap.observability.ai_slo.AISLOMonitor` (plan-valid, repair, fallback, untraceable-number rate and
+p95 latency per purpose, with p-chart alerts).
+
+Also in `ceap.eval` (0.9.0): a 200-attack prompt-injection corpus scored with canaries and Wilson
+intervals (`injection.py`), a rubric judge whose dimensions are used only when Cohen's kappa against
+a hand-labelled reference exceeds 0.6 (`judge.py`; the committed calibration enables `hedged` only),
+and a challenger-model view for approvers, off by default (`challenger.py`). Diagrams:
+`docs/DIAGRAMS.md` §17 and §19.
+
 ### 3.6 Harness (`ceap.harness`)
 
 `AgentHarness.execute(task, policy_context, cancellation)` runs the explicit state machine
@@ -178,6 +192,14 @@ hypothesis table, and reads and writes the bounded case memory (`harness/memory.
 Consecutive independent `TOOL_CALL` steps are batched and executed concurrently with
 `asyncio.TaskGroup` under a semaphore.
 
+Since 0.9.0 `engine.py` is a facade (`AgentHarness.__init__` and `execute`); the rest lives in
+mixins that share a typed `HarnessBase` (`base.py`): `planning.py`, `dispatch.py`, `approvals.py`,
+`evidence.py`, with constants in `common.py`. `from ceap.harness.engine import ...` still works.
+`durable.py` adds an opt-in run journal (`CEAP_DURABLE_RUNS=1`): each tool call has an idempotency
+key `sha256(task | step | tool | canonical args)`, a re-run of the same task reads completed calls
+back, and a human decision for the same content hash is reused. Recovery steps are in
+`docs/RUNBOOK.md`.
+
 ### 3.7 Agents (`ceap.agents`)
 
 | Agent | Question | Output |
@@ -194,6 +216,14 @@ Consecutive independent `TOOL_CALL` steps are batched and executed concurrently 
 | Portfolio risk *(Stage 2)* | is the target portfolio within limits? | RISK findings from the recomputed target portfolio |
 | Critic | are the conclusions supported? | adjusted findings + critique (+ `assess_research` verdict for research tasks) |
 | Reporter | write it up | `InvestigationReport` (investigation narrative, or a Stage 2 proposal with narrative audits) |
+
+Since 0.9.0 the critic also runs deterministic statement-versus-evidence checks
+(`ceap.agents.critic_checks`) on every finding and records them in `assessment["flags"]`:
+`contradicted` (the finding's own citations disagree), `numeric_mismatch` (the statement names a
+metric the cited evidence carries, but no printed number agrees with it at the precision printed)
+and `direction_mismatch` (the direction word disagrees with the sign of the cited change). Worked
+example: "Implementation shortfall improved by 6.4 bps" citing `is_change_bps = 6.4` returns `direction_mismatch`, because shortfall is lower-is-better and the cited change is positive; "1.1 bps" agrees with 1.0864 because a printed number is read within its own rounding. A flagged finding has its confidence capped (`CHECK_CAPS` in `critic.py`: 0.4 for `contradicted`, 0.2 for the
+other two); a flag never raises a confidence.
 
 ### 3.8 Policy (`ceap.policy`)
 
@@ -219,6 +249,11 @@ DOCUMENT evidence, and the reporter's citations are checked span by span (`DOC` 
 document version and corpus hash). Held-out retrieval eval: `data/reference/knowledge/eval.json`,
 `ceap.rag.evaluation`. The hashed TF-IDF embedder of 0.5.x was removed.
 
+0.9.0 adds opt-in hybrid retrieval in `ceap.rag.dense` (bge-small embeddings, reciprocal rank fusion
+with BM25, a MiniLM cross-encoder reranker, all local CPU models through the optional `fastembed`,
+outputs cached by hash under `data/rag/`). BM25 stays the default; the measurement and the rule
+behind that choice are in `docs/ai-agents/rag-hybrid-0.9.0.md`.
+
 ### 3.10 Observability (`ceap.observability`)
 
 `InMemoryTracer` records nested spans and events per investigation (returned by the API);
@@ -242,7 +277,8 @@ writers. WAL and `busy_timeout` let `ceap db` read while the server writes. Sche
 `PRAGMA user_version`; `migrations/NNNN_*.sql` apply forward only, each in its own transaction, after
 an online backup of the file. Tables: `tasks`, `results`, `approvals`, `staged_orders`, `audit_log`
 (v1); `llm_calls`, `trial_ledger`, `idempotency_keys` (v2); the paper tables (v3); `hash_alg` columns,
-`chain_epoch` and `kill_switch_events` (v4, 0.8.0). Repositories (`repositories.py`) are thin,
+`chain_epoch` and `kill_switch_events` (v4, 0.8.0); `run_journal` (v5, 0.9.0, used only with
+`CEAP_DURABLE_RUNS=1`). Repositories (`repositories.py`) are thin,
 one per table. Startup recovery turns in-flight tasks into `INTERRUPTED` and pending approvals into
 `EXPIRED`. The Postgres path stays open: repositories speak plain SQL and own no connection logic.
 
@@ -255,6 +291,13 @@ is what catches a cut-off tail or a chain rebuilt by a key holder. `killswitch.p
 append-only, audited set/clear log that the paper job and `stage_orders` both read. File databases
 use `synchronous=FULL`, `arun` has a timeout, and `Database.health()` (served on `/health`) reports
 the writer queue and a write probe.
+
+### 3.10c Studies (`ceap.studies`, 0.9.0)
+
+`industry_momentum` runs study E1 on Ken French 49-industry returns. It refuses to run when the
+preregistration hash differs from `docs/research/e1/prereg_lock.json`, refuses holdout months
+unless asked to open the holdout, and refuses a second opening (`holdout_ledger.json`). Result:
+NULL; see `docs/research/e1/README.md` and `docs/DIAGRAMS.md` §20.
 
 ### 3.11 API (`ceap.api`)
 
@@ -335,7 +378,7 @@ never by the plan — see §3.6 and `docs/DIAGRAMS.md` §9.
                                               |
                                   staged_orders (PAPER_RESEARCH)
                                               |
- DailyFeed (synthetic | free daily) -> simulate_day(D+1): splits, financing, mark, fills, expiry
+ DailyFeed (synthetic | free daily) -> simulate_day(D+1): splits, dividends, financing, mark, fills, expiry
                                               |
           paper_ledger (HMAC chain) + paper_days (HMAC chain) + paper_forward_log | paper_simulated_log
                                               |
@@ -352,3 +395,173 @@ any row up to 2025-12-31 (the unspent R5 pseudo-holdout). `config/paper.json` st
 synthetic feed (the cache is git-ignored and R5 is VOID), so the Stooq feed is not enabled;
 with the 12-month formation window, January 2027 is the earliest real-price start. The forward log
 tests operations and controls, not profitability.
+
+## 7. System diagram, lifecycles and layout
+
+Moved here from the README in 0.9.0.
+
+
+```
+                         ┌──────────────────────┐
+                         │        User          │  Trader / Quant / Dev
+                         └──────────┬───────────┘
+                                    ▼
+                         ┌──────────────────────┐
+                         │    API / Gateway     │  FastAPI · API keys · RBAC (ceap.api)
+                         └──────────┬───────────┘
+                                    ▼
+              ┌─────────────────────────────────────────┐
+              │             AGENT HARNESS               │  ceap.harness
+              │  Planner → Plan validation → Steps      │  state machine · TaskGroup batching
+              │  Policy · Approval · Retry · Timeout    │  cancellation · memory · tracing
+              │  Critic → Evidence validation → Report  │  governance steps enforced
+              └──────────────────┬──────────────────────┘
+                                 ▼
+  Market · Execution · Quant · Risk · Engineering · Critic · Reporter          (ceap.agents, investigation)
+  Research · Alpha · Backtest · Portfolio risk · Critic · Reporter              (ceap.agents, research)
+                                 ▼
+                         ┌────────────────┐
+                         │  ToolRegistry  │  MCPToolAdapter → MCPClient (in-process or stdio)
+                         └───────┬────────┘
+     ┌──────────────┬────────────┼─────────────┬──────────────┬──────────────┬───────────┬──────────┐
+     ▼              ▼            ▼             ▼              ▼              ▼           ▼          ▼
+ market_data    execution      risk       engineering     knowledge     research_data   alpha    backtest
+ quotes/trades  orders/fills   positions  logs/metrics    runbooks/     universe        signals  event-driven
+ order book     TCA metrics    limits     deployments     policy (RAG)  daily bars      rank IC  cost model
+ statistics     venue stats    stress     latency                       regime          decay    walk-forward
+                stage_orders*  portfolio                                                                   (ceap.mcp.*)
+                                 ▼
+                       ┌─────────────────────┐
+                       │  Quant Analytics    │  VWAP · TWAP · IS · slippage · spreads · impact · liquidity · volatility
+                       │  (deterministic)    │  attribution · signals · signal statistics · backtest · portfolio risk · assessment
+                       └─────────────────────┘
+ * the only non-read-only tool: HIGH risk, requires trading:execute and its own human approval; paper orders only
+```
+
+#### Investigation lifecycle
+
+```
+CREATED → PLANNING → VALIDATING_PLAN → EXECUTING ⇄ AWAITING_APPROVAL
+        → CRITIQUING → VALIDATING_EVIDENCE → FINALISING → COMPLETED   (| FAILED | CANCELLED)
+```
+
+1. **Understand request** – symbol and window are parsed deterministically (`ceap.api.parsing`) so
+   data scope is policy-checked before any model sees the text.
+2. **Plan** – the Planner asks the LLM for a JSON plan restricted to the discovered tool catalogue;
+   unknown tools/agents/arguments are stripped, and unusable output falls back to a canonical plan.
+3. **Validate plan** – structure, tool existence and a policy pre-check of every tool call; a DENY
+   fails fast before anything runs. Critic → validation → finalise are appended if missing.
+4. **Execute** – consecutive independent tool calls run concurrently (`asyncio.TaskGroup`); each call
+   passes policy → (approval) → retry/timeout → tool → memory → trace. Agents call tools only
+   through the same path.
+5. **Critique** – deterministic checks (evidence resolves, anomalies corroborated by attribution,
+   cross-agent contradictions, thin evidence capped) plus an optional LLM critique that can only
+   lower confidence.
+6. **Validate evidence** – findings citing unknown evidence are dropped and recorded.
+7. **Finalise** – the Reporter hands structured facts to the LLM, which names figures as
+   placeholders (`{fact.key}`) that code renders; the narrative is then audited: every number must be
+   traceable to the facts, every evidence id must exist and every policy claim needs its own verified
+   citation. Prose that fails is replaced by the deterministic template narrative
+   (`LLM_NARRATIVE_SUPPRESSED`), and the rejected text goes only to the audit log.
+
+#### Research lifecycle (Stage 2)
+
+```
+… → CRITIQUING → VALIDATING_EVIDENCE → AWAITING_APPROVAL (proposal) → [AWAITING_APPROVAL (staging) → stage_orders]
+  → FINALISING → COMPLETED
+```
+
+The same state machine; the differences are what the harness *owns*. `Task.input["kind"] == "research"`
+selects the research planner prompt, the canonical plan (universe summary → signal statistics →
+backtest → portfolio exposure / limits / stress → knowledge), the agents and the governance tail:
+
+* **Research agent** states the hypothesis and checks coverage and regime; **Alpha agent** reads the
+  rank-IC statistics (`ALPHA` / `NO_ALPHA` / `ROBUST`); **Backtest agent** reads the walk-forward
+  backtest (`PROFITABLE`, `OOS_DECAY`, `COST_DRAG`, `CONCENTRATION`); **Portfolio risk agent** reads the
+  *recomputed* target portfolio (`LIMIT_BREACH`, `STRESS_LOSS`). Every tool is called exactly once:
+  plan, agents and harness build their arguments from one function (`research_tool_arguments`).
+* The **critic** computes the deterministic assessment (`assess_research`: verdict + flags, recorded
+  as evidence) and caps any finding that contradicts it, then the optional LLM critique may only
+  lower confidence further.
+* **Human approval** is appended by the harness, never by the plan: the approver sees the assessment
+  and the target portfolio. A declined proposal fails the task with no report. If order staging was
+  requested (admin only), a second approval shows the order preview; declining it skips staging and
+  the proposal still completes. `execution.stage_orders` is idempotent and stages paper orders only.
+* The **proposal** (HYPOTHESIS, SIGNAL STATISTICS, BACKTEST, RISK, VERDICT, ALTERNATIVE EXPLANATIONS,
+  CRITIC, APPROVAL, STAGED ORDERS, EVIDENCE) passes the same number and evidence-id audits.
+
+
+### Repository layout
+
+```
+src/ceap/
+├── domain/        Task · Plan · PlanStep · Tool · ToolRequest/Result · Evidence · Finding · Order · Execution ·
+│                  Quote · Trade · OrderBook · ExecutionMetrics · PolicyDecision · repositories · reports ·
+│                  research (scope · signal statistics · backtest · portfolio risk · assessment)
+├── analytics/     vwap · twap · implementation_shortfall · slippage · market_impact · liquidity · volatility ·
+│                  market_statistics · execution_metrics (TCA) · attribution ·
+│                  signals · signal_statistics · backtest · portfolio_risk · research_assessment
+├── data/          synthetic market model (6 symbols, 5 venues), 10 scenario templates x 5 symbols = 50 scenarios;
+│                  500-name synthetic research universe (0.9.0);
+│                  historical (30-name, 20-year daily universe) · research_scenarios (10 templates x 3 seeds = 30)
+├── mcp/           server definition (in-process + FastMCP export), client (in-process + stdio), adapter, registry,
+│                  market_data/ execution/ risk/ engineering/ knowledge/ research_data/ alpha/ backtest/
+│                  (each runnable: python -m ceap.mcp.<name>); execution/staging.py holds the paper order book
+├── llm/           LLMClient · MockLLMClient (deterministic) · AnthropicLLMClient · OllamaLLMClient (local, 0.9.0) ·
+│                  strict schemas · model pins ·
+│                  versioned prompts (llm/prompts/*.md) · cassette recording
+├── harness/       engine (AgentHarness facade) + mixins planning · dispatch · approvals · evidence (0.9.0) ·
+│                  durable (run journal) · paper_gate · state_machine · executor · retry · cancellation · memory
+├── agents/        planner · market · execution · quant · risk · engineering · critic (+ critic_checks) · reporter ·
+│                  research · alpha · backtest · portfolio_risk
+├── policy/        rule engine (schema + symbol-field checks) · RBAC permissions · per-agent allowlists ·
+│                  approval gateways (auto / queued / deny, content-hash re-check)
+├── rag/           BM25 (stdlib, default) · opt-in dense/RRF/rerank (0.9.0) · measured chunking · corpus hash · held-out eval
+├── ml/            pre-trade cost model · anomaly · model registry · model inventory (deterministic, labelled synthetic)
+├── execution/     LOB simulator · schedulers (TWAP/VWAP/POV/Almgren-Chriss) · child orders · auctions · impact ·
+│                  markouts · predicted-vs-realised cost loop · tick/lot/LULD rules (0.8.0, synthetic)
+├── studies/      preregistered real-data studies (E1 industry momentum, 0.9.0)
+├── paper/         paper trading: feed, fills, hash-chained ledger, pre-trade checks, kill switch, forward log
+├── eval/          per-agent evals, degraded clients, OOD golden split, corpus pins (0.8.0); local_model, injection,
+│                  judge, challenger (0.9.0)
+├── persistence/   SQLite (WAL, single writer, forward-only migrations) · HMAC chain keys · chain anchors
+├── util/          canonical bytes for hashing (LF, sorted-key JSON, UTC datetimes) · redaction, cassette scrubbing
+├── observability/ tracing (in-memory + OpenTelemetry) · metrics (Prometheus text) · JSON logging · AI SLOs (0.9.0)
+├── api/           FastAPI app · routes · auth · schemas · request parsing
+├── platform.py    composition root (InvestigationRequest · ResearchRequest)
+├── evaluation.py  50-scenario execution evaluation · 30-scenario research evaluation
+├── evaluation_report.py  capability · safety · robustness · cost · live-only rows (UNKNOWN / NOT RUN LIVE)
+├── golden.py      frozen golden set (version + items hash)
+├── drift.py       drift monitors (cassettes, RAG floors, golden version, model and SDK pins)
+└── cli.py         ceap investigate | research | scenarios | research-scenarios | profitability | evaluate |
+                   evaluation-report | tca-report | generate-data | serve | db | replay | paper
+tests/             unit · repo · integration · mcp · agent · evaluation · adversarial · contract · properties · golden
+data/reference/knowledge/   runbooks, TCA methodology, venue config, limits, policies (RAG corpus)
+docs/              architecture · threat-model · api · evaluation (history.csv, latest.json) · ml · quant · ai-agents ·
+                   execution · research · review
+```
+
+---
+
+### MCP servers
+
+Every server is defined once (`MCPServerDefinition`) and can be used in-process or exported to a
+real `FastMCP` server over stdio:
+
+```bash
+python -m ceap.mcp.market_data     # stdio MCP server: get_quote, get_quotes, get_order_book, get_trades, get_market_statistics, ...
+python -m ceap.mcp.execution       # get_parent_orders, get_child_orders, get_executions, get_execution_metrics, get_venue_statistics, ...
+python -m ceap.mcp.risk            # get_position, get_exposure, check_limit, calculate_stress,
+                                   # get_portfolio_exposure, check_portfolio_limits, calculate_portfolio_stress
+python -m ceap.mcp.engineering     # search_logs, get_service_metrics, get_deployments, get_latency_metrics, get_services
+python -m ceap.mcp.knowledge       # search_documents, get_document, list_documents (RAG)
+python -m ceap.mcp.research_data   # get_universe, get_daily_bars, get_universe_summary
+python -m ceap.mcp.alpha           # list_signals, evaluate_signal, combine_signals
+python -m ceap.mcp.backtest        # run_backtest, trial_count
+```
+
+Tool annotations carry `readOnlyHint`, a risk level and required capabilities, which the policy
+engine reads. Every tool is read-only except `execution.stage_orders` (HIGH risk, `trading:execute`),
+which the harness alone schedules, after two human approvals. `StdioMCPClient` drives these
+subprocesses with the official `mcp` SDK; the test suite includes a real stdio round-trip.
+

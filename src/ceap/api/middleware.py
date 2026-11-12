@@ -76,7 +76,7 @@ class RequestContextMiddleware:
 
         async def limited_receive() -> dict[str, Any]:
             nonlocal received
-            message = await receive()
+            message: dict[str, Any] = await receive()
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
                 if received > limit:

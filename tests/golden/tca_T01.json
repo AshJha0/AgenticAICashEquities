@@ -303,6 +303,7 @@
       {
         "adjusted_confidence": 0.8,
         "finding_id": "F-00000056",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.8,
         "notes": [],
@@ -312,6 +313,7 @@
       {
         "adjusted_confidence": 0.8,
         "finding_id": "F-00000057",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.8,
         "notes": [],
@@ -321,6 +323,7 @@
       {
         "adjusted_confidence": 0.8,
         "finding_id": "F-00000058",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.8,
         "notes": [],
@@ -330,6 +333,7 @@
       {
         "adjusted_confidence": 0.75,
         "finding_id": "F-00000059",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.75,
         "notes": [],
@@ -339,6 +343,7 @@
       {
         "adjusted_confidence": 0.9,
         "finding_id": "F-0000005c",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.9,
         "notes": [],
@@ -348,6 +353,7 @@
       {
         "adjusted_confidence": 0.9,
         "finding_id": "F-0000005d",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.9,
         "notes": [],
@@ -357,6 +363,7 @@
       {
         "adjusted_confidence": 0.9,
         "finding_id": "F-0000005e",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.9,
         "notes": [],
@@ -366,6 +373,7 @@
       {
         "adjusted_confidence": 0.9,
         "finding_id": "F-0000005f",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.9,
         "notes": [],
@@ -375,6 +383,7 @@
       {
         "adjusted_confidence": 0.75,
         "finding_id": "F-00000061",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.75,
         "notes": [],
@@ -384,6 +393,9 @@
       {
         "adjusted_confidence": 0.7,
         "finding_id": "F-00000062",
+        "flags": [
+          "single_evidence_cap"
+        ],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.7,
         "notes": [
@@ -395,6 +407,9 @@
       {
         "adjusted_confidence": 0.7,
         "finding_id": "F-00000063",
+        "flags": [
+          "single_evidence_cap"
+        ],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.7,
         "notes": [
@@ -406,6 +421,9 @@
       {
         "adjusted_confidence": 0.7,
         "finding_id": "F-00000064",
+        "flags": [
+          "single_evidence_cap"
+        ],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.7,
         "notes": [
@@ -417,6 +435,7 @@
       {
         "adjusted_confidence": 0.85,
         "finding_id": "F-00000065",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.85,
         "notes": [],
@@ -426,6 +445,7 @@
       {
         "adjusted_confidence": 0.85,
         "finding_id": "F-0000006e",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.85,
         "notes": [],
@@ -435,6 +455,7 @@
       {
         "adjusted_confidence": 0.8,
         "finding_id": "F-0000006f",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.8,
         "notes": [],
@@ -444,6 +465,7 @@
       {
         "adjusted_confidence": 0.8,
         "finding_id": "F-00000070",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.8,
         "notes": [],
@@ -453,6 +475,7 @@
       {
         "adjusted_confidence": 0.9,
         "finding_id": "F-00000075",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.9,
         "notes": [],
@@ -462,6 +485,9 @@
       {
         "adjusted_confidence": 0.7,
         "finding_id": "F-00000076",
+        "flags": [
+          "single_evidence_cap"
+        ],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.7,
         "notes": [
@@ -473,6 +499,7 @@
       {
         "adjusted_confidence": 0.9,
         "finding_id": "F-000000a6",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.9,
         "notes": [],
@@ -482,6 +509,7 @@
       {
         "adjusted_confidence": 0.8,
         "finding_id": "F-000000a7",
+        "flags": [],
         "llm_comment": "Cited evidence resolves and metrics are consistent.",
         "llm_proposed_confidence": 0.8,
         "notes": [],
@@ -2463,6 +2491,7 @@
           {
             "adjusted_confidence": 0.8,
             "finding_id": "F-00000056",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.8,
             "notes": [],
@@ -2472,6 +2501,7 @@
           {
             "adjusted_confidence": 0.8,
             "finding_id": "F-00000057",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.8,
             "notes": [],
@@ -2481,6 +2511,7 @@
           {
             "adjusted_confidence": 0.8,
             "finding_id": "F-00000058",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.8,
             "notes": [],
@@ -2490,6 +2521,7 @@
           {
             "adjusted_confidence": 0.75,
             "finding_id": "F-00000059",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.75,
             "notes": [],
@@ -2499,6 +2531,7 @@
           {
             "adjusted_confidence": 0.9,
             "finding_id": "F-0000005c",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.9,
             "notes": [],
@@ -2508,6 +2541,7 @@
           {
             "adjusted_confidence": 0.9,
             "finding_id": "F-0000005d",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.9,
             "notes": [],
@@ -2517,6 +2551,7 @@
           {
             "adjusted_confidence": 0.9,
             "finding_id": "F-0000005e",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.9,
             "notes": [],
@@ -2526,6 +2561,7 @@
           {
             "adjusted_confidence": 0.9,
             "finding_id": "F-0000005f",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.9,
             "notes": [],
@@ -2535,6 +2571,7 @@
           {
             "adjusted_confidence": 0.75,
             "finding_id": "F-00000061",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.75,
             "notes": [],
@@ -2544,6 +2581,9 @@
           {
             "adjusted_confidence": 0.7,
             "finding_id": "F-00000062",
+            "flags": [
+              "single_evidence_cap"
+            ],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.7,
             "notes": [
@@ -2555,6 +2595,9 @@
           {
             "adjusted_confidence": 0.7,
             "finding_id": "F-00000063",
+            "flags": [
+              "single_evidence_cap"
+            ],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.7,
             "notes": [
@@ -2566,6 +2609,9 @@
           {
             "adjusted_confidence": 0.7,
             "finding_id": "F-00000064",
+            "flags": [
+              "single_evidence_cap"
+            ],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.7,
             "notes": [
@@ -2577,6 +2623,7 @@
           {
             "adjusted_confidence": 0.85,
             "finding_id": "F-00000065",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.85,
             "notes": [],
@@ -2586,6 +2633,7 @@
           {
             "adjusted_confidence": 0.85,
             "finding_id": "F-0000006e",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.85,
             "notes": [],
@@ -2595,6 +2643,7 @@
           {
             "adjusted_confidence": 0.8,
             "finding_id": "F-0000006f",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.8,
             "notes": [],
@@ -2604,6 +2653,7 @@
           {
             "adjusted_confidence": 0.8,
             "finding_id": "F-00000070",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.8,
             "notes": [],
@@ -2613,6 +2663,7 @@
           {
             "adjusted_confidence": 0.9,
             "finding_id": "F-00000075",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.9,
             "notes": [],
@@ -2622,6 +2673,9 @@
           {
             "adjusted_confidence": 0.7,
             "finding_id": "F-00000076",
+            "flags": [
+              "single_evidence_cap"
+            ],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.7,
             "notes": [
@@ -2633,6 +2687,7 @@
           {
             "adjusted_confidence": 0.9,
             "finding_id": "F-000000a6",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.9,
             "notes": [],
@@ -2642,6 +2697,7 @@
           {
             "adjusted_confidence": 0.8,
             "finding_id": "F-000000a7",
+            "flags": [],
             "llm_comment": "Cited evidence resolves and metrics are consistent.",
             "llm_proposed_confidence": 0.8,
             "notes": [],

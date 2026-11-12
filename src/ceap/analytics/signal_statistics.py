@@ -113,7 +113,7 @@ def rowwise_rank_corr(a: np.ndarray, b: np.ndarray, min_names: int = MIN_NAMES) 
         db = np.where(mask, rb - mb[:, None], 0.0)
         num = (da * db).sum(axis=1)
         den = np.sqrt((da * da).sum(axis=1) * (db * db).sum(axis=1))
-        out = num / den
+        out: np.ndarray = num / den
     out[(cnt < min_names) | ~np.isfinite(out)] = np.nan
     return out
 
@@ -171,7 +171,8 @@ def andrews_bandwidth(x: np.ndarray) -> float:
     rho = float((d[1:] * d[:-1])[pair].sum()) / den if den > 0 else 0.0
     rho = max(min(rho, 0.97), -0.97)
     alpha = 4.0 * rho * rho / ((1.0 - rho) ** 2 * (1.0 + rho) ** 2)
-    return 1.1447 * (alpha * n) ** (1.0 / 3.0)
+    bandwidth: float = 1.1447 * (alpha * n) ** (1.0 / 3.0)
+    return bandwidth
 
 
 def newey_west_t(x: np.ndarray, lags: int | None) -> float:

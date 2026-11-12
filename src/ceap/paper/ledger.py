@@ -17,6 +17,24 @@ HMAC-SHA256 keyed outside the database (:mod:`ceap.persistence.chainkey`), recor
 and simulated logs stay plain SHA-256 on purpose: they are exported as a public CSV that anyone must be
 able to verify without a key (``ceap paper verify-csv``), and their integrity rests on the git history
 of the forward-log branch and the anchored head (:mod:`ceap.persistence.anchor`).
+
+Money in ledger bodies (0.9.0, item F10). Plain idea: a float such as ``0.1 + 0.2`` is not the
+number a person reads, so a hash over floats pins an artefact of binary arithmetic. From 0.9.0 every
+new ledger row records its money as integer micro-dollars and the hash covers those integers.
+
+Formal statement. A version-2 row carries ``{"money_v2": {"cash_delta": c, "cost": k, "price": p}}``
+in its payload, each an ``int`` equal to ``round(x * 1e6)`` (``price`` may be null); the REAL columns
+hold exactly ``c / 1e6`` etc. The hashed body is the version-1 body with those three fields replaced
+by the integers and ``"body_version": 2`` added. A row whose REAL column disagrees with its integer
+gets a marker in the body, so its hash no longer verifies: the columns cannot be edited on their own.
+Day rows follow the same version 2: the snapshot JSON carries ``money_v2 = {"equity", "cash"}`` in
+micro-dollars, the hash covers the equity integer, and the REAL ``equity`` column holds exactly
+``equity / 1e6``. Version-1 rows (no ``money_v2``) are hashed exactly as before, so a database written by 0.8.0, which
+the daily forward-log job keeps appending to, verifies unchanged and simply continues in version 2.
+
+Worked example. A fill of 150 shares at 187.123456789 with cost 2.5 dollars has
+``cash_delta = -28071.01851835...``; the row stores ``money_v2.cash_delta = -28071018518`` and the
+column ``-28071.018518``. Summing the integers over the ledger reproduces cash to the micro-dollar.
 """
 
 from __future__ import annotations
@@ -36,6 +54,14 @@ from ceap.util.canonical import canonical_json
 FORWARD_BOOK = "forward"
 LOG_SCHEMA_VERSION = 1
 LEDGER_FIELDS = ("book", "date", "kind", "order_id", "symbol", "quantity", "price", "cash_delta", "cost")
+LEDGER_BODY_VERSION = 2
+MONEY_KEY = "money_v2"
+MICROS = 1_000_000
+
+
+def to_micros(x: float) -> int:
+    """Dollars to integer micro-dollars, round half to even (``round`` on the scaled float)."""
+    return int(round(float(x) * MICROS))
 
 
 def chain_hash(prev_hash: str, body: dict[str, Any]) -> str:
@@ -43,14 +69,47 @@ def chain_hash(prev_hash: str, body: dict[str, Any]) -> str:
     return hashlib.sha256(prev_hash.encode("ascii") + canonical_json(body)).hexdigest()
 
 
+def _day_money(d: dict[str, Any]) -> dict[str, Any] | None:
+    snap = d.get("snapshot_json")
+    if not snap or MONEY_KEY not in snap:
+        return None
+    m = json.loads(snap).get(MONEY_KEY)
+    return m if isinstance(m, dict) else None
+
+
 def _day_body(book: str, d: dict[str, Any]) -> dict[str, Any]:
-    return {"book": book, "date": d["date"], "snapshot": d["snapshot_json"], "state": d["state_json"],
+    body = {"book": book, "date": d["date"], "snapshot": d["snapshot_json"], "state": d["state_json"],
             "ledger_head": d["ledger_head"], "equity": d["equity"]}
+    m = _day_money(d)
+    if m is None:
+        return body  # version 1 day row (0.8.0 and earlier)
+    body["body_version"] = LEDGER_BODY_VERSION
+    body["equity"] = m.get("equity")
+    if not isinstance(m.get("equity"), int) or float(d["equity"]) != m["equity"] / MICROS:
+        body["column_mismatch"] = ["equity"]  # breaks the hash on purpose
+    return body
+
+
+def _money(row: dict[str, Any]) -> dict[str, Any] | None:
+    payload = row.get("payload_json")
+    if not payload or MONEY_KEY not in payload:
+        return None
+    m = json.loads(payload).get(MONEY_KEY)
+    return m if isinstance(m, dict) else None
 
 
 def _ledger_body(row: dict[str, Any]) -> dict[str, Any]:
     body = {k: row[k] for k in LEDGER_FIELDS}
     body["payload"] = row["payload_json"]
+    m = _money(row)
+    if m is None:
+        return body  # version 1 (0.8.0 and earlier): hashed exactly as written then
+    body["body_version"] = LEDGER_BODY_VERSION
+    for k in ("cash_delta", "cost", "price"):
+        col, u = row[k], m.get(k)
+        body[k] = u
+        if (u is None) != (col is None) or (u is not None and float(col) != u / MICROS):
+            body.setdefault("column_mismatch", []).append(k)  # breaks the hash on purpose
     return body
 
 
@@ -96,7 +155,12 @@ class PaperLedger:
 
     def days(self, book: str) -> list[dict[str, Any]]:
         rows = self.db.query("SELECT * FROM paper_days WHERE book=? ORDER BY date", (book,))
-        return [json.loads(r["snapshot_json"]) for r in rows]
+        out = []
+        for r in rows:
+            snap = json.loads(r["snapshot_json"])
+            snap.pop(MONEY_KEY, None)  # integrity data, not part of the reported snapshot
+            out.append(snap)
+        return out
 
     def events(self, book: str) -> list[dict[str, Any]]:
         return self.db.query("SELECT * FROM paper_ledger WHERE book=? ORDER BY seq", (book,))
@@ -130,11 +194,24 @@ class PaperLedger:
     def append_events(self, conn: sqlite3.Connection, book: str, date: str, events: list[dict[str, Any]]) -> str:
         prev = self._head(conn, "SELECT hash FROM paper_ledger WHERE book=? ORDER BY seq DESC LIMIT 1", (book,))
         for e in events:
+            price = e.get("price")
+            # The quantity column is REAL: hash the value as it will be read back (int 10 -> 10.0),
+            # or verification of a row appended with an int quantity fails.
+            quantity = e.get("quantity")
+            quantity = None if quantity is None else float(quantity)
+            cash_u, cost_u = to_micros(e.get("cash_delta", 0.0)), to_micros(e.get("cost", 0.0))
+            price_u = None if price is None else to_micros(price)
+            money = {"cash_delta": cash_u, "cost": cost_u, "price": price_u}
+            detail = dict(e.get("detail", {}))
+            if MONEY_KEY in detail:
+                raise ValueError(f"event detail may not carry the reserved key {MONEY_KEY!r}")
+            detail[MONEY_KEY] = money
             row = {
                 "book": book, "date": date, "kind": e["kind"], "order_id": e.get("order_id"),
-                "symbol": e.get("symbol"), "quantity": e.get("quantity"), "price": e.get("price"),
-                "cash_delta": float(e.get("cash_delta", 0.0)), "cost": float(e.get("cost", 0.0)),
-                "payload_json": canonical_json(e.get("detail", {})).decode("utf-8"),
+                "symbol": e.get("symbol"), "quantity": quantity,
+                "price": None if price_u is None else price_u / MICROS,
+                "cash_delta": cash_u / MICROS, "cost": cost_u / MICROS,
+                "payload_json": canonical_json(detail).decode("utf-8"),
             }
             digest, alg = self._link(conn, prev, _ledger_body(row))
             if alg is None:
@@ -155,12 +232,17 @@ class PaperLedger:
     def append_day(self, conn: sqlite3.Connection, book: str, snapshot: dict[str, Any], state: BookState,
                    ledger_head: str, recorded_at: str) -> str:
         prev = self._head(conn, "SELECT hash FROM paper_days WHERE book=? ORDER BY date DESC LIMIT 1", (book,))
-        snap_json = canonical_json(_finite_or_none(snapshot)).decode("utf-8")
+        if MONEY_KEY in snapshot:
+            raise ValueError(f"snapshot may not carry the reserved key {MONEY_KEY!r}")
+        equity_u, cash_u = to_micros(snapshot["equity"]), to_micros(state.cash)
+        snap_json = canonical_json(dict(_finite_or_none(snapshot),
+                                        **{MONEY_KEY: {"equity": equity_u, "cash": cash_u}})).decode("utf-8")
+        equity = equity_u / MICROS
         state_json = canonical_json(state.to_json()).decode("utf-8")
         digest, alg = self._link(conn, prev, {"book": book, "date": snapshot["date"], "snapshot": snap_json,
                                               "state": state_json, "ledger_head": ledger_head,
-                                              "equity": float(snapshot["equity"])})
-        values = (book, snapshot["date"], float(snapshot["equity"]), snap_json, state_json, ledger_head, prev,
+                                              "equity": equity_u, "body_version": LEDGER_BODY_VERSION})
+        values = (book, snapshot["date"], equity, snap_json, state_json, ledger_head, prev,
                   digest, recorded_at)
         if alg is None:
             conn.execute(
@@ -254,11 +336,19 @@ class PaperLedger:
         if state is None:
             return {"ok": True, "days": 0, "breaks": []}
         pos: dict[str, float] = {}
-        cash = state.capital
+        cash_u = 0  # version-2 rows: exact integer micro-dollars
+        n_v2 = 0
+        cash_f = 0.0  # version-1 rows: the float column
         for e in self.events(book):
-            cash += e["cash_delta"]
+            m = _money(e)
+            if m is not None:
+                cash_u += int(m["cash_delta"])
+                n_v2 += 1
+            else:
+                cash_f += e["cash_delta"]
             if e["kind"] in ("fill", "split", "delist") and e["quantity"] is not None:
                 pos[e["symbol"]] = pos.get(e["symbol"], 0.0) + e["quantity"]
+        cash = state.capital + cash_f + cash_u / MICROS
         breaks = []
         for sym in sorted(set(pos) | set(state.positions)):
             a, b = pos.get(sym, 0.0), state.positions.get(sym, 0.0)
@@ -272,6 +362,14 @@ class PaperLedger:
         last = self.last_day(book)
         if last is not None and abs(float(last["equity"]) - state.equity) > tol * max(1.0, abs(state.equity)):
             breaks.append({"symbol": "EQUITY_COLUMN", "ledger": float(last["equity"]), "state": state.equity})
+        dm = _day_money(last) if last is not None else None
+        if dm is not None and not cash_f:
+            # all-integer path: ledger cash in micro-dollars against the day row's recorded cash. Each
+            # event's money was rounded once (at most half a micro-dollar), so the sums may differ by
+            # at most n_v2 / 2 micro-dollars plus the rounding of capital and of the day's cash.
+            ledger_u = to_micros(state.capital) + cash_u
+            if abs(ledger_u - int(dm["cash"])) > n_v2 // 2 + 2:
+                breaks.append({"symbol": "CASH_MICROS", "ledger": ledger_u, "state": int(dm["cash"])})
         return {"ok": not breaks, "days": len(self.days(book)), "breaks": breaks}
 
 

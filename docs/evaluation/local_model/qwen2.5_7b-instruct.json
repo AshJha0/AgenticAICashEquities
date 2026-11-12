@@ -1,0 +1,350 @@
+{
+ "digest": "845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e",
+ "evidence_class": "local_model",
+ "golden_limit": 3,
+ "latency_ms": {
+  "1": {
+   "claims": {
+    "median": 213861.5,
+    "n": 12,
+    "p95": 245303.6
+   },
+   "critique": {
+    "median": 203417.1,
+    "n": 5,
+    "p95": 224461.4
+   },
+   "narrative": {
+    "median": 192486.8,
+    "n": 3,
+    "p95": 239065.8
+   },
+   "planning": {
+    "median": 1062547.3,
+    "n": 13,
+    "p95": 1579560.8
+   }
+  },
+  "2": {
+   "claims": {
+    "median": 161959.9,
+    "n": 12,
+    "p95": 248108.6
+   },
+   "critique": {
+    "median": 204008.0,
+    "n": 5,
+    "p95": 237114.0
+   },
+   "narrative": {
+    "median": 196253.5,
+    "n": 3,
+    "p95": 218084.3
+   },
+   "planning": {
+    "median": 1133907.2,
+    "n": 14,
+    "p95": 1574150.0
+   }
+  },
+  "3": {
+   "claims": {
+    "median": 127805.0,
+    "n": 12,
+    "p95": 135509.0
+   },
+   "critique": {
+    "median": 125200.1,
+    "n": 5,
+    "p95": 136385.7
+   },
+   "narrative": {
+    "median": 99172.1,
+    "n": 3,
+    "p95": 119201.5
+   },
+   "planning": {
+    "median": 822629.0,
+    "n": 16,
+    "p95": 1734065.1
+   }
+  }
+ },
+ "metrics": {
+  "claims.untraceable_number": {
+   "ci95": [
+    0.0,
+    0.0897
+   ],
+   "k": 0,
+   "n": 39,
+   "per_seed": {
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.0
+   },
+   "rate": 0.0,
+   "seed_range": [
+    0.0,
+    0.0
+   ],
+   "seed_sd": 0.0
+  },
+  "critic.detection": {
+   "ci95": [
+    0.6373,
+    0.8746
+   ],
+   "k": 35,
+   "n": 45,
+   "per_seed": {
+    "1": 0.7333,
+    "2": 0.8,
+    "3": 0.8
+   },
+   "rate": 0.7778,
+   "seed_range": [
+    0.7333,
+    0.8
+   ],
+   "seed_sd": 0.0385
+  },
+  "golden.must_mention_rate": {
+   "ci95": [
+    0.7009,
+    1.0
+   ],
+   "k": 9,
+   "n": 9,
+   "per_seed": {
+    "1": 1.0,
+    "2": 1.0,
+    "3": 1.0
+   },
+   "rate": 1.0
+  },
+  "golden.no_forbidden_claim_rate": {
+   "ci95": [
+    0.3542,
+    0.8794
+   ],
+   "k": 6,
+   "n": 9,
+   "per_seed": {
+    "1": 0.6667,
+    "2": 0.6667,
+    "3": 0.6667
+   },
+   "rate": 0.6667
+  },
+  "golden.primary_cause_accuracy": {
+   "ci95": [
+    0.3542,
+    0.8794
+   ],
+   "k": 6,
+   "n": 9,
+   "per_seed": {
+    "1": 0.6667,
+    "2": 0.6667,
+    "3": 0.6667
+   },
+   "rate": 0.6667
+  },
+  "golden.verdict_accuracy": {
+   "ci95": [
+    0.4385,
+    1.0
+   ],
+   "k": 3,
+   "n": 3,
+   "per_seed": {
+    "1": 1.0,
+    "2": 1.0,
+    "3": 1.0
+   },
+   "rate": 1.0
+  },
+  "planner.canonical_fallback": {
+   "ci95": [
+    0.0059,
+    0.1667
+   ],
+   "k": 1,
+   "n": 30,
+   "per_seed": {
+    "1": 0.1,
+    "2": 0.0,
+    "3": 0.0
+   },
+   "rate": 0.0333,
+   "seed_range": [
+    0.0,
+    0.1
+   ],
+   "seed_sd": 0.0577
+  },
+  "planner.plan_valid": {
+   "ci95": [
+    0.3315,
+    0.6685
+   ],
+   "k": 15,
+   "n": 30,
+   "per_seed": {
+    "1": 0.5,
+    "2": 0.6,
+    "3": 0.4
+   },
+   "rate": 0.5,
+   "seed_range": [
+    0.4,
+    0.6
+   ],
+   "seed_sd": 0.1
+  },
+  "planner.repair": {
+   "ci95": [
+    0.3023,
+    0.6386
+   ],
+   "k": 14,
+   "n": 30,
+   "per_seed": {
+    "1": 0.4,
+    "2": 0.4,
+    "3": 0.6
+   },
+   "rate": 0.4667,
+   "seed_range": [
+    0.4,
+    0.6
+   ],
+   "seed_sd": 0.1155
+  },
+  "planner.tool_precision": {
+   "ci95": [
+    0.9767,
+    1.0
+   ],
+   "k": 161,
+   "n": 161,
+   "per_seed": {
+    "1": 1.0,
+    "2": 1.0,
+    "3": 1.0
+   },
+   "rate": 1.0,
+   "seed_range": [
+    1.0,
+    1.0
+   ],
+   "seed_sd": 0.0
+  },
+  "planner.tool_recall": {
+   "ci95": [
+    0.6225,
+    0.8101
+   ],
+   "k": 61,
+   "n": 84,
+   "per_seed": {
+    "1": 0.6429,
+    "2": 0.75,
+    "3": 0.7857
+   },
+   "rate": 0.7262,
+   "seed_range": [
+    0.6429,
+    0.7857
+   ],
+   "seed_sd": 0.0743
+  },
+  "reporter.citation_verified": {
+   "ci95": [
+    0.0,
+    1.0
+   ],
+   "k": 0,
+   "n": 0,
+   "per_seed": {
+    "1": null,
+    "2": null,
+    "3": null
+   },
+   "rate": null,
+   "seed_range": null,
+   "seed_sd": null
+  },
+  "reporter.claim_drop": {
+   "ci95": [
+    0.2274,
+    0.5158
+   ],
+   "k": 14,
+   "n": 39,
+   "per_seed": {
+    "1": 0.3333,
+    "2": 0.6,
+    "3": 0.2143
+   },
+   "rate": 0.359,
+   "seed_range": [
+    0.2143,
+    0.6
+   ],
+   "seed_sd": 0.1975
+  },
+  "reporter.claims_usable": {
+   "ci95": [
+    0.7575,
+    1.0
+   ],
+   "k": 12,
+   "n": 12,
+   "per_seed": {
+    "1": 1.0,
+    "2": 1.0,
+    "3": 1.0
+   },
+   "rate": 1.0,
+   "seed_range": [
+    1.0,
+    1.0
+   ],
+   "seed_sd": 0.0
+  },
+  "reporter.faithfulness": {
+   "ci95": [
+    0.4842,
+    0.7726
+   ],
+   "k": 25,
+   "n": 39,
+   "per_seed": {
+    "1": 0.6667,
+    "2": 0.4,
+    "3": 0.7857
+   },
+   "rate": 0.641,
+   "seed_range": [
+    0.4,
+    0.7857
+   ],
+   "seed_sd": 0.1975
+  }
+ },
+ "model": "qwen2.5:7b-instruct",
+ "note": "pooled k/n over seeds with a 95% Wilson interval; seeds share the case set, so also read per_seed and seed_range",
+ "seeds": [
+  1,
+  2,
+  3
+ ],
+ "slo_alerts": {
+  "1": [],
+  "2": [],
+  "3": []
+ },
+ "temperature": 0.7
+}

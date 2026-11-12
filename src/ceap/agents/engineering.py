@@ -239,7 +239,7 @@ async def change_point_scan(
             )
             points += series_features((data or {}).get("series") or {}, svc)
             evidence += ev
-    except Exception as exc:  # an auxiliary scan: the agent's core findings do not depend on it
+    except Exception as exc:  # noqa: BLE001 - an auxiliary scan: the agent's core findings do not depend on it
         return None, evidence, f"{type(exc).__name__}: {exc}"
     mf = minute_features(points, det.features)
     if len(mf) <= det.reference_minutes:

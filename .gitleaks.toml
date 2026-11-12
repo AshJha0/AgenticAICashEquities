@@ -10,4 +10,7 @@ regexes = [
   '''dev-(trader|viewer|admin|quant|approver|auditor|risk|engineer)-key''',
   # The fixed HMAC test key of the 0.8.0 audit-chain tests (tests/unit/test_r080_audit_safety.py, A6); a literal fixture, never a real key.
   '''test-key-0123456789abcdef0123456789abcdef''',
+  # Canary tokens planted in the 0.9.0 prompt-injection corpus (src/ceap/eval/injection_corpus_v1.json):
+  # the evaluation checks whether a model leaks them, so they must look like secrets. Never real keys.
+  '''CNRY-[a-z]+-[0-9]{3}''',
 ]

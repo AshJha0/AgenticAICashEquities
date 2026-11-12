@@ -11,7 +11,16 @@ Rules (limits in ``config/paper.json`` under ``risk``):
 * **fat-finger price band**: the decision close must be within ``price_band`` of the previous close
   (split-adjusted); outside it the print is suspect and the order is dropped. At fill time the fill price
   must be within ``fill_price_band`` of the decision price, else the remaining order is cancelled.
-* **max order % ADV**: ``|order| <= max_order_adv * ADV``; larger orders are clipped.
+* **sigma band** (0.9.0, F12; on when ``price_band_sigma > 0``): the decision close must also be within
+  ``min(price_band_cap, price_band_sigma * sigma_daily)`` of the previous close, ``sigma_daily`` the
+  standard deviation of the last ``sigma_window`` split-adjusted daily returns (about 6 sigma with a
+  10 % cap: a 2 % daily-vol name gets a 10 % band, a 1 % name a 6 % band). Too few returns: the cap.
+* **halts** (0.9.0, F12; ``block_halted``): a member with no print on the decision session is treated
+  as halted and gets no new order.
+* **max order % ADV**: ``|order| <= max_order_adv * ADV``; larger orders are clipped. With
+  ``max_work_sessions`` set (0.9.0, F5) the order is also clipped to that many sessions of fills at
+  the per-session fill cap (``FillParams.session_cap_fraction``), so the 25 % pre-trade limit and the
+  10 % fill cap describe one plan instead of two unrelated numbers.
 * **per-name limit**: ``|post-trade value| / equity <= max_name_weight``; clipped.
 * **gross limit**: ``sum |post-trade value| / equity <= max_gross``; when breached, every order that
   increases gross is dropped (reducing orders still go).
@@ -54,6 +63,11 @@ class RiskLimits:
     hard_to_borrow: tuple[str, ...] = ()
     htb_tiers: tuple[str, ...] = ()
     drift_tolerance: float = 0.005  # unexplained target-vs-actual gap, fraction of equity per name
+    price_band_sigma: float = 0.0  # 0 = off; 6.0 with price_band_cap 0.10 is the F12 setting
+    price_band_cap: float = 0.10
+    sigma_window: int = 20
+    block_halted: bool = True
+    max_work_sessions: int = 0  # 0 = off; else clip orders to this many sessions of fills
 
     @staticmethod
     def from_json(d: dict[str, Any] | None) -> RiskLimits:
@@ -138,8 +152,20 @@ def _block(sym: str, rule: str, requested: float, allowed: float, **detail: Any)
                                                       **detail}}
 
 
+def sigma_band(adj_close: np.ndarray, i: int, j: int, limits: RiskLimits) -> float:
+    """``min(cap, k * sigma_daily)`` from the returns before session ``i`` (none of session ``i``)."""
+    lo = max(0, i - limits.sigma_window)
+    seg = adj_close[lo:i, j]
+    r = seg[1:] / seg[:-1] - 1.0
+    r = r[np.isfinite(r)]
+    if r.size < max(5, limits.sigma_window // 2):
+        return limits.price_band_cap
+    return float(min(limits.price_band_cap, limits.price_band_sigma * float(np.std(r, ddof=1))))
+
+
 def check_orders(deltas: dict[str, float], positions: dict[str, float], equity: float, panel: MarketPanel, i: int,
-                 limits: RiskLimits, gross_leverage: float = 1.0) -> CheckResult:
+                 limits: RiskLimits, gross_leverage: float = 1.0,
+                 session_cap_fraction: float | None = None) -> CheckResult:
     """Apply the pre-trade rules to the order deltas staged at the close of session ``i``."""
     out: dict[str, float] = {}
     blocks: list[dict[str, Any]] = []
@@ -149,6 +175,9 @@ def check_orders(deltas: dict[str, float], positions: dict[str, float], equity: 
         d = deltas[sym]
         q = positions.get(sym, 0.0)
         price = float(panel.close[i, j])
+        if limits.block_halted and d and panel.halted(i, j):
+            blocks.append(_block(sym, "halted", d, 0.0))
+            continue
         if sym in limits.restricted and (abs(q + d) > abs(q) or (q + d) * q < 0):
             allowed = -q if q * d < 0 else 0.0  # flattening is allowed, nothing beyond it
             blocks.append(_block(sym, "restricted", d, allowed))
@@ -161,10 +190,18 @@ def check_orders(deltas: dict[str, float], positions: dict[str, float], equity: 
         if np.isfinite(prev) and prev > 0 and abs(price / prev - 1.0) > limits.price_band:
             blocks.append(_block(sym, "price_band", d, 0.0, close=price, prev_close=prev))
             d = 0.0
+        if d and limits.price_band_sigma > 0 and np.isfinite(prev) and prev > 0:
+            band = sigma_band(adj, i, j, limits)
+            if abs(price / prev - 1.0) > band:
+                blocks.append(_block(sym, "sigma_band", d, 0.0, close=price, prev_close=prev, band=band))
+                d = 0.0
         adv = float(panel.adv_20[i, j])
-        if np.isfinite(adv) and adv > 0 and abs(d) > limits.max_order_adv * adv:
-            allowed = math.copysign(limits.max_order_adv * adv, d)
-            blocks.append(_block(sym, "max_order_adv", d, allowed, adv=adv))
+        max_adv = limits.max_order_adv
+        if limits.max_work_sessions and session_cap_fraction:
+            max_adv = min(max_adv, limits.max_work_sessions * session_cap_fraction)
+        if np.isfinite(adv) and adv > 0 and abs(d) > max_adv * adv:
+            allowed = math.copysign(max_adv * adv, d)
+            blocks.append(_block(sym, "max_order_adv", d, allowed, adv=adv, max_adv=max_adv))
             d = allowed
         cap = limits.max_name_weight * gross_leverage * equity / price if price > 0 else 0.0
         new = q + d

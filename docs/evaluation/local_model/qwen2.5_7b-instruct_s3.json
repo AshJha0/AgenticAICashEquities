@@ -1,0 +1,729 @@
+{
+ "agents": {
+  "cases_source": "hand_built",
+  "critic": {
+   "batches": 5,
+   "cases_source": "hand_built",
+   "critique_valid": {
+    "ci95": [
+     0.5655,
+     1.0
+    ],
+    "k": 5,
+    "n": 5,
+    "rate": 1.0
+   },
+   "detection": {
+    "ci95": [
+     0.5481,
+     0.9295
+    ],
+    "k": 12,
+    "n": 15,
+    "rate": 0.8
+   },
+   "detection_by_kind": {
+    "contradicted": {
+     "ci95": [
+      0.4385,
+      1.0
+     ],
+     "k": 3,
+     "n": 3,
+     "rate": 1.0
+    },
+    "direction_mismatch": {
+     "ci95": [
+      0.0,
+      0.5615
+     ],
+     "k": 0,
+     "n": 3,
+     "rate": 0.0
+    },
+    "numeric_mismatch": {
+     "ci95": [
+      0.4385,
+      1.0
+     ],
+     "k": 3,
+     "n": 3,
+     "rate": 1.0
+    },
+    "uncited": {
+     "ci95": [
+      0.4385,
+      1.0
+     ],
+     "k": 3,
+     "n": 3,
+     "rate": 1.0
+    },
+    "unresolved": {
+     "ci95": [
+      0.4385,
+      1.0
+     ],
+     "k": 3,
+     "n": 3,
+     "rate": 1.0
+    }
+   },
+   "evidence_class": "local_model",
+   "false_alarm": {
+    "ci95": [
+     0.0567,
+     0.5098
+    ],
+    "k": 2,
+    "n": 10,
+    "rate": 0.2
+   },
+   "rows": [
+    {
+     "batch": "CB-01",
+     "disputed": false,
+     "finding": "F1-OK1",
+     "planted": null
+    },
+    {
+     "batch": "CB-01",
+     "disputed": true,
+     "finding": "F1-UNCITED",
+     "planted": "uncited"
+    },
+    {
+     "batch": "CB-01",
+     "disputed": true,
+     "finding": "F1-UNRESOLVED",
+     "planted": "unresolved"
+    },
+    {
+     "batch": "CB-01",
+     "disputed": true,
+     "finding": "F1-CONTRA",
+     "planted": "contradicted"
+    },
+    {
+     "batch": "CB-01",
+     "disputed": false,
+     "finding": "F1-OK2",
+     "planted": null
+    },
+    {
+     "batch": "CB-02",
+     "disputed": false,
+     "finding": "F2-OK1",
+     "planted": null
+    },
+    {
+     "batch": "CB-02",
+     "disputed": true,
+     "finding": "F2-UNRESOLVED",
+     "planted": "unresolved"
+    },
+    {
+     "batch": "CB-02",
+     "disputed": true,
+     "finding": "F2-CONTRA",
+     "planted": "contradicted"
+    },
+    {
+     "batch": "CB-02",
+     "disputed": true,
+     "finding": "F2-NUM",
+     "planted": "numeric_mismatch"
+    },
+    {
+     "batch": "CB-02",
+     "disputed": false,
+     "finding": "F2-OK2",
+     "planted": null
+    },
+    {
+     "batch": "CB-03",
+     "disputed": false,
+     "finding": "F3-OK1",
+     "planted": null
+    },
+    {
+     "batch": "CB-03",
+     "disputed": true,
+     "finding": "F3-CONTRA",
+     "planted": "contradicted"
+    },
+    {
+     "batch": "CB-03",
+     "disputed": true,
+     "finding": "F3-NUM",
+     "planted": "numeric_mismatch"
+    },
+    {
+     "batch": "CB-03",
+     "disputed": false,
+     "finding": "F3-DIR",
+     "planted": "direction_mismatch"
+    },
+    {
+     "batch": "CB-03",
+     "disputed": true,
+     "finding": "F3-OK2",
+     "planted": null
+    },
+    {
+     "batch": "CB-04",
+     "disputed": false,
+     "finding": "F4-OK1",
+     "planted": null
+    },
+    {
+     "batch": "CB-04",
+     "disputed": true,
+     "finding": "F4-NUM",
+     "planted": "numeric_mismatch"
+    },
+    {
+     "batch": "CB-04",
+     "disputed": false,
+     "finding": "F4-DIR",
+     "planted": "direction_mismatch"
+    },
+    {
+     "batch": "CB-04",
+     "disputed": true,
+     "finding": "F4-UNCITED",
+     "planted": "uncited"
+    },
+    {
+     "batch": "CB-04",
+     "disputed": false,
+     "finding": "F4-OK2",
+     "planted": null
+    },
+    {
+     "batch": "CB-05",
+     "disputed": false,
+     "finding": "F5-OK1",
+     "planted": null
+    },
+    {
+     "batch": "CB-05",
+     "disputed": false,
+     "finding": "F5-DIR",
+     "planted": "direction_mismatch"
+    },
+    {
+     "batch": "CB-05",
+     "disputed": true,
+     "finding": "F5-UNCITED",
+     "planted": "uncited"
+    },
+    {
+     "batch": "CB-05",
+     "disputed": true,
+     "finding": "F5-UNRESOLVED",
+     "planted": "unresolved"
+    },
+    {
+     "batch": "CB-05",
+     "disputed": true,
+     "finding": "F5-OK2",
+     "planted": null
+    }
+   ]
+  },
+  "evidence_class": "local_model",
+  "planner": {
+   "canonical_fallback": {
+    "ci95": [
+     0.0,
+     0.2775
+    ],
+    "k": 0,
+    "n": 10,
+    "rate": 0.0
+   },
+   "cases": 10,
+   "cases_source": "hand_built",
+   "evidence_class": "local_model",
+   "gold_version": "1.0.0",
+   "note": "tool counts are pooled over cases; tools within one plan are not independent, so the interval is indicative",
+   "plan_valid": {
+    "ci95": [
+     0.1682,
+     0.6873
+    ],
+    "k": 4,
+    "n": 10,
+    "rate": 0.4
+   },
+   "repair": {
+    "ci95": [
+     0.3127,
+     0.8318
+    ],
+    "k": 6,
+    "n": 10,
+    "rate": 0.6
+   },
+   "rows": [
+    {
+     "codes": [],
+     "id": "GP-01",
+     "in_scope": 5,
+     "missing": [
+      "execution.get_parent_orders",
+      "market_data.get_order_book_statistics"
+     ],
+     "out_of_scope": [],
+     "plan_valid": true,
+     "planned": [
+      "engineering.get_latency_metrics",
+      "execution.get_execution_metrics",
+      "execution.get_executions",
+      "execution.get_venue_statistics",
+      "market_data.get_market_statistics"
+     ],
+     "planned_n": 5,
+     "recall_hits": 4,
+     "repairs": 0,
+     "required": 6,
+     "source": "llm:qwen2.5:7b-instruct"
+    },
+    {
+     "codes": [
+      "LLM_REPAIR_RETRY"
+     ],
+     "id": "GP-02",
+     "in_scope": 6,
+     "missing": [],
+     "out_of_scope": [],
+     "plan_valid": false,
+     "planned": [
+      "engineering.get_deployments",
+      "engineering.get_latency_metrics",
+      "execution.get_execution_metrics",
+      "execution.get_parent_orders",
+      "execution.get_venue_statistics",
+      "market_data.get_market_statistics"
+     ],
+     "planned_n": 6,
+     "recall_hits": 3,
+     "repairs": 1,
+     "required": 3,
+     "source": "llm:qwen2.5:7b-instruct"
+    },
+    {
+     "codes": [],
+     "id": "GP-03",
+     "in_scope": 4,
+     "missing": [],
+     "out_of_scope": [],
+     "plan_valid": true,
+     "planned": [
+      "execution.get_execution_metrics",
+      "execution.get_executions",
+      "execution.get_venue_statistics",
+      "market_data.get_market_statistics"
+     ],
+     "planned_n": 4,
+     "recall_hits": 3,
+     "repairs": 0,
+     "required": 3,
+     "source": "llm:qwen2.5:7b-instruct"
+    },
+    {
+     "codes": [],
+     "id": "GP-04",
+     "in_scope": 5,
+     "missing": [],
+     "out_of_scope": [],
+     "plan_valid": true,
+     "planned": [
+      "engineering.get_deployments",
+      "engineering.get_latency_metrics",
+      "execution.get_execution_metrics",
+      "execution.get_executions",
+      "market_data.get_market_statistics"
+     ],
+     "planned_n": 5,
+     "recall_hits": 2,
+     "repairs": 0,
+     "required": 2,
+     "source": "llm:qwen2.5:7b-instruct"
+    },
+    {
+     "codes": [
+      "LLM_REPAIR_RETRY"
+     ],
+     "id": "GP-05",
+     "in_scope": 3,
+     "missing": [],
+     "out_of_scope": [],
+     "plan_valid": false,
+     "planned": [
+      "execution.get_execution_metrics",
+      "market_data.get_market_statistics",
+      "market_data.get_order_book_statistics"
+     ],
+     "planned_n": 3,
+     "recall_hits": 2,
+     "repairs": 1,
+     "required": 2,
+     "source": "llm:qwen2.5:7b-instruct"
+    },
+    {
+     "codes": [
+      "LLM_REPAIR_RETRY"
+     ],
+     "id": "GP-06",
+     "in_scope": 6,
+     "missing": [],
+     "out_of_scope": [],
+     "plan_valid": false,
+     "planned": [
+      "execution.get_child_orders",
+      "execution.get_execution_metrics",
+      "execution.get_executions",
+      "execution.get_parent_orders",
+      "execution.get_venue_statistics",
+      "market_data.get_quotes"
+     ],
+     "planned_n": 6,
+     "recall_hits": 2,
+     "repairs": 1,
+     "required": 2,
+     "source": "llm:qwen2.5:7b-instruct"
+    },
+    {
+     "codes": [
+      "LLM_REPAIR_RETRY"
+     ],
+     "id": "GP-07",
+     "in_scope": 7,
+     "missing": [
+      "engineering.search_logs"
+     ],
+     "out_of_scope": [],
+     "plan_valid": false,
+     "planned": [
+      "execution.get_child_orders",
+      "execution.get_execution_metrics",
+      "execution.get_executions",
+      "execution.get_parent_orders",
+      "execution.get_venue_statistics",
+      "market_data.get_market_statistics",
+      "market_data.get_quotes"
+     ],
+     "planned_n": 7,
+     "recall_hits": 2,
+     "repairs": 1,
+     "required": 3,
+     "source": "llm:qwen2.5:7b-instruct"
+    },
+    {
+     "codes": [],
+     "id": "GP-08",
+     "in_scope": 8,
+     "missing": [
+      "knowledge.search_documents"
+     ],
+     "out_of_scope": [],
+     "plan_valid": true,
+     "planned": [
+      "engineering.get_latency_metrics",
+      "execution.get_execution_metrics",
+      "execution.get_executions",
+      "execution.get_strategy_configuration",
+      "execution.get_venue_statistics",
+      "market_data.get_market_statistics",
+      "market_data.get_order_book_statistics",
+      "market_data.get_quote"
+     ],
+     "planned_n": 8,
+     "recall_hits": 1,
+     "repairs": 0,
+     "required": 2,
+     "source": "llm:qwen2.5:7b-instruct"
+    },
+    {
+     "codes": [
+      "LLM_REPAIR_RETRY"
+     ],
+     "id": "GP-09",
+     "in_scope": 7,
+     "missing": [],
+     "out_of_scope": [],
+     "plan_valid": false,
+     "planned": [
+      "engineering.get_latency_metrics",
+      "execution.get_execution_metrics",
+      "execution.get_executions",
+      "execution.get_parent_orders",
+      "execution.get_strategy_configuration",
+      "execution.get_venue_statistics",
+      "market_data.get_market_statistics"
+     ],
+     "planned_n": 7,
+     "recall_hits": 2,
+     "repairs": 1,
+     "required": 2,
+     "source": "llm:qwen2.5:7b-instruct"
+    },
+    {
+     "codes": [
+      "LLM_REPAIR_RETRY"
+     ],
+     "id": "GP-10",
+     "in_scope": 6,
+     "missing": [
+      "engineering.get_latency_metrics",
+      "engineering.search_logs"
+     ],
+     "out_of_scope": [],
+     "plan_valid": false,
+     "planned": [
+      "execution.get_child_orders",
+      "execution.get_execution_metrics",
+      "execution.get_executions",
+      "execution.get_parent_orders",
+      "execution.get_venue_statistics",
+      "market_data.get_market_statistics"
+     ],
+     "planned_n": 6,
+     "recall_hits": 1,
+     "repairs": 1,
+     "required": 3,
+     "source": "llm:qwen2.5:7b-instruct"
+    }
+   ],
+   "tool_precision": {
+    "ci95": [
+     0.9369,
+     1.0
+    ],
+    "k": 57,
+    "n": 57,
+    "rate": 1.0
+   },
+   "tool_recall": {
+    "ci95": [
+     0.6046,
+     0.8979
+    ],
+    "k": 22,
+    "n": 28,
+    "rate": 0.7857
+   }
+  },
+  "rates": {
+   "citation_verified": {
+    "ci95": [
+     0.0,
+     1.0
+    ],
+    "k": 0,
+    "n": 0,
+    "rate": null
+   },
+   "claim_drop": {
+    "ci95": [
+     0.0757,
+     0.4759
+    ],
+    "k": 3,
+    "n": 14,
+    "rate": 0.2143
+   },
+   "plan_valid": {
+    "ci95": [
+     0.1682,
+     0.6873
+    ],
+    "k": 4,
+    "n": 10,
+    "rate": 0.4
+   },
+   "repair": {
+    "ci95": [
+     0.3127,
+     0.8318
+    ],
+    "k": 6,
+    "n": 10,
+    "rate": 0.6
+   }
+  },
+  "reporter": {
+   "cases": 4,
+   "cases_source": "hand_built",
+   "citation_verified": {
+    "ci95": [
+     0.0,
+     1.0
+    ],
+    "k": 0,
+    "n": 0,
+    "rate": null
+   },
+   "claim_drop": {
+    "ci95": [
+     0.0757,
+     0.4759
+    ],
+    "k": 3,
+    "n": 14,
+    "rate": 0.2143
+   },
+   "claims_usable": {
+    "ci95": [
+     0.5101,
+     1.0
+    ],
+    "k": 4,
+    "n": 4,
+    "rate": 1.0
+   },
+   "evidence_class": "local_model",
+   "faithfulness": {
+    "ci95": [
+     0.5241,
+     0.9243
+    ],
+    "k": 11,
+    "n": 14,
+    "rate": 0.7857
+   },
+   "injection_caught": {
+    "ci95": [
+     0.8064,
+     1.0
+    ],
+    "k": 16,
+    "n": 16,
+    "rate": 1.0
+   },
+   "note": "injection_caught measures the deterministic claim guardrail, not the model; faithfulness and claim_drop measure the model's own claims",
+   "rows": [
+    {
+     "citation_warnings": [],
+     "citations_verified": 0,
+     "dropped": 1,
+     "id": "RC-01",
+     "kept": 2,
+     "planted_caught": 4
+    },
+    {
+     "citation_warnings": [],
+     "citations_verified": 0,
+     "dropped": 1,
+     "id": "RC-02",
+     "kept": 5,
+     "planted_caught": 4
+    },
+    {
+     "citation_warnings": [],
+     "citations_verified": 0,
+     "dropped": 0,
+     "id": "RC-03",
+     "kept": 4,
+     "planted_caught": 4
+    },
+    {
+     "citation_warnings": [],
+     "citations_verified": 0,
+     "dropped": 1,
+     "id": "RC-04",
+     "kept": 0,
+     "planted_caught": 4
+    }
+   ]
+  }
+ },
+ "golden": {
+  "investigation_items": 3,
+  "must_flag_rate": 1.0,
+  "must_mention_rate": 0.0,
+  "no_forbidden_claim_rate": 1.0,
+  "no_forbidden_flag_rate": 1.0,
+  "primary_cause_accuracy": 0.0,
+  "research_items": 1,
+  "signoff": "SIGNED_OFF",
+  "verdict_accuracy": 0.0,
+  "version": "1.0.0"
+ },
+ "golden_rows": [
+  {
+   "forbidden_claims": [],
+   "id": "G-INV-01",
+   "mentions_ok": false,
+   "missing_mentions": [
+    "execution.get_execution_metrics",
+    "market_data.get_market_statistics"
+   ],
+   "no_forbidden_claim": true,
+   "primary_ok": false
+  },
+  {
+   "forbidden_claims": [],
+   "id": "G-INV-02",
+   "mentions_ok": false,
+   "missing_mentions": [
+    "execution.get_execution_metrics",
+    "market_data.get_market_statistics"
+   ],
+   "no_forbidden_claim": true,
+   "primary_ok": false
+  },
+  {
+   "forbidden_claims": [],
+   "id": "G-INV-03",
+   "mentions_ok": false,
+   "missing_mentions": [
+    "execution.get_execution_metrics",
+    "market_data.get_market_statistics"
+   ],
+   "no_forbidden_claim": true,
+   "primary_ok": false
+  },
+  {
+   "flags_ok": true,
+   "id": "G-RES-01",
+   "no_forbidden_flag": true,
+   "verdict_ok": false
+  }
+ ],
+ "latency_ms": {
+  "claims": {
+   "median": 127805.0,
+   "n": 4,
+   "p95": 135509.0
+  },
+  "critique": {
+   "median": 125200.1,
+   "n": 5,
+   "p95": 136385.7
+  },
+  "narrative": {
+   "median": 99172.1,
+   "n": 3,
+   "p95": 119201.5
+  },
+  "planning": {
+   "median": 822629.0,
+   "n": 16,
+   "p95": 1734065.1
+  }
+ },
+ "slo": {},
+ "slo_alerts": [],
+ "untraceable_number": {
+  "ci95": [
+   0.0,
+   0.2153
+  ],
+  "k": 0,
+  "n": 14,
+  "rate": 0.0
+ }
+}

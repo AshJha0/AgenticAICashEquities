@@ -55,6 +55,11 @@ Contents:
 46. [Markout curves and a venue routing table from fills](#46-markout-curves-and-a-venue-routing-table-from-fills)
 47. [Predicted versus realised cost, weekly](#47-predicted-versus-realised-cost-weekly)
 48. [Regression cause attribution and the trading rules](#48-regression-cause-attribution-and-the-trading-rules)
+49. [Evaluate a local open-weight model (0.9.0)](#49-evaluate-a-local-open-weight-model)
+50. [Check a finding's statement against its evidence (0.9.0)](#50-check-a-findings-statement-against-its-evidence)
+51. [Compare BM25 with hybrid retrieval (0.9.0)](#51-compare-bm25-with-hybrid-retrieval)
+52. [Rerun study E1 in-sample (0.9.0)](#52-rerun-study-e1-in-sample)
+53. [Make runs durable across restarts (0.9.0)](#53-make-runs-durable-across-restarts)
 
 ---
 
@@ -506,7 +511,7 @@ ceap research "Does 12-1 momentum work on R01? Evaluate it out-of-sample with co
 
 The signal and dataset are parsed from the question when omitted ("momentum" → `momentum_12_1`,
 "reversal"/"mean reversion" → `reversal_5`, "low vol" → `low_vol_60`; a ticker like `R04` or
-`RS12`). `--dataset` picks the research scenario (R01–R07 templates, RS01–RS21 concrete).
+`RS12`). `--dataset` picks the research scenario (R01–R10 templates, RS01–RS30 concrete: ten templates x three seeds).
 `--role` must have the `research` capability (`quant` or `admin`); `viewer`/`trader`/`engineer`
 do not. The proposal's VERDICT section carries `PROMOTE`, `REJECT` or (since v0.8.0) `INCONCLUSIVE` with any flags
 (`NO_ALPHA`, `OOS_DECAY` (called `OVERFIT` before 0.4.0), `COST_DRAG`, `CONCENTRATION`, `LIMIT_BREACH`).
@@ -566,7 +571,7 @@ curl -s http://127.0.0.1:8000/research/TASK-.../report -H "X-API-Key: dev-quant-
 ```
 
 `dev-admin-key` is the only default key with `trading:execute`; pass `"stage_orders": true` in
-the body as admin to also stage paper orders. `GET /research-scenarios?all=true` lists all 21
+the body as admin to also stage paper orders. `GET /research-scenarios?all=true` lists all 30
 concrete research scenarios the way `GET /scenarios?all=true` lists the 50 execution ones.
 
 ## 32. Add a new signal
@@ -602,7 +607,7 @@ so `ceap evaluate --suite research` and `tests/evaluation/test_research_scenario
 ```bash
 scripts/bootstrap.sh                                  # .venv from the hashed lock
 pytest -n auto -m "not nightly and not slow"          # quick local loop
-pytest -n auto -m "not nightly" --cov=ceap --cov-branch --cov-fail-under=85   # what PR CI runs
+pytest -n auto -m "not nightly" --cov=ceap --cov-branch --cov-fail-under=90   # what PR CI runs
 CEAP_NIGHTLY=1 HYPOTHESIS_PROFILE=nightly pytest -n auto -p randomly    # what nightly runs: random order, 1000 examples
 pytest tests/unit                                     # hermetic: reads nothing outside src/ and tests/
 pytest tests/repo                                     # repository integrity: scripts, docs, workflows
@@ -612,7 +617,9 @@ python scripts/check_contracts.py origin/main         # lists any public ceap.do
 
 Every test has a 120 s timeout (`pytest-timeout`); `slow` tests get 600 s and `nightly` tests
 1800 s unless they set `@pytest.mark.timeout(...)` themselves. The 20 slowest tests are printed at
-the end of every run. Nightly-marked tests skip unless `CEAP_NIGHTLY=1`.
+the end of every run. Nightly-marked tests skip unless `CEAP_NIGHTLY=1`. On a loaded machine set
+`CEAP_TEST_TIMEOUT_SCALE=2` (multiplies the `slow` and `nightly` ceilings; CI leaves it unset); the
+coverage recipe is in [docs/testing/test-pyramid.md](docs/testing/test-pyramid.md).
 
 Adding a dependency: edit `pyproject.toml`, then run the `uv pip compile ...` command printed in
 the header of `requirements.lock` (uv is free: `pip install uv`). Commit both files; the
@@ -635,8 +642,8 @@ committed hurdle, with its 95 % binomial band. Since 0.8.0 the hurdle is fixed i
 t >= 3.0 for a searched result, 1.645 for one preregistered test) and the sweep only measures it:
 `--seeds 500 --workers 6 --write-thresholds` records the measured rate, the sweep hash and the
 per-seed vector (`data/reference/research_thresholds.json`, `docs/research/null_sweep_per_seed.json`)
-and appends the run to `data/reference/sweep_ledger.jsonl`. It no longer chooses the hurdle (the
-flag's help text still says "chosen hurdle"). Background: `docs/research/README.md`, "Research
+and appends the run to `data/reference/sweep_ledger.jsonl`. It no longer chooses the hurdle.
+Background: `docs/research/README.md`, "Research
 realism toolkit".
 
 ## 36. Profitability table and capacity sweep
@@ -882,3 +889,75 @@ print(uncross([AuctionOrder(1, 500), AuctionOrder(-1, 400, 9.99), AuctionOrder(-
 
 The tick, lot and LULD numbers are the published rules as recalled; check the current text before
 relying on them.
+
+## 49. Evaluate a local open-weight model
+
+Local model, your machine; nothing is sent to a hosted service. Needs [Ollama](https://ollama.com)
+running with the pinned models pulled (`qwen2.5:7b-instruct`, challenger
+`llama3.1:8b-instruct-q4_K_M`). Live calls are refused unless `CEAP_LOCAL_MODEL=1` is set.
+
+```bash
+ollama pull qwen2.5:7b-instruct
+CEAP_LOCAL_MODEL=1 python -m ceap.eval.local_model --seeds 1 2 3        # records cassettes, checkpoints after every call
+python -m ceap.eval.local_model --replay --write --seeds 1 2 3            # rescore the recorded replies, no Ollama needed
+CEAP_LOCAL_MODEL=1 python -m ceap.eval.injection --seed 1               # 200-attack injection corpus (nightly-sized)
+python -m ceap.eval.judge --replay                                       # rubric judge kappa per dimension
+```
+
+A killed run resumes from the cassette. `CEAP_OLLAMA_URL` points at another Ollama host. Results go
+to `docs/evaluation/local_model/`; the headline numbers are plan valid 15/30, critic 35/45, 0/39 untraceable numbers, injection obeyed 3/40; full table in docs/evaluation/local_model/README.md. A judge
+dimension counts only when its Cohen's kappa against the 50-item reference is above 0.6
+(`ceap.eval.judge.enabled_dimensions()`).
+
+## 50. Check a finding's statement against its evidence
+
+The critic's deterministic checks (`ceap.agents.critic_checks`) can be called on their own:
+
+```python
+from ceap.agents.critic_checks import check_statement
+
+check_statement("Implementation shortfall improved by 6.4 bps", [{"is_change_bps": 6.4}])
+# [('direction_mismatch', ...)]  shortfall is lower-is-better, so "improved" needs a negative change
+check_statement("Slippage versus VWAP was 1.1 bps", [{"vwap_slippage_bps": 1.0864}])
+# []  "1.1" agrees with 1.0864 within its printed rounding
+check_statement("Slippage versus VWAP was 2.5 bps", [{"vwap_slippage_bps": 1.0864}])
+# [('numeric_mismatch', ...)]
+```
+
+Score the planted-fault sets (existing and held-out, synthetic): `python -m ceap.agents.critic_planted`.
+In the critic each flag caps the finding's confidence (`CHECK_CAPS` in `ceap/agents/critic.py`).
+
+## 51. Compare BM25 with hybrid retrieval
+
+```bash
+pip install fastembed                     # optional; only needed to refill the model cache
+python -m ceap.rag.hybrid_eval            # writes docs/ai-agents/rag-hybrid-0.9.0.json from the cache
+```
+
+Model outputs are cached by hash under `data/rag/`, so the comparison reruns without the models.
+BM25 stays the platform default; the reasons and the pre-registered rule are in
+`docs/ai-agents/rag-hybrid-0.9.0.md`.
+
+## 52. Rerun study E1 in-sample
+
+Real data (Ken French 49 industry portfolios, free, no sign-up).
+
+```bash
+python scripts/fetch_kf_industries.py               # downloads; rewrites docs/research/e1/data_hashes.json (git diff shows a vendor change)
+python scripts/run_e1_industry_momentum.py          # in-sample 1927-1989 only
+```
+
+Do not pass `--open-holdout`: the 1990-2015 holdout was opened once on 2026-11-09 and the ledger
+(`docs/research/e1/holdout_ledger.json`) records it. The result is NULL; see
+[docs/research/e1/README.md](docs/research/e1/README.md).
+
+## 53. Make runs durable across restarts
+
+```bash
+CEAP_DURABLE_RUNS=1 CEAP_DB_PATH=var/ceap.db ceap serve
+```
+
+Each completed tool call is journalled at the step boundary under an idempotency key; a re-run of the
+same task id reads it back instead of calling the tool again, and a human decision for the same
+content hash is reused. What to do after a crash or a stuck approval: `docs/RUNBOOK.md`.
+

@@ -40,6 +40,21 @@ class Split:
 
 
 @dataclass(frozen=True)
+class Dividend:
+    """A cash dividend of ``amount`` per share going ex at the open of ``ex_date`` (F13, 0.9.0).
+
+    ``amount`` is in the share units traded on ``ex_date`` (after any split effective that day)."""
+
+    symbol: str
+    ex_date: str
+    amount: float
+
+    def __post_init__(self) -> None:
+        if not self.amount >= 0:
+            raise ValueError(f"dividend amount must be >= 0, got {self.amount}")
+
+
+@dataclass(frozen=True)
 class MarketPanel:
     name: str
     symbols: tuple[str, ...]
@@ -53,6 +68,7 @@ class MarketPanel:
     members: np.ndarray  # bool
     splits: tuple[Split, ...] = ()
     meta: dict[str, Any] = field(default_factory=dict)
+    dividends: tuple[Dividend, ...] = ()
 
     @property
     def n_days(self) -> int:
@@ -74,6 +90,14 @@ class MarketPanel:
     def splits_on(self, i: int) -> list[Split]:
         d = self.day(i)
         return [s for s in self.splits if s.ex_date == d]
+
+    def dividends_on(self, i: int) -> list[Dividend]:
+        d = self.day(i)
+        return [v for v in self.dividends if v.ex_date == d]
+
+    def halted(self, i: int, j: int) -> bool:
+        """A member with no print on session ``i`` (F12): treated as a trading halt."""
+        return bool(self.members[i, j]) and not (np.isfinite(self.close[i, j]) and self.close[i, j] > 0)
 
     def split_factor(self) -> np.ndarray:
         """``F[t, j]``: shares today per share held at row ``t`` (product of later ratios), for adjusting."""

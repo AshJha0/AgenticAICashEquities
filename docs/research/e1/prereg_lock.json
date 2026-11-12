@@ -1,0 +1,15 @@
+{
+  "prereg": "docs/research/e1/prereg_industry_momentum_2026-11.md",
+  "sha256": "06dac8d35e050500d517e99c5ea413a9b16877e5dbeddbc7c74f22354cf74fa2",
+  "hash_rule": "sha256 of file bytes with CRLF normalised to LF",
+  "locked_on": "2026-11-09",
+  "signed_by": "Claude (maintainer), delegated owner decision D3",
+  "industry_data_read_before_lock": false,
+  "windows": {
+    "warmup_start": "1926-07-01",
+    "eval_start": "1927-01-01",
+    "eval_end": "1989-12-31",
+    "holdout_start": "1990-01-01",
+    "holdout_end": "2015-12-31"
+  }
+}

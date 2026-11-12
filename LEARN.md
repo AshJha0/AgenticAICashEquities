@@ -8,6 +8,16 @@ worked examples. Everything cited here can be reproduced from the committed code
 If you only have an hour, read §3 (the architectural boundary), §7 (the harness as a control
 plane) and §10 (the critic and the audits) — they carry the platform's central ideas.
 
+**Learning path (0.9.0).** Three passes, each building on the last:
+
+1. *Orientation (about 2 hours).* §1-§4, then [the glossary](docs/glossary.md) for any term you
+   do not know, then the five [ADRs](docs/adr/README.md): they are the decisions the rest follows.
+2. *Mechanics (about a day).* §5-§12 with the code open beside them; do exercises 1-6 in
+   [docs/exercises.md](docs/exercises.md). Read [the test pyramid](docs/testing/test-pyramid.md)
+   before changing anything.
+3. *Research and extension (a few days).* §13-§18c, [COOKBOOK.md](COOKBOOK.md), then
+   [how to extend](docs/how-to-extend.md) and exercises 7-9.
+
 Contents:
 
 1. [The problem: explaining execution quality](#1-the-problem-explaining-execution-quality)
@@ -29,8 +39,13 @@ Contents:
 17. [Knowledge check (ten questions, answered from this repo)](#17-knowledge-check)
 18. [Stage 2: signal research](#18-stage-2-signal-research)
     (18a. [Paper trading](#18a-paper-trading-and-the-forward-record) ·
-    18b. [Running an execution, not only measuring it](#18b-running-an-execution-not-only-measuring-it-080))
+    18b. [Running an execution, not only measuring it](#18b-running-an-execution-not-only-measuring-it-080) ·
+    18c. [A local model, a stricter critic, two real-data answers](#18c-a-local-model-a-stricter-critic-two-real-data-answers-090))
 19. [Further reading](#19-further-reading)
+
+New to applied AI? The [AI concepts tutorial track](docs/learn/ai/README.md) teaches each flavour of AI
+used here (LLMs, agents, guardrails, RAG, classical ML, evaluation, local models), one short lesson
+each with an offline exercise.
 
 ---
 
@@ -208,6 +223,8 @@ record so the report can cite it.
 
 ## 7. The harness as a control plane
 
+> Tutorial: [docs/learn/ai/02-agents-and-the-harness.md](docs/learn/ai/02-agents-and-the-harness.md).
+
 `AgentHarness.execute(task, policy_context, cancellation)` runs an explicit state machine:
 
 ```
@@ -245,7 +262,7 @@ representation cannot drift. Annotations carry `readOnlyHint`, a risk level and 
 capabilities. The same definition is exported to a real `FastMCP` server (`to_fastmcp()`,
 `run_stdio()`), and `python -m ceap.mcp.market_data` starts it over stdio.
 
-Eight servers, 37 tools — every one read-only except `execution.stage_orders` (Stage 2):
+Eight servers, 39 tools — every one read-only except `execution.stage_orders` (Stage 2):
 
 | Server | Tools |
 |---|---|
@@ -255,8 +272,8 @@ Eight servers, 37 tools — every one read-only except `execution.stage_orders` 
 | engineering | search_logs, get_service_metrics, get_deployments, get_latency_metrics, get_services |
 | knowledge | search_documents, get_document, list_documents |
 | research_data *(Stage 2)* | get_universe, get_daily_bars, get_universe_summary |
-| alpha *(Stage 2)* | list_signals, evaluate_signal |
-| backtest *(Stage 2)* | run_backtest |
+| alpha *(Stage 2)* | list_signals, evaluate_signal, combine_signals |
+| backtest *(Stage 2)* | run_backtest, trial_count (the shared trial ledger used to deflate searched results) |
 
 `MCPClient` has two implementations: `InProcessMCPClient` (tests, CLI, API) and
 `StdioMCPClient` (official SDK sessions to subprocesses; `tests/mcp` includes a real
@@ -311,8 +328,16 @@ cannot talk it out of its job:
 3. Cross-agent contradictions are flagged: quant attributing to technology while engineering
    reports normal latency and no errors caps the quant finding at 0.4.
 4. Single-evidence findings are capped at 0.7.
-5. An optional LLM critique then runs — and may only **lower** confidence
-   (`test_critic_with_llm_can_only_lower_confidence`).
+5. Statement checks (0.9.0, `ceap.agents.critic_checks`): the finding's words are read against
+   its cited numbers. `contradicted` (the citations disagree) caps confidence at 0.4;
+   `numeric_mismatch` (no printed number agrees with the named metric, allowing for the precision
+   printed) and `direction_mismatch` ("improved" when the cited change went the wrong way for that
+   metric) cap it at 0.2. The flags are recorded in `assessment["flags"]`. COOKBOOK recipe 50 has
+   worked examples.
+6. An optional LLM critique then runs. It cannot set a confidence itself: to dispute a finding it
+   must name a deterministic re-check, which the harness runs and which can only **lower** the
+   confidence (`test_critic_with_llm_can_only_lower_confidence`; details in
+   `docs/ai-agents/ai-agents.md`, "The critic").
 
 After the critic, `VALIDATING_EVIDENCE` drops any finding whose evidence still does not
 resolve and records why.
@@ -338,6 +363,8 @@ flagged prose is suppressed.
 
 ## 11. Policy, approvals and RBAC
 
+> Tutorial: [docs/learn/ai/03-guardrails.md](docs/learn/ai/03-guardrails.md).
+
 `RulePolicyEngine` evaluates ordered rules; the first DENY wins, then REQUIRE_APPROVAL,
 otherwise ALLOW, and the evaluation names the rule:
 
@@ -351,6 +378,7 @@ otherwise ALLOW, and the evaluation names the rule:
 | argument-guard | page limits ≤ 5,000 and a whole number; strings ≤ 2,000 chars, ≤ 1,000 items, depth ≤ 8, at every level of the argument tree |
 | input-schema (0.8.0) | arguments validate against the tool's JSON schema |
 | symbol-universe | every symbol-bearing field (lists, nested objects, `x-ceap-symbol` properties) must be in the permitted universe; with no universe configured, a request that names a symbol is denied (fail closed, 0.8.0) |
+| knowledge-classification | a knowledge read may ask only for the document classifications the principal's roles allow; omitted means public and internal |
 | risk-level | CRITICAL never; HIGH always needs a human approval (no capability skips it since 0.8.0); MEDIUM needs `risk:medium` or approval |
 
 Four-eyes binds to a person: an API key mapped with `subject=NAME` acts as `user:NAME`, and an
@@ -373,6 +401,8 @@ binding the approval to content, not to a step name. Reads are owner-scoped; the
 reads everything and changes nothing.
 
 ## 12. RAG and enterprise knowledge
+
+> Tutorial: [docs/learn/ai/04-rag.md](docs/learn/ai/04-rag.md).
 
 Ten documents make up the corpus: nine Markdown files under `data/reference/knowledge/` (VWAP
 runbook, TCA methodology, venue configuration, trading limits, execution policy, market-data
@@ -401,6 +431,13 @@ query set, not "semantic search". Three ideas carry over to any RAG system:
   exact chunk that was sent and only then records it as evidence, with the document version and the
   corpus hash. "No policy found" is a valid answer; a confident citation of nothing is not.
 
+**Hybrid retrieval (0.9.0, opt-in).** `ceap.rag.dense.HybridRetriever` adds dense embeddings,
+rank fusion and a cross-encoder reranker over a hashed model cache. On 124 held-out queries the
+reranker beat BM25 on recall at 3 by +0.065 (paired 95 % CI +0.016 to +0.113; <!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> details), but BM25
+stays the default because a default must run without downloading a model. The abstention gate
+(`min_support`, 0.8.0) is unchanged and near-miss abstention is still open: 3/25 near-miss
+negatives leak. COOKBOOK recipe 51 runs the comparison.
+
 ## 13. The synthetic market and the 50 scenarios
 
 `SyntheticMarketGenerator` builds a seeded dataset per scenario over 12:00 to 16:00
@@ -425,6 +462,8 @@ ground truth. Because effects are injected only in the window, the previous hour
 clean baseline — which is also how the attribution model is defined.
 
 ## 14. Evaluation done honestly
+
+> Tutorial: [docs/learn/ai/06-evaluating-ai.md](docs/learn/ai/06-evaluating-ai.md).
 
 `ceap evaluate` runs the full platform over all 50 scenarios and reports:
 
@@ -491,6 +530,8 @@ See `docs/evaluation/evaluation.md`.
   different answer yesterday" into a diff.
 
 ## 16. Ten pitfalls this platform is built to avoid
+
+Ten from Stage 1, plus an eleventh that Stage 2 added.
 
 1. **Letting the model do arithmetic.** Numbers come from `ceap.analytics`; the narrative is
    audited against them.
@@ -589,7 +630,8 @@ makes venue fill rate use accepted quantity in §5.
 **The synthetic data plays the same trick as §13, one level up.** `HistoricalGenerator` embeds a
 scenario's premium by computing the *same signal function* the analytics later measure it with —
 so the generator and the measurement can't silently drift into disagreement — over a seeded
-30-name, 20-year daily universe. *(0.4.0 changed this: ground truth now comes from the generator's
+30-name, 20-year daily universe (0.9.0 adds a 500-name universe,
+`ceap.data.generator_params.RESEARCH_UNIVERSE_500`). *(0.4.0 changed this: ground truth now comes from the generator's
 parameters, never from running the analytics, and fills happen at the next session instead of the
 same close. Under that honest timing the reversal and mixed templates flip from `PROMOTE` to
 `REJECT`/`COST_DRAG`; see the README table and the CHANGELOG.)* Ten templates × three seeds give 30
@@ -671,6 +713,37 @@ Start with [docs/execution/execution.md](docs/execution/execution.md) (plain ide
 and a worked example per part) and COOKBOOK recipes 44-48; the data flow is in
 [docs/DIAGRAMS.md §15](docs/DIAGRAMS.md#15-execution-package-080). Not done yet: paper MOC caps, money
 as integer micro-dollars, dividends and the sigma fat-finger band (0.9.0).
+
+## 18c. A local model, a stricter critic, two real-data answers (0.9.0)
+
+**Local model.** *Plain idea:* a mock model proves the control plane, not the model integration
+(§18). 0.9.0 measures a real model without sending anything to a hosted service, by running a
+small open-weight model on the same machine. *Formally:* `OllamaLLMClient` implements `LLMClient`;
+replies are validated by the same Pydantic schemas and tagged `provenance = local_model`; every
+call is recorded in a cassette keyed by the hash of the canonical request, so CI rescores the
+recorded replies with no model present. The questions asked of it: how often the plan is valid,
+how often a repair or fallback was needed, how often the narrative carried an untraceable number,
+how often a planted instruction in a data block was obeyed (200 attacks, canary-based, Wilson
+intervals), and whether a rubric judge agrees with a hand-built reference (a dimension counts only
+when Cohen's kappa > 0.6). *Results:* plan valid 15/30, critic 35/45, 0/39 untraceable numbers, injection obeyed 3/40; full table in docs/evaluation/local_model/README.md (evidence:
+`docs/evaluation/local_model/`; class: local model, this machine). A 7-billion-parameter model is
+not the hosted model the platform pins, so these numbers bound nothing about that model.
+
+**Stricter critic.** *Plain idea:* a finding can cite the right record and still misread it.
+*Formally:* §10 item 5. *Worked example:* "Implementation shortfall improved by 6.4 bps" citing
+`is_change_bps = 6.4` is flagged `direction_mismatch`: shortfall is lower-is-better, so
+"improved" needs a negative change. A first version of the numeric check compared "1.1 bps" with
+1.0864 at a fixed 1 % tolerance and wrongly lowered two correct T05 findings to 0.2; it now reads a
+printed number within its own rounding (CHANGELOG 0.9.0, fixes). On the planted-fault sets
+detection went from 6/15 to 15/15 with 0/10 false alarms (synthetic; <!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> details). The same author wrote
+the faults and the checks, so read that as a regression test, not an independent measure.
+
+**Two real-data answers.** E1 asked whether 49-industry momentum earns a premium net of costs in a
+holdout opened once (1990-2015). It did not reject the null: Newey-West t 1.16 against 1.645 (real
+Ken French data; `docs/research/e1/README.md`). A NULL is not proof that the effect is absent; the
+design could detect an annualised Sharpe of about 0.49 with 80 % power <!-- source: docs/research/e1/README.md -->. E2 explains why the
+stock-level R5 study was predictably VOID on free data: the free sources drop delisted names, which
+caps point-in-time coverage near 75 % <!-- source: docs/research/e2_why_r5_could_not_pass.md --> (`docs/research/e2_why_r5_could_not_pass.md`).
 
 ## 19. Further reading
 

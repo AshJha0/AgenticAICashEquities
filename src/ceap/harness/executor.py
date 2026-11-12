@@ -14,11 +14,20 @@ from ceap.domain.common import utc_now
 from ceap.domain.policy import PolicyContext, PolicyDecision, PolicyEngine
 from ceap.domain.tools import ToolExecutionContext, ToolRegistry, ToolRequest, ToolResult, ToolStatus
 from ceap.harness.cancellation import CancellationToken, TaskCancelled
+from ceap.harness.durable import (
+    APPROVAL_KIND,
+    TOOL_KIND,
+    RunJournal,
+    approval_key,
+    idempotency_key,
+    result_from_payload,
+    result_payload,
+)
 from ceap.harness.memory import InvestigationMemory
 from ceap.harness.retry import RetryPolicy, retry_async
 from ceap.observability.metrics import metrics
 from ceap.observability.tracing import ExecutionTracer
-from ceap.policy.approvals import ApprovalGateway, ApprovalRequest
+from ceap.policy.approvals import ApprovalDecision, ApprovalGateway, ApprovalRequest
 
 log = logging.getLogger(__name__)
 T = TypeVar("T")
@@ -76,8 +85,11 @@ class StepExecutor:
         retry_policy: RetryPolicy,
         step_timeout_seconds: float,
         on_awaiting_approval: Callable[[bool], Awaitable[None]] | None = None,
+        journal: RunJournal | None = None,
     ) -> None:
         self.registry = registry
+        # G5: step-boundary journal; None keeps the pre-0.9.0 behaviour exactly
+        self.journal = journal
         self.policy = policy
         self.approvals = approvals
         self.tracer = tracer
@@ -138,6 +150,18 @@ class StepExecutor:
                 return ToolResult(
                     status=ToolStatus.DENIED, error=f"policy denied ({evaluation.rule}): {evaluation.reason}"
                 )
+            # ---- G5: a call this run already completed is read back, not repeated ----
+            key = idempotency_key(run.task_id, step_id, request)
+            if self.journal is not None:
+                done = self.journal.get(run.task_id, key)
+                if done is not None and done["kind"] == TOOL_KIND:
+                    result = result_from_payload(done["payload"])
+                    metrics.inc("ceap_tool_calls_total", tool=request.tool_id, status="replayed")
+                    span.attributes["status"] = result.status.value
+                    span.attributes["replayed"] = True
+                    self.tracer.event("tool.replayed", key=key)
+                    self.memory.record_tool(step_id, request, result)
+                    return result
             if evaluation.decision is PolicyDecision.REQUIRE_APPROVAL:
                 approved = await self._seek_approval(request, step_id, run, evaluation.reason)
                 if not approved:
@@ -209,6 +233,8 @@ class StepExecutor:
             span.attributes["execution_time_ms"] = result.execution_time_ms
             span.attributes["attempts"] = attempts["n"]
             if result.ok:
+                if self.journal is not None:  # G5: journal at the step boundary, before moving on
+                    self.journal.put(run.task_id, key, TOOL_KIND, step_id, result_payload(result))
                 self.memory.record_tool(step_id, request, result)
             else:
                 span.status = "ERROR"
@@ -225,13 +251,36 @@ class StepExecutor:
         approval = ApprovalRequest.create(
             run.task_id, step_id, request.tool_id, request.arguments, reason, run.policy_context.principal
         )
-        if self._on_awaiting_approval:
-            await self._on_awaiting_approval(True)
-        try:
-            decision = await race_cancellation(self.approvals.request(approval), run.cancellation)
-        finally:
+        akey = approval_key(step_id, approval.content_hash)
+        prior = self.journal.get(run.task_id, akey) if self.journal is not None else None
+        if prior is not None:  # G5: resumable approval - this content was already decided in this run
+            decision = ApprovalDecision(
+                approval.id,
+                bool(prior["payload"]["approved"]),
+                str(prior["payload"]["decided_by"]),
+                str(prior["payload"].get("comment") or ""),
+            )
+            self.tracer.event("approval.resumed", content_hash=approval.content_hash)
+        else:
             if self._on_awaiting_approval:
-                await self._on_awaiting_approval(False)
+                await self._on_awaiting_approval(True)
+            try:
+                decision = await race_cancellation(self.approvals.request(approval), run.cancellation)
+            finally:
+                if self._on_awaiting_approval:
+                    await self._on_awaiting_approval(False)
+            if self.journal is not None and decision.decided_by != "timeout":
+                self.journal.put(
+                    run.task_id,
+                    akey,
+                    APPROVAL_KIND,
+                    step_id,
+                    {
+                        "approved": decision.approved,
+                        "decided_by": decision.decided_by,
+                        "comment": decision.comment,
+                    },
+                )
         self.tracer.event(
             "approval.decision",
             request_id=approval.id,

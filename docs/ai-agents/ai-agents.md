@@ -185,13 +185,15 @@ What each of the three asks the model for, and what happens when the answer is b
 |---|---|---|---|
 | Planner | `planning` | which read-only tools to call, and the scope choices (hypotheses, baselines) from enumerated options | one repair, then the canonical plan |
 | Critic | `critique` | whether to dispute a finding, and which named check to run | the deterministic critique alone |
-| Reporter | `claims`, then `narrative` | which claims to make and how to word them; which policy chunks to cite | claims dropped by the validator; templated narrative |
+| Reporter | `claims` (uses the `narrative` pin), then `narrative` | which claims to make and how to word them; which policy chunks to cite | claims dropped by the validator; templated narrative |
 
 The model never computes a number and never sets a confidence. So a bad model shows up as a worse
 plan, a missed dispute, a dropped claim or a rejected citation, never as a wrong metric. Those four
 things are what the per-agent evals in `ceap.eval.agents` measure (see
-`docs/evaluation/evaluation.md`, "AI evaluation"). Until a local model is wired in (B1), every one of
-those numbers comes from the mock client, and the report labels it `mock`.
+`docs/evaluation/evaluation.md`, "AI evaluation"). In
+`latest.json` every one of those numbers comes from the mock client and is labelled `mock`; the
+0.9.0 local-model runs measure the same evals with a local open-weight model (labelled
+`local_model`; see "A local open-weight model" below).
 
 ## The harness owns governance — the model's plan does not
 
@@ -226,6 +228,13 @@ content hash, and the hash is checked again just before the tool runs.
 3. Cross-agent contradictions are flagged (e.g. quant blames technology while engineering
    reports normal latency).
 4. Single-evidence findings are capped at 0.7.
+4a. Statement checks (0.9.0, `ceap.agents.critic_checks`) read each finding's words against its
+   cited numbers: `contradicted` caps confidence at 0.4, `numeric_mismatch` and
+   `direction_mismatch` at 0.2 (`CHECK_CAPS` in `critic.py`); the flags go to
+   `assessment["flags"]`. A printed number agrees with a value within its own rounding ("1.1 bps"
+   with 1.0864), and a metric matched only by a phrase must also have the attribute's other
+   qualifiers named. Planted-fault detection 6/15 -> 15/15, 0/10 false alarms, on the existing and
+   a held-out set (synthetic; <!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> details).
 5. An optional LLM critique then runs. Since R3B it cannot change a confidence at all. To dispute
    a finding the model must name an alternative deterministic check (`alternative_baseline`: the
    equal-length window just before the investigation; `different_horizon`: a double-length window;
@@ -308,12 +317,12 @@ warning.
 
 Investigation reports are written in two model calls.
 
-1. **Claims** (prompt `reporter_claims@1`, structured output `ClaimsOutput`): the model returns
+1. **Claims** (prompt `reporter_claims`, introduced at version 1, now `@2`; structured output `ClaimsOutput`): the model returns
    `claims[{section, text, fact_keys, evidence_ids, needs_policy_support}]`. Code keeps a claim only
    if every fact key resolves in the facts, every evidence id exists and every number traces to the
    facts; a claim with neither fact keys nor evidence ids is dropped. Dropped claims stay in the
    report with their reasons (`critique.knowledge.dropped_claims`).
-2. **Prose** (prompt `reporter_prose@1`, citations on, no structured output: the API does not allow
+2. **Prose** (prompt `reporter_prose`, now `@2`; citations on, no structured output: the API does not allow
    both in one call): each retrieved chunk is a `document` block of custom content with one content
    block, wrapped as untrusted `rag` data, with `cache_control` on the last document (two
    breakpoints in all, with the system block). The validated claims and facts follow in a text block.
@@ -352,6 +361,24 @@ plane* works — the harness, policy, evidence model, governance tail. It does n
 *integration* works. Both have to be checked. See `docs/evaluation/evaluation.md` and
 `CHANGELOG.md` (0.3.1) for the exact before/after numbers and cost (well under $2 for the full
 21-scenario research evaluation on Haiku pricing).
+
+### A local open-weight model (0.9.0)
+
+The hosted model is still NOT RUN LIVE in tests. 0.9.0 adds a model that can be measured without a
+hosted service: `ceap.llm.ollama.OllamaLLMClient` runs a pinned open-weight model through Ollama
+(`qwen2.5:7b-instruct` primary, `llama3.1:8b-instruct-q4_K_M` challenger) behind the same
+`LLMClient` interface and the same schema validation. It is wired into the evaluation runners
+(`ceap.eval.local_model`, `injection`, `judge`, `challenger`), not into the request path. Live calls
+need `CEAP_LOCAL_MODEL=1`; each reply is recorded in a cassette keyed by the canonical request hash,
+so CI replays the runs. The compute budget and the metrics were fixed before the runs.
+
+Results: <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (evidence: `docs/evaluation/local_model/README.md`; class: local
+model on one machine). They describe a 7-8B model, not the pinned hosted models.
+
+Also in 0.9.0: `ceap.observability.ai_slo.AISLOMonitor` tracks plan-valid, repair, fallback,
+untraceable-number rate and p95 latency per purpose with p-chart alerts, and
+`ceap.eval.challenger.approver_challenger_view` can show an approver where a challenger model's
+plan differs (off by default).
 
 ## Retrieval over the knowledge corpus (lexical, measured)
 
@@ -419,20 +446,32 @@ viewer cannot retrieve a restricted document by search, by id, or through an edi
 retrieved chunk as a citable document, and every citation is checked against the chunk text before
 it becomes `DOC` evidence.
 
+**Hybrid retrieval (0.9.0, opt-in).** `ceap.rag.dense` adds dense embeddings, reciprocal rank fusion
+with BM25 and a cross-encoder reranker, all local CPU models with hashed cached outputs. The
+reranked variant beat BM25 on R@3 (116/124 against 108/124, paired difference +0.065, 95 % CI
++0.016 to +0.113; <!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> synthetic query set). BM25 stays the default, because the rule fixed before the
+run required no model at query time. An abstention rule for near-miss questions was tried and not
+adopted: chosen on dev, it leaked 6/12 near-miss negatives on held-out against 1/12 for the 0.8.0
+gate (<!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> details). The near-miss leak stays open at 3/25.
+
 ## What is *not* here
 
-- **No ML library models.** `scikit-learn` and `xgboost` are listed as an optional `ml` extra in
-  `pyproject.toml` but nothing in the codebase fits, loads or scores one. The models that do exist
-  (change points, a ridge signal combination checked against an equal-weight baseline, isotonic
-  calibration, the pre-trade cost model) are small NumPy fits to synthetic data, described in
-  `docs/ml/README.md` and listed in the model inventory (`ceap.ml.inventory`, 0.8.0).
+- **No large or opaque ML models.** The models that exist are small, deterministic fits to
+  synthetic data: change points, a ridge signal combination checked against an equal-weight
+  baseline (`sklearn.linear_model.Ridge` in `ceap.analytics.ml_signals`), isotonic calibration
+  (`sklearn.isotonic` in `ceap.analytics.calibration`) and the pre-trade cost model. scikit-learn
+  is the optional `ml` extra in `pyproject.toml`. They are described in `docs/ml/README.md` and
+  listed in the model inventory (`ceap.ml.inventory`, 0.8.0). There is no gradient-boosted or
+  neural model in the analytics; the only neural networks are the opt-in retrieval embedder and
+  reranker (0.9.0) and the local LLM under evaluation.
 - **No autonomous trading loop.** Agents propose; a human approves; the harness executes exactly
   what was approved and nothing else. There is no agent that decides to trade on its own.
 - **No fine-tuning.** Nothing persists into the model itself. The only cross-run state is the
   bounded case memory written by the harness after a human decision, which is off in evaluation.
-- **No live-model metric.** The 0.8.0 per-agent evals, metric-sensitivity tests and OOD golden
+- **No hosted-model metric.** The 0.8.0 per-agent evals, metric-sensitivity tests and OOD golden
   split (`docs/evaluation/evaluation.md`, "AI evaluation") run on the mock and degraded clients;
-  their evidence class is `mock` until a local model is wired in (plan step B1, 0.9.0).
+  their evidence class is `mock`. The 0.9.0 local-model runs (above) are the only real-model
+  numbers, and they are for a local 7-8B model, not the pinned hosted ones.
 
 ## Further reading
 

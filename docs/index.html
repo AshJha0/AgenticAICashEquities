@@ -46,8 +46,8 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
        statistics, technology telemetry and runbooks through MCP, computes every number with
        deterministic quant analytics, lets specialist agents interpret the evidence, has a critic
        challenge the findings, and writes a report in which every claim points at an evidence
-       record. Current release: v0.8.0. Python · MCP · LLM layer (offline-provable) · multi-agent
-       harness · policy engine · BM25 RAG · SQLite · FastAPI.</p>
+       record. Current release: v0.9.0, the last planned release. Python · MCP · LLM layer (offline-provable; local open-weight model for evaluation) · multi-agent
+       harness · policy engine · BM25 RAG (hybrid opt-in) · SQLite · FastAPI.</p>
     <nav>
       <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/README.md">README</a>
       <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/LEARN.md">Learn (guide)</a>
@@ -73,12 +73,15 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
 <div class="wrap">
   <h2>Measured, with the evidence class stated</h2>
   <div class="numbers">
-    Evidence class&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the evaluation results below come from the deterministic mock LLM on synthetic data; no test, demo or CI job calls a real model (decision D15)<br>
+    Evidence class&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; the evaluation results below come from the deterministic mock LLM on synthetic data; no test, demo or CI job calls a hosted model (decision D15); 0.9.0 local-model runs are replayed from recorded cassettes<br>
     <!-- source: docs/evaluation/latest.json -->Execution evaluation&nbsp;&nbsp;&nbsp;&nbsp; 50 scenarios (mock LLM, synthetic) · primary-cause accuracy 0.98 · ground-truth coverage 0.98 · false-positive rate 0.06<br>
     <!-- source: docs/evaluation/latest.json -->Research evaluation&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30 scenarios (mock LLM, synthetic) · verdict accuracy 0.8333 (25/30; 29/30 before the 0.8.0 recalibration and a-priori hurdle)<br>
-    <!-- source: docs/evaluation/latest.json -->Golden set&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; v1.0.0, 30 investigation + 15 research items, SIGNED_OFF by the owner on 2026-11-08 (10/10 sampled items OK) · primary cause 0.9667 · verdicts 0.8667 (mock LLM)<br>
+    <!-- source: docs/evaluation/latest.json -->Golden set&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; v1.0.0, 30 investigation + 15 research items, SIGNED_OFF by the owner on 2026-11-08 (10/10 sampled items OK); research golden v1.1 signed in 0.9.0 · primary cause 0.9667 · verdicts 0.8667 (mock LLM)<br>
     <!-- source: docs/evaluation/latest.json -->Safety&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 4 injected faults x 4 invariants, invariants held 1.00; every fault marks the result DEGRADED (mock LLM)<br>
-    <!-- source: docs/evaluation/latest.json -->Live-model metrics&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; planner quality, live injection resistance, narrative faithfulness, refusal rate, latency, cache hits, run-to-run variance: UNKNOWN / NOT RUN LIVE<br>
+    Local model (0.9.0)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; qwen2.5:7b-instruct via Ollama on one machine (challenger llama3.1:8b): plan valid 15/30, critic 35/45, 0/39 untraceable numbers, injection obeyed 3/40; full table in docs/evaluation/local_model/README.md<br>
+    <!-- source: docs/ai-agents/rag-hybrid-0.9.0.md -->Critic checks (0.9.0)&nbsp;&nbsp;&nbsp; planted-fault detection 6/15 to 15/15, 0/10 false alarms, existing and held-out sets (synthetic; same author wrote faults and checks)<br>
+    <!-- source: docs/research/e1/result_holdout.json -->Real-data study E1&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 49-industry momentum, Ken French data, holdout 1990-2015 opened once: NULL (net 10 bps NW t 1.16 &lt; 1.645)<br>
+    <!-- source: docs/evaluation/latest.json -->Hosted-model metrics&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; planner quality, live injection resistance, narrative faithfulness, refusal rate, latency, cache hits, run-to-run variance: UNKNOWN / NOT RUN LIVE<br>
     <!-- source: docs/research/result_momentum_2026-11.md -->Real-data study R5&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; VOID: point-in-time coverage 75.1 % against a required 95 %; no test statistic computed<br>
     <!-- source: docs/research/result_momentum_2026-11-v2.md -->R5 v2 (Stooq)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; VOID before registration: coverage 74.9 % against 95 %; pseudo-holdout 2024-2025 unspent<br>
     <!-- source: config/paper.json -->Paper trading&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; SYNTHETIC feed; daily job enabled, forward record from 2026-11-09; no forward result yet (UNKNOWN)<br>
@@ -147,7 +150,9 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
       <p>Okapi BM25 (stdlib) over ten versioned, classified documents, with a measured chunking
          strategy and a minimum-support gate. The query is built by code, not the model. The
          reporter writes claims, then prose whose quoted spans are checked against the cited
-         passages.</p></div>
+         passages. Since 0.9.0 an opt-in hybrid retriever (dense embeddings, rank fusion, reranker)
+         beat BM25 on recall at 3 in a held-out comparison, but BM25 stays the default because it
+         needs no model at query time.</p></div>
     <div class="card"><h3>Deterministic ML</h3>
       <p>Change-point detection (robust z-scores, CUSUM, PELT onset), ridge signal combination with
          leakage tests, held-out calibration, and a pre-trade cost model. Every model is labelled
@@ -161,7 +166,8 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
       <p>SQLite (WAL, single writer, forward-only migrations) for tasks, results, approvals, staged
          orders and an HMAC-chained audit log that is never pruned; <code>ceap db anchor</code>
          records the chain head outside the database and <code>ceap db verify-chain</code> checks
-         against it. CPU-bound tools run in a killable process pool under the server. FastAPI gateway with hashed API keys and roles, Prometheus metrics, JSON logs,
+         against it. CPU-bound tools run in a killable process pool under the server. Since 0.9.0 runs can
+         be made durable (a step journal, <code>CEAP_DURABLE_RUNS=1</code>) and pending approvals expire on a sweep. FastAPI gateway with hashed API keys and roles, Prometheus metrics, JSON logs,
          OpenTelemetry-ready tracing.</p></div>
     <div class="card"><h3>Execution simulator (0.8.0)</h3>
       <p>A limit order book where passive orders fill only when traded through, impact caused by the
@@ -172,6 +178,14 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
          only, prices in a git-ignored cache that is never committed. The preregistration was hashed
          before any data was read. Coverage failed its gate both times, so no statistic was computed
          and the pseudo-holdout is unspent.</p></div>
+    <div class="card"><h3>Real-data study E1: NULL</h3>
+      <p>Preregistered, hash-locked 49-industry momentum on free Ken French data. The 1990-2015
+         holdout was opened once and did not reject the null. One crash during the opening was
+         ledgered and disclosed. A NULL is not evidence that the effect is absent.</p></div>
+    <div class="card"><h3>Local model and stricter critic (0.9.0)</h3>
+      <p>A local open-weight model behind the same client interface, with recorded cassettes that CI
+         replays; a 200-attack injection corpus; a judge used only where it agrees with a reference.
+         The critic now reads each finding's words against its cited numbers and direction.</p></div>
     <div class="card"><h3>Paper trading (synthetic)</h3>
       <p>Simulated next-close fills with the backtest's own cost model, an append-only HMAC-chained
          ledger, desk controls (pre-trade checks, kill switch in the environment or the database, NYSE calendar, reconciliation that
@@ -182,9 +196,114 @@ footer{margin:3rem 0 2rem;color:var(--muted);font-size:.85rem;text-align:center}
   <h2>What it is not</h2>
   <div class="boundary">
     <div><strong>No live trading</strong>no order leaves the process; the only write path stages paper orders behind two human approvals</div>
-    <div><strong>No real-model numbers</strong>nothing here has been measured with a live model; those rows read UNKNOWN / NOT RUN LIVE</div>
-    <div><strong>No profitable strategy</strong>the real-data study is VOID and the paper record runs on synthetic data; nothing here is evidence of an edge</div>
+    <div><strong>No hosted-model numbers</strong>no hosted model was called; those rows read UNKNOWN / NOT RUN LIVE. The 0.9.0 local-model numbers describe a 7B open-weight model on one laptop only</div>
+    <div><strong>No profitable strategy</strong>the real-data studies are VOID (R5) and NULL (E1), and the paper record runs on synthetic data; nothing here is evidence of an edge</div>
     <div><strong>No real desk data</strong>execution scenarios, research scenarios and the paper feed are synthetic and seeded</div>
+  </div>
+
+  <h2>Read by area</h2>
+  <p style="color:var(--muted);font-size:.92rem;line-height:1.5">Each card gives the plain idea and
+     the 0.9.0 facts, then points at the page that holds the detail and the sources.</p>
+
+  <h3 style="color:var(--teal)">The main flow</h3>
+  <svg viewBox="0 0 760 150" role="img" aria-label="Question to planner, specialist agents calling MCP tools and deterministic analytics, critic, reporter, report with evidence ids; the harness and policy engine govern every step" style="width:100%;max-width:760px;height:auto;display:block;margin:.8rem 0">
+    <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+    <rect x="4" y="4" width="752" height="142" rx="6" fill="none" stroke="var(--teal)" stroke-dasharray="5 4"/>
+    <text x="16" y="24" font-size="12" fill="var(--teal)" font-family="Segoe UI,Arial,sans-serif">Harness (control plane) and policy engine govern every step</text>
+    <g font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="var(--ink)" text-anchor="middle">
+      <rect x="16" y="50" width="100" height="44" rx="4" fill="#fff" stroke="var(--green)"/><text x="66" y="76">Question</text>
+      <rect x="140" y="50" width="100" height="44" rx="4" fill="#fff" stroke="var(--green)"/><text x="190" y="70">Planner</text><text x="190" y="86" fill="var(--muted)">LLM, closed catalogue</text>
+      <rect x="264" y="50" width="130" height="44" rx="4" fill="#fff" stroke="var(--green)"/><text x="329" y="70">Specialist agents</text><text x="329" y="86" fill="var(--muted)">deterministic</text>
+      <rect x="264" y="104" width="130" height="32" rx="4" fill="#fff" stroke="var(--teal)"/><text x="329" y="124">MCP tools + analytics</text>
+      <rect x="418" y="50" width="100" height="44" rx="4" fill="#fff" stroke="var(--green)"/><text x="468" y="70">Critic</text><text x="468" y="86" fill="var(--muted)">checks first</text>
+      <rect x="542" y="50" width="96" height="44" rx="4" fill="#fff" stroke="var(--green)"/><text x="590" y="70">Reporter</text><text x="590" y="86" fill="var(--muted)">LLM, audited</text>
+      <rect x="660" y="50" width="88" height="44" rx="4" fill="#fff" stroke="var(--green)"/><text x="704" y="70">Report</text><text x="704" y="86" fill="var(--muted)">evidence ids</text>
+    </g>
+    <g stroke="var(--muted)" stroke-width="1.5" marker-end="url(#arr)">
+      <line x1="116" y1="72" x2="138" y2="72"/><line x1="240" y1="72" x2="262" y2="72"/>
+      <line x1="394" y1="72" x2="416" y2="72"/><line x1="518" y1="72" x2="540" y2="72"/>
+      <line x1="638" y1="72" x2="658" y2="72"/><line x1="329" y1="94" x2="329" y2="102"/>
+    </g>
+  </svg>
+  <p style="color:var(--muted);font-size:.85rem">Simplified from the
+     <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/architecture/overview.md">architecture overview</a>;
+     the full set is in <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/DIAGRAMS.md">DIAGRAMS.md</a>.
+     Research tasks use the same harness with Research, Alpha, Backtest and Portfolio-risk agents.</p>
+
+  <div class="grid">
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/learn/ai/README.md" style="color:inherit">AI concepts tutorial track</a></h3>
+      <p>Seven short lessons for students: LLMs, agents and the harness, guardrails, RAG, classical
+         ML, honest evaluation and local models. Each gives the plain idea, the formal statement, a
+         worked example with sourced numbers and an exercise that runs offline with no API key.
+         Same concepts on another desk: <a href="https://ashjha0.github.io/agentic-trader/">AgenticTrader</a>.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/ai-agents/ai-agents.md" style="color:inherit">AI and the LLM boundary</a></h3>
+      <p>The model reasons, plans and writes; it never computes or invents a number. Code renders
+         every figure, and prose that fails the number, id or citation audit is replaced by the
+         template narrative. The harness owns governance: it strips any planner-supplied critic,
+         validation or approval steps and appends its own. Hosted-model quality is UNKNOWN / NOT RUN
+         LIVE.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/ai-agents/ai-agents.md#the-agent-roster" style="color:inherit">The agent roster</a></h3>
+      <p>Investigation: Planner, then Market, Execution, Engineering, Risk and Quant, then Critic
+         and Reporter. Research: Planner, then Research, Alpha, Backtest and Portfolio risk, then
+         Critic and Reporter. Only three agents call the model (planner, critic, reporter); the
+         others are deterministic, and every finding must cite evidence ids.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/evaluation/local_model/README.md" style="color:inherit">Local open-weight model (0.9.0)</a></h3>
+      <p><code>qwen2.5:7b-instruct</code> through Ollama on one CPU-only laptop, seeds 1-3, replayed
+         from cassettes: plan valid without repair 15/30, tool precision 161/161, recall 61/84;
+         critic 35/45 planted faults; 0/39 untraceable numbers reached a report; injection obeyed
+         3/40, all via the user question. The judge scores only hedging. The challenger
+         (<code>llama3.1:8b</code>) comparison was not measured in 0.9.0. This describes a 7B
+         model, not the pinned hosted models.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/quant/quant.md" style="color:inherit">Quant</a></h3>
+      <p>Two verticals, one discipline: execution-quality analytics (VWAP, implementation
+         shortfall, slippage, impact, cause attribution) and signal-research analytics (rank-IC
+         statistics, multiple-testing control, an event-driven backtest, portfolio risk). Pure
+         functions with known-answer tests, run on seeded synthetic data.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/execution/execution.md" style="color:inherit">Execution and TCA</a></h3>
+      <p>Post-trade TCA measures an execution after the fact; since 0.8.0 <code>ceap.execution</code>
+         also runs one: a limit order book where fills and impact come from the bot's own orders,
+         TWAP/VWAP/POV and Almgren-Chriss schedulers, child orders, auctions, markouts and a
+         predicted-versus-realised cost loop. Synthetic and seeded; nothing sends an order.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/research/README.md" style="color:inherit">Research studies</a></h3>
+      <p>Every study was preregistered and hash-locked before its data was read. R5 (stock-level
+         12-1 momentum) is VOID twice on coverage; E1 (49-industry momentum, Ken French data) is
+         NULL on its 1990-2015 holdout; E2 explains why R5 could not pass on free data. None of
+         this is evidence of an edge.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/evaluation/evaluation.md" style="color:inherit">Evaluation</a></h3>
+      <p>Mock LLM on synthetic data: 50 execution scenarios (primary cause 0.98), 30 research
+         scenarios (verdicts 25/30), a signed golden set (research verdicts 13/15), and safety
+         invariants held under 4 injected faults. <code>scripts/check_docs.py</code> keeps the
+         documented numbers equal to
+         <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/evaluation/latest.json">latest.json</a>.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/architecture/overview.md" style="color:inherit">Architecture</a></h3>
+      <p>Layers from a framework-free domain package up through MCP servers, analytics, the
+         harness, policy engine, evidence, persistence and the FastAPI gateway. The LLM writes the
+         explanation; numbers and evidence come from deterministic systems, and each layer
+         enforces a piece of that in code.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/quant/real-data-and-paper.md" style="color:inherit">Real data and paper trading</a></h3>
+      <p>R5 coverage was 75.1 % and then 74.9 % against a required 95 %, so no statistic was
+         computed and the pseudo-holdout is unspent. The paper book runs on a synthetic feed, fills
+         at the next close with the backtest's cost model, and has a forward record from
+         2026-11-09; no forward result yet. Paper orders only, behind two human approvals.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/LEARN.md" style="color:inherit">Learn</a></h3>
+      <p>A guided course from the problem and a microstructure primer through TCA, attribution,
+         the harness, MCP, agents, the critic, policy, retrieval, evaluation, Stage 2 research,
+         paper trading, the execution simulator and the 0.9.0 local-model work, ending with a
+         knowledge check.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/COOKBOOK.md" style="color:inherit">Cookbook</a></h3>
+      <p>Short recipes: run an investigation from the CLI, Python or the API, turn on approvals,
+         compute TCA without any agent, add a scenario, tool, MCP server or agent, restrict a
+         principal, read traces and run the evaluation.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/threat-model/threat-model.md" style="color:inherit">Threat model</a></h3>
+      <p>No live orders and no venue connectivity. The main risks are wrong or misleading
+         conclusions, unauthorised data access, abuse of the agentic loop and, for the one write
+         tool, unauthorised paper-order staging. Threats are listed with their controls and
+         residual risks.</p></div>
+    <div class="card"><h3><a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/api/api.md" style="color:inherit">API</a></h3>
+      <p><code>ceap serve</code> starts the FastAPI gateway with interactive docs at
+         <code>/docs</code>. The committed <code>openapi.json</code> is checked in CI so a route
+         change is a visible diff, and a nightly Schemathesis job fuzzes the read-only operations.
+         Hashed API keys and roles.</p></div>
   </div>
 
   <h2>What an investigation looks like</h2>
@@ -245,8 +364,8 @@ ceap serve</pre>
          repository.</p></div>
   </div>
 
-  <footer>AgenticAICashEquities 0.7.1 — an evidence-first agentic platform for education and
-    demonstration, built on synthetic data apart from the VOID R5 study. See the
+  <footer>AgenticAICashEquities 0.9.0 — an evidence-first agentic platform for education and
+    demonstration, built on synthetic data apart from the VOID R5 study and the NULL E1 study. See the
     <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/README.md">README</a>,
     <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/docs/INDEX.md">docs index</a> and
     <a href="https://github.com/AshJha0/AgenticAICashEquities/blob/main/CHANGELOG.md">CHANGELOG</a>.</footer>

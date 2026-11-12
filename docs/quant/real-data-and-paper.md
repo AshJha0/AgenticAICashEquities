@@ -61,4 +61,52 @@ set|clear|status`) is checked by the paper job and by `stage_orders`, next to `C
 `stage_orders` runs the pre-trade checks before staging and persists staged sets in SQLite. A failed
 `paper-daily` run opens a `paper-failure` issue, and the weekly `paper-staleness` workflow opens a
 `paper-stale` issue when the `forward-log` head is more than 2 NYSE sessions old. Source:
-`CHANGELOG.md` (Unreleased) and COOKBOOK recipe 43.
+`CHANGELOG.md` [0.8.0] and COOKBOOK recipe 43.
+
+## Paper trading and the forward log (moved from the README in 0.9.0)
+
+paper, synthetic or free daily data, not trading. Approved targets are staged as PAPER orders,
+filled by a simulator at the next session's close with the backtest's cost model, and booked in an
+append-only, HMAC-chained SQLite ledger (`CEAP_AUDIT_HMAC_KEY`; anchor the heads with `ceap db anchor`). The forward record starts on the fixed date in
+`config/paper.json` and is never backfilled.
+
+```bash
+ceap paper run-day --date 2026-11-13 --db var/paper/paper.db
+ceap paper report --db var/paper/paper.db
+ceap paper backfill --from 2026-06-01 --to 2026-10-30 --db var/paper/paper.db
+```
+
+The feed is synthetic today (scenario R01, re-dated so its out-of-sample rows are the forward
+period). Desk controls run every session: pre-trade risk checks, a kill switch (`CEAP_PAPER_HALT`, or the
+DB-backed `ceap db kill-switch set|clear|status`, checked by the paper job and by `stage_orders`),
+borrow availability, the NYSE calendar, an end-of-day reconciliation that fails loudly, P&L
+attribution and a markdown/JSON artefact per run. A free daily feed plugs in through `ceap.paper.feed.register_feed`. The scheduled workflow
+`paper-daily.yml` runs when the repository variable `PAPER_DAILY_ENABLED` is `true`, which the owner
+set on 2026-11-08; it appends to the `forward-log` branch. See COOKBOOK recipe 43 and
+LEARN section 18a.
+
+**Last recorded session:** see the head of the
+[`forward-log` branch](https://github.com/AshJha0/AgenticAICashEquities/commits/forward-log) (the last
+line of `forward_log.csv`). Two dead-man's switches watch it: a failed `paper-daily` run opens or
+updates an issue labelled `paper-failure`, and the weekly `paper-staleness` workflow fails and opens
+an issue labelled `paper-stale` when the branch head is more than 2 NYSE sessions old. The owner
+should protect `forward-log` against force-push and deletion (Settings > Rules), since the
+record's value is that it is append-only.
+
+**What the forward log is, and what it is not.**
+
+- It runs on **SYNTHETIC data, not real prices** (evidence class: synthetic). `config/paper.json`
+  sets `"feed": "synthetic"` and `in_sample_sharpe` to null.
+- The real Stooq feed (`ceap.paper.feeds_real`, feed name `"stooq"`) exists but is **not enabled**:
+  `config/paper.json` stays on the synthetic feed, no Stooq files are in the repository (the cache is
+  git-ignored; Stooq blocks scripted downloads and the project does not bypass bot checks), the R5 pseudo-holdout to 2025-12-31 must stay unspent so the feed refuses those rows,
+  and the 12-1 signal needs twelve months of history after the holdout. Roughly January 2027 is
+  therefore the earliest it could run on real prices.
+- It checks **operations and controls** every day (fills, ledger chains, reconciliation, risk
+  blocks, the calendar). It says **nothing about strategy profitability**.
+- By the formula in LEARN section 18a, telling a true Sharpe of 1 from 0 <!-- source: tests/unit/paper/test_forward_and_ledger.py --> (alpha 0.05, power 0.8)
+  needs about **1980 sessions**, roughly eight years.
+- Owner decisions: paper trading is enabled after the 0.7.0 tag (D22), done by setting the
+  repository variable `PAPER_DAILY_ENABLED=true` on 2026-11-08; no 1.0.0-rc1 until 2 to 4 weeks of
+  that log have been reviewed (D21). The first forward session is 2026-11-09, so no forward result
+  exists yet (UNKNOWN).

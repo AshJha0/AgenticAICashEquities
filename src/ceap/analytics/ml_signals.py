@@ -147,7 +147,8 @@ def fit_ridge(p: Panel, dates: np.ndarray, alpha: float) -> np.ndarray:
 
 def predict(p: Panel, coef: np.ndarray) -> np.ndarray:
     """Score per date and name: ``X[t] . coef``; a name with any NaN signal gets NaN."""
-    return np.einsum("tis,s->ti", p.X, coef)
+    scores: np.ndarray = np.einsum("tis,s->ti", p.X, coef)
+    return scores
 
 
 def _weights(score: np.ndarray) -> np.ndarray:
@@ -178,7 +179,8 @@ def portfolio_returns(p: Panel, score: np.ndarray, dates: np.ndarray, stop: int 
     weights = np.vstack([_weights(score[t]) for t in reb])
     w = weights[np.searchsorted(reb, held)]
     r = p.daily[days]
-    return np.sum(w * np.where(np.isfinite(r), r, 0.0), axis=1)
+    out: np.ndarray = np.sum(w * np.where(np.isfinite(r), r, 0.0), axis=1)
+    return out
 
 
 def _moments(r: np.ndarray) -> tuple[float, float, float]:

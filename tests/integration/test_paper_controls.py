@@ -68,7 +68,7 @@ def test_every_fill_traces_to_its_staging_and_approval(feed, tmp_path):
         assert doc["status"] == "OK" and doc["label"].startswith("paper")
         assert doc["fills"] and all(f["approval_id"] in approved for f in doc["fills"])
         a = doc["snapshot"]["attribution"]
-        assert set(a) == {"signal", "drift", "financing", "borrow", "costs"}
+        assert set(a) == {"signal", "drift", "financing", "borrow", "costs", "dividends"}  # dividends: 0.9.0 F13
         md = (tmp_path / "forward" / f"{day}.md").read_text(encoding="utf-8")
         assert "| signal |" in md and "Reconciliation: OK" in md
 

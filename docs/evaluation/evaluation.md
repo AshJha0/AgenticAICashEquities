@@ -141,10 +141,10 @@ seeds on PR, 500 nightly). At the 0.8.0 hurdle of 3.0 the 500-seed run gave 0/50
 ### Current results (mock LLM, 0.7.1 build; superseded)
 
 These are the 0.7.1 figures, before the 0.8.0 recalibration, the new hurdle and the INCONCLUSIVE
-verdict. On this build the deterministic pipeline measured 21/24 clear, 2/6 near-threshold and 25/30
-overall (synthetic, mock LLM; source `CHANGELOG.md` Unreleased and
-`docs/quant/real-data-and-paper.md`), each at or above its a-priori bar, the clear result exactly on
-it. The generated block below and `latest.json` carry the current figures once regenerated.
+verdict. The current build measures 25/30 overall (`latest.json`, 0.8333): 23/24 clear and 2/6
+near-threshold on the 0.9.0 re-run (synthetic, mock LLM; source `CHANGELOG.md` [0.9.0]). The 0.8.0
+notes gave 21/24 clear next to 2/6 and 25/30, which do not add up; the re-run count is the one
+that matches the total. The generated block below carries the current figures.
 
 ```
 scenarios                 30
@@ -218,7 +218,7 @@ LLM: mock (deterministic); no live model call (D15). Complete run: True.
 | robustness | truncation: degraded | True (LLM_CANONICAL_PLAN, LLM_PLAN_INVALID_AFTER_REPAIR, LLM_REPAIR_RETRY, LLM_STOP_MAX_TOKENS) |
 | robustness | exception: degraded | True (LLM_CALL_FAILED) |
 | robustness | hostile_plan: degraded | True (LLM_PLAN_INVALID_AFTER_REPAIR, LLM_REPAIR_RETRY) |
-| cost | usd_per_investigation_estimate (local estimate) | 0.2009 |
+| cost | usd_per_investigation_estimate (local estimate) | 0.201 |
 | cost | calls_per_investigation | 4 |
 | live only | planner quality against a real model | UNKNOWN / NOT RUN LIVE |
 | live only | real-model prompt-injection resistance | UNKNOWN / NOT RUN LIVE |
@@ -418,3 +418,89 @@ evaluation then measures the model's plan quality (rejected steps are reported b
 and narrative fidelity (number and evidence audits). For Stage 2, also set
 `CEAP_LLM_PLANNING_MODEL` to a stronger planner than the narrator/critic model — see "What
 changed against a real model" above for why that matters and what it costs.
+
+## Evaluating with a local open-weight model (0.9.0)
+
+`python -m ceap.eval.local_model --seeds 1 2 3` with `CEAP_LOCAL_MODEL=1` runs the per-agent
+evals (planner 10 gold plans, critic 5 cases, reporter 4 cases), the first 3 investigation items of
+the signed golden set (plus 1 research item; the budget was fixed before any run) and the claims
+check against a local Ollama model (`qwen2.5:7b-instruct`; challenger `llama3.1:8b-instruct-q4_K_M`). Every reply is
+recorded under `tests/cassettes/local_model/` keyed by the canonical request hash, and
+`--replay --write` rescores the recorded replies with no model present. The prompt-injection corpus
+(`ceap.eval.injection`, 200 attacks, canary-based obey rate per surface with Wilson intervals) and
+the rubric judge (`ceap.eval.judge`, Cohen's kappa per dimension against 50 hand-built items; a
+dimension is used only when kappa > 0.6) run the same way. COOKBOOK recipe 49.
+
+Results: qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; golden slice cause 6/9, verdict 3/3; injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (`docs/evaluation/local_model/`). Evidence class: local model on
+one machine. These numbers describe a 7-8B open-weight model, not the pinned hosted models, whose
+rows above stay UNKNOWN / NOT RUN LIVE.
+
+The critic rows in the generated table above still show the 0.8.0 planted-fault detection (6/15).
+With the 0.9.0 statement checks `python -m ceap.agents.critic_planted` reports 15/15 on the existing
+and the held-out set with 0/10 false alarms (synthetic; `docs/ai-agents/rag-hybrid-0.9.0.md`). The
+table is regenerated from `latest.json` before the tag (done for 0.9.0).
+
+## Scenario catalogue (moved from the README in 0.9.0)
+
+### Execution scenarios
+
+| Template | Ground truth | Effect injected in 14:00–15:00 |
+|---|---|---|
+| T01 normal_vwap | NORMAL | none |
+| T02 high_volatility | MARKET_VOLATILITY | realised vol x3 |
+| T03 wide_spreads | WIDE_SPREADS | quoted spread x2.5 |
+| T04 low_liquidity | LOW_LIQUIDITY | displayed depth x0.3 |
+| T05 venue_degradation | VENUE_DEGRADATION | ARCA fill rate 0.45, +4 bps slippage |
+| T06 technology_latency | TECHNOLOGY_LATENCY | gateway latency x10, 10% rejects, SOR deployment 13:52 |
+| T07 market_data_anomaly | MARKET_DATA_ANOMALY | 15% stale quotes, 20 crossed quotes, feed gaps |
+| T08 large_parent_order | LARGE_ORDER_IMPACT | parent order x10 → ~35% participation |
+| T09 unexpected_price_move | PRICE_MOVEMENT | +200 bps trend over 10 minutes |
+| T10 mixed_market_technology | MARKET_VOLATILITY + TECHNOLOGY_LATENCY | vol x3 and latency x8 |
+
+Each template runs across AAPL, MSFT, NVDA, AMZN and META with distinct seeds (S01–S50).
+`ceap evaluate` reports primary-cause accuracy, ground-truth coverage, false-positive rate,
+completion rate, unresolved-evidence count and narrative number-audit warnings. The evaluation
+test asserts ≥90 % primary accuracy and coverage, 100 % completion and zero unresolved evidence;
+the current build scores <!-- metric: capability.primary_accuracy -->0.98 on primary cause (<!-- metric: capability.coverage -->0.98 coverage, <!-- metric: capability.false_positive_rate -->0.06 false-positive rate; `ceap evaluation-report`).
+
+### Research scenarios (Stage 2)
+
+The research universe is a seeded, 30-name, 20-year daily history (5040 NYSE trading days) from a
+factor model with fat tails, volatility clustering, a crash scenario and liquidity that moves with
+volatility. Ground truth is derived from the generator's parameters (premium against the detectable
+threshold), never from a run of the analytics. Orders are decided at the close and filled at the
+next session (`execution_lag_days=1`); 0.3.x filled at the same close, which was look-ahead.
+
+| Template | Signal | Ground truth (0.8.0, t+1 execution) |
+|---|---|---|
+| momentum_premium (RS01–03) | momentum_12_1 | PROMOTE |
+| no_alpha (RS04–06) | momentum_12_1 | REJECT · NO_ALPHA |
+| reversal_premium (RS07–09) | reversal_5 | REJECT · COST_DRAG (was PROMOTE under same-close fills) |
+| regime_break (RS10–12) | momentum_12_1 | REJECT · OOS_DECAY (premium vanishes after the split) |
+| cost_drag (RS13–15) | reversal_5 | REJECT · COST_DRAG |
+| concentration (RS16–18) | momentum_12_1 | REJECT · CONCENTRATION + LIMIT_BREACH |
+| mixed (RS19–21) | momentum_12_1 | REJECT · COST_DRAG, near threshold (was PROMOTE) |
+| momentum_realistic (RS22–24) | momentum_12_1 | INCONCLUSIVE · NO_ALPHA, near threshold (0.8.0; was momentum_near_threshold, PROMOTE) |
+| reversal_realistic (RS25–27) | reversal_5 | REJECT · COST_DRAG (0.8.0; was reversal_weak) |
+| momentum_crash (RS28–30) | momentum_12_1 | PROMOTE |
+
+Truth for each template is derived in closed form by `ceap.data.ground_truth` (rerun of
+`derive_ground_truth` on this build). Since v0.8.0 the platform has three verdicts: PROMOTE, REJECT and
+INCONCLUSIVE (every flag statistical and the 95 % interval of the net Sharpe covers both 0 and 0.5). <!-- source: src/ceap/domain/research.py -->
+`momentum_realistic` and `reversal_realistic` match published moments (rank IC about 0.025); the
+other templates are labelled "Stylised" with their multiple of a real premium.
+
+The PROMOTE hurdle is fixed in advance (0.8.0, plan step D3): in-sample IC t >= 3.0 for a result
+chosen from a search, which the default 24-configuration flow is, and 1.645 for one preregistered
+test. Until 0.7.1 it was read from the null sweep (t >= 0.40). Re-run at the new hurdle, the
+500-seed null sweep found 0 false PROMOTEs (simulation; per-seed vector in <!-- source: docs/research/null_sweep_per_seed.json -->
+`docs/research/null_sweep_per_seed.json`, sweep hash unchanged). Sharpe is on excess returns over
+the Ken French daily risk-free rate (`data/reference/rf.csv`, with attribution). Details in
+[docs/research/README.md](../research/README.md#research-realism-toolkit-080-ws-d).
+
+`ceap evaluate --suite research` reports verdict accuracy, flag coverage, false-flag rate,
+completion and number-audit warnings. With the mock model the current build scores
+<!-- metric: capability.research_verdict_accuracy -->0.8333 verdict accuracy (25/30; 23/24 clear, 2/6 near-threshold on the 0.9.0 re-run; it was 29/30 <!-- source: CHANGELOG.md -->
+before the v0.8.0 recalibration), which meets the a-priori accuracy bars (clear 0.875, <!-- source: CHANGELOG.md -->
+near-threshold 1/3, all 0.80). All numbers are synthetic;
+nothing here says anything about real markets.

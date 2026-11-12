@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import pytest
+
 from ceap.agents import CriticAgent
 from ceap.domain.agents import AgentContext, ToolInvoker
 from ceap.domain.evidence import Evidence, EvidenceType
@@ -42,6 +44,7 @@ async def test_agents_describe_a_promotable_signal(platform):
     assert "Research assessment: PROMOTE" in out["critic"]["critique"]["overall"]
 
 
+@pytest.mark.slow  # full research runs for every scenario; ~30 s idle, over 120 s under parallel load
 async def test_agents_flag_what_the_scenarios_embed(platform):
     no_alpha = await platform.research(default_research_request("R02"))
     assert any(f.attributes.get("claim") == "NO_ALPHA" for f in _findings(no_alpha, "alpha"))
