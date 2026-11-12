@@ -98,7 +98,7 @@ and passes the exact-zero guard; both need a tolerance.
   120 s default and pytest-timeout ended the xdist worker, losing its coverage data.
 - `CEAP_TEST_TIMEOUT_SCALE` multiplies the `slow`/`nightly` ceilings on a loaded machine; CI leaves
   it unset. Local coverage recipe: `docs/testing/test-pyramid.md`.
-- Coverage: <!-- COVERAGE -->
+- Coverage: 93 % branch across the whole `ceap` package (1326 tests: fast tier on 3 workers, slow tier serially, combined). The CI and nightly floor rises from 85 % to 90 %.
 
 **Fixed in the review:** a re-plan with step dependencies was always rejected (`depends_on` kept the
 old step ids); a NaN paper equity passed the replay gate; a malformed judge calibration file could

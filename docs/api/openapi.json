@@ -657,7 +657,7 @@
                 "type": "null"
               }
             ],
-            "description": "Research dataset id (R01..R07, RS01..RS21)",
+            "description": "Research dataset id (R01..R10, RS01..RS30)",
             "title": "Dataset"
           },
           "end": {
@@ -1017,7 +1017,7 @@
   "info": {
     "description": "Agentic AI platform that investigates, analyses and explains cash-equity execution quality.",
     "title": "Cash Equities Agentic Platform",
-    "version": "0.8.0"
+    "version": "0.9.0"
   },
   "openapi": "3.1.0",
   "paths": {
