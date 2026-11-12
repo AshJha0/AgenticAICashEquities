@@ -195,6 +195,10 @@ class PaperLedger:
         prev = self._head(conn, "SELECT hash FROM paper_ledger WHERE book=? ORDER BY seq DESC LIMIT 1", (book,))
         for e in events:
             price = e.get("price")
+            # The quantity column is REAL: hash the value as it will be read back (int 10 -> 10.0),
+            # or verification of a row appended with an int quantity fails.
+            quantity = e.get("quantity")
+            quantity = None if quantity is None else float(quantity)
             cash_u, cost_u = to_micros(e.get("cash_delta", 0.0)), to_micros(e.get("cost", 0.0))
             price_u = None if price is None else to_micros(price)
             money = {"cash_delta": cash_u, "cost": cost_u, "price": price_u}
@@ -204,7 +208,7 @@ class PaperLedger:
             detail[MONEY_KEY] = money
             row = {
                 "book": book, "date": date, "kind": e["kind"], "order_id": e.get("order_id"),
-                "symbol": e.get("symbol"), "quantity": e.get("quantity"),
+                "symbol": e.get("symbol"), "quantity": quantity,
                 "price": None if price_u is None else price_u / MICROS,
                 "cash_delta": cash_u / MICROS, "cost": cost_u / MICROS,
                 "payload_json": canonical_json(detail).decode("utf-8"),

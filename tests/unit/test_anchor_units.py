@@ -34,6 +34,17 @@ def _paper_rows(db: Database) -> None:
     db.run(write)
 
 
+def test_int_quantity_is_hashed_as_the_real_column_reads_it_back(db: Database) -> None:
+    # Regression: an int quantity was hashed as 10 but read back from the REAL column as 10.0,
+    # so the row no longer matched its own hash.
+    ledger = PaperLedger(db)
+    db.run(lambda conn: ledger.append_events(conn, "sim1", "2026-01-02", [
+        {"kind": "fill", "symbol": "AAPL", "quantity": 10, "price": 100.0, "cash_delta": -1000.0}]))
+    ok, where, reason = ledger.verify_keyed("ledger", "sim1")
+    assert ok, (where, reason)
+    assert ledger.events("sim1")[0]["quantity"] == 10.0
+
+
 def test_empty_database_anchors_genesis(db: Database) -> None:
     heads = an.chain_heads(db)
     assert heads["audit"] == {"rows": 0, "head": GENESIS_HASH}
