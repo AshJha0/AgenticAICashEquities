@@ -25,6 +25,10 @@ from ceap.platform import Platform
 
 #: H8: per-tier ceilings (the 120 s default is ``timeout`` in pyproject.toml)
 TIER_TIMEOUTS = {"nightly": 1800, "slow": 600}
+#: Multiplier for the tier ceilings on a shared or loaded machine (default 1). A pytest-timeout
+#: expiry ends the whole process on Windows (thread method), losing its coverage data, so a slow
+#: machine needs a longer ceiling rather than a lost run. CI leaves it unset.
+TIMEOUT_SCALE = float(os.environ.get("CEAP_TEST_TIMEOUT_SCALE", "1"))
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -34,7 +38,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             continue
         for marker, seconds in TIER_TIMEOUTS.items():
             if item.get_closest_marker(marker) is not None:
-                item.add_marker(pytest.mark.timeout(seconds))
+                item.add_marker(pytest.mark.timeout(seconds * TIMEOUT_SCALE))
                 break
 
 
