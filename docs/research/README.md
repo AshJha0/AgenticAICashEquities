@@ -70,7 +70,8 @@ look at the pseudo-holdout (5.7) were planned for after 0.6.0 and were not run (
 **Gate 1 (coverage at least 95 %) fails on current free data.** yfinance drops the history of
 delisted and acquired companies, for example LEH, CELG, ESRX, and EA after it was taken private.
 That is exactly the survivorship gap point-in-time membership is meant to expose. Under the
-preregistration the study is **VOID**. The owner decided against a manual Stooq download.
+preregistration the study is **VOID**. At the time the owner decided against a manual Stooq
+download; that was reversed on 2026-11-08 (the v2 attempt above).
 
 - Survivor-only universe (today's members used throughout), descriptive only: correlation with the
   point-in-time gross book 0.93; annualised gross difference -0.75 %.
@@ -161,7 +162,7 @@ cannot tell "no edge" from "a tradable edge". The realistic momentum template's 
 
 **Null sweep (D3, D20, D21) [simulation].** Re-run on 500 pure-noise seeds over the full search; it
 reproduced the 0.4.0 sweep hash `ef474869e5fa…` exactly. At t >= 3.0 it found 0 false PROMOTEs (95 %
-Clopper-Pearson upper bound 0.74 %); at 1.645, 4 of 500 (0.8 %). The per-seed vector is published in
+Clopper-Pearson upper bound 0.74 %); at 1.645, 5 of 500 (1.0 %; one seed's best statistic is 1.646). The per-seed vector is published in
 [`null_sweep_per_seed.json`](null_sweep_per_seed.json) with a 50-seed quick check in
 `data/reference/research_thresholds.json`, and every sweep run is appended to
 `data/reference/sweep_ledger.jsonl` with its generator version.
@@ -188,8 +189,9 @@ d = 4 with a five-day hold and a one-day lag, collapsing exactly when d + lag >=
 accounting (D8, `ceap.analytics.trial_accounting`), PBO by CSCV and stationary block bootstrap
 intervals (D9, `ceap.analytics.overfitting`), Newey-West over gaps with the Andrews bandwidth (D11),
 an equal-weight baseline with a paired bootstrap and Diebold-Mariano test for the ridge (D12),
-Ledoit-Wolf covariance, factor regression with alpha t after factors and multi-factor stress (D13,
-D16), data-vintage hashes (D14, `ceap.data.real.vintage`), the IC term structure and half-life (D15,
+Ledoit-Wolf covariance, factor regression with alpha t after factors (its R² is not reliable for a
+constant series; see the known numerical issues in [docs/quant/quant.md](../quant/quant.md)) and
+multi-factor stress (D13, D16), data-vintage hashes (D14, `ceap.data.real.vintage`), the IC term structure and half-life (D15,
 `ceap.analytics.alpha_decay`), turnover-penalised construction and the cost frontier (D17, D18),
 drawdown, CVaR and volatility-regime splits (D19), a robustness report per verdict (D6) and
 `scripts/rebuild_study.py` (D20).

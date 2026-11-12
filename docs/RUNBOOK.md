@@ -64,7 +64,7 @@ waiter died without a restart (an exception path, a cancelled task), the row wou
 for ever. Since 0.9.0 (G8) a sweep in the API `lifespan` runs every
 `CEAP_APPROVAL_SWEEP_S` seconds (default 60) and expires every `PENDING` row older than the timeout
 plus one sweep interval that no live waiter in this process holds. Each expiry is audited
-(`approval.expired`, reason `ttl sweep`) and counted in `ceap_approvals_swept_total`.
+(`approval.expired`, reason beginning `ttl sweep`) and counted in `ceap_approvals_swept_total`.
 
 **Do.** Nothing, usually: tell the requester to submit again. A steady rate of sweeps means waiters
 are dying: look for `investigation failed` log lines around the request time.
@@ -96,7 +96,8 @@ than the platform, or the chain key changed.
 
 **Do.**
 
-1. Stop writes: `ceap db kill-switch set --reason "audit chain break"`.
+1. Halt new paper orders: `ceap db kill-switch set --reason "audit chain break"`. The switch stops
+   the paper job and `stage_orders` (it does not block other writes, and is itself audited).
 2. Take a copy for forensics: `ceap db backup /safe/place/ceap-$(date +%F).db`.
 3. Compare against the last anchor: `ceap db verify-chain --anchor var/audit_head.json`. Rows before
    the anchored head that no longer verify were changed after the anchor was written.

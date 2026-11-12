@@ -18,7 +18,7 @@ so the definition can be checked rather than trusted.
 | Participation rate | order volume over market volume in the same interval. |
 | ADV | average daily volume; `Q/ADV` is the order's size as a fraction of a day. |
 | Square-root impact | expected impact `c * sigma_daily * sqrt(Q/ADV)` (`square_root_impact_estimate_bps`). |
-| Markout | price move after a fill, measured at fixed horizons, signed so positive is adverse (`ceap.execution.markouts`). |
+| Markout | price move after a fill, measured at fixed horizons: `s (m_{t+h} - p) / p` in bps, signed so positive means the price moved our way and negative is adverse selection (`ceap.analytics.slippage.markout_bps`, `ceap.execution.markouts`). |
 | Almgren-Chriss | schedule that trades off impact cost against price risk; closed-form `sinh` trajectory (`ceap.execution`). |
 
 ## Research and statistics
