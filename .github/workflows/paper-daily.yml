@@ -15,7 +15,7 @@ on:
         required: false
 
 permissions:
-  contents: write # push to the forward-log branch only
+  contents: write # push to the forward-log-v2 branch only (forward-log is the kept 0.9.0 false start)
   issues: write # open or update the paper-failure issue when the run fails (G6)
 
 concurrency:
@@ -46,12 +46,16 @@ jobs:
         run: |
           git config user.name "ceap-paper-bot"
           git config user.email "ceap-paper-bot@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin forward-log >/dev/null; then
-            git worktree add forward-log origin/forward-log
-            git -C forward-log switch -c forward-log
+          # actions/checkout fetches only the triggering ref, so origin/forward-log does not exist
+          # locally until it is fetched; without this fetch every run after the first failed with
+          # "invalid reference: origin/forward-log" (10 and 11 November 2026, R-02).
+          if git ls-remote --exit-code --heads origin forward-log-v2 >/dev/null; then
+            git fetch --no-tags origin +refs/heads/forward-log-v2:refs/remotes/origin/forward-log-v2
+            git worktree add forward-log origin/forward-log-v2
+            git -C forward-log switch -c forward-log-v2
           else
             git worktree add --detach forward-log
-            git -C forward-log switch --orphan forward-log
+            git -C forward-log switch --orphan forward-log-v2
           fi
       - name: Run the session (paper-auto is allowed explicitly; audited in the ledger database)
         id: run
@@ -77,7 +81,7 @@ jobs:
           cd forward-log
           git add paper.db forward_log.csv REPORT.txt reports
           git commit -m "paper: forward log $(tail -n 1 forward_log.csv | cut -d, -f1) (paper, not trading)" || exit 0
-          git push origin forward-log
+          git push origin forward-log-v2
       - name: Open or update the paper-failure issue
         if: failure()
         env:

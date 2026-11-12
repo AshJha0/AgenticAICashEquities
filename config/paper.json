@@ -1,6 +1,6 @@
 {
-  "_comment": "Paper trading (RP). paper, synthetic or free daily data, not trading. forward_start is fixed: never move it earlier, never backfill into the forward record.",
-  "forward_start": "2026-11-09",
+  "_comment": "Paper trading (RP). paper, synthetic or free daily data, not trading. forward_start is fixed: never move it earlier, never backfill into the forward record. Restarted once (decision O4, 2026-11-12) from 2026-11-09 to 2026-11-12 on a new branch, forward-log-v2: the first record on branch forward-log holds a 2026-11-10 row written before that session closed and is kept unchanged as a disclosed false start.",
+  "forward_start": "2026-11-12",
   "feed": "synthetic",
   "_comment_feed": "\"stooq\" (ceap.paper.feeds_real) reads data/real_cache/stooq/ after the R5 holdout. It stays synthetic until a person places Stooq files there; in_sample_sharpe stays null because R5 is VOID and computed no Sharpe.",
   "scenario": "R01",

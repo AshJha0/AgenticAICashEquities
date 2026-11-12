@@ -77,6 +77,7 @@ markers = [
     "nightly: nightly tier (500-seed sweeps); deselected on PR with -m 'not nightly' and run by nightly.yml, which sets CEAP_NIGHTLY=1 (the tests skip without it)",
     "evaluation: scenario-based evaluation suite",
     "adversarial: adversarial / safety tests",
+    "real_paper_clock: keep the wall clock for the paper completed-session guard (tests/conftest.py)",
 ]
 
 [tool.ruff]

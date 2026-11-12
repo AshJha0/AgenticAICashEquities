@@ -8,6 +8,7 @@ function-scoped so no test can see another test's leftovers; the random-order ni
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 
 import pytest
 
@@ -92,3 +93,30 @@ try:  # hypothesis profiles: 100 examples on PR, 1000 nightly (HYPOTHESIS_PROFIL
     hsettings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "pr"))
 except ImportError:  # pragma: no cover - hypothesis is in the dev extra
     pass
+
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _paper_clock_after_synthetic_panel() -> Iterator[None]:
+    """Synthetic paper panels run past today; move the completed-session guard's clock past them.
+
+    Session-scoped so module-scoped fixtures see it too. Tests of the guard itself are marked
+    ``real_paper_clock`` and get the wall clock back from ``_real_paper_clock``.
+    """
+    from datetime import UTC, datetime
+
+    import ceap.paper.job as job
+
+    real = job._utcnow
+    job._utcnow = lambda: datetime(2100, 1, 1, tzinfo=UTC)
+    job._real_utcnow = real  # type: ignore[attr-defined]
+    yield
+    job._utcnow = real
+
+
+@pytest.fixture(autouse=True)
+def _real_paper_clock(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    if request.node.get_closest_marker("real_paper_clock"):
+        import ceap.paper.job as job
+
+        monkeypatch.setattr(job, "_utcnow", job._real_utcnow)

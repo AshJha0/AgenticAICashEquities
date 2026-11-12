@@ -40,9 +40,9 @@ jobs:
           python -m pip install -e . --no-deps
       - name: Read the forward-log head
         run: |
-          git fetch --depth=1 origin forward-log
+          git fetch --depth=1 origin forward-log-v2
           git show FETCH_HEAD:forward_log.csv > "$RUNNER_TEMP/forward_log.csv"
-          git log -1 --format='forward-log head %h %cI %s' FETCH_HEAD
+          git log -1 --format='forward-log-v2 head %h %cI %s' FETCH_HEAD
       - name: Check staleness against the NYSE calendar
         run: python scripts/check_forward_log_staleness.py --csv "$RUNNER_TEMP/forward_log.csv" --max-missed 2
       - name: Open or update the paper-stale issue

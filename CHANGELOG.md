@@ -6,6 +6,20 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
+
+- **Why the scheduled job wrote nothing on 10 and 11 November.** Both scheduled runs failed with
+  `fatal: invalid reference: origin/forward-log`: `actions/checkout` fetches only the triggering
+  ref, so once the branch existed the job could not check it out. The job now fetches the branch
+  first. The repository variable was not the cause.
+- **No session before its close.** `PaperJob.run_day` refuses a session whose 16:00 New York close
+  (13:00 on early-close days) has not passed. The 10 November row was written at 03:42 UTC, about
+  eleven hours before that session opened.
+- **Forward record restarted (decision O4).** `forward_start` moves from 2026-11-09 to 2026-11-12
+  and the job writes to a new branch, `forward-log-v2`. Branch `forward-log` is kept unchanged as a
+  disclosed false start (rows for 9 and 10 November, the second written early). The feed is
+  synthetic, so the early row leaked no market information.
+
 ### Corrections to the 0.9.0 notes (docs only, found by the 2026-11-12 review)
 
 - **The local-model "golden slice" was not measured.** 0.9.0 published primary cause 6/9,
