@@ -34,7 +34,7 @@ from ceap.analytics.backtest import (
     target_weights,
 )
 from ceap.analytics.signals import compute_signal, cross_sectional_zscore
-from ceap.data.calendar import is_early_close, is_trading_day
+from ceap.data.calendar import is_early_close, is_trading_day, session_close
 from ceap.mcp.execution.staging import PAPER_ACCOUNT, portfolio_hash
 from ceap.paper.config import PaperConfig
 from ceap.paper.feed import LABEL, DailyFeed, MarketPanel, get_feed
@@ -86,6 +86,11 @@ def environment() -> str:
     return os.getenv("CEAP_ENV", "dev").lower()
 
 
+def _utcnow() -> datetime:
+    """Wall clock for the completed-session guard; tests replace it."""
+    return datetime.now(UTC)
+
+
 class PaperJob:
     def __init__(
         self,
@@ -123,9 +128,22 @@ class PaperJob:
             self.rf, self.rf_source = risk_free_daily(self.panel.dates)
 
     # ------------------------------------------------------------- public
-    def run_day(self, day: str, *, _crash: str | None = None) -> list[DayOutcome]:
-        """Forward book: process every session from the last recorded one (or the forward start) to ``day``."""
+    def run_day(self, day: str, *, now: datetime | None = None, _crash: str | None = None) -> list[DayOutcome]:
+        """Forward book: process every session from the last recorded one (or the forward start) to ``day``.
+
+        ``day`` must be a session whose New York close has already passed at ``now`` (default: the
+        wall clock). The forward record never holds a row written before its session closed (R-02).
+        """
         day = str(day)[:10]
+        now = _utcnow() if now is None else now
+        if now.tzinfo is None:
+            raise PaperJobError("now must be timezone-aware")
+        d = date.fromisoformat(day)
+        if is_trading_day(d) and session_close(d) > now:
+            raise PaperJobError(
+                f"{day} has not closed yet (close {session_close(d).isoformat()}, now {now.isoformat()}); "
+                "the forward record only takes completed sessions"
+            )
         if day < self.config.forward_start:
             raise PaperJobError(
                 f"{day} is before the forward start {self.config.forward_start}; the forward record is never "

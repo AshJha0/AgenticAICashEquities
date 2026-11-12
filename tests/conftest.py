@@ -92,3 +92,18 @@ try:  # hypothesis profiles: 100 examples on PR, 1000 nightly (HYPOTHESIS_PROFIL
     hsettings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "pr"))
 except ImportError:  # pragma: no cover - hypothesis is in the dev extra
     pass
+
+
+@pytest.fixture(autouse=True)
+def _paper_clock_after_synthetic_panel(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) -> None:
+    """Synthetic paper panels run past today; move the completed-session guard's clock past them.
+
+    Tests of the guard itself are marked ``real_paper_clock`` and keep the wall clock.
+    """
+    if request.node.get_closest_marker("real_paper_clock"):
+        return
+    from datetime import UTC, datetime
+
+    import ceap.paper.job as job
+
+    monkeypatch.setattr(job, "_utcnow", lambda: datetime(2100, 1, 1, tzinfo=UTC))

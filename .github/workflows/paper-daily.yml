@@ -46,7 +46,11 @@ jobs:
         run: |
           git config user.name "ceap-paper-bot"
           git config user.email "ceap-paper-bot@users.noreply.github.com"
+          # actions/checkout fetches only the triggering ref, so origin/forward-log does not exist
+          # locally until it is fetched; without this fetch every run after the first failed with
+          # "invalid reference: origin/forward-log" (10 and 11 November 2026, R-02).
           if git ls-remote --exit-code --heads origin forward-log >/dev/null; then
+            git fetch --no-tags origin +refs/heads/forward-log:refs/remotes/origin/forward-log
             git worktree add forward-log origin/forward-log
             git -C forward-log switch -c forward-log
           else
