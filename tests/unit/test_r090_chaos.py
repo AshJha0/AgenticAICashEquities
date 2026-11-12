@@ -66,7 +66,8 @@ def test_kill_9_mid_run_day_converges(tmp_path):
         db = Database(r"{db_path}")
         job = PaperJob(db, PaperConfig(), risk_free=None)
         end = job.panel.day(job.panel.index_of("2026-11-09") + {sessions - 1})
-        job.run_day(end)
+        from datetime import UTC, datetime
+        job.run_day(end, now=datetime(2100, 1, 1, tzinfo=UTC))  # synthetic panel runs past today
         """,
         tmp_path,
     )
