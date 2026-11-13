@@ -1,0 +1,5 @@
+# schema_version: 1
+# label: paper, synthetic or free daily data, not trading
+# book: forward
+date,equity,daily_return,rf,excess_return,costs,borrow,financing,turnover,gross_exposure,net_exposure,n_positions,catch_up,row_json,prev_hash,hash
+2026-11-12,10000000.0,0.0,0.0001,-0.0001,0.0,0.0,0.0,0.0,0.0,0.0,0,False,"{""book"":""forward"",""borrow"":0.0,""catch_up"":false,""costs"":0.0,""daily_return"":0.0,""date"":""2026-11-12"",""equity"":10000000.0,""excess_return"":-0.0001,""feed"":""synthetic:R01"",""financing"":0.0,""gross_exposure"":0.0,""label"":""paper, synthetic or free daily data, not trading"",""n_positions"":0,""net_exposure"":0.0,""rf"":0.0001,""schema_version"":1,""turnover"":0.0}",0000000000000000000000000000000000000000000000000000000000000000,19009558c509747b54009661aa7f8dc47730964b7b2b352bcac7a188ad7a5ff6

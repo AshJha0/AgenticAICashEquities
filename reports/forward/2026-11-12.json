@@ -1,0 +1,46 @@
+{
+  "label": "paper, synthetic or free daily data, not trading",
+  "book": "forward",
+  "date": "2026-11-12",
+  "status": "OK",
+  "halt": null,
+  "approval_id": "APR-PAPER-forward-2026-11-12",
+  "staging_id": "PAPER-STG-918d936bfa",
+  "snapshot": {
+    "date": "2026-11-12",
+    "equity": 10000000.0,
+    "cash": 10000000.0,
+    "long_mv": 0,
+    "short_mv": 0,
+    "gross_exposure": 0.0,
+    "net_exposure": 0.0,
+    "traded_notional": 0.0,
+    "turnover": 0.0,
+    "costs": 0.0,
+    "borrow": 0.0,
+    "financing": 0.0,
+    "mark_pnl": 0.0,
+    "dividends": 0.0,
+    "rf": 0.0001,
+    "daily_return": 0.0,
+    "n_positions": 0,
+    "open_orders": 0,
+    "attribution": {
+      "signal": 0.0,
+      "drift": 0.0,
+      "financing": 0.0,
+      "borrow": -0.0,
+      "costs": -0.0,
+      "dividends": 0.0
+    },
+    "early_close": false,
+    "halted": false
+  },
+  "reconciliation": {
+    "ok": true,
+    "breaks": [],
+    "drift_tolerance": 0.005
+  },
+  "fills": [],
+  "exceptions": []
+}
