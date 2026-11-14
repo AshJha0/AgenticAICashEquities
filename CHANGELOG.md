@@ -6,6 +6,16 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Added: CI replay gate for local-model results (0.10.0 item T3)
+
+- **R-01.** `scripts/check_replay.py` runs in the CI lint job. For each committed per-seed result
+  in `docs/evaluation/local_model/` it replays the matching cassette with no model running and fails
+  when a request has no recording, when a recording is never asked for, or when any number in the
+  committed file differs from the replay. Cassettes recorded before 0.10.0 have no manifest; the
+  three 0.9.0 seed files are printed as "not gated (pre-0.10.0, awaiting re-record)" rather than
+  passed, and any cassette with a manifest is gated, so a new recording cannot opt out. They become
+  gated when T8 re-records them. Tests: `tests/repo/test_check_replay.py`.
+
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 
 - **E-09.** The redactor removed every 8 to 19 digit number, deleting quantities, notionals and
