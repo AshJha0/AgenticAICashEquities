@@ -26,6 +26,9 @@ settle model quality.
   below their ratchet under machine load (docs/testing/coverage-by-package.md).
 - E2: the mutation baseline has never been measured (the ratchet fails on a null baseline after
   2026-11-30); the release gate's three green nightlies were not yet available at tagging.
+- The signed research golden set v1.1 is frozen, so it still asks RS25 and RS27 (G-RES11-13, -14)
+  for COST_DRAG; under Q2's 0.95 bar their expected flag is NO_ALPHA (verdict REJECT unchanged). The
+  test lists this exact divergence; a v1.2 re-sign is left open.
 - The forward log has 2 sessions at tagging (12 and 13 November; restarted 2026-11-12); the five-session gate moved to 0.11.0 (O12).
 
 
