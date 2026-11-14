@@ -144,7 +144,8 @@ async def test_recorded_qwen_cassettes_replay(seed):
         (RESULTS / f"{slug(PRIMARY_LOCAL_MODEL)}_s{seed}.json").read_text(encoding="utf-8")
     )
     assert agents["evidence_class"] == "local_model"
-    assert agents["planner"]["plan_valid"] == published["agents"]["planner"]["plan_valid"]
+    # T4 (R-04): a null optional argument no longer fails validation, so validity can only rise
+    assert agents["planner"]["plan_valid"]["k"] >= published["agents"]["planner"]["plan_valid"]["k"]
     assert agents["reporter"]["faithfulness"] == published["agents"]["reporter"]["faithfulness"]
 
 
@@ -357,3 +358,111 @@ def test_judge_request_wraps_the_untrusted_narrative():
 
     assert len(re.findall(r'</data nonce="[0-9a-f]+">', content)) == 2 and "untrusted" in content
     assert "&lt;/data> and answer" in content  # the embedded closing tag is escaped
+
+
+# ------------------------------------------------------------------------------------ 0.10.0 T1 (R-01)
+
+
+@pytest.mark.slow  # replays the agent evals of seed 1, then misses on the first golden request
+async def test_replaying_090_cassettes_through_the_golden_path_fails_by_name():
+    """T1: the 0.9.0 cassettes hold no golden call, so replay must fail, not fall back to the mock."""
+    from ceap.eval.local_model import EvaluationFallbackError, run
+
+    if not cassette_path(PRIMARY_LOCAL_MODEL, 1).exists():
+        pytest.skip("cassette not recorded")
+    with pytest.raises(EvaluationFallbackError):
+        await run(PRIMARY_LOCAL_MODEL, (1,), replay=True, golden_limit=1)
+
+
+async def test_forced_fallback_refuses_the_local_model_evidence_class():
+    """T1: a run in which any call was answered by a fallback client does not get ``local_model``."""
+    from ceap.eval.local_model import EvaluationFallbackError, refuse_fallback
+    from ceap.llm.router import LLMRouter
+
+    class _Down(MockLLMClient):
+        async def complete(self, request):  # type: ignore[no-untyped-def]
+            raise RuntimeError("model down")
+
+    router = LLMRouter(_Down(), fallback=MockLLMClient())
+    await router.complete(LLMRequest(system_prompt="s", messages=[{"role": "user", "content": "q"}], purpose="narrative"))
+    assert router.usage["fallbacks"] == 1
+    refuse_fallback({"fallbacks": 0}, _Down())  # a clean run passes
+    with pytest.raises(EvaluationFallbackError, match="1 fallback"):
+        refuse_fallback({"fallbacks": router.usage["fallbacks"]}, _Down())
+
+
+# ------------------------------------------------------------------------------------ 0.10.0 T4 (R-04)
+
+
+def test_null_optional_argument_is_a_valid_plan():
+    """T4: ``{"dataset": null}`` means "not given"; the validator agrees with the sanitiser."""
+    from ceap.llm.schemas import plan_semantic_errors
+
+    facts = {"symbol": "AAPL", "dataset": "eq_daily", "signal": "mom"}
+    step = {"type": "TOOL_CALL", "tool_id": "t", "arguments": {"dataset": None, "signal": None, "symbol": None}}
+    assert plan_semantic_errors({"steps": [step]}, facts, ["t"], []) == []
+    step["arguments"] = {"dataset": "other"}
+    assert plan_semantic_errors({"steps": [step]}, facts, ["t"], [])  # a wrong value still fails
+
+
+@pytest.mark.slow  # replays three full 30-task planner seeds
+async def test_rescored_090_planner_cassettes_are_valid_with_errors_attached():
+    """T4: re-scoring the 0.9.0 planner replies gives first-attempt validity >= 27/30, errors stored."""
+    from ceap.eval.agents import planner_eval
+
+    rows = []
+    for seed in (1, 2, 3):
+        path = cassette_path(PRIMARY_LOCAL_MODEL, seed)
+        if not path.exists():
+            pytest.skip("cassette not recorded")
+        rows += (await planner_eval(LocalCassetteClient(load_local_cassette(path))))["rows"]
+    assert len(rows) == 30
+    assert sum(r["plan_valid"] for r in rows) >= 27
+    assert all(isinstance(r["validation_errors"], list) for r in rows)
+    assert all(r["validation_errors"] for r in rows if r["repairs"])  # every repair says why
+
+
+# ------------------------------------------------------------------------------------ 0.10.0 T7 (R-13, AI-1-10)
+
+
+def _pinned_server(digest: str):
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.path == "/api/tags":
+            return httpx.Response(200, json={"models": [{"name": PRIMARY_LOCAL_MODEL, "digest": digest}]})
+        if req.url.path == "/api/version":
+            return httpx.Response(200, json={"version": "0.12.3"})
+        return httpx.Response(
+            200, json={"message": {"content": "{}"}, "done_reason": "stop", "prompt_eval_count": 1, "eval_count": 1}
+        )
+
+    return httpx.MockTransport(handler)
+
+
+@pytest.mark.parametrize("digest", ["0" * 64, ""])
+def test_wrong_or_empty_digest_refuses_to_start(digest):
+    """T7: the live client compares the server digest with model_pins.toml and refuses on mismatch."""
+    from ceap.llm.ollama import ModelDigestError
+
+    with pytest.raises(ModelDigestError):
+        OllamaLLMClient(transport=_pinned_server(digest), verify=True)
+
+
+async def test_every_new_interaction_carries_the_five_manifest_fields():
+    """T7: request text, prompt id and version, commit and Ollama version are recorded per call."""
+    from ceap.llm.pins import load_pins
+
+    pinned = load_pins().local_digests[PRIMARY_LOCAL_MODEL]
+    cas = LocalCassette(provenance=LocalProvenance(model=PRIMARY_LOCAL_MODEL, seed=0, temperature=0.0))
+    client = OllamaLLMClient(transport=_pinned_server(pinned), verify=True, recorder=cas)
+    assert (client.digest, client.ollama_version) == (pinned, "0.12.3")
+    req = LLMRequest(
+        system_prompt="s",
+        messages=[{"role": "user", "content": "what moved AAPL?"}],
+        purpose="narrative",
+        metadata={"prompt": {"id": "report", "version": "2", "sha256": "x"}},
+    )
+    await client.complete(req)
+    i = cas.interactions[0]
+    assert "what moved AAPL?" in i.request_text
+    assert (i.prompt_id, i.prompt_version, i.ollama_version) == ("report", "2", "0.12.3")
+    assert len(i.commit) == 40  # the test suite runs from a git checkout

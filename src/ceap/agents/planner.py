@@ -177,6 +177,7 @@ class PlannerAgent(BaseAgent):
         raw: dict[str, Any] | None = None
         response: LLMResponse | None = None
         repairs = 0
+        first_errors: list[str] = []  # R-04: kept in the output so a reader can see why a plan failed
         if llm_disabled(self.llm):
             degradations.append(
                 Degradation(RUNG_KILL_SWITCH, "LLM_DISABLED", "kill switch on: canonical plan used")
@@ -186,6 +187,7 @@ class PlannerAgent(BaseAgent):
                 response = await self.call_llm(context, self.llm, request)
                 degradations.extend(response.degradations)
                 raw, errors = problems(response)
+                first_errors = list(errors)
                 if errors:
                     # rung 2: exactly one repair, with the schema and semantic errors as its target
                     repairs = 1
@@ -282,6 +284,7 @@ class PlannerAgent(BaseAgent):
             "tokens": token_view(response),  # A20: labelled when the counts are a mock estimate
             "degradations": degradation_records(degradations),
             "repairs": repairs,
+            "validation_errors": first_errors,
             "prompt": prompt.ref(),
             "scope": scope,
         }

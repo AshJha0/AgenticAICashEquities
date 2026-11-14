@@ -9,9 +9,14 @@ Formal statement. For seeds ``s_1..s_m`` (m >= 3) a run calls
 * :func:`ceap.eval.agents.agent_evals` (planner 10 gold plans, critic 5 cases, reporter 4 cases);
 * :func:`ceap.evaluation_report.golden_scores` on the first ``golden_limit`` investigation items of
   the signed golden set (plus ``max(1, limit // 2)`` research items), through an
-  :class:`ceap.llm.router.LLMRouter` with the deterministic mock as fallback, so the runtime
-  ladder (repair, fallback) is exercised and reported to an :class:`AISLOMonitor` (B8);
+  :class:`ceap.llm.router.LLMRouter` with NO fallback client (R-01): a cassette miss or a model
+  error is an error, never a mock answer; the repair rung is still reported to an
+  :class:`AISLOMonitor` (B8);
 * the claims check: share of proposed claims dropped for an untraceable number.
+
+A run refuses to return ``evidence_class: local_model`` (raises :class:`EvaluationFallbackError`)
+when any call missed the cassette or was answered by a fallback client (R-01: the 0.9.0 golden slice
+was produced by the mock fallback after every request missed).
 
 Pooled rates add ``k`` and ``n`` across seeds. Seeds are not independent draws of the case set
 (the cases are the same), so the pooled interval understates between-case uncertainty; the per-seed
@@ -39,7 +44,7 @@ from pathlib import Path
 from typing import Any
 
 from ceap.eval.stats import rate
-from ceap.llm.client import LLMClient, MockLLMClient
+from ceap.llm.client import LLMClient
 from ceap.llm.ollama import (
     PRIMARY_LOCAL_MODEL,
     LocalCassette,
@@ -50,12 +55,28 @@ from ceap.llm.ollama import (
     model_digest,
     write_local_cassette,
 )
+from ceap.llm.recording import CassetteStaleError
 
 REPO = Path(__file__).resolve().parents[3]
 CASSETTES = REPO / "tests" / "cassettes" / "local_model"
 RESULTS = REPO / "docs" / "evaluation" / "local_model"
 DEFAULT_SEEDS = (1, 2, 3)
 GOLDEN_LIMIT = 3  # a priori compute budget (see module docstring)
+
+
+class EvaluationFallbackError(RuntimeError):
+    """A local-model evaluation call missed its cassette or was answered by a fallback (R-01)."""
+
+
+def refuse_fallback(result: dict[str, Any], client: Any) -> None:
+    """Raise unless every call of ``result`` was answered by the model (or its exact recording)."""
+    misses = int(getattr(client, "misses", 0))
+    fallbacks = int(result.get("fallbacks", 0))
+    if misses or fallbacks:
+        raise EvaluationFallbackError(
+            f"refusing evidence_class local_model: {misses} cassette miss(es), "
+            f"{fallbacks} fallback answer(s) in the run"
+        )
 TEMPERATURE = 0.7  # sampling on, so seeds differ; Ollama's own default is 0.8
 
 
@@ -78,7 +99,9 @@ async def untraceable_rate(client: LLMClient) -> dict[str, Any]:
     return rate(untraceable, proposed)
 
 
-async def run_seed(client: LLMClient, golden_limit: int = GOLDEN_LIMIT) -> dict[str, Any]:
+async def run_seed(
+    client: LLMClient, golden_limit: int = GOLDEN_LIMIT, fallback: LLMClient | None = None
+) -> dict[str, Any]:
     from ceap.eval.agents import agent_evals
     from ceap.evaluation_report import golden_scores
     from ceap.harness.memory import CaseMemory
@@ -91,12 +114,13 @@ async def run_seed(client: LLMClient, golden_limit: int = GOLDEN_LIMIT) -> dict[
     monitor = AISLOMonitor(
         p95_ms={k: 1_800_000 for k in ("planning", "claims", "narrative", "critique", "judge")}
     )
-    router = LLMRouter(client, fallback=MockLLMClient())
+    router = LLMRouter(client, fallback=fallback)  # R-01: None in evaluation runs
     router.slo = monitor
     golden = await golden_scores(
         Platform(llm=router, case_memory=CaseMemory(enabled=False)), limit=golden_limit
     )
     return {
+        "fallbacks": router.usage["fallbacks"],
         "agents": agents,
         "untraceable_number": untrace,
         "golden": {k: v for k, v in golden.items() if k != "rows"},
@@ -173,7 +197,11 @@ async def run(
                 provenance=LocalProvenance(model=model, digest=digest, seed=seed, temperature=TEMPERATURE)
             )
             client = OllamaLLMClient(model, seed=seed, temperature=TEMPERATURE, recorder=cas, checkpoint=path)
-        result = await run_seed(client, golden_limit)
+        try:
+            result = await run_seed(client, golden_limit)
+        except CassetteStaleError as exc:
+            raise EvaluationFallbackError(f"seed {seed}: cassette miss: {exc}") from exc
+        refuse_fallback(result, client)
         result["latency_ms"] = _latency(client)
         per_seed[seed] = result
         if not replay:

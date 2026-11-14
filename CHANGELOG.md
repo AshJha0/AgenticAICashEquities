@@ -121,6 +121,40 @@ refuses a tag whose version has no section.
   inserted; it flags none of the 10 knowledge documents or their 126 paragraphs. The patterns were
   not tuned to the corpus, so 0.20 is an honest and a low figure: the screen is a tripwire, and the
   defence remains the nonce-tagged data blocks on the prompt path.
+### Added: local model digests pinned and checked; cassette manifest (0.10.0 item T7, findings R-13, AI-1-10)
+
+- **Digest pinned, not only the tag.** `model_pins.toml` gains `[local_models]` with the Ollama
+  content digest of each local model (the digests recorded in the 0.9.0 cassettes). The live
+  `OllamaLLMClient` reads `/api/tags` at start and raises `ModelDigestError` when the server's digest
+  is empty or differs from the pin. Before, the digest was fetched for provenance only, came back
+  empty on any error and was never compared.
+- **Every new interaction carries its manifest:** the request text, the prompt id and version, the
+  source commit and the Ollama version (from `/api/version`). Cassettes recorded before 0.10.0 load
+  unchanged with these fields empty.
+
+### Fixed: the planner validator agrees with the sanitiser on `None` (0.10.0 item T4, finding R-04)
+
+- **A null optional argument is "not given".** `plan_semantic_errors` now skips `None` arguments,
+  as `_sanitise_arguments` already did. Before, `"dataset": null` was compared as the string
+  `"None"` with the pinned dataset and the plan was rejected; on replay 72 of 73 validation errors
+  were this one rule. Re-scoring the recorded 0.9.0 planner replies gives at least 27 of 30 valid at
+  the first attempt (0.9.0 published 15 of 30); the published result files are not rewritten here.
+- **Errors are kept.** The planner output carries `validation_errors` (the first attempt's list)
+  and each planner-eval result row stores it, so a reader can see why a plan needed a repair.
+- **Not done in this item:** removing `null` from optional schema members and making windows an
+  enum and dataset and symbol constants. Each changes the schema sent with the request, and so the
+  cassette match key; it waits for the re-recording (T8/T9).
+
+### Fixed: local-model evaluation runs use no fallback (0.10.0 item T1, finding R-01)
+
+- **A cassette miss is now an error.** `ceap.eval.local_model.run_seed` builds its `LLMRouter`
+  with no fallback client, and `run` raises `EvaluationFallbackError` when a seed's run hits a
+  request with no recording. `LocalCassetteClient` counts its misses, so a miss is still caught
+  when a caller downstream swallowed the error and carried on.
+- **No `local_model` label on fallback answers.** `run` refuses to return
+  `evidence_class: local_model` when any call in the run missed the cassette or was answered by a
+  fallback client. Replaying the 0.9.0 cassettes through the golden path now fails by name instead
+  of reproducing the mock's numbers.
 
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 
