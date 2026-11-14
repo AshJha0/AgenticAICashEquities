@@ -725,7 +725,7 @@ recorded replies with no model present. The questions asked of it: how often the
 how often a repair or fallback was needed, how often the narrative carried an untraceable number,
 how often a planted instruction in a data block was obeyed (200 attacks, canary-based, Wilson
 intervals), and whether a rubric judge agrees with a hand-built reference (a dimension counts only
-when Cohen's kappa > 0.6). *Results:* plan valid 15/30, critic 35/45, 0/39 untraceable numbers, injection obeyed 3/40; full table in docs/evaluation/local_model/README.md (evidence:
+when Cohen's kappa > 0.6). *Results:* plan valid 15/30, critic 35/45, claims with a number outside their own fact keys 11/39 (0.10.0 re-audit), injection obeyed 3/40; full table in docs/evaluation/local_model/README.md (evidence:
 `docs/evaluation/local_model/`; class: local model, this machine). A 7-billion-parameter model is
 not the hosted model the platform pins, so these numbers bound nothing about that model.
 

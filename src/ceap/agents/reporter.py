@@ -913,13 +913,279 @@ def _resolves(facts: dict[str, Any], path: str) -> bool:
     return True
 
 
+# ------------------------------------------------------------------ 0.10.0 T5 bound claim audit
+# Plain idea: a number in a claim must come from one of the claim's own fact keys, not from any
+# fact anywhere (R-05). If the claim names a metric next to the number, the bound fact must be that
+# metric; a direction word must agree with the bound fact's sign; a cause named as the cause must
+# be the attribution's primary cause.
+#: metric phrase in prose -> pattern a fact key (leaf name) must match to hold that metric
+_METRIC_KEYS: dict[str, str] = {
+    "implementation shortfall": r"^is_|shortfall",
+    "shortfall": r"^is_|shortfall",
+    "slippage": r"slippage",
+    "spread": r"spread",
+    "latency": r"latency",
+    "fill rate": r"fill",
+    "depth": r"depth",
+    "volatility": r"vol",
+    "participation": r"participation",
+}
+_METRIC_PHRASE = re.compile(
+    r"\b(?:" + "|".join(re.escape(p) for p in sorted(_METRIC_KEYS, key=len, reverse=True)) + r")\b",
+    re.IGNORECASE,
+)
+_UP_WORDS = re.compile(
+    r"\b(?:increas\w*|rose|ris(?:e|en|es|ing)|higher|up|widen\w*|grew|grow\w*|climb\w*|jump\w*|"
+    r"spik\w*|surg\w*)\b",
+    re.IGNORECASE,
+)
+_GOOD_WORDS = re.compile(r"\b(?:improv\w*|better)\b", re.IGNORECASE)
+_BAD_WORDS = re.compile(r"\b(?:worse\w*|worsen\w*|deteriorat\w*)\b", re.IGNORECASE)
+_HIGHER_IS_BETTER = {"fill rate", "depth"}  # every other metric above is a cost: lower is better
+_CHANGE_KEY = re.compile(r"change|delta|diff|gap|excess")
+_CHANGE_TEXT = re.compile(r"\bchang\w*|\bvs\b|versus|against|from|" + _DOWN_WORDS.pattern + "|" + _UP_WORDS.pattern, re.IGNORECASE)
+_CAUSES = (
+    "MARKET_VOLATILITY",
+    "WIDE_SPREADS",
+    "LOW_LIQUIDITY",
+    "VENUE_DEGRADATION",
+    "TECHNOLOGY_LATENCY",
+    "MARKET_DATA_ANOMALY",
+    "LARGE_ORDER_IMPACT",
+    "PRICE_MOVEMENT",
+    "NORMAL",
+)  # ceap.analytics.attribution.Cause, listed here to keep the reporter free of analytics imports
+_CAUSE_ALT = "|".join(
+    list(_CAUSES) + [c.replace("_", " ").lower() for c in _CAUSES if c != "NORMAL"]
+)
+_CAUSE_TOKEN = re.compile(r"\b(?:" + "|".join(_CAUSES) + r")\b")
+# "primary cause is X", "primary cause X", "caused by X", "driven by X", "due to X"
+_CAUSE_ASSERTED = re.compile(
+    r"(?:\b(?:primary|main|root|principal)\s+cause\b[^.;]{0,40}?|\b(?:caused|driven|explained)\s+by\s+"
+    r"(?:the\s+)?|\bdue\s+to\s+(?:the\s+)?)(?P<cause>" + _CAUSE_ALT + r")\b",
+    re.IGNORECASE,
+)
+
+
+def _clause_before(text: str, start: int, prev_end: int) -> str:
+    """The text a number belongs to: back to the previous number or the last clause break."""
+    seg = text[prev_end:start]
+    cut = max(seg.rfind(";"), seg.rfind(". "), seg.rfind("\n"))
+    return seg[cut + 1 :] if cut >= 0 else seg
+
+
+def _numbers_with_clause(text: str) -> list[tuple[re.Match[str], str]]:
+    clean = _LIST_MARKER.sub(
+        lambda m: " " * len(m.group()), _ISO.sub(lambda m: " " * len(m.group()), text)
+    )
+    out, prev = [], 0
+    for m in _NUM.finditer(clean):
+        out.append((m, _clause_before(clean, m.start(), prev)))
+        prev = m.end()
+    return out
+
+
+def _bound_facts(facts: dict[str, Any], fact_keys: list[str]) -> list[tuple[str, float, str]]:
+    """``(leaf key, value, context)`` for every number under the claim's own fact keys.
+
+    For a number stored as a value the context is its leaf key; for a figure quoted inside fact text
+    the leaf key is :data:`_LITERAL` and the context is the clause that figure sits in, so a claim
+    that repeats a finding statement binds to it with the same metric and direction words.
+    """
+    out: list[tuple[str, float, str]] = []
+
+    def walk(obj: Any, key: str) -> None:
+        if isinstance(obj, bool):
+            return
+        if isinstance(obj, (int, float)):
+            if math.isfinite(float(obj)):
+                out.append((key, float(obj), key))
+        elif isinstance(obj, dict):
+            for k, v in obj.items():
+                walk(v, str(k))
+        elif isinstance(obj, (list, tuple)):
+            out.append((f"{key}.__len__", float(len(obj)), f"{key}.__len__"))
+            for v in obj:
+                walk(v, key)
+        elif isinstance(obj, str):
+            for m, clause in _numbers_with_clause(obj):
+                try:
+                    out.append((_LITERAL, float(m.group().replace(",", "")), clause))
+                except ValueError:
+                    pass
+
+    for path in fact_keys:
+        try:
+            node = _lookup(facts, path)
+        except KeyError:
+            continue  # reported by the fact-key check
+        walk(node, path.rsplit(".", 1)[-1])
+    return out
+
+
+def _claimed_direction(clause: str, metric: str | None) -> int:
+    """+1 / -1 for what the words before a number say the metric did; 0 for none or mixed."""
+    window = clause[-_DIRECTION_WINDOW:]
+    signs = set()
+    if _DOWN_WORDS.search(window):
+        signs.add(-1)
+    if _UP_WORDS.search(window):
+        signs.add(1)
+    if metric is not None:
+        better = 1 if metric.lower() in _HIGHER_IS_BETTER else -1
+        if _GOOD_WORDS.search(window):
+            signs.add(better)
+        if _BAD_WORDS.search(window):
+            signs.add(-better)
+    return signs.pop() if len(signs) == 1 else 0
+
+
+def _fact_direction(key: str, value: float, context: str) -> int:
+    """Sign of the move a fact records, or 0 when it is a level (a level has no direction)."""
+    if key == _LITERAL:
+        if not _CHANGE_TEXT.search(context):
+            return 0
+        down = bool(_DOWN_WORDS.search(context[-_DIRECTION_WINDOW:]))
+        signed = -value if down else value
+    elif "ratio" in key:
+        signed = value - 1.0
+    elif _CHANGE_KEY.search(key):
+        signed = value
+    else:
+        return 0
+    return (signed > 0) - (signed < 0)
+
+
+def _metric_holds(metric: str, key: str, context: str) -> bool:
+    if key == _LITERAL:
+        return re.search(rf"\b{re.escape(metric)}\b", context, re.IGNORECASE) is not None
+    return re.search(_METRIC_KEYS[metric.lower()], key) is not None
+
+
+def audit_claim_numbers(text: str, facts: dict[str, Any], fact_keys: list[str]) -> list[str]:
+    """Reasons a claim's numbers do not follow from the claim's own fact keys (0.10.0 T5, R-05).
+
+    A number traces only to a fact under one of ``fact_keys`` (unit conversions as in
+    :func:`audit_numbers`). If the clause before the number names a metric ("volatility"), the fact
+    must hold that metric. If the clause carries a direction word ("fell", "improved"), it must agree
+    with the sign of the fact's move (a change, a ratio against 1, or the direction words of a quoted
+    finding); "improved" means down for a cost such as shortfall. A level has no direction.
+
+    Worked example, facts ``metrics = {is_bps: 9.8, is_change_bps: 6.2, volatility_ratio: 2.3}``:
+    "Volatility was 6.2 times the baseline" with ``fact_keys=["metrics"]`` fails (volatility is 2.3);
+    "Shortfall improved by 6.2 bps" with ``fact_keys=["metrics.is_change_bps"]`` fails (+6.2 is a
+    deterioration); "Shortfall rose by 6.2 bps" passes.
+    """
+    bound = _bound_facts(facts, fact_keys)
+    reasons: list[str] = []
+    for m, clause in _numbers_with_clause(text):
+        token = m.group()
+        try:
+            n = float(token.replace(",", ""))
+        except ValueError:
+            continue
+        decimals = len(token.split(".")[1]) if "." in token else 0
+        signed = token[0] in "+-"
+        phrases = _METRIC_PHRASE.findall(clause)
+        metric = phrases[-1] if phrases else None
+        claimed = _claimed_direction(clause, metric)
+        unit = _unit_of(text, m.end())
+        pool = [b for b in bound if metric is None or _metric_holds(metric, b[0], b[2])]
+        wrong_direction = None
+        traced = False
+        for key, v, context in pool:
+            for c in _candidates(key, v, unit):
+                plain = round(c, decimals) == round(n, decimals)
+                flipped = not signed and c < 0 and round(-c, decimals) == round(n, decimals)
+                if not (plain or flipped):
+                    continue
+                fact_dir = _fact_direction(key, v, context)
+                if flipped:
+                    # an unsigned magnitude stands for a negative fact only when the words say down
+                    if claimed == -1:
+                        traced = True
+                        break
+                    continue
+                if not signed and claimed and fact_dir and claimed != fact_dir:
+                    wrong_direction = (key if key != _LITERAL else "quoted fact", v)
+                    continue
+                traced = True
+                break
+            if traced:
+                break
+        if traced:
+            continue
+        if wrong_direction is not None:
+            key, v = wrong_direction
+            word = "up" if claimed > 0 else "down"
+            reasons.append(f"number {token} wrong direction: the words say {word} but {key} = {v:+g}")
+        elif other := next(
+            (
+                key if key != _LITERAL else "a figure quoted in the facts"
+                for key, v, _ in (b for b in bound if b not in pool)
+                for c in _candidates(key, v, unit)
+                if round(abs(c), decimals) == round(abs(n), decimals)
+            ),
+            None,
+        ):
+            # the figure is real but belongs to another metric than the one the clause names
+            reasons.append(f"number {token} wrong metric: it is {other}, not {str(metric).lower()}")
+        else:
+            named = f" ({str(metric).lower()})" if metric else ""
+            reasons.append(f"number {token} not traceable to the claim's fact keys{named}")
+    return reasons[:25]
+
+
+def audit_claim_cause(text: str, facts: dict[str, Any]) -> list[str]:
+    """A cause stated as the cause must be the primary; any cause named must be one that was scored."""
+    attribution = facts.get("attribution")
+    if not isinstance(attribution, dict) or not attribution.get("primary"):
+        return []  # research reports and empty attributions carry no cause to check against
+    primary = str(attribution["primary"]).upper()
+    scored = {primary} | {
+        str(r.get("cause", "")).upper() for r in attribution.get("ranked") or [] if isinstance(r, dict)
+    }
+    reasons = []
+    for m in _CAUSE_ASSERTED.finditer(text):
+        cause = m.group("cause").upper().replace(" ", "_")
+        if cause != primary:
+            reasons.append(f"wrong cause: the claim states {cause} but the primary cause is {primary}")
+    for cause in sorted(set(_CAUSE_TOKEN.findall(text)) - scored):
+        reasons.append(f"wrong cause: {cause} was not among the scored causes")
+    return reasons
+
+
+#: drop reason text -> published category (0.10.0 T5): what the published breakdown counts
+DROP_REASON_KINDS: tuple[tuple[str, str], ...] = (
+    ("no fact keys and no evidence ids", "no_fact_keys_or_evidence"),
+    ("not in facts", "fact_key_not_in_facts"),
+    ("unknown", "evidence_id_unknown"),
+    ("placeholder", "placeholder_not_a_fact"),
+    ("wrong metric", "wrong_metric"),
+    ("wrong direction", "wrong_direction"),
+    ("wrong cause", "wrong_cause"),
+    ("not traceable", "number_not_traceable"),
+)
+
+
+def drop_reason_kind(reason: str) -> str:
+    """The published category of one drop reason (first match in :data:`DROP_REASON_KINDS`)."""
+    for needle, kind in DROP_REASON_KINDS:
+        if needle in reason:
+            return kind
+    return "other"
+
+
 def validate_claims(
     claims: list[dict[str, Any]], facts: dict[str, Any]
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Keep a claim only if its fact keys resolve, its evidence ids are known and its numbers trace.
 
-    A claim with neither fact keys nor evidence ids is dropped too. Dropped claims carry their
-    reasons, so the report shows what the model wanted to say and why it was not allowed to.
+    A claim with neither fact keys nor evidence ids is dropped too. Since 0.10.0 (T5, R-05) each
+    number must trace to the claim's own fact keys, with the metric and direction it is written
+    with, and a cause stated as the cause must be the primary (:func:`audit_claim_numbers`,
+    :func:`audit_claim_cause`). Dropped claims carry their reasons, so the report shows what the
+    model wanted to say and why it was not allowed to.
     """
     known = set(facts.get("evidence_ids") or [])
     kept: list[dict[str, Any]] = []
@@ -934,7 +1200,9 @@ def validate_claims(
         reasons += [f"evidence id {e!r} unknown" for e in c.get("evidence_ids") or [] if e not in known]
         text = str(c.get("text", ""))
         reasons += render_placeholders(text, facts)[1]  # A1: a placeholder must name a fact
-        reasons += audit_numbers(strip_placeholders(text), facts)
+        own_words = strip_placeholders(text)
+        reasons += audit_claim_numbers(own_words, facts, [str(k) for k in c.get("fact_keys") or []])
+        reasons += audit_claim_cause(own_words, facts)
         if reasons:
             dropped.append({**c, "reasons": reasons})
         else:

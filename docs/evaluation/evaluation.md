@@ -431,7 +431,7 @@ recorded under `tests/cassettes/local_model/` keyed by the canonical request has
 the rubric judge (`ceap.eval.judge`, Cohen's kappa per dimension against 50 hand-built items; a
 dimension is used only when kappa > 0.6) run the same way. COOKBOOK recipe 49.
 
-Results: qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); 0/39 untraceable numbers reached a report; end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (`docs/evaluation/local_model/`). Evidence class: local model on
+Results: qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); claims with a number outside their own fact keys 11/39 (0.10.0 re-audit); end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (`docs/evaluation/local_model/`). Evidence class: local model on
 one machine. These numbers describe a 7-8B open-weight model, not the pinned hosted models, whose
 rows above stay UNKNOWN / NOT RUN LIVE.
 

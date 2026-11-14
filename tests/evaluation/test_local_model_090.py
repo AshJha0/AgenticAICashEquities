@@ -127,7 +127,16 @@ def test_aggregate_pools_seeds():
 
 
 @pytest.mark.slow  # replays a full 30-task seed; ~40 s idle, near the 120 s default under load
-@pytest.mark.parametrize("seed", [1, 2, 3])
+@pytest.mark.parametrize(
+    "seed",
+    [
+        1,
+        2,
+        # 0.10.0 T5 keeps 8 of seed 3's 14 claims, not 11, so the prose request built from the kept
+        # claims is not in the 0.9.0 cassette; re-recorded in T8
+        pytest.param(3, marks=pytest.mark.xfail(strict=True, reason="T5 re-audit changes the prose request; T8 re-records")),
+    ],
+)
 async def test_recorded_qwen_cassettes_replay(seed):
     """CI path: the recorded local-model eval replays without Ollama and gives the published numbers."""
     from ceap.eval.local_model import RESULTS, slug
@@ -144,9 +153,19 @@ async def test_recorded_qwen_cassettes_replay(seed):
         (RESULTS / f"{slug(PRIMARY_LOCAL_MODEL)}_s{seed}.json").read_text(encoding="utf-8")
     )
     assert agents["evidence_class"] == "local_model"
+<<<<<<< HEAD
     # T4 (R-04): a null optional argument no longer fails validation, so validity can only rise
     assert agents["planner"]["plan_valid"]["k"] >= published["agents"]["planner"]["plan_valid"]["k"]
     assert agents["reporter"]["faithfulness"] == published["agents"]["reporter"]["faithfulness"]
+=======
+    assert agents["planner"]["plan_valid"] == published["agents"]["planner"]["plan_valid"]
+    # 0.10.0 T5 re-audits the recorded claims with numbers bound to their own fact keys, so the
+    # reporter's kept share is compared with the re-audit file, not the 0.9.0 per-seed result
+    audit = json.loads(
+        (RESULTS / f"{slug(PRIMARY_LOCAL_MODEL)}_claims_audit.json").read_text(encoding="utf-8")
+    )
+    assert agents["reporter"]["faithfulness"] == audit["per_seed"][str(seed)]["claims_kept_by_audit"]
+>>>>>>> r0100-w3-eval
 
 
 # ------------------------------------------------------------------------------------ B4 corpus
