@@ -89,9 +89,10 @@ def test_cases_stay_with_their_owner_and_expire():
             case_id, "T-1", "T01", "investigation", "AAPL", "why", "APPROVED", "ann", "", (), at, owner
         )
 
-    assert memory.append(case("CASE-a", "trader.a", 1))
-    assert memory.append(case("CASE-old", "trader.a", 91))
-    assert not memory.append(replace(case("CASE-auto", "trader.a", 1), decided_by="auto-approver"))
+    added_a = memory.append(case("CASE-a", "trader.a", 1))
+    added_old = memory.append(case("CASE-old", "trader.a", 91))
+    added_auto = memory.append(replace(case("CASE-auto", "trader.a", 1), decided_by="auto-approver"))
+    assert added_a and added_old and not added_auto
     ids = lambda views: [v["case_id"] for v in views]  # noqa: E731
     assert ids(memory.nearest("T01", "why AAPL", owner="trader.a")) == ["CASE-a"]  # the old case expired
     assert ids(memory.nearest("T01", "why AAPL", owner="trader.b")) == []  # another principal sees nothing

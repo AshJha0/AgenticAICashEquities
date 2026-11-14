@@ -1012,7 +1012,7 @@ def _bound_facts(facts: dict[str, Any], fact_keys: list[str]) -> list[tuple[str,
                 try:
                     out.append((_LITERAL, float(m.group().replace(",", "")), clause))
                 except ValueError:
-                    pass
+                    continue  # a match that is not a number (e.g. a lone separator) carries no literal
 
     for path in fact_keys:
         try:

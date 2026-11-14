@@ -25,6 +25,7 @@ scenario evaluation use that so one run cannot change another's verdict.
 from __future__ import annotations
 
 import json
+import math
 import os
 import threading
 from dataclasses import dataclass
@@ -95,10 +96,9 @@ class TrialLedger:
                     "dataset_hash": dataset_hash,
                     "params_hash": ph,
                     "params": params,
-                    "sharpe_daily": sharpe_daily if sharpe_daily == sharpe_daily else None,
+                    "sharpe_daily": None if math.isnan(sharpe_daily) else sharpe_daily,
                     "sharpe_daily_net": (
-                        sharpe_daily_net if sharpe_daily_net is not None and sharpe_daily_net == sharpe_daily_net
-                        else None
+                        None if sharpe_daily_net is None or math.isnan(sharpe_daily_net) else sharpe_daily_net
                     ),
                     "sharpe_basis": "gross",
                     "recorded_at": datetime.now(UTC).isoformat(timespec="seconds"),

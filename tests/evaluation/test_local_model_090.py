@@ -359,7 +359,8 @@ def test_checkpoint_of_another_run_is_refused_not_overwritten(tmp_path) -> None:
     before = path.read_text(encoding="utf-8")
     cas = LocalCassette(provenance=LocalProvenance(model=PRIMARY_LOCAL_MODEL, seed=2, temperature=0.0))
     with pytest.raises(ValueError, match="checkpoint"):
-        OllamaLLMClient(PRIMARY_LOCAL_MODEL, seed=2, recorder=cas, checkpoint=path)
+        # verify=False: this tests the checkpoint guard, not the T7 digest pin (CI has no Ollama server)
+        OllamaLLMClient(PRIMARY_LOCAL_MODEL, seed=2, recorder=cas, checkpoint=path, verify=False)
     assert path.read_text(encoding="utf-8") == before
 
 

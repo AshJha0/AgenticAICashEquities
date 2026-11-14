@@ -7,7 +7,6 @@ import json
 from ceap.data.research_scenarios import get_research_scenario, golden_scenario_id
 from ceap.golden import GOLDEN_RESEARCH_V11_PATH, GOLDEN_SET_PATH, items_sha256, load_golden_set
 
-
 # 0.10.0 Q2 (R-16): with the deflated-Sharpe bar at 0.95 the alpha chain stops these two scenarios at
 # NO_ALPHA before the cost check runs, so the COST_DRAG the signed v1.1 file asks for is no longer the
 # expected flag. The verdict (REJECT) is unchanged. The signed file stays frozen; the divergence is

@@ -1017,7 +1017,7 @@
   "info": {
     "description": "Agentic AI platform that investigates, analyses and explains cash-equity execution quality.",
     "title": "Cash Equities Agentic Platform",
-    "version": "0.9.0"
+    "version": "0.10.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -1968,6 +1968,54 @@
         "summary": "Platform Status",
         "tags": [
           "system"
+        ]
+      }
+    },
+    "/tasks/{task_id}/resume": {
+      "post": {
+        "description": "H1 (R-11): continue an interrupted or failed durable run under its original task id.\n\nThe owner, or a principal with ``tasks:cancel-any``, may resume; either way the principal also needs\nthe capability that starts that kind of task. The run uses the principal and roles it was first\nsubmitted with (stored in the run journal). Journalled tool calls, model replies and approval\ndecisions are read back, so nothing already done is repeated and no approver is asked twice.",
+        "operationId": "resume_task_tasks__task_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigationStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Resume Task",
+        "tags": [
+          "tasks"
         ]
       }
     },

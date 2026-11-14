@@ -41,6 +41,9 @@ def test_missing_required_data_is_loud_and_not_swallowed(tmp_path, monkeypatch):
         ModelRegistry()
     with pytest.raises(DataFileMissing):
         load_detector()
+    from ceap.analytics import calibration
+
+    calibration._registered.cache_clear()  # an earlier test in this worker may have cached the real models
     with pytest.raises(DataFileMissing):
         calibration_info(CHANGE_POINT_KEY)
     # an explicit, deliberately empty directory is still allowed (warns only)

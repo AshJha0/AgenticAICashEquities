@@ -78,7 +78,8 @@ async def test_task_lifecycle_views_pending_failed_and_restored(api):
     r = await c.get(f"/investigations/{tid}/report", headers=TRADER)
     assert r.status_code == 404 and "not in memory" in r.json()["detail"]
     stored = (await c.get(f"/investigations/{tid}/result", headers=TRADER)).json()
-    assert stored.pop("schema_version") == 1 and stored == in_memory
+    schema_version = stored.pop("schema_version")
+    assert schema_version == 1 and stored == in_memory
 
 
 async def test_running_task_and_unknown_ids(api):
