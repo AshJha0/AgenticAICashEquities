@@ -81,7 +81,8 @@ class ApprovalsMixin(HarnessBase):
             if sm.state is HarnessState.EXECUTING:
                 sm.transition(HarnessState.AWAITING_APPROVAL, "human approval step")
             try:
-                decision = await race_cancellation(self.approvals.request(request), run.cancellation)
+                with run.clock.waiting():  # H6 (AI-2-08): the task clock stops while a human decides
+                    decision = await race_cancellation(self.approvals.request(request), run.cancellation)
             finally:
                 if sm.state is HarnessState.AWAITING_APPROVAL:
                     sm.transition(HarnessState.EXECUTING, "human approval decided")

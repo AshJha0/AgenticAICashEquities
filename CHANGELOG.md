@@ -101,6 +101,32 @@ refuses a tag whose version has no section.
   disabled the same test fails (6 model calls against 4). `test_r090_durable.py` and
   `test_r090_chaos.py` now count tool rows only, since the journal also holds model rows.
 
+### Fixed: case memory holds human decisions only; waiting for a human is not task time (0.10.0 item H6, findings AI-2-06, AI-2-07, AI-2-08)
+
+- **Human decisions only (AI-2-06).** An auto-approval or a timeout was stored as a case, and the
+  planner was told these were human precedents: a dev-mode auto-approval, or a REJECTED that was
+  really a 120-second timeout, carried the weight of a reviewed decision. The harness now records no
+  case when the decider is a system actor (`timeout`, `policy`, `auto-approver`), and
+  `CaseMemory.append` refuses one as well.
+- **Owner boundary and expiry (AI-2-07).** Cases were partitioned by dataset only, so one trader's
+  question and an approver's comment reached the next principal's planner prompt. A case now records
+  its owner (the task's requester) and is read back only for that owner, or for a principal with
+  `tasks:read-any`. A case older than 90 days (`ttl_days`) is not read and is pruned on the next
+  write; a full partition is still refused, now with a `case_memory.full` audit entry. The case id is
+  derived from the task and the step, so a resumed run does not write a second case. The store is
+  still per process (a database table remains a follow-up).
+- **Human wait does not count (AI-2-08).** An approval given after the task deadline was followed by
+  `TimeoutError("task deadline exceeded")`: the task failed after a person approved it. The task clock
+  (`RunContext.clock`) now stops while an approval is pending, and every deadline check reads
+  `RunContext.due()`, the deadline moved on by the time spent waiting. Concurrent approvals count
+  once. An agent's own overall timeout is still fixed when the agent starts.
+- Tests: `tests/agent/test_r0100_h6_case_memory.py`. An auto-approved and a timed-out sign-off leave
+  memory empty, a person's sign-off writes one case; an approver who takes ten minutes on a task with
+  a 300 s budget no longer times the task out (with the clock fix removed the same test fails with
+  "task deadline exceeded"); another principal does not see a case and a 91-day-old case is not read.
+  Existing tests updated: the 3B.7 recall test signs off with a person, the 3B.7 bounds test and the
+  case-memory injection surface test give their planted cases a current time and an owner.
+
 ### Fixed: two baselines, two names (0.10.0 item H5, finding R-03)
 
 - One report gave two values for the same quantity under the same word. T06 at 0.9.0: the summary
@@ -125,7 +151,8 @@ refuses a tag whose version has no section.
   the execution delta under the attribution's name makes the check fire.
 - Regenerated (wording only, reviewed): `tests/golden/tca_T01.json`, `tests/golden/tca_T05.json` and
   the ten hand-built cassettes `tests/cassettes/investigation_T01.json` to `_T10.json` (the critic
-  request carries the finding statements, so its hash moved).
+  request carries the finding statements, so its hash moved), and the 3B.8 approval review snapshot
+  `tests/agent/snapshots/approval_review_T10.json`.
 
 ### Fixed: a citation must come from a chunk that supports the claim (0.10.0 item H4, finding R-09)
 

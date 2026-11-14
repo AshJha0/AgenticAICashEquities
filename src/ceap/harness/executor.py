@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
-from collections.abc import Awaitable, Callable, Coroutine
-from dataclasses import dataclass, replace
-from datetime import datetime
+from collections.abc import Awaitable, Callable, Coroutine, Iterator
+from dataclasses import dataclass, field, replace
+from datetime import datetime, timedelta
 from typing import Any, TypeVar
 
 from ceap.domain.agents import ToolInvoker
@@ -45,13 +46,49 @@ class ToolInvocationError(RuntimeError):
         self.result = result
 
 
+class TaskClock:
+    """H6 (AI-2-08): time spent waiting for a human does not count against the task deadline.
+
+    The clock is paused while at least one approval is pending (nested and concurrent waits count
+    once) and the task's due time moves on by the time paused. A task with a 300 s budget that waits
+    ten minutes for an approver still has its 300 s of work.
+    """
+
+    def __init__(self) -> None:
+        self._paused = timedelta(0)
+        self._depth = 0
+        self._since: datetime | None = None
+
+    @contextlib.contextmanager
+    def waiting(self) -> Iterator[None]:
+        if self._depth == 0:
+            self._since = utc_now()
+        self._depth += 1
+        try:
+            yield
+        finally:
+            self._depth -= 1
+            if self._depth == 0 and self._since is not None:
+                self._paused += utc_now() - self._since
+                self._since = None
+
+    def waited(self) -> timedelta:
+        """Total time spent waiting for people so far, including a wait still in progress."""
+        return self._paused + (utc_now() - self._since if self._since is not None else timedelta(0))
+
+
 @dataclass(frozen=True)
 class RunContext:
     task_id: str
     execution_id: str
-    deadline: datetime
+    deadline: datetime  # the budget's end as set at the start; read ``due()`` for the live value
     policy_context: PolicyContext
     cancellation: CancellationToken
+    clock: TaskClock = field(default_factory=TaskClock)  # shared by every copy made with ``replace``
+
+    def due(self) -> datetime:
+        """The deadline moved on by the time spent waiting for human approval (H6, AI-2-08)."""
+        return self.deadline + self.clock.waited()
 
 
 async def race_cancellation(aw: Coroutine[Any, Any, T], cancellation: CancellationToken) -> T:
@@ -179,7 +216,7 @@ class StepExecutor:
                 task_id=run.task_id,
                 execution_id=run.execution_id,
                 step_id=step_id,
-                deadline=run.deadline,
+                deadline=run.due(),
                 principal=run.policy_context.principal,
                 capabilities=run.policy_context.capabilities,
                 idempotency_key=key,
@@ -198,7 +235,7 @@ class StepExecutor:
             async def attempt() -> ToolResult:
                 run.cancellation.raise_if_cancelled()
                 attempts["n"] += 1
-                remaining = (run.deadline - utc_now()).total_seconds()
+                remaining = (run.due() - utc_now()).total_seconds()
                 timeout = min(self.step_timeout_seconds, remaining)
                 if timeout < MIN_ATTEMPT_SECONDS:
                     return ToolResult(
@@ -211,7 +248,7 @@ class StepExecutor:
                 except TimeoutError as exc:
                     if (
                         attempts["n"] >= policy.max_attempts
-                        or (run.deadline - utc_now()).total_seconds() < MIN_ATTEMPT_SECONDS
+                        or (run.due() - utc_now()).total_seconds() < MIN_ATTEMPT_SECONDS
                     ):
                         return ToolResult(
                             status=ToolStatus.TIMEOUT,
@@ -274,7 +311,8 @@ class StepExecutor:
             if self._on_awaiting_approval:
                 await self._on_awaiting_approval(True)
             try:
-                decision = await race_cancellation(self.approvals.request(approval), run.cancellation)
+                with run.clock.waiting():  # H6 (AI-2-08): the task clock stops while a human decides
+                    decision = await race_cancellation(self.approvals.request(approval), run.cancellation)
             finally:
                 if self._on_awaiting_approval:
                     await self._on_awaiting_approval(False)

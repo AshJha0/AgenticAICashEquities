@@ -68,7 +68,7 @@ class DispatchMixin(HarnessBase):
                 if cancelled:
                     results[i] = ToolResult(status=ToolStatus.ERROR, error="skipped: investigation cancelled")
                     return
-                if utc_now() > run.deadline:
+                if utc_now() > run.due():
                     results[i] = ToolResult(
                         status=ToolStatus.TIMEOUT, error="skipped: task deadline exceeded"
                     )
@@ -129,7 +129,7 @@ class DispatchMixin(HarnessBase):
             ctx = AgentContext(
                 task_id=task.id,
                 execution_id=run.execution_id,
-                deadline=run.deadline,
+                deadline=run.due(),
                 task_input=dict(task.input),
                 current_plan=memory.scratch.get("plan"),
                 evidence=memory.evidence_list(),
@@ -153,7 +153,7 @@ class DispatchMixin(HarnessBase):
             t0 = time.perf_counter()
             try:
                 result = await asyncio.wait_for(
-                    agent.execute(ctx), timeout=max(1.0, (run.deadline - utc_now()).total_seconds())
+                    agent.execute(ctx), timeout=max(1.0, (run.due() - utc_now()).total_seconds())
                 )
             except TaskCancelled:
                 raise

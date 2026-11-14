@@ -269,8 +269,11 @@ The model decides *scope*, only from enumerated choices, and code decides *truth
 - **Case memory (D10).** After a human decision (the research approval, or an investigation
   requested with `signoff: true`) the harness appends a compact case record. The planner sees the
   three nearest cases of the same dataset (BM25 through the R3C retrieval API) as read-only data.
-  Append-only, audited, partitioned by dataset, no memory tool, OFF in evaluation (the evaluation
-  output reports `case_memory.reads == 0`).
+  Audited, partitioned by dataset and owner, no memory tool, OFF in evaluation (the evaluation
+  output reports `case_memory.reads == 0`). Since 0.10.0 (H6): a decision made by the system
+  (auto-approval, timeout, policy) is never recorded; a principal reads back only its own cases
+  unless it holds `tasks:read-any`; a case older than 90 days is not read and is pruned on the next
+  write. The store is still per process.
 - **Human review.** The approver sees the hypothesis table, the evidence behind each finding, the
   diff against the pre-trade estimate (the baseline window until a pre-trade cost model lands) and
   the critic's disputes (`GET /approvals/{id}`); a reject or modify reason is required and lands in
