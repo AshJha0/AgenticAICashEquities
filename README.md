@@ -123,24 +123,22 @@ AAPL EXECUTION INVESTIGATION 14:00-15:00 New York
 
 EXECUTIVE SUMMARY
 
-Headline execution cost did not deteriorate versus the baseline (implementation shortfall delta
--35.9 bps, slippage versus interval VWAP delta +0.4 bps); however the evidence identifies technology
-latency as a material anomaly during the window. ...
+Headline execution cost did not deteriorate versus the matched peer windows (implementation
+shortfall delta -3.7 bps, slippage versus interval VWAP delta +0.0 bps); however the evidence
+identifies technology latency as a material anomaly during the window. The favourable headline is
+explained by price drift rather than by execution quality.
 
 PRIMARY OBSERVATIONS
 
-1. Primary anomaly: technology latency / rejects in the execution path (score 0.97; execution latency
-   ratio vs baseline = 9.98 (threshold 3.0); reject rate = 10.0%). [confidence 0.94]
-2. Order-gateway acknowledgement latency was 10.0x the baseline (p99 9828 us, SLO breached). [confidence 0.91]
-3. Deployment CHG-40388 (smart-order-router 2.14.1: Routing latency budget and venue timeout changes)
-   went live at 2026-09-18T13:52:00+01:00 - shortly before the window. [confidence 0.85]
+1. Change-point detector: order-gateway ack_latency_p50 shifted up from about 801 to 8884 (peak
+   robust z 25.6); change onset 14:00, alarm 14:00, 8 minutes after deployment CHG-40388; ...
+2. Primary anomaly: technology latency / rejects in the execution path (score 0.97; execution
+   latency ratio vs baseline = 10.10 (threshold 3.0); reject rate = 9.2%; ...). [confidence 0.94]
+3. Order-gateway acknowledgement latency was 10.1x the baseline (p99 10008 us, SLO breached).
+   [confidence 0.91]
 ...
-EVIDENCE
-
-- CHANGE-3a3ac7ec
-- ENG-1302fd13
-- EXEC-5672d0d8
-- TCA-16395dc6
+5. Implementation shortfall was -14.7 bps versus arrival 230.7400 (decreased by 28.6 bps relative
+   to the prior window's +13.9 bps). [confidence 0.90]
 ...
 ```
 
