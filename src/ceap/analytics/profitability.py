@@ -22,20 +22,13 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from ceap.analytics.backtest import TRADING_DAYS_PER_YEAR, BacktestRun, simulate_backtest
-from ceap.analytics.numerics import negligible_variation
+from ceap.analytics.numerics import negligible_variation, sharpe_standard_error
 
 if TYPE_CHECKING:  # pragma: no cover
     from ceap.data.historical import HistoricalDataset
 
 CAPACITY_NOTIONALS: tuple[float, ...] = (10e6, 25e6, 50e6, 100e6, 250e6, 500e6)
 WORST_MONTHS = 3
-
-
-def sharpe_standard_error(sharpe_ann: float, n_days: int) -> float:
-    if not math.isfinite(sharpe_ann) or n_days < 2:
-        return float("nan")
-    sr = sharpe_ann / math.sqrt(TRADING_DAYS_PER_YEAR)
-    return math.sqrt((1.0 + 0.5 * sr * sr) / n_days) * math.sqrt(TRADING_DAYS_PER_YEAR)
 
 
 def _interp_log_crossing(xs: list[float], ys: list[float], level: float) -> float | None:

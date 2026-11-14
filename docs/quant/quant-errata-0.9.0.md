@@ -41,11 +41,15 @@ hurdle (3.0, or 1.645 for one preregistered trial), fewer than 30 periods, or de
 
 **Correct since 0.8.0 (D4):** the verdict is `PROMOTE` with no flag and `REJECT` otherwise,
 except that it is `INCONCLUSIVE` when every flag is statistical (`NO_ALPHA` or `OOS_DECAY`) and
-the 95 % interval of the full-period net Sharpe, with the Lo (2002) standard error
-`sqrt((1 + SR^2/2) / years)`, covers both 0 and 0.5.
+the 95 % interval of the full-period net Sharpe, with the Lo (2002) standard error in its daily
+form, covers both 0 and 0.5. With `SR_d = SR / sqrt(252)` the daily Sharpe and `T` the number of
+days, `SE(SR) = sqrt((1 + SR_d^2/2) / T) * sqrt(252)` (Lo 2002, eq. 9, annualised under iid).
 
-Worked example: a net Sharpe of 0.3 over 5 years has SE `sqrt(1.045 / 5) = 0.457`, so the
-interval is [-0.60, 1.20]. It covers both 0 and 0.5, so the verdict is INCONCLUSIVE, not REJECT.
+Worked example: a net Sharpe of 0.3 over 5 years (1,260 days) has SE
+`sqrt((1 + 0.000179) / 5) = 0.447`, so the interval is [-0.58, 1.18]. It covers both 0 and 0.5, so
+the verdict is INCONCLUSIVE, not REJECT. (Corrected in 0.10.0, item Q1, finding R-15: this page
+and the code before 0.10.0 put the annual Sharpe in the squared term, `sqrt(1.045 / 5) = 0.457`,
+which is about 22 % too wide at Sharpe 1 and 73 % at Sharpe 2.)
 
 ## 3. Power table figures
 
@@ -62,6 +66,10 @@ current 3.0. Its figures are:
 The closed form is slightly conservative (realised t runs about 15 to 20 % above expectation);
 the zero-premium point (6 of 40 seeds against an expected 2.2) is the one to watch. The null
 false-PROMOTE rate at 3.0 is 0/500.
+
+**Since 0.10.0 (Q5, finding R-19)** `docs/quant_power_curve.json` is regenerated at both hurdles in
+force (1.645 and 3.0); the figures above are history. See the power section in
+`docs/research/README.md` for the detectable premium.
 
 ## 4. Research scenario suite score
 

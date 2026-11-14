@@ -20,6 +20,7 @@ from typing import Any
 import numpy as np
 
 from ceap.analytics.backtest import TRADING_DAYS_PER_YEAR
+from ceap.analytics.numerics import sharpe_standard_error
 from ceap.paper.feed import LABEL
 from ceap.paper.ledger import FORWARD_BOOK, LOG_SCHEMA_VERSION, PaperLedger, VerifyReport, chain_hash
 from ceap.persistence.db import GENESIS_HASH
@@ -38,8 +39,8 @@ def sharpe_ci(excess: np.ndarray | list[float], z: float = Z_975) -> dict[str, f
     if t < 2 or float(np.std(r, ddof=1)) == 0.0:
         return {"days": t, "sharpe": nan, "ci_low": nan, "ci_high": nan, "se": nan}
     sr_d = float(np.mean(r) / np.std(r, ddof=1))
-    se_d = math.sqrt((1.0 + 0.5 * sr_d**2) / t)
     a = math.sqrt(TRADING_DAYS_PER_YEAR)
+    se_d = sharpe_standard_error(sr_d * a, t, TRADING_DAYS_PER_YEAR) / a  # Lo (2002), shared form (Q1)
     return {"days": t, "sharpe": sr_d * a, "ci_low": (sr_d - z * se_d) * a, "ci_high": (sr_d + z * se_d) * a,
             "se": se_d * a}
 

@@ -40,6 +40,7 @@ from pathlib import Path
 from statistics import NormalDist
 from typing import Any
 
+from ceap.analytics.numerics import sharpe_standard_error
 from ceap.domain.findings import HypothesisRow, HypothesisTable
 from ceap.domain.research import (
     BacktestResult,
@@ -114,12 +115,11 @@ def hurdle_for(n_trials: int, th: ResearchThresholds) -> float:
 
 
 def sharpe_interval(sharpe_ann: float, n_days: int, z: float = 1.96) -> tuple[float, float]:
-    """Two-sided interval for an annualised Sharpe ratio with the iid standard error of Lo (2002),
-    ``SE = sqrt((1 + SR^2 / 2) / years)``. Evidence class: method."""
+    """Two-sided interval for an annualised Sharpe ratio with the iid standard error of Lo (2002) in its
+    daily form (``ceap.analytics.numerics.sharpe_standard_error``; Q1, finding R-15). Evidence class: method."""
     if sharpe_ann is None or not math.isfinite(sharpe_ann) or n_days < 2:
         return float("nan"), float("nan")
-    years = n_days / TRADING_DAYS
-    se = math.sqrt((1.0 + sharpe_ann**2 / 2.0) / years)
+    se = sharpe_standard_error(sharpe_ann, n_days, TRADING_DAYS)
     return sharpe_ann - z * se, sharpe_ann + z * se
 
 

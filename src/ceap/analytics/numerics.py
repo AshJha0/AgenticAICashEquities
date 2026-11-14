@@ -35,3 +35,19 @@ def negligible_variation(values: np.ndarray, ss: float | None = None) -> bool:
     scale = float(np.abs(v).max())
     return bool(ss <= n * max((REL_TOL * scale) ** 2, ABS_FLOOR**2))
 
+
+def sharpe_standard_error(sharpe_ann: float, n_days: int, periods_per_year: int = 252) -> float:
+    """Standard error of an annualised Sharpe ratio estimated from ``n_days`` iid daily returns.
+
+    Lo (2002), "The Statistics of Sharpe Ratios", Financial Analysts Journal 58(4), eq. (9): for the
+    per-period ratio ``SR_d`` estimated from ``T`` observations, ``SE(SR_d) = sqrt((1 + SR_d**2 / 2) / T)``.
+    The squared term is the *per-period* (daily) Sharpe, so the annual figure is divided by
+    ``periods_per_year`` before squaring; the result is scaled back by ``sqrt(periods_per_year)``.
+    Using the annual Sharpe in the squared term (the 0.9.0 form, review finding R-15 / Q-01) widens the
+    interval by about 22 % at Sharpe 1 over one year. iid assumption: serial correlation needs Lo's
+    eq. (13) adjustment, which this function does not make. Evidence class: method.
+    """
+    if sharpe_ann is None or not np.isfinite(sharpe_ann) or n_days < 2:
+        return float("nan")
+    sr_d = sharpe_ann / np.sqrt(periods_per_year)
+    return float(np.sqrt((1.0 + 0.5 * sr_d * sr_d) / n_days) * np.sqrt(periods_per_year))
