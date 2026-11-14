@@ -15,6 +15,8 @@ import pytest
 # CPU-bound MCP tools run in a thread here, not in worker processes (each would cost seconds to
 # start on Windows). tests/unit/test_cpu_pool.py turns the process pool on for itself.
 os.environ.setdefault("CEAP_CPU_TOOL_PROCESSES", "0")
+# The trial ledger persists to var/ by default (Q7); tests keep it in memory so no test sees another's trials.
+os.environ.setdefault("CEAP_TRIAL_LEDGER", ":memory:")
 
 from ceap.config import Settings
 from ceap.data.historical import HistoricalStore

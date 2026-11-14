@@ -54,8 +54,11 @@ async def evaluate_scenario(platform: Platform, spec: ScenarioSpec) -> dict[str,
 
 
 def evaluation_platform() -> Platform:
-    """R3B 3B.7 (D10): case memory is OFF in evaluation, so no run can learn from another."""
-    return Platform(case_memory=CaseMemory(enabled=False))
+    """R3B 3B.7 (D10): case memory is OFF in evaluation, so no run can learn from another. For the same reason
+    the trial ledger is in memory (Q7): the persistent default would let earlier runs change the trial count."""
+    from ceap.analytics.trial_ledger import MEMORY, TrialLedger
+
+    return Platform(case_memory=CaseMemory(enabled=False), trial_ledger=TrialLedger(MEMORY))
 
 
 async def run_evaluation(

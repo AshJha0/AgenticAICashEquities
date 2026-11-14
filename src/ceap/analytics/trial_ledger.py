@@ -13,8 +13,13 @@ gross records only; a record written before 0.10 has no basis (the backtest
 tool then wrote the net figure), so it is counted as a trial but left out of
 the variance rather than mixed with gross ones.
 
-Persistence: JSON lines at ``CEAP_TRIAL_LEDGER`` when set (append-only, one
-record per line, never rewritten); otherwise in memory for the process.
+Persistence (0.10 Q7, finding Q-12): JSON lines, append-only, one record per
+line, never rewritten, at ``CEAP_TRIAL_LEDGER`` or, when that is unset, at
+:data:`DEFAULT_LEDGER_PATH` (``var/trial_ledger.jsonl``, beside the default
+database). A trial count that resets with every process undercounts the search
+across sessions, which flatters the deflated Sharpe. ``CEAP_TRIAL_LEDGER=:memory:``
+(or ``TrialLedger(":memory:")``) keeps it in memory: the test suite and the
+scenario evaluation use that so one run cannot change another's verdict.
 """
 
 from __future__ import annotations
@@ -59,10 +64,14 @@ def _sample_variance(xs: list[float]) -> float:
     return sum((x - mean) ** 2 for x in xs) / (len(xs) - 1)
 
 
+DEFAULT_LEDGER_PATH = Path("var") / "trial_ledger.jsonl"
+MEMORY = ":memory:"
+
+
 class TrialLedger:
     def __init__(self, path: str | Path | None = None) -> None:
-        env = os.environ.get("CEAP_TRIAL_LEDGER")
-        self._path = Path(path) if path else (Path(env) if env else None)
+        chosen = path if path else (os.environ.get("CEAP_TRIAL_LEDGER") or DEFAULT_LEDGER_PATH)
+        self._path = None if str(chosen) == MEMORY else Path(chosen)
         self._lock = threading.Lock()
         self._records: list[dict[str, Any]] = []
         if self._path and self._path.exists():

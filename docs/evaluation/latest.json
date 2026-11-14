@@ -24,7 +24,7 @@
   "calibration": {
    "key": "engineering.change_point",
    "model_hash": "29d16b7ea00c171f",
-   "label": "calibrated to synthetic generator ce0da55d75b78559",
+   "label": "calibrated to synthetic generator 7f59073801a673bc",
    "brier_calibrated_heldout": 0.00941334,
    "brier_raw_heldout": 0.01097575,
    "ece_calibrated_heldout": 0.0041646,

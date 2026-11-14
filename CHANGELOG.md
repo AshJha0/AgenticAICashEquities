@@ -6,6 +6,31 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: model registry checks staleness and drift at load; trial ledger persistent (0.10.0 item Q7, findings Q-10, Q-12)
+
+- **Stale models fail a test.** All three registered models had been fitted to generator
+  `ce0da55d75b78559` and the model-card header named a third hash, `d3074158ce168b03`; the generator
+  is now `7f59073801a673bc`. `ModelRegistry.load` emits a `StaleModelWarning` when a card's generator
+  hash differs from the current one, and `tests/unit/ml/test_q7_registry.py` fails for any stored model
+  in that state and for a card header that names any other hash.
+- **Retrained.** `python scripts/train_ml_models.py` refitted the change detector, the change-point
+  calibration and the ridge combination. **No parameter and no metric moved**: the three model hashes
+  are unchanged (`b2a6c3822c3e4459`, `29d16b7ea00c171f`, `1b5b2fcd6870c289`); only the card provenance
+  (generator hash, label, date, the 0.10 inventory fields, and the training-data hash of the two
+  engineering models, which embeds the generator hash) changed, in
+  `data/models/*.json` and `docs/ml/model_cards.md`.
+- **Drift checked at load.** `ModelRegistry.load(name, features=...)` runs the PSI drift check and keeps
+  the values on `RegisteredModel.drift`. The engineering change-point scan now calls
+  `anomaly.detector_drift` on the live reference window before detecting, so the check runs in
+  production rather than only in tests (finding R-17 listed `check_drift` as uncalled).
+- **Trial ledger persistent by default.** Without `CEAP_TRIAL_LEDGER` the ledger was per process, so
+  the trial count reset at every restart and undercounted the search. It now appends to
+  `var/trial_ledger.jsonl` by default; `CEAP_TRIAL_LEDGER=:memory:` opts out. The test suite, the
+  scenario evaluation (`evaluation_platform`, beside case memory being off) and model training use an
+  in-memory ledger so one run cannot change another's verdict. `Platform` and
+  `build_in_process_client` take an optional `trial_ledger`.
+- Tests: `tests/unit/ml/test_q7_registry.py`.
+
 ### Fixed: deflated Sharpe gate floored, tested on the production path, bar 0.95 (0.10.0 item Q2, finding R-16, decision O5)
 
 - **Variance floored at `1 / T`.** The trial ledger's cross-trial variance of the per-day Sharpe
