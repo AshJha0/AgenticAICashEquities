@@ -144,7 +144,8 @@ async def test_recorded_qwen_cassettes_replay(seed):
         (RESULTS / f"{slug(PRIMARY_LOCAL_MODEL)}_s{seed}.json").read_text(encoding="utf-8")
     )
     assert agents["evidence_class"] == "local_model"
-    assert agents["planner"]["plan_valid"] == published["agents"]["planner"]["plan_valid"]
+    # T4 (R-04): a null optional argument no longer fails validation, so validity can only rise
+    assert agents["planner"]["plan_valid"]["k"] >= published["agents"]["planner"]["plan_valid"]["k"]
     assert agents["reporter"]["faithfulness"] == published["agents"]["reporter"]["faithfulness"]
 
 
@@ -388,3 +389,34 @@ async def test_forced_fallback_refuses_the_local_model_evidence_class():
     refuse_fallback({"fallbacks": 0}, _Down())  # a clean run passes
     with pytest.raises(EvaluationFallbackError, match="1 fallback"):
         refuse_fallback({"fallbacks": router.usage["fallbacks"]}, _Down())
+
+
+# ------------------------------------------------------------------------------------ 0.10.0 T4 (R-04)
+
+
+def test_null_optional_argument_is_a_valid_plan():
+    """T4: ``{"dataset": null}`` means "not given"; the validator agrees with the sanitiser."""
+    from ceap.llm.schemas import plan_semantic_errors
+
+    facts = {"symbol": "AAPL", "dataset": "eq_daily", "signal": "mom"}
+    step = {"type": "TOOL_CALL", "tool_id": "t", "arguments": {"dataset": None, "signal": None, "symbol": None}}
+    assert plan_semantic_errors({"steps": [step]}, facts, ["t"], []) == []
+    step["arguments"] = {"dataset": "other"}
+    assert plan_semantic_errors({"steps": [step]}, facts, ["t"], [])  # a wrong value still fails
+
+
+@pytest.mark.slow  # replays three full 30-task planner seeds
+async def test_rescored_090_planner_cassettes_are_valid_with_errors_attached():
+    """T4: re-scoring the 0.9.0 planner replies gives first-attempt validity >= 27/30, errors stored."""
+    from ceap.eval.agents import planner_eval
+
+    rows = []
+    for seed in (1, 2, 3):
+        path = cassette_path(PRIMARY_LOCAL_MODEL, seed)
+        if not path.exists():
+            pytest.skip("cassette not recorded")
+        rows += (await planner_eval(LocalCassetteClient(load_local_cassette(path))))["rows"]
+    assert len(rows) == 30
+    assert sum(r["plan_valid"] for r in rows) >= 27
+    assert all(isinstance(r["validation_errors"], list) for r in rows)
+    assert all(r["validation_errors"] for r in rows if r["repairs"])  # every repair says why

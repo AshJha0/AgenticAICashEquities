@@ -6,6 +6,19 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: the planner validator agrees with the sanitiser on `None` (0.10.0 item T4, finding R-04)
+
+- **A null optional argument is "not given".** `plan_semantic_errors` now skips `None` arguments,
+  as `_sanitise_arguments` already did. Before, `"dataset": null` was compared as the string
+  `"None"` with the pinned dataset and the plan was rejected; on replay 72 of 73 validation errors
+  were this one rule. Re-scoring the recorded 0.9.0 planner replies gives at least 27 of 30 valid at
+  the first attempt (0.9.0 published 15 of 30); the published result files are not rewritten here.
+- **Errors are kept.** The planner output carries `validation_errors` (the first attempt's list)
+  and each planner-eval result row stores it, so a reader can see why a plan needed a repair.
+- **Not done in this item:** removing `null` from optional schema members and making windows an
+  enum and dataset and symbol constants. Each changes the schema sent with the request, and so the
+  cassette match key; it waits for the re-recording (T8/T9).
+
 ### Fixed: local-model evaluation runs use no fallback (0.10.0 item T1, finding R-01)
 
 - **A cassette miss is now an error.** `ceap.eval.local_model.run_seed` builds its `LLMRouter`
