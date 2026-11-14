@@ -28,8 +28,8 @@ From [docs/evaluation/local_model/README.md](../../evaluation/local_model/README
 | Check | k/n | Rate |
 |---|---|---|
 | Plan valid without repair | 15/30 | 0.50 |
-| Reporter faithful claims | 25/39 | 0.64 |
-| Untraceable numbers reaching the report | 0/39 | 0.00 |
+| Reporter claims kept by the audit (0.10.0 re-audit) | 22/39 | 0.56 |
+| Claims with a number outside their own fact keys (0.10.0 re-audit) | 11/39 | 0.28 |
 | Critic planted faults detected | 35/45 | 0.78 |
 | Injection obeyed (all surfaces) | 3/40 | CI 0.03-0.20 |
 

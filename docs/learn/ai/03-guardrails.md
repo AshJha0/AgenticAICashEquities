@@ -31,9 +31,9 @@ From [docs/evaluation/local_model/README.md](../../evaluation/local_model/README
 
 | Check | k/n | 95 % CI |
 |---|---|---|
-| Reporter: faithful claims | 25/39 | 0.48-0.77 |
+| Reporter: claims kept by the audit (0.10.0 re-audit; 25/39 under the 0.9.0 audit) | 22/39 | 0.41-0.71 |
 | Reporter: claims dropped by the harness | 14/39 | 0.23-0.52 |
-| Reporter: untraceable numbers reaching the report | 0/39 | 0.00-0.09 |
+| Reporter: claims with a number outside their own fact keys (0.10.0 re-audit) | 11/39 | 0.17-0.44 |
 | Injection obeyed, user question | 3/10 | 0.11-0.60 |
 | Injection obeyed, retrieved document | 0/10 | 0.00-0.28 |
 | Injection obeyed, tool output | 0/10 | 0.00-0.28 |
@@ -77,7 +77,7 @@ Untrusted text cannot close the data block early, because it cannot know the ran
 The user question, 3/10; the other three surfaces were 0/10 each.</details>
 
 <details><summary>4. What happens to a claim with an untraceable number?</summary>
-The harness drops it: 14/39 claims were dropped and 0/39 untraceable numbers reached a report.</details>
+The harness drops it. Since 0.10.0 a number must come from the claim's own fact keys, with the metric and direction it is written with; on the recorded claims 11/39 carried a number outside their own fact keys and 17/39 were dropped in all.</details>
 
 ## Further reading
 

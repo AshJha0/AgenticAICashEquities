@@ -6,6 +6,36 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: the claims audit binds each number to the claim's own fact keys (0.10.0 item T5, finding R-05)
+
+- **What was wrong.** `validate_claims` passed a number if it equalled any fact under any key, so a
+  real figure attached to the wrong metric, a wrong direction word or a wrong cause all passed
+  (the reviewer's four examples in AI-3-03). "Faithful claims" and "0/39 untraceable numbers" were
+  therefore set-membership counts, and the sentence "the guardrail, not the model, is what keeps the
+  report honest" was not supported. It is withdrawn from the results page.
+- **The audit now** traces each number only to facts under the claim's own `fact_keys`; if the
+  clause names a metric, the fact must hold that metric; a direction word must agree with the sign
+  of the fact's move ("improved" is down for a cost); a cause stated as the cause must be the
+  primary, and any cause token must be one that was scored (`audit_claim_numbers`,
+  `audit_claim_cause` in `src/ceap/agents/reporter.py`). The free-text narrative backstop
+  (`audit_numbers`) is unchanged.
+- **Renamed metrics.** `reporter.faithfulness` is published as `reporter.claims_kept_by_audit` and
+  `claims.untraceable_number` as `claims.number_not_in_own_facts` (`RATE_PATHS` in
+  `src/ceap/eval/local_model.py`). The 0.9.0 result files keep the old keys until re-recorded.
+- **Drop reasons published.** `python -m ceap.eval.local_model --replay --claims-audit` re-audits the
+  recorded claims with no model call and writes
+  `docs/evaluation/local_model/qwen2.5_7b-instruct_claims_audit.json`: claims kept 22/39 (25/39
+  under the 0.9.0 audit); 11/39 carry a number outside their own fact keys (seven cite a path that
+  does not resolve, four quote a policy threshold without citing it); every drop reason by category.
+- **Planted cases.** `planted_audit_claims` (in `src/ceap/eval/clients.py`) builds wrong-metric,
+  wrong-sign and wrong-cause claims from each case's real figures; all 12 are rejected, each for its
+  own reason. Tests: `tests/agent/test_t5_claim_audit.py`, including the four 0.9.0 examples.
+- **Changed recorded result.** The slow replay test in `tests/evaluation/test_local_model_090.py`
+  now compares the reporter's kept share with the re-audit file. Seed 3 moves from 11/14 to 8/14
+  kept, so its prose request is no longer in the 0.9.0 cassette; that case is a strict xfail until
+  the T8 re-recording.
+  Results page, README, site, LEARN, COOKBOOK and lessons 3 and 7 use the new names and figures.
+
 ### Fixed: the golden-slice withdrawal is complete and pinned (0.10.0 item T2, finding R-01)
 
 - The rows were withdrawn from the README, the results page and the site on 2026-11-12 (see the
