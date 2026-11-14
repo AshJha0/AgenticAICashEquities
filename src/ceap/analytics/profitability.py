@@ -104,7 +104,7 @@ def _calendar(net: np.ndarray, dates: np.ndarray, unit: str) -> dict[str, float]
     return out
 
 
-def factor_alpha(excess: np.ndarray, factor: np.ndarray) -> dict[str, float]:
+def factor_alpha(excess: np.ndarray, factor: np.ndarray) -> dict[str, float | str]:
     """OLS ``excess = a + b * factor + e``: annualised alpha, beta and the alpha t-statistic."""
     ok = np.isfinite(excess) & np.isfinite(factor)
     y, x = excess[ok], factor[ok]

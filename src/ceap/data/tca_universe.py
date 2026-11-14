@@ -202,7 +202,8 @@ def _family_spec(name: str, regime: tuple[tuple[str, float], ...] = ()) -> Scena
     bad = [k for k, _ in regime if k not in REGIME_AXES]
     if bad:
         raise ValueError(f"unknown regime axes {bad}; expected a subset of {REGIME_AXES}")
-    spec = replace(get_scenario(name), **{k: float(v) for k, v in regime})
+    overrides: dict[str, Any] = {k: float(v) for k, v in regime}  # keys checked against REGIME_AXES (float fields)
+    spec = replace(get_scenario(name), **overrides)
     # market-data defects do not change execution in the universe; deployments are irrelevant
     return replace(spec, stale_quote_fraction=0.0, crossed_quotes=0, deployment_in_window=False)
 

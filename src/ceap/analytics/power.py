@@ -21,7 +21,7 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 from statistics import NormalDist
-from typing import Any
+from typing import Any, cast
 
 PREMIUMS_BPS: tuple[float, ...] = (0.0, 600.0, 900.0, 1200.0, 1500.0, 1800.0, 2100.0, 2400.0)
 POWER_TARGET = 0.8
@@ -83,9 +83,10 @@ def power_curve(seeds: int = 40, workers: int = 1) -> dict[str, Any]:
         })
     detectable: dict[str, dict[str, float] | None] = {}
     for h in hurdles:
-        hit = next((r for r in rows if r["detection_rate"][_key(h)] >= POWER_TARGET), None)
+        hit = next((r for r in rows if cast(dict[str, float], r["detection_rate"])[_key(h)] >= POWER_TARGET), None)
         detectable[_key(h)] = None if hit is None else {
-            "premium_bps": hit["premium_bps"], "expected_gross_sharpe": hit["expected_gross_sharpe"]}
+            "premium_bps": float(cast(float, hit["premium_bps"])),
+            "expected_gross_sharpe": float(cast(float, hit["expected_gross_sharpe"]))}
     return {"signal": "momentum_12_1", "rebalance_days": 21, "universe": "30-name research universe",
             "hurdles": [float(h) for h in hurdles],
             "hurdle_roles": {_key(hurdles[0]): "single preregistered test", _key(hurdles[1]): "result mined from a search"},

@@ -389,7 +389,7 @@ refuses a tag whose version has no section.
 - Recall and false-positive rate are measured on every CI run and committed in
   `docs/evaluation/ingestion_screen.json`. On the 50 base strings of `injection_corpus_v1` the screen
   flags 10 (recall 0.20, 95 % Wilson interval 0.11 to 0.33), the same with zero-width characters
-  inserted; it flags none of the 10 knowledge documents or their 127 paragraphs (127 after the Q8 errata fold). The patterns were
+  inserted; it flags none of the 10 knowledge documents or their 127 paragraphs (after the Q8 errata fold). The patterns were
   not tuned to the corpus, so 0.20 is an honest and a low figure: the screen is a tripwire, and the
   defence remains the nonce-tagged data blocks on the prompt path.
 ### Added: local model digests pinned and checked; cassette manifest (0.10.0 item T7, findings R-13, AI-1-10)
