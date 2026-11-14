@@ -6,6 +6,8 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+- Docs: post-0.10.0 pass. README states v0.10.0 and the paused status with the open items; the judge is described as enabling no dimension (T10) in README, results pages and DIAGRAMS; forward-log text names `forward-log-v2`, the 2026-11-12 restart, `ceap paper gate` and the weekday `ceap paper staleness` check (COOKBOOK 43, LEARN 18a, real-data-and-paper); API table and architecture list `POST /tasks/{id}/resume` (H1) and migration 0006 (X3); CI diagram shows 3.13 and the three-nightly release gate; test-pyramid counts re-measured at the tag; evaluation page notes that pinned quant.md still states the old 0.5 deflated Sharpe bar.
+
 ## [0.10.0] - 2026-11-14
 
 **Make every published claim true.** This release fixes or withdraws what the 2026-11-12 review
