@@ -29,6 +29,8 @@ from typing import Any
 
 import numpy as np
 
+from ceap.analytics.numerics import negligible_variation
+
 TRADING_DAYS = 252
 
 
@@ -76,13 +78,15 @@ def factor_regression(y: np.ndarray, factors: np.ndarray, names: tuple[str, ...]
     cov = xtx_inv @ meat @ xtx_inv
     se = np.sqrt(np.maximum(np.diag(cov), 0.0))
     tss = float(((yv - yv.mean()) ** 2).sum())
+    flat = negligible_variation(yv, tss)
     return {
         "alpha_per_period": float(beta[0]), "alpha_ann": float(beta[0] * periods_per_year),
         "alpha_t": float(beta[0] / se[0]) if se[0] > 0 else float("nan"),
         "loadings": {nm: float(b) for nm, b in zip(names, beta[1:], strict=True)},
         "loading_t": {nm: float(b / s) if s > 0 else float("nan") for nm, b, s in zip(names, beta[1:], se[1:],
                                                                                         strict=True)},
-        "r2": 1.0 - float(e @ e) / tss if tss > 0 else float("nan"), "n": n, "nw_lags": L,
+        "r2": float("nan") if flat else 1.0 - float(e @ e) / tss, "n": n, "nw_lags": L,
+        **({"r2_note": "R-squared undefined: the dependent series is constant to within tolerance"} if flat else {}),
     }
 
 

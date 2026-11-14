@@ -98,12 +98,14 @@ def test_power_curve_counts_detections_and_predicts_monotone(monkeypatch):
     doc = power.power_curve(seeds=2)
     rows = doc["rows"]
     assert [r["premium_bps"] for r in rows] == list(power.PREMIUMS_BPS)
-    assert [r["detection_rate"] for r in rows] == [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
+    for key in ("1.645", "3"):
+        assert [r["detection_rate"][key] for r in rows] == [0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        predicted = [r["predicted_detection"][key] for r in rows]
+        assert predicted == sorted(predicted)  # more premium never predicts less power
+        assert all(0.0 <= p <= 1.0 for p in predicted)
     assert rows[0]["mean_t_is"] == 0.0 and rows[-1]["mean_t_is"] == 9.0
-    predicted = [r["predicted_detection"] for r in rows]
-    assert predicted == sorted(predicted)  # more premium never predicts less power
-    assert all(0.0 <= p <= 1.0 for p in predicted)
-    assert doc["hurdle"] == DEFAULT_THRESHOLDS.ic_t_stat_min and doc["seeds_per_point"] == 2
+    assert doc["hurdles"] == [DEFAULT_THRESHOLDS.ic_t_single_test, DEFAULT_THRESHOLDS.ic_t_stat_min]
+    assert doc["detectable_premium_bps"]["3"]["premium_bps"] == 1200.0 and doc["seeds_per_point"] == 2
 
 
 @pytest.mark.slow

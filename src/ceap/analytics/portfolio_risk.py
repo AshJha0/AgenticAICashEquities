@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from ceap.analytics.backtest import daily_returns, rolling_vol_bps, target_weights
+from ceap.analytics.numerics import negligible_variation
 from ceap.analytics.signals import cross_sectional_zscore, dataset_signal
 from ceap.domain.research import (
     DEFAULT_GROSS_NOTIONAL,
@@ -84,8 +85,8 @@ def raw_betas_ex_self(window: np.ndarray, min_obs: int = MIN_BETA_OBS) -> tuple[
         y = r[ok, j]
         xd = x - x.mean()
         sxx = float(xd @ xd)
-        if sxx <= 0:
-            continue
+        if negligible_variation(x, sxx):
+            continue  # near-constant market: no estimate; se stays inf, which flags it to shrink_betas
         b = float(xd @ (y - y.mean())) / sxx
         resid = y - y.mean() - b * xd
         beta[j] = b

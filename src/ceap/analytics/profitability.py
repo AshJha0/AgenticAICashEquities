@@ -22,19 +22,13 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from ceap.analytics.backtest import TRADING_DAYS_PER_YEAR, BacktestRun, simulate_backtest
+from ceap.analytics.numerics import negligible_variation, sharpe_standard_error
 
 if TYPE_CHECKING:  # pragma: no cover
     from ceap.data.historical import HistoricalDataset
 
 CAPACITY_NOTIONALS: tuple[float, ...] = (10e6, 25e6, 50e6, 100e6, 250e6, 500e6)
 WORST_MONTHS = 3
-
-
-def sharpe_standard_error(sharpe_ann: float, n_days: int) -> float:
-    if not math.isfinite(sharpe_ann) or n_days < 2:
-        return float("nan")
-    sr = sharpe_ann / math.sqrt(TRADING_DAYS_PER_YEAR)
-    return math.sqrt((1.0 + 0.5 * sr * sr) / n_days) * math.sqrt(TRADING_DAYS_PER_YEAR)
 
 
 def _interp_log_crossing(xs: list[float], ys: list[float], level: float) -> float | None:
@@ -119,11 +113,14 @@ def factor_alpha(excess: np.ndarray, factor: np.ndarray) -> dict[str, float]:
         return {"alpha_ann": float("nan"), "beta": float("nan"), "alpha_t": float("nan")}
     xd = x - x.mean()
     sxx = float(xd @ xd)
-    b = float(xd @ (y - y.mean())) / sxx if sxx > 0 else 0.0
+    if negligible_variation(x, sxx):
+        return {"alpha_ann": float("nan"), "beta": float("nan"), "alpha_t": float("nan"),
+                "note": "beta undefined: the factor series is constant to within tolerance"}
+    b = float(xd @ (y - y.mean())) / sxx
     a = float(y.mean() - b * x.mean())
     resid = y - a - b * x
     s2 = float(resid @ resid) / (n - 2)
-    se_a = math.sqrt(s2 * (1.0 / n + x.mean() ** 2 / sxx)) if sxx > 0 else float("nan")
+    se_a = math.sqrt(s2 * (1.0 / n + x.mean() ** 2 / sxx))
     return {"alpha_ann": a * TRADING_DAYS_PER_YEAR, "beta": b, "alpha_t": a / se_a if se_a > 0 else float("nan")}
 
 

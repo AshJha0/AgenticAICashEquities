@@ -167,6 +167,25 @@ Clopper-Pearson upper bound 0.74 %); at 1.645, 5 of 500 (1.0 %; one seed's best 
 `data/reference/research_thresholds.json`, and every sweep run is appended to
 `data/reference/sweep_ledger.jsonl` with its generator version.
 
+**Power at the hurdles in force (0.10.0, Q5) [simulation].** [`../quant_power_curve.json`](../quant_power_curve.json)
+gives the detection rate of the IC part of the gate (in-sample IC t at least the hurdle and
+out-of-sample IC t at least 1.0) against a planted momentum drift premium, 40 seeds a point, on the
+30-name synthetic universe over the generator's full horizon. Earlier files were at the retired
+hurdle 0.40.
+
+| Premium (bps a year) | 0 | 600 | 900 | 1200 | 1500 | 1800 | 2100 | 2400 |
+|---|---|---|---|---|---|---|---|---|
+| Expected gross Sharpe | 0.00 | 0.13 | 0.29 | 0.50 | 0.75 | 1.04 | 1.35 | 1.68 |
+| Detection, single test (t >= 1.645) | 0 % | 5 % | 18 % | 48 % | 80 % | 93 % | 95 % | 100 % |
+| Detection, mined result (t >= 3.0) | 0 % | 0 % | 3 % | 18 % | 60 % | 93 % | 95 % | 100 % |
+
+In plain terms: with 80 % power the gate detects a premium of about 1500 bps a year (expected gross
+Sharpe 0.75) when the signal is one preregistered test, and about 1800 bps (gross Sharpe 1.04) when
+it was chosen from a search. A strategy with gross Sharpe 0.5 is found 18 % of the time at the mined
+hurdle (the review's closed-form estimate was about 9 %). Above 1800 bps the out-of-sample condition,
+not the hurdle, is what limits detection. These are statements about the synthetic generator, not
+about real markets; "80 % power" follows the usual convention (Cohen 1988).
+
 **Adversarial power curves (D2) [simulation].** [`adversarial_power.json`](adversarial_power.json):
 detection rate of the IC gate against the planted premium for five generator families written without
 reference to the signal code (8 seeds a point; a coarse first look, not a precise rate):
