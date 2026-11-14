@@ -13,6 +13,31 @@ refuses a tag whose version has no section.
   is redacted only after an account word (account, acct, card, a/c) or in card-style groups.
 - **E-08.** A malformed `CEAP_API_KEYS` entry no longer appears in the error message.
 - Tests: `tests/unit/test_redact_e7.py`.
+### Added: per-package branch coverage gate (0.10.0 item E1, finding C-P2-1)
+
+- `[tool.coverage]` in `pyproject.toml` (branch, source `ceap`, parallel for xdist).
+  `scripts/coverage_by_package.py` reads the JSON report, prints a per-package table and fails
+  when a package is under its floor (90 %, 95 % for `analytics` and `domain`) and under its
+  recorded baseline. The 3.12 test job now writes `coverage.json` and runs it.
+- **Measured, not met.** On the unit tier, 11 of 19 packages are under the floor (lowest:
+  `studies` 44.6 %, `api` 55.0 %, top-level modules 68.7 %). The table is in
+  `docs/testing/coverage-by-package.md`; those packages are held at their measured figure as a
+  ratchet until behaviour tests raise them. No coverage was added in this item.
+
+### Fixed: deployment recipes (0.10.0 item E4, finding R-26)
+
+- **Pre-hashed keys alone now start the server.** `validate_for_serving` refused any configuration
+  without raw `CEAP_API_KEYS`, so the shipped compose example, which sets only
+  `CEAP_API_KEY_HASHES`, could not start. Hashed keys now count, and they are parsed at start-up so
+  a malformed entry fails there rather than on the first request. No keys at all is still refused.
+- **The compose stack is started in CI.** A new `compose` job runs `scripts/compose_smoke.sh`: it
+  generates a key, hashes it with the new standard-library `scripts/hash_api_key.py` (key read
+  from the environment, never the command line), brings the stack up behind Caddy, and checks
+  `/health`, a 401 without a key and a 200 from `/tools` with it.
+- **Cookbook recipes corrected.** Recipe 26 used an 8-character raw key that the 256-bit entropy
+  rule refuses; it now uses a hashed key. Recipe 6 listed and decided approvals with the admin key,
+  whose role lacks `approvals:decide`; it now uses the approver key. Tests in
+  `tests/repo/test_e4_deploy_recipes.py` check each recipe against the code.
 
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 

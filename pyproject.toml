@@ -80,6 +80,26 @@ markers = [
     "real_paper_clock: keep the wall clock for the paper completed-session guard (tests/conftest.py)",
 ]
 
+[tool.coverage.run]
+# E1 (C-P2-1): branch coverage of the installed package only; parallel for pytest-xdist workers
+source = ["ceap"]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+show_missing = false
+skip_covered = false
+precision = 1
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    '@(abc.)?abstractmethod',
+]
+
+[tool.coverage.json]
+output = "coverage.json"
+
 [tool.ruff]
 line-length = 110
 target-version = "py311"

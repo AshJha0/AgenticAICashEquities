@@ -163,8 +163,8 @@ A MEDIUM-risk tool (`risk.calculate_stress`) called by a principal without `risk
 (e.g. viewer) parks the investigation in `AWAITING_APPROVAL`:
 
 ```bash
-curl -s localhost:8000/approvals -H "X-API-Key: dev-admin-key"
-curl -s -X POST localhost:8000/approvals/APR-xxxx -H "X-API-Key: dev-admin-key" \
+curl -s localhost:8000/approvals -H "X-API-Key: dev-approver-key"
+curl -s -X POST localhost:8000/approvals/APR-xxxx -H "X-API-Key: dev-approver-key" \
   -H "Content-Type: application/json" -d '{"approved": true, "comment": "ok for TCA review"}'
 ```
 
@@ -493,8 +493,15 @@ installed; the API's in-memory trace is unchanged. Prometheus scrapes `GET /metr
 
 ```bash
 docker build -t ceap .
-docker run --rm -p 8000:8000 -e CEAP_API_KEYS="prod-key:trader" -e ANTHROPIC_API_KEY=... ceap
+export KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"   # keep this; clients send it
+docker run --rm -p 8000:8000 -e CEAP_API_KEY_HASHES="$(python scripts/hash_api_key.py --role trader)" ceap
+curl -s localhost:8000/tools -H "X-API-Key: $KEY"
 ```
+
+Outside `CEAP_ENV=dev` a raw key must carry at least 256 estimated bits, so short keys such as
+`prod-key` are refused at start-up; pre-hashed keys (`CEAP_API_KEY_HASHES`) alone are a complete
+configuration and keep the raw key out of the container environment. The reverse-proxy example in
+`deploy/compose/` uses the same variable and is started in CI (`scripts/compose_smoke.sh`).
 
 The image sets `CEAP_ENV=prod` and `CEAP_AUTO_APPROVE=false`.
 
