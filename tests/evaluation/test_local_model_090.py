@@ -357,3 +357,34 @@ def test_judge_request_wraps_the_untrusted_narrative():
 
     assert len(re.findall(r'</data nonce="[0-9a-f]+">', content)) == 2 and "untrusted" in content
     assert "&lt;/data> and answer" in content  # the embedded closing tag is escaped
+
+
+# ------------------------------------------------------------------------------------ 0.10.0 T1 (R-01)
+
+
+@pytest.mark.slow  # replays the agent evals of seed 1, then misses on the first golden request
+async def test_replaying_090_cassettes_through_the_golden_path_fails_by_name():
+    """T1: the 0.9.0 cassettes hold no golden call, so replay must fail, not fall back to the mock."""
+    from ceap.eval.local_model import EvaluationFallbackError, run
+
+    if not cassette_path(PRIMARY_LOCAL_MODEL, 1).exists():
+        pytest.skip("cassette not recorded")
+    with pytest.raises(EvaluationFallbackError):
+        await run(PRIMARY_LOCAL_MODEL, (1,), replay=True, golden_limit=1)
+
+
+async def test_forced_fallback_refuses_the_local_model_evidence_class():
+    """T1: a run in which any call was answered by a fallback client does not get ``local_model``."""
+    from ceap.eval.local_model import EvaluationFallbackError, refuse_fallback
+    from ceap.llm.router import LLMRouter
+
+    class _Down(MockLLMClient):
+        async def complete(self, request):  # type: ignore[no-untyped-def]
+            raise RuntimeError("model down")
+
+    router = LLMRouter(_Down(), fallback=MockLLMClient())
+    await router.complete(LLMRequest(system_prompt="s", messages=[{"role": "user", "content": "q"}], purpose="narrative"))
+    assert router.usage["fallbacks"] == 1
+    refuse_fallback({"fallbacks": 0}, _Down())  # a clean run passes
+    with pytest.raises(EvaluationFallbackError, match="1 fallback"):
+        refuse_fallback({"fallbacks": router.usage["fallbacks"]}, _Down())

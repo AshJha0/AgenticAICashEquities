@@ -301,6 +301,9 @@ class LocalCassetteClient(LLMClient):
         for i in cassette.interactions:
             self._by_sha.setdefault(i.request_sha256, []).append(i)
         self.latencies: list[tuple[str, float]] = []
+        #: requests with no recording (R-01): an evaluation run refuses its result when this is non-zero,
+        #: even if a caller downstream caught the error and carried on
+        self.misses = 0
 
     @property
     def name(self) -> str:
@@ -311,6 +314,7 @@ class LocalCassetteClient(LLMClient):
         sha = local_request_sha256(body, request.purpose)
         queue = self._by_sha.get(sha)
         if not queue:
+            self.misses += 1
             raise CassetteStaleError(f"no local_model recording for {request.purpose} request {sha[:12]}")
         hit = queue.pop(0) if len(queue) > 1 else queue[0]
         self.latencies.append((request.purpose, hit.latency_ms))

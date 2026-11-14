@@ -6,6 +6,17 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: local-model evaluation runs use no fallback (0.10.0 item T1, finding R-01)
+
+- **A cassette miss is now an error.** `ceap.eval.local_model.run_seed` builds its `LLMRouter`
+  with no fallback client, and `run` raises `EvaluationFallbackError` when a seed's run hits a
+  request with no recording. `LocalCassetteClient` counts its misses, so a miss is still caught
+  when a caller downstream swallowed the error and carried on.
+- **No `local_model` label on fallback answers.** `run` refuses to return
+  `evidence_class: local_model` when any call in the run missed the cassette or was answered by a
+  fallback client. Replaying the 0.9.0 cassettes through the golden path now fails by name instead
+  of reproducing the mock's numbers.
+
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 
 - **Why the scheduled job wrote nothing on 10 and 11 November.** Both scheduled runs failed with
