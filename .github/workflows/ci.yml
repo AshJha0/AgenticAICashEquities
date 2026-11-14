@@ -227,6 +227,16 @@ jobs:
           docker build -t ceap:ci .
           docker run --rm ceap:ci ceap --help
 
+  compose:
+    # R-26 (E4): the reverse-proxy example must start with hashed keys only and answer /health and
+    # one authenticated call through Caddy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Start the compose stack and call it
+        run: bash scripts/compose_smoke.sh
+
   changelog:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest

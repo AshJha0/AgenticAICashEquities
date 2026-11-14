@@ -178,10 +178,14 @@ class Settings:
 
     def validate_for_serving(self) -> None:
         """Refuse to serve with an unsafe configuration outside development."""
-        if not self.api_keys:
+        # R-26: pre-hashed keys alone are a complete configuration (the compose example ships only
+        # CEAP_API_KEY_HASHES); parse them here so a malformed entry fails at start-up, not per request
+        from ceap.api.auth import parse_key_hashes
+
+        if not self.api_keys and not parse_key_hashes(self.api_key_hashes):
             raise SettingsError(
-                f"no API keys configured for CEAP_ENV={self.environment!r}; set CEAP_API_KEYS=key:role,... "
-                "(the dev-* keys are only applied when CEAP_ENV=dev)"
+                f"no API keys configured for CEAP_ENV={self.environment!r}; set CEAP_API_KEY_HASHES "
+                "(preferred) or CEAP_API_KEYS=key:role,... (the dev-* keys are only applied when CEAP_ENV=dev)"
             )
         if not self.is_dev and any(key.startswith("dev-") for key in self.api_keys):
             raise SettingsError("development API keys (dev-*) must not be used outside CEAP_ENV=dev")

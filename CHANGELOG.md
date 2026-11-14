@@ -6,6 +6,21 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: deployment recipes (0.10.0 item E4, finding R-26)
+
+- **Pre-hashed keys alone now start the server.** `validate_for_serving` refused any configuration
+  without raw `CEAP_API_KEYS`, so the shipped compose example, which sets only
+  `CEAP_API_KEY_HASHES`, could not start. Hashed keys now count, and they are parsed at start-up so
+  a malformed entry fails there rather than on the first request. No keys at all is still refused.
+- **The compose stack is started in CI.** A new `compose` job runs `scripts/compose_smoke.sh`: it
+  generates a key, hashes it with the new standard-library `scripts/hash_api_key.py` (key read
+  from the environment, never the command line), brings the stack up behind Caddy, and checks
+  `/health`, a 401 without a key and a 200 from `/tools` with it.
+- **Cookbook recipes corrected.** Recipe 26 used an 8-character raw key that the 256-bit entropy
+  rule refuses; it now uses a hashed key. Recipe 6 listed and decided approvals with the admin key,
+  whose role lacks `approvals:decide`; it now uses the approver key. Tests in
+  `tests/repo/test_e4_deploy_recipes.py` check each recipe against the code.
+
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 
 - **Why the scheduled job wrote nothing on 10 and 11 November.** Both scheduled runs failed with
