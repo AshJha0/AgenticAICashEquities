@@ -154,6 +154,24 @@ refuses a tag whose version has no section.
   locally against an installed wheel (10 documents, both model hashes); the image was not built
   locally (no Docker on this machine). Tests: `tests/unit/test_e3_data_root.py`.
 
+### Changed: pre-trade model card: challengers, regime-level conformal, functional-form test (0.10.0 item X4, finding R-24)
+
+- The card shows MAE and bias against a constant and a spread-only challenger; the model's MAE is
+  close to theirs (price risk dominates) and its gain is lower bias where impact is large.
+- **Interval repair.** The conformal quantile is now calibrated per regime (two-layer conformal,
+  Dunn, Wasserman and Ramdas 2022) over the five fit families plus five stressed variants of T01
+  (each generator axis doubled, depth halved; new `UniverseConfig.regime`). q rises from 1.653 to
+  1.714. Coverage is tested with a Wilson interval at the Kish effective sample size (session
+  clusters, design effect about 2.1); the script exits 1 when a shifted family's interval excludes
+  nominal 90 %.
+- Result: T02, T04, T06 and T10 now contain nominal (T10 was outside); **T08 still fails**
+  (87.1 %, interval 84.5-89.3 %): an order-size multiplier of ten is outside the calibration
+  regimes. Kept open and marked by a strict xfail test; not tuned on the test families.
+- **Functional-form shift.** New `UniverseConfig.impact_law="linear"` (equal to the square-root law
+  at 1 % ADV). On the five shifted families under it, without refitting, coverage is 88.6-90.8 %
+  except T08 at 52.4 %, where the model under-predicts cost by 18.6 bps.
+- Snapshot change: `src/ceap/ml/pretrade_model.json` (new q, evaluation tables); the pre-trade
+  interval bounds in the TCA goldens (`tests/golden/tca_T01.json`, `tca_T05.json`) move with q.
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 
 - **E-09.** The redactor removed every 8 to 19 digit number, deleting quantities, notionals and

@@ -3424,8 +3424,8 @@
         "participation_rate": 0.075767219,
         "pretrade_estimate_bps": 3.33153105,
         "pretrade_interval_bps": [
-          -21.7519004,
-          28.4149625
+          -22.6750781,
+          29.3381402
         ],
         "price_drift_bps": -1.52286473,
         "price_improvement_bps": 0.489589958,
@@ -3637,8 +3637,8 @@
         "participation_rate": 0.0536219837,
         "pretrade_estimate_bps": 3.33159162,
         "pretrade_interval_bps": [
-          -21.7518399,
-          28.4150231
+          -22.6750175,
+          29.3382008
         ],
         "price_drift_bps": -35.2511098,
         "price_improvement_bps": 0.484677347,

@@ -6,12 +6,14 @@
   fitted by weighted least squares (weights 1/price-risk^2).
 - **Target**: arrival shortfall bps (Perold IS minus delay leg, fees included).
 - **Features** (arrival-time only): spread_bps at arrival, sigma_daily_bps (reference), Q/ADV, algo.
-- **Interval**: split-conformal on normalised residuals, nominal 90%;
-  scale = sqrt(sigma^2 * V_schedule + s_exec^2) with V_schedule = T/3 for a linear schedule.
+- **Interval**: conformal on normalised residuals, nominal 90%;
+  scale = sqrt((1 + kappa) * sigma^2 * V_schedule + s_exec^2) with V_schedule = T/3 for a linear
+  schedule; the quantile q is calibrated at the regime level (below).
 - **Data**: multi-day TCA universe (20 sessions x 40 parents);
-  fit families T01, T03, T05, T07, T09 (seeds [101, 102], n = 8000),
-  calibration seeds [201, 202, 203] (n = 12000),
-  shift test on families T02, T04, T06, T08, T10 (seeds [301, 302]).
+  fit families T01, T03, T05, T07, T09 (seeds [101, 102], n = 8000);
+  calibration seeds [201, 202, 203] of the fit families and of 5 stressed
+  regimes (n = 24000); shift test on families T02, T04, T06, T08, T10 (seeds [301, 302]),
+  and on the same families under a linear impact law.
 - **Not for**: real orders. It describes a synthetic generator; on real data it would need refitting
   and its coverage re-tested.
 
@@ -21,7 +23,7 @@
   the realised share of the drift under each schedule, so they are not expected to be equal)
 - execution noise s_exec = 3.080 bps
 - price-risk inflation kappa = 0.0843 (realised over analytic price variance, minus one)
-- conformal quantile q = 1.6534
+- conformal quantile q = 1.7143 (pooled split-conformal would give 1.6534)
 
 | algo | c0 (bps) | c1 (per bps of spread) |
 |---|---|---|
@@ -30,24 +32,70 @@
 | POV | +1.229 | -0.158 |
 | VWAP | +0.726 | +0.107 |
 
-## Coverage at nominal 90% (acceptance: shifted families within [85 %, 95 %])
+## Why the quantile is calibrated per regime (0.10.0 X4, finding R-24)
+
+Pooled split-conformal guarantees nominal coverage only for new orders exchangeable with the
+calibration orders, that is, drawn from the same mixture of regimes. A shifted family is a new
+regime, not a new order, so that guarantee does not apply to it, and in 0.9.0 two of the five
+shifted families were significantly under nominal.
+
+The repair moves the exchangeability assumption up one level. Each calibration regime g (the five
+fit families and five stressed variants of T01, each with one generator axis doubled or depth
+halved) has its own conformal quantile q_g, the score level that gives nominal coverage inside that
+regime. If a new regime is exchangeable with the K = 10 calibration regimes, its own quantile is
+exchangeable with the q_g, and the ceil((K + 1) * 0.90)-th smallest q_g bounds it with probability
+at least 90% (the split-conformal rank argument applied to regimes; Dunn, Wasserman and
+Ramdas 2022, two-layer hierarchical conformal). With K = 10 that rank is the largest q_g. The stressed
+regimes are a round grid over every axis the generator exposes, declared before the test families
+were scored; the test families take no part in choosing q.
+
+| calibration regime | q_g |
+|---|---|
+| T01 | 1.6221 |
+| T03 | 1.6137 |
+| T05 | 1.7052 |
+| T07 | 1.6221 |
+| T09 | 1.7143 |
+| T01+volatilityx2 | 1.6118 |
+| T01+spreadx2 | 1.6184 |
+| T01+depthx0.5 | 1.6228 |
+| T01+order_sizex2 | 1.6540 |
+| T01+latencyx2 | 1.5921 |
+
+What this does not buy: the guarantee is for regimes like the calibration regimes. A regime far
+outside them (an order-size multiplier of ten against two) can still be under-covered; the table
+below is the check.
+
+## Coverage against nominal under regime shift
+
+Parents in one session share the market path, so their hits are correlated and the row count
+overstates the information. The test uses a Wilson 95 % interval at the effective sample size
+n / deff, where deff is the Kish design effect estimated from session clusters in that cell; the
+row-independent Wilson interval is shown for comparison. Coverage must also stay in [85 %, 95 %].
+
+| family | coverage | deff | n eff | 95 % interval (deff) | 95 % interval (iid) | nominal inside |
+|---|---|---|---|---|---|---|
+| T02 | 91.1% | 2.16 | 742 | [88.9%, 93.0%] | [89.6%, 92.4%] | yes |
+| T04 | 91.8% | 2.29 | 699 | [89.5%, 93.6%] | [90.3%, 93.0%] | yes |
+| T06 | 90.2% | 2.31 | 692 | [87.8%, 92.2%] | [88.7%, 91.6%] | yes |
+| T08 | 87.1% | 2.13 | 752 | [84.5%, 89.3%] | [85.3%, 88.6%] | **no** |
+| T10 | 89.3% | 2.08 | 769 | [86.9%, 91.3%] | [87.7%, 90.7%] | yes |
+
+**Fails** in T08: the interval excludes nominal 90% (or coverage is outside [85 %, 95 %]). `scripts/train_pretrade.py` exits 1.
+
+Fit families on fresh seeds (not a shift test):
 
 | family | coverage |
 |---|---|
-| T02 (shifted) | 89.9% |
-| T04 (shifted) | 90.6% |
-| T06 (shifted) | 88.7% |
-| T08 (shifted) | 85.9% |
-| T10 (shifted) | 88.3% |
-| T01 (fit family, fresh seed) | 89.3% |
-| T03 (fit family, fresh seed) | 89.5% |
-| T05 (fit family, fresh seed) | 89.2% |
-| T07 (fit family, fresh seed) | 89.3% |
-| T09 (fit family, fresh seed) | 87.6% |
+| T01 | 91.2% |
+| T03 | 91.3% |
+| T05 | 90.6% |
+| T07 | 91.2% |
+| T09 | 88.8% |
 
 ## Point error against naive challengers (shifted families, MAE / bias in bps)
 
-The challengers are fitted on the same rows: a constant (the mean cost) and an intercept plus slope
+The challengers are fitted on the fit rows: a constant (the mean cost) and an intercept plus slope
 on the arrival spread. Bias is prediction minus realised.
 
 | family | n | model | spread only | constant |
@@ -58,22 +106,33 @@ on the arrival spread. Bias is prediction minus realised.
 | T08 | 1600 | 16.02 / +0.01 | 16.67 / -4.62 | 16.64 / -4.48 |
 | T10 | 1600 | 37.92 / -0.61 | 38.01 / -4.79 | 38.00 / -4.79 |
 
-Reading: the model's MAE is within a few hundredths of a bps of the challengers in most families;
-its gain is in bias where impact is large (T08, T10). Most of the cost variance is price risk that no
-arrival-time feature predicts.
+Most of the cost variance is price risk that no arrival-time feature predicts, so MAE differs little
+between the three; the model's gain is in bias where impact is large.
 
-## Coverage against nominal with a Wilson 95 % interval
+## Functional-form shift: a linear impact law
 
-| family | coverage | 95 % interval | nominal inside |
-|---|---|---|---|
-| T02 | 89.9% | [88.3%, 91.3%] | yes |
-| T04 | 90.6% | [89.0%, 91.9%] | yes |
-| T06 | 88.7% | [87.0%, 90.1%] | yes |
-| T08 | 85.9% | [84.1%, 87.6%] | **no** |
-| T10 | 88.3% | [86.6%, 89.8%] | **no** |
+Every family above is drawn from a generator whose permanent impact is gamma * sigma * sqrt(Q/ADV),
+the form the model fits. Here the same five shifted families are drawn with impact
+gamma * sigma * sqrt(x0) * (Q/ADV) / x0, x0 = 1% of ADV (the Kyle / Almgren-Chriss linear law,
+equal to the square-root law at x0). The model is not refitted. This is a report, not a gate: the
+square-root model is wrong on this generator by construction.
 
-**Fails** in T08, T10: the 95 % interval excludes the nominal 90%, so the interval is too narrow under shift there. `scripts/train_pretrade.py` exits 1 until this is fixed.
+| family | coverage | deff | n eff | 95 % interval (deff) | 95 % interval (iid) | nominal inside |
+|---|---|---|---|---|---|---|
+| T02 | 90.2% | 2.08 | 769 | [87.9%, 92.2%] | [88.7%, 91.6%] | yes |
+| T04 | 90.8% | 2.31 | 693 | [88.4%, 92.7%] | [89.2%, 92.1%] | yes |
+| T06 | 89.4% | 2.36 | 678 | [86.8%, 91.5%] | [87.8%, 90.8%] | yes |
+| T08 | 52.4% | 2.96 | 540 | [48.2%, 56.6%] | [49.9%, 54.8%] | **no** |
+| T10 | 88.6% | 1.82 | 879 | [86.3%, 90.5%] | [86.9%, 90.0%] | yes |
 
-Still open (R-24): every family is drawn from the same generator, which plants the square-root form
-the model fits; a test on a different functional form needs a generator family with another impact
-law and is not done in this release.
+| family | n | model | spread only | constant |
+|---|---|---|---|---|
+| T02 | 1600 | 37.78 / -0.82 | 38.12 / -5.00 | 38.12 / -5.00 |
+| T04 | 1600 | 12.49 / -0.59 | 12.57 / -0.15 | 12.58 / -0.01 |
+| T06 | 1600 | 13.21 / -0.79 | 13.31 / -0.34 | 13.33 / -0.20 |
+| T08 | 1600 | 40.30 / -18.59 | 42.93 / -23.22 | 42.86 / -23.08 |
+| T10 | 1600 | 38.62 / -1.94 | 39.07 / -6.12 | 39.07 / -6.12 |
+
+Coverage ranges from 52.4% to 90.8% and the model's bias from -18.59 to
+-0.59 bps across the five families (bias is prediction minus realised: negative means the model
+under-predicts cost).
