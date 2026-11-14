@@ -6,6 +6,26 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: the wheel and the image carry their data; installed-copy smoke check (0.10.0 item E3, finding R-27)
+
+- **One resolver.** `ceap.paths.data_root()` replaces the module constants that resolved `data/`
+  from the source tree (`Path(__file__).parents[3] / "data"`), which pointed nowhere once
+  installed. Order: `CEAP_DATA_ROOT`, then the copy inside the wheel (`ceap/_data`), then `data/`
+  in a checkout.
+- **The data ships.** `setup.py` (a build hook only; metadata stays in `pyproject.toml`) copies the
+  runtime files listed in `ceap.paths.PACKAGED` into the wheel, including `docs/quant/quant.md`,
+  which the knowledge manifest lists outside `data/`, so the installed corpus hash equals the
+  checkout's. The image now gets its data from the installed package; the separate `/app/data`
+  copy is gone.
+- **Loud failure.** A missing default knowledge corpus or model store raises `DataFileMissing`
+  (not an `OSError`, so the detector and calibration fallbacks cannot swallow it). Before, the
+  knowledge base came up empty and the change detector and calibration ran unfitted.
+- **Smoke check.** `python -m ceap.smoke` runs one investigation and fails unless every corpus
+  document, the change detector and the calibration model loaded. CI runs it from an installed
+  wheel outside the checkout (new `wheel-smoke` job) and inside the image (`docker` job). Checked
+  locally against an installed wheel (10 documents, both model hashes); the image was not built
+  locally (no Docker on this machine). Tests: `tests/unit/test_e3_data_root.py`.
+
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 
 - **E-09.** The redactor removed every 8 to 19 digit number, deleting quantities, notionals and

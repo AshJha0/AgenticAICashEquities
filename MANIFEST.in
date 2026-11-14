@@ -1,0 +1,8 @@
+# R-27 (E3): the sdist carries the runtime data so a wheel built from it ships ceap/_data
+include setup.py
+recursive-include data/reference *.md *.json *.jsonl *.csv
+recursive-include data/models *.json
+recursive-include data/rag *.json
+recursive-include data/eval *.json
+prune data/real_cache
+include docs/quant/quant.md

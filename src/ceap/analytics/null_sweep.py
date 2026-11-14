@@ -39,6 +39,7 @@ from ceap.analytics.backtest import run_backtest
 from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS, ResearchThresholds, deflated_sharpe
 from ceap.analytics.signal_statistics import evaluate_signal
 from ceap.domain.research import search_space
+from ceap.paths import data_path
 from ceap.util.canonical import content_hash
 
 TARGET_RATE = 0.05
@@ -47,7 +48,7 @@ GRID_MIN = 0.0
 GRID_MAX = 6.0
 SWEEP_VERSION = "null-sweep-v1"
 GENERATOR_VERSION = "realistic_v1"  # frozen per sweep (D21); bump when the noise generator changes
-SWEEP_LEDGER = Path(__file__).resolve().parents[3] / "data" / "reference" / "sweep_ledger.jsonl"
+SWEEP_LEDGER = data_path("reference", "sweep_ledger.jsonl")
 PER_SEED_PATH = Path(__file__).resolve().parents[3] / "docs" / "research" / "null_sweep_per_seed.json"
 
 

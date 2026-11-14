@@ -14,7 +14,9 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-REF = Path(__file__).resolve().parents[4] / "data" / "reference"
+from ceap.paths import data_path
+
+REF = data_path("reference")
 CHANGES_PATH = REF / "sp500_changes.csv"
 TICKER_MAP_PATH = REF / "ticker_map.csv"
 

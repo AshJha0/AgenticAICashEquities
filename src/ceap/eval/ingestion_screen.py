@@ -25,10 +25,11 @@ from typing import Any
 
 from ceap.eval.injection import load_corpus
 from ceap.eval.stats import rate
+from ceap.paths import data_path
 from ceap.rag.ingestion import Document, load_documents, screen_document
 
 ROOT = Path(__file__).resolve().parents[3]
-KNOWLEDGE = ROOT / "data" / "reference" / "knowledge"
+KNOWLEDGE = data_path("reference", "knowledge")
 RESULTS = ROOT / "docs" / "evaluation" / "ingestion_screen.json"
 ZWSP = "​"
 

@@ -33,9 +33,10 @@ from typing import Any
 
 import numpy as np
 
+from ceap.paths import data_path, require
 from ceap.util.canonical import canonical_text, content_hash, sha256_hex
 
-MODELS_DIR = Path(__file__).resolve().parents[3] / "data" / "models"
+MODELS_DIR = data_path("models")
 HASH_DECIMALS = 8
 PSI_WARN = 0.25  # conventional: < 0.1 stable, 0.1 to 0.25 moderate shift, > 0.25 significant shift
 PSI_BINS = 10
@@ -177,7 +178,9 @@ class RegisteredModel:
 
 class ModelRegistry:
     def __init__(self, root: str | Path | None = None) -> None:
-        self.root = Path(root) if root is not None else MODELS_DIR
+        # R-27 (E3): the default store is required; an installed copy without it raises DataFileMissing
+        # (not an OSError, so load_detector and the calibration lookup cannot swallow it)
+        self.root = Path(root) if root is not None else require("models")
 
     def path_for(self, name: str, mhash: str) -> Path:
         return self.root / f"{name}-{mhash}.json"
