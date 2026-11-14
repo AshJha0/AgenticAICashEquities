@@ -6,6 +6,30 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: standalone MCP servers no longer stage on capability alone (0.10.0 item H2, finding R-12)
+
+- **A signed grant for every HIGH-risk call.** A server started on its own (`python -m
+  ceap.mcp.execution`) adds an `approval_grant` argument to each HIGH-risk tool and refuses the call
+  unless it is an HMAC-SHA256, keyed with `CEAP_MCP_GRANT_KEY`, over the tool id and the exact
+  arguments (`MCPServerDefinition.sign_grant`). With the key unset every HIGH-risk call is refused.
+  Before, the `admin` role alone was enough to stage paper orders with no approval and no four-eyes.
+- **The portfolio hash is required.** `stage_orders` refuses a call without `approved_portfolio_hash`.
+  It stays optional in the schema because the harness binds it after the approval gate, which is
+  later than plan validation reads the schema. The in-process harness path is unchanged.
+- Test: `tests/contract/test_r0100_h2_stdio_grant.py` drives the server over stdio with the `admin`
+  role: no grant and a grant signed with the wrong key are refused; a valid grant gets through.
+
+### Fixed: the ingestion injection screen normalises first, and is measured (0.10.0 item H3, finding R-08)
+
+- `screen_document` now applies the same NFKC and zero-width stripping as the prompt path (both use
+  `ceap.util.unicode_clean.clean_untrusted`), so one zero-width character no longer bypasses it.
+- Recall and false-positive rate are measured on every CI run and committed in
+  `docs/evaluation/ingestion_screen.json`. On the 50 base strings of `injection_corpus_v1` the screen
+  flags 10 (recall 0.20, 95 % Wilson interval 0.11 to 0.33), the same with zero-width characters
+  inserted; it flags none of the 10 knowledge documents or their 126 paragraphs. The patterns were
+  not tuned to the corpus, so 0.20 is an honest and a low figure: the screen is a tripwire, and the
+  defence remains the nonce-tagged data blocks on the prompt path.
+
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 
 - **Why the scheduled job wrote nothing on 10 and 11 November.** Both scheduled runs failed with
