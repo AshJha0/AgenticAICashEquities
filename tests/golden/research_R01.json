@@ -504,7 +504,7 @@
       "description": "backtest.run_backtest(signal=momentum_12_1, dataset=R01, start=2007-09-07, end=2026-09-18, in_sample_end=2021-09-10, rebalance_days=21, long_short=True, gross_notional=50000000.0, execution_lag_days=1, fill=close) -> object with keys: signal, dataset, rebalance_days, long_short, gross_notional, periods",
       "id": "BT-00000023",
       "source": "backtest.run_backtest",
-      "timestamp": "2026-01-01T00:00:00.064000+00:00",
+      "timestamp": "2026-01-01T00:00:00.058000+00:00",
       "type": "BACKTEST"
     },
     {
@@ -606,7 +606,7 @@
       "description": "Signal statistics for momentum_12_1: in-sample IC t-stat 4.37, out-of-sample IC t-stat 4.48",
       "id": "TCA-0000002a",
       "source": "agent:alpha",
-      "timestamp": "2026-01-01T00:00:00.073000+00:00",
+      "timestamp": "2026-01-01T00:00:00.067000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -1115,7 +1115,7 @@
       "description": "Backtest of momentum_12_1: net Sharpe in-sample 0.60, out-of-sample 1.39, cost drag 250 bps per year",
       "id": "TCA-00000030",
       "source": "agent:backtest",
-      "timestamp": "2026-01-01T00:00:00.078000+00:00",
+      "timestamp": "2026-01-01T00:00:00.072000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -1207,7 +1207,7 @@
       "description": "Research assessment: PROMOTE (no flags)",
       "id": "TCA-00000040",
       "source": "agent:critic",
-      "timestamp": "2026-01-01T00:00:00.088000+00:00",
+      "timestamp": "2026-01-01T00:00:00.082000+00:00",
       "type": "CALCULATION"
     },
     {
@@ -1491,7 +1491,7 @@
       "description": "Critic assessment of findings",
       "id": "TCA-00000041",
       "source": "agent:critic",
-      "timestamp": "2026-01-01T00:00:00.089000+00:00",
+      "timestamp": "2026-01-01T00:00:00.083000+00:00",
       "type": "CALCULATION"
     }
   ],
@@ -1940,7 +1940,7 @@
       ]
     }
   ],
-  "generated_at": "2026-01-01T00:00:00.107000+00:00",
+  "generated_at": "2026-01-01T00:00:00.101000+00:00",
   "hypotheses": null,
   "kind": "research",
   "metrics": {
@@ -2853,7 +2853,7 @@
     "approval": {
       "approved": true,
       "comment": "auto-approved (dev mode)",
-      "decided_at": "2026-01-01T00:00:00.098000+00:00",
+      "decided_at": "2026-01-01T00:00:00.092000+00:00",
       "decided_by": "auto-approver",
       "request_id": "APR-00000042",
       "step_id": "gov-approval",

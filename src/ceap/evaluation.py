@@ -53,12 +53,23 @@ async def evaluate_scenario(platform: Platform, spec: ScenarioSpec) -> dict[str,
     }
 
 
-def evaluation_platform() -> Platform:
-    """R3B 3B.7 (D10): case memory is OFF in evaluation, so no run can learn from another. For the same reason
-    the trial ledger is in memory (Q7): the persistent default would let earlier runs change the trial count."""
-    from ceap.analytics.trial_ledger import MEMORY, TrialLedger
+RESEARCH_UNIVERSES = ("core30", "synthetic500")
 
-    return Platform(case_memory=CaseMemory(enabled=False), trial_ledger=TrialLedger(MEMORY))
+
+def evaluation_platform(universe: str = "core30") -> Platform:
+    """R3B 3B.7 (D10): case memory is OFF in evaluation, so no run can learn from another. For the same reason
+    the trial ledger is in memory (Q7): the persistent default would let earlier runs change the trial count.
+
+    ``universe`` (0.10.0 Q6, finding R-30): the research datasets' names, ``core30`` (the default, what the
+    scenarios' ground truth is derived for) or ``synthetic500`` (the same scenarios on 500 synthetic names)."""
+    from ceap.analytics.trial_ledger import MEMORY, TrialLedger
+    from ceap.data.generator_params import UNIVERSES
+    from ceap.data.historical import HistoricalGenerator, HistoricalStore
+
+    if universe not in UNIVERSES:
+        raise ValueError(f"unknown universe {universe!r}; choose from {sorted(UNIVERSES)}")
+    history = HistoricalStore(HistoricalGenerator(symbols=UNIVERSES[universe]))
+    return Platform(case_memory=CaseMemory(enabled=False), trial_ledger=TrialLedger(MEMORY), history=history)
 
 
 async def run_evaluation(
@@ -162,6 +173,7 @@ async def run_research_evaluation(
         "flags_coverage": sum(r["flags_coverage"] for r in rows) / n if n else 0.0,
         "false_flag_rate": sum(bool(r["false_flags"]) for r in rows) / n if n else 0.0,
         "completed": sum(r["completed"] for r in rows) / n if n else 0.0,
+        "verdicts": {v: sum(r["verdict"] == v for r in rows) for v in sorted({str(r["verdict"]) for r in rows})},
         "approved": sum(r["approval_state"] == "APPROVED" for r in rows) / n if n else 0.0,
         "unresolved_findings": sum(len(r["unresolved_findings"]) for r in rows),
         "number_warnings": sum(r["number_warnings"] for r in rows),

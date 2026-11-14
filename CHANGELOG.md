@@ -6,6 +6,21 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Added: research evaluation on the 500-name universe (0.10.0 item Q6, finding R-30)
+
+- `evaluation_platform(universe)` builds the research datasets on `core30` (default) or
+  `synthetic500`; `scripts/research_eval_universes.py` runs the 30 scenarios on both (in parallel
+  slices, each on a fresh platform and in-memory ledger), refuses to publish unless every scenario
+  completes, and writes `capability.research_500` into `latest.json` (the report builder does the same).
+- **Results.** 30 names: 25/30 verdicts match the truth (0.8333, unchanged). 500 names: 21/30 agree
+  with the 30-name truth (0.70; clear scenarios 0.875); verdicts 14 PROMOTE, 16 REJECT. Nine verdicts
+  move, all to PROMOTE: RS02, RS22, RS24 (truth PROMOTE or INCONCLUSIVE) and RS07, RS08, RS09, RS19,
+  RS20, RS21 (30-name truth REJECT). The ground truth is derived for 30 names, so the 500-name figure
+  is agreement, not accuracy; deriving truth for 500 names is not done. The 500-name run needs
+  `CEAP_STEP_TIMEOUT_SECONDS` well above the 30 s default (1800 was used; about 140 s a scenario).
+- README corrected: the scenarios run on the 30-name universe and are re-run on 500 names.
+- Tests: `tests/unit/test_q6_universe_eval.py`.
+
 ### Added: research realism toolkit wired into the verdict (0.10.0 item Q4, findings R-17, R-20)
 
 - **Factor-neutral IC is a gate condition.** `evaluate_signal` now reports

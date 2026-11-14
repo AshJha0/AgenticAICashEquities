@@ -210,6 +210,7 @@ LLM: mock (deterministic); no live model call (D15). Complete run: True.
 | capability | completed | 1.00 |
 | capability | research_scenarios | 30 |
 | capability | research_verdict_accuracy | 0.8333 |
+| capability | research_500 agreement_with_30_name_truth (500 names) | 0.7 |
 | capability | golden set v1.0.0 (sign-off SIGNED_OFF) primary_cause_accuracy | 0.9667 |
 | capability | golden must_mention_rate | 1.00 |
 | capability | golden no_forbidden_claim_rate | 0.9667 |
