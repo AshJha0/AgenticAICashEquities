@@ -197,7 +197,8 @@ Six parallel lanes integrated on one branch; the full list, with every number an
   approvals), an approval TTL sweep, a runbook and alert rules, chaos tests, a paper-day replay
   gate, stricter API keys outside dev (breaking for short raw keys), a two-stage Docker image.
 - **Engineering:** `mypy src` clean, Windows CI, supply-chain workflows (Dependabot, CodeQL,
-  Scorecard, SBOM, signing), nightly mutation testing with a ratchet, benchmarks gate, checked-in
+  Scorecard, SBOM, signing), nightly mutation testing with a ratchet (not measured until 0.10.0: the job crashed
+  before testing a mutant, R-25), benchmarks gate, checked-in
   OpenAPI, ADRs, a learning path, glossary and exercises.
 
 ## Architecture in one picture

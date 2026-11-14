@@ -70,7 +70,13 @@ def task_scope(task_id: str) -> Iterator[None]:
     try:
         yield
     finally:
-        _current_task.reset(token)
+        try:
+            _current_task.reset(token)
+        except ValueError:
+            # An abandoned task's generator finalised by the garbage collector runs in another
+            # context; the context that holds the token is gone, so there is nothing to restore.
+            # Raising here only surfaced as an unraisable-exception warning (nightly, 2026-11-13).
+            pass
 
 
 def estimate_input_tokens(request: LLMRequest) -> int:

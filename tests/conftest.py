@@ -88,8 +88,10 @@ try:  # hypothesis profiles: 100 examples on PR, 1000 nightly (HYPOTHESIS_PROFIL
 
     from hypothesis import settings as hsettings
 
+    # PR: derandomised, so a PR is never red from a fresh example. Nightly (E2, E-13): randomised, so
+    # each night explores new examples; print_blob prints the @reproduce_failure line for a failure.
     hsettings.register_profile("pr", max_examples=100, derandomize=True, deadline=None)
-    hsettings.register_profile("nightly", max_examples=1000, derandomize=True, deadline=None)
+    hsettings.register_profile("nightly", max_examples=1000, derandomize=False, deadline=None, print_blob=True)
     hsettings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "pr"))
 except ImportError:  # pragma: no cover - hypothesis is in the dev extra
     pass

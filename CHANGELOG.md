@@ -6,6 +6,30 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: the nightly can go green and its gates bite (0.10.0 item E2, findings R-25, E-13)
+
+- **Why the nightly was red.** The `full` job ran the nightly sweeps under the coverage tracer and
+  hit its 60-minute limit (cancelled 11, 12 and 14 November); on 13 November
+  `test_cause_recall_200_seeds` passed its own 1800 s ceiling. The sweeps now run in a separate
+  `sweeps` job (3.12, no tracer, 150 minutes) and the cause-recall sweep is one test per template,
+  so xdist spreads it. `full` runs everything else in random order on 3.11, 3.12 and 3.13.
+- **Why mutation testing never measured anything.** mutmut copies only `source_paths`; naming the
+  two sub-packages left `mutants/src/ceap` without the rest of the package, the stats run could not
+  import it, and the ratchet read the empty result as 0 survivors. The config now copies `src/`,
+  mutates only `analytics` and `domain`, and copies `data/`, `docs/`, `config/`, `scripts/`.
+- **Ratchet.** Fails when mutmut recorded no mutants, and on a null baseline after
+  `null_allowed_until` (2026-11-30) in `tests/mutation/baseline.json`.
+- **Baseline not measured.** A local run in WSL (8 workers) was still generating mutants when its
+  30-minute cap ended, so the baseline is still null; the first nightly with this config must
+  measure it before 30 November.
+- **Hypothesis** is randomised in the nightly profile (`print_blob` for reproduction); PR stays
+  derandomised.
+- **Release gate.** `scripts/release_check.py` refuses a tag unless the last three completed
+  nightly runs on main succeeded (a cancelled run counts as red).
+- `ceap.llm.router.task_scope` no longer raises when an abandoned task's generator is finalised in
+  another context (the unraisable warnings in the 13 November log).
+- Tests: `tests/repo/test_e2_nightly_gates.py`. Three consecutive green nightlies need CI.
+
 ### Added: Python 3.13 declared and tested; 3.14 assessed (0.10.0 item E6, finding C-P2-2)
 
 - `test (3.13)` joins the CI matrix and the 3.13 classifier joins `pyproject.toml`;

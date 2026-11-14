@@ -162,6 +162,12 @@ ignore_missing_imports = true
 [tool.mutmut]
 # H3 (0.9.0): nightly mutation testing (.github/workflows/nightly.yml, job `mutation`). mutmut is a
 # job-only tool (ADR 0003) and needs Linux; scripts/mutation_ratchet.py enforces the ceiling.
-paths_to_mutate = ["src/ceap/analytics/", "src/ceap/domain/"]
-tests_dir = ["tests/unit/analytics/", "tests/properties/", "tests/unit/test_domain.py"]
+# E2 (R-25): mutmut copies only `source_paths` into mutants/, so naming the two sub-packages there
+# left mutants/src/ceap without its __init__ and every other module, and the stats run could not
+# import ceap (the nightly "succeeded" with zero mutants). Copy all of src/, mutate only the two
+# packages, and copy the data and documents the tests read.
+source_paths = ["src/"]
+only_mutate = ["src/ceap/analytics/*", "src/ceap/domain/*"]
+also_copy = ["data/", "docs/", "config/", "scripts/"]
+pytest_add_cli_args_test_selection = ["tests/unit/analytics/", "tests/properties/", "tests/unit/test_domain.py"]
 pytest_add_cli_args = ["-p", "no:randomly", "--no-cov", "-o", "addopts="]
