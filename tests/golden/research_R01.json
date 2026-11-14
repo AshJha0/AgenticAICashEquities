@@ -2792,7 +2792,7 @@
     "approval": {
       "approved": true,
       "comment": "auto-approved (dev mode)",
-      "decided_at": "2026-01-01T00:00:00.092000+00:00",
+      "decided_at": "2026-01-01T00:00:00.093000+00:00",
       "decided_by": "auto-approver",
       "request_id": "APR-00000042",
       "step_id": "gov-approval",

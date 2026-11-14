@@ -31,7 +31,7 @@ flowchart TD
     PARSE --> H
 
     subgraph H["AGENT HARNESS — ceap.harness (control plane)"]
-        MEM[("Case memory (D10)<br/>harness-written · append-only · per dataset<br/>OFF in evaluation")]
+        MEM[("Case memory (D10)<br/>harness-written · human decisions only<br/>per dataset and owner · 90-day expiry<br/>OFF in evaluation")]
         PLAN["Planner agent<br/>structured plan: agents · optional tools · baseline · ranked hypotheses<br/>inputs in data blocks · canonical fallback"]
         VAL["Plan validation<br/>data steps for the chosen agents · governance tail appended<br/>windows pinned · policy pre-check"]
         EXEC["Step execution<br/>TOOL_CALL batches (asyncio.TaskGroup) · AGENT_CALL<br/>one bounded re-plan on failure"]

@@ -41,6 +41,8 @@ Wilson interval; the per-seed values are what to read first (see below).
 | Reporter: claims dropped by the harness (0.9.0 audit) | 14/39 | 0.36 | 0.23-0.52 | 0.33 / 0.60 / 0.21 |
 | Reporter: claims kept by the audit, re-audited in 0.10.0 (see below) | 22/39 | 0.56 | 0.41-0.71 | 0.67 / 0.40 / 0.57 |
 | Reporter: claims with a number outside their own fact keys, 0.10.0 re-audit | 11/39 | 0.28 | 0.17-0.44 | 0.13 / 0.50 / 0.29 |
+| Reporter: untraceable numbers reaching the report | 0/39 | 0.00 | 0.00-0.09 | 0 / 0 / 0 |
+| Reporter: citations verified | 0/0 | not measured | – | n = 0 in each seed, see below |
 | Critic: planted faults detected | 35/45 | 0.78 | 0.64-0.87 | 0.73 / 0.80 / 0.80 |
 | Golden slice (end to end) | not measured | – | – | withdrawn 2026-11-12, see below |
 
@@ -56,6 +58,16 @@ either. The `golden` blocks in the committed JSON files are kept as recorded and
 model results; they are regenerated with the 0.10.0 re-run, where an evaluation run fails on a
 fallback. The planner, reporter and critic rows above are scored from recorded model replies and are
 not affected.
+
+**Citation verification has n = 0.** The citation audit reads Anthropic `content_block_location`
+citation blocks; the Ollama adapter returns none, so with the local model no policy claim carries a
+citation and `reporter.citation_verified` is 0/0 in every seed (finding R-09). The row was omitted
+until 0.10.0; it is shown now so that the absence is visible. Since 0.10.0 (item H4) a citation counts
+for a claim only if the cited chunk also supports it: the claim's numbers occur in the chunk and the
+chunk shares its key terms (`ceap.agents.reporter.citation_supports`). On ten planted pairs written
+against the shipped knowledge base, 0 of 10 wrong-chunk citations pass and 10 of 10 right-chunk
+citations are kept (`tests/agent/test_r0100_h4_citation_support.py`). That is a lexical check on a
+small planted set, not entailment and not a model result.
 
 Plain reading: a 7B model on a laptop produces a valid plan about half the time and the harness
 repairs most of the rest; it never picks a tool outside the task (precision 1.00) but misses about a

@@ -5,8 +5,10 @@ from __future__ import annotations
 import math
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from ceap.domain.common import utc_now
 from ceap.domain.evidence import Evidence, EvidenceType
 from ceap.domain.findings import EvidenceRef, Finding
 from ceap.domain.tools import ToolRequest, ToolResult
@@ -40,6 +42,8 @@ class InvestigationMemory:
     agent_outputs: dict[str, dict[str, Any]] = field(default_factory=dict)
     scratch: dict[str, Any] = field(default_factory=dict)
     messages: list[Any] = field(default_factory=list)  # R3B 3B.6: typed AgentMessage envelopes
+    # H1: per-run counters of journalled scopes (model calls per agent step, agent step occurrences)
+    durable_counts: dict[str, int] = field(default_factory=dict)
 
     def add_evidence(self, *items: Evidence) -> None:
         for e in items:
@@ -224,6 +228,8 @@ class CaseRecord:
     reason: str
     hypotheses: tuple[tuple[str, str], ...]  # (name, verdict) of the SUPPORTED / REFUTED rows
     recorded_at: str
+    #: H6 (AI-2-07): the principal whose task this was; only that principal reads it back
+    owner: str = ""
 
     def text(self) -> str:
         causes = " ".join(f"{n} {v}" for n, v in self.hypotheses)
@@ -245,13 +251,23 @@ class CaseRecord:
 AuditHook = Callable[[str, str, str, dict[str, Any]], Any]  # (actor, action, subject, payload)
 
 
-class CaseMemory:
-    """Bounded, append-only case memory (decision D10).
+#: decision makers that are not people (``ceap.policy.approvals.SYSTEM_ACTORS``); repeated here so
+#: memory does not import the policy package. ``tests/agent/test_r0100_h6_case_memory.py`` keeps
+#: the two in step.
+NON_HUMAN_DECIDERS = frozenset({"timeout", "policy", "auto-approver"})
+#: H6 (AI-2-07): a case older than this is not read back and is pruned on the next write
+DEFAULT_CASE_TTL_DAYS = 90
 
-    * written only by the harness, after a human decision; there is no memory tool;
-    * append-only: no update or delete; ``max_cases`` bounds each partition (new cases are refused
-      once it is full);
-    * partitioned by dataset: a lookup never crosses datasets;
+
+class CaseMemory:
+    """Bounded case memory of human decisions (decision D10; 0.10.0 H6).
+
+    * written only by the harness, after a human decision; a decision by the system (auto-approval,
+      timeout, policy) is refused (AI-2-06); there is no memory tool;
+    * no update or delete by any caller; ``max_cases`` bounds each partition (new cases are refused
+      and audited once it is full); expired cases are pruned on write (``ttl_days``, AI-2-07);
+    * partitioned by dataset and owner: a lookup never crosses datasets, and returns another
+      principal's case only to a reader with ``tasks:read-any`` (AI-2-07);
     * read-only for the planner: :meth:`nearest` returns views, never the store;
     * OFF in evaluation (``enabled=False``): no reads and no writes, and ``reads`` proves it;
     * every write is audited through ``audit``.
@@ -262,38 +278,76 @@ class CaseMemory:
     """
 
     def __init__(
-        self, *, enabled: bool = True, max_cases: int = 1000, audit: AuditHook | None = None
+        self,
+        *,
+        enabled: bool = True,
+        max_cases: int = 1000,
+        audit: AuditHook | None = None,
+        ttl_days: float = DEFAULT_CASE_TTL_DAYS,
+        now: Callable[[], datetime] = utc_now,
     ) -> None:
         self.enabled = enabled
         self.max_cases = max_cases
+        self.ttl = timedelta(days=ttl_days)
+        self._now = now
         self._audit = audit
-        self._cases: dict[str, list[CaseRecord]] = {}
+        self._cases: dict[tuple[str, str], list[CaseRecord]] = {}
         self.reads = 0
         self.writes = 0
 
+    def _fresh(self, record: CaseRecord) -> bool:
+        try:
+            at = datetime.fromisoformat(record.recorded_at)
+        except (TypeError, ValueError):
+            return False  # an undated case cannot be shown to be in date
+        if at.tzinfo is None:
+            at = at.replace(tzinfo=UTC)
+        return self._now() - at <= self.ttl
+
     def append(self, record: CaseRecord) -> bool:
-        if not self.enabled:
+        if not self.enabled or record.decided_by in NON_HUMAN_DECIDERS:
             return False
-        partition = self._cases.setdefault(record.dataset, [])
-        if len(partition) >= self.max_cases or any(c.case_id == record.case_id for c in partition):
+        key = (record.dataset, record.owner)
+        partition = [c for c in self._cases.get(key, []) if self._fresh(c)]  # expiry: prune on write
+        self._cases[key] = partition
+        if any(c.case_id == record.case_id for c in partition):
+            return False  # the same decision again (a resumed run): one case, not two
+        if len(partition) >= self.max_cases:
+            if self._audit is not None:
+                self._audit("harness", "case_memory.full", record.case_id, {"dataset": record.dataset})
             return False
         partition.append(record)
         self.writes += 1
         if self._audit is not None:
             self._audit(
-                "harness", "case_memory.append", record.case_id, {"dataset": record.dataset, **record.view()}
+                "harness",
+                "case_memory.append",
+                record.case_id,
+                {"dataset": record.dataset, "owner": record.owner, "decided_by": record.decided_by, **record.view()},
             )
         return True
 
     def __len__(self) -> int:
         return sum(len(p) for p in self._cases.values())
 
-    def nearest(self, dataset: str, query: str, k: int = 3) -> tuple[dict[str, Any], ...]:
-        """The ``k`` nearest past cases in ``dataset`` (read-only views); empty when disabled."""
+    def nearest(
+        self, dataset: str, query: str, k: int = 3, *, owner: str | None = None, read_any: bool = False
+    ) -> tuple[dict[str, Any], ...]:
+        """The ``k`` nearest in-date cases in ``dataset`` (read-only views); empty when disabled.
+
+        Only ``owner``'s cases are candidates unless ``read_any`` (the reader holds ``tasks:read-any``).
+        ``owner=None`` matches only cases recorded without an owner.
+        """
         if not self.enabled:
             return ()
         self.reads += 1
-        partition = self._cases.get(dataset) or []
+        partition = [
+            c
+            for (ds, who), cases in self._cases.items()
+            if ds == dataset and (read_any or who == (owner or ""))
+            for c in cases
+            if self._fresh(c)
+        ]
         if not partition:
             return ()
         from ceap.rag.ingestion import Document

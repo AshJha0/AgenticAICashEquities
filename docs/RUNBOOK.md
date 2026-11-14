@@ -25,10 +25,16 @@ is in `deploy/compose/`. Neither is a production deployment: they show the shape
 **What happens.** At start-up `Platform.recover()` (`src/ceap/platform.py`) marks every task the
 previous process left `PENDING` or `RUNNING` as `INTERRUPTED`, and every approval it left `PENDING`
 as `EXPIRED`, each with an audit entry. A decision posted after the restart for an expired approval
-gets HTTP 409, never a silent loss. Completed tool calls of an interrupted run are in the run
-journal (table `run_journal`, 0.9.0 G5): re-running the same task id reads them back instead of
-calling the tools again, and an approval already decided for the same content is not asked again
-(`src/ceap/harness/durable.py`).
+gets HTTP 409, never a silent loss.
+
+With `CEAP_DURABLE_RUNS=1`, a run journals its completed tool calls, its model replies, its human
+decisions and the principal and roles it runs under (table `run_journal`; 0.9.0 G5, 0.10.0 H1). An
+`INTERRUPTED` or `FAILED` task can then be resumed under its own id: `POST /tasks/{id}/resume` (the
+owner, or an admin) or `ceap resume <id>`. The resume reads every journalled call back instead of
+repeating it, does not ask an approver again for a question already decided (the match ignores
+finding and evidence ids, which each run mints afresh), and runs under the original principal, not
+the caller's. A task whose first attempt ran without the journal cannot be resumed (409). The test is
+`tests/unit/test_r0100_h1_resume.py` (`src/ceap/harness/durable.py`).
 
 **Do.**
 
@@ -36,7 +42,8 @@ calling the tools again, and an approval already decided for the same content is
 2. Restart the container (`docker compose restart ceap`) or the process.
 3. `GET /health` must answer 200 within the start period (20 s in the image's `HEALTHCHECK`).
 4. Look for `task.interrupted` and `approval.expired` audit entries: those are the casualties to
-   tell their owners about.
+   tell their owners about. With durable runs on, resume each interrupted task
+   (`POST /tasks/{id}/resume`); the resume writes a `task.resumed` audit entry.
 
 ## Stuck task
 

@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Any
 
 from ceap.agents.base import BaseAgent, finite
-from ceap.analytics.attribution import MATERIAL_SCORE, Cause, PeerWindow, attribute_causes
+from ceap.analytics.attribution import MATERIAL_SCORE, Cause, PeerWindow, attribute_causes, baseline_name
 from ceap.data.session import matched_windows
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.findings import Finding
@@ -125,11 +125,15 @@ class QuantAgent(BaseAgent):
             )
         else:
             add(
-                f"Execution quality {change} versus the baseline: implementation shortfall delta {result.is_delta_bps:+.1f} bps, "
-                f"slippage-vs-VWAP delta {result.vwap_slippage_delta_bps:+.1f} bps.",
+                f"Execution quality {change} versus the {baseline_name(result.baseline_kind)}: implementation "
+                f"shortfall delta {result.is_delta_bps:+.1f} bps, slippage-vs-VWAP delta "
+                f"{result.vwap_slippage_delta_bps:+.1f} bps.",
                 0.9,
                 (*win_ev, *base_ev, calc.id),
                 deteriorated=result.deteriorated,
+                is_delta_bps=result.is_delta_bps,
+                vwap_slippage_delta_bps=result.vwap_slippage_delta_bps,
+                baseline=baseline_name(result.baseline_kind),  # H5 (R-03)
             )
         material = result.material
         if result.primary is Cause.NORMAL:

@@ -30,6 +30,19 @@ from ceap.domain.market import MarketStatistics
 MATERIAL_SCORE = 0.35  # a cause with score >= this is reported as material
 ATTRIBUTION_ENV = "CEAP_ATTRIBUTION"  # "regression" adds the F8 regression next to the scores
 
+#: H5 (R-03): the printed name of each baseline. The attribution compares the window with the pooled
+#: matched peer windows when it has them; the execution agent compares it with the task's baseline
+#: window, the hour before. Both used to be printed as "the baseline", so one report gave two
+#: implementation-shortfall deltas under one word.
+PRIOR_WINDOW = "prior window"
+MATCHED_PEERS = "matched peer windows"
+BASELINE_NAMES = {"time_of_day_matched": MATCHED_PEERS, "same_day": PRIOR_WINDOW}
+
+
+def baseline_name(kind: str | None) -> str:
+    """The printed name of an attribution ``baseline_kind``; the prior window when unknown."""
+    return BASELINE_NAMES.get(str(kind or ""), PRIOR_WINDOW)
+
 
 class Cause(str, Enum):
     MARKET_VOLATILITY = "MARKET_VOLATILITY"

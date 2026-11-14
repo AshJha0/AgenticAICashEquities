@@ -12,7 +12,9 @@ Deterministic checks run first (they cannot be talked out of by a model):
    cited records that disagree, a number the evidence does not carry, a direction word against the
    sign of the cited change (``ceap.agents.critic_checks``); each is capped (``CHECK_CAPS``) and
    recorded as a contradiction with a flag in ``assessment["flags"]``;
-5. thinly evidenced findings are capped.
+5. thinly evidenced findings are capped;
+6. (0.10.0 H5) two deltas of one metric must name different baselines or agree
+   (``critic_checks.baseline_conflicts``); a conflict is a contradiction prefixed ``baseline_conflict``.
 
 An optional LLM critique then runs. Since R3B (3B.3) it cannot change a confidence itself: an
 assessment that disputes a finding is a *dispute*, which counts only when it names an alternative
@@ -31,8 +33,8 @@ from dataclasses import replace
 from typing import Any
 
 from ceap.agents.base import BaseAgent, degradation_records, finite, llm_disabled
-from ceap.agents.critic_checks import check_statement
-from ceap.analytics.attribution import MATERIAL_SCORE
+from ceap.agents.critic_checks import BASELINE_FLAG, baseline_conflicts, check_statement
+from ceap.analytics.attribution import MATERIAL_SCORE, baseline_name
 from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS, assess_research
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.findings import Finding
@@ -168,6 +170,14 @@ class CriticAgent(BaseAgent):
                     attributes={**f.attributes, "critic_notes": notes},
                 )
             )
+
+        # H5 (R-03): two deltas of one metric must name different baselines or agree
+        conflicts = (
+            baseline_conflicts(adjusted, attribution, baseline_name(attribution.get("baseline_kind")))
+            if attribution
+            else []
+        )
+        contradictions.extend(f"{BASELINE_FLAG}: {c}" for c in conflicts)
 
         research_assessment: dict[str, Any] | None = None
         if str(context.task_input.get("kind") or "") == RESEARCH_KIND:

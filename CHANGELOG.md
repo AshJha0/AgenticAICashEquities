@@ -256,6 +256,99 @@ refuses a tag whose version has no section.
 - A constant dependent series gives R-squared NaN with an `r2_note`; a near-constant market leaves the
   beta unestimated (standard error infinite, so shrinkage takes the target); `factor_alpha` returns NaN
   with a `note`. Regressions on varying data are unchanged.
+
+### Added: durable runs resume through the product (0.10.0 item H1, findings R-11 and AI-2-05)
+
+- **Entry point.** `POST /tasks/{id}/resume` and `ceap resume <id>` continue an `INTERRUPTED` or
+  `FAILED` task under its own id. Before, nothing in the product re-ran a task id; the 0.9.0 chaos test
+  replaced the id by hand. The owner or an admin may resume; the run uses the principal and roles it
+  was first submitted with, which are now journalled. A finished task, a running one, or one whose
+  first attempt ran without `CEAP_DURABLE_RUNS=1` is refused with 409.
+- **Model replies are journalled.** A resumed run used to call the planner and every model-backed
+  agent again, so a model that answers differently could return another plan (AI-2-05). Each reply is
+  now journalled by agent, step and call order and read back on resume. With the journal on, ids are
+  minted from the task id and the scope, so the finding and evidence ids those replies cite are the
+  same in the resumed run. Runs without the journal are unchanged.
+- **The approval match ignores run-minted ids.** The journal keyed a decision on the approval's full
+  content hash, which includes fresh finding and evidence ids, so a resume asked the approver again
+  and wrote a second case. It now keys on `stable_content_hash`, which leaves those ids out. The
+  approver still signs the full content hash (A14).
+- Test: `tests/unit/test_r0100_h1_resume.py` kills a signed-off run with `os._exit` straight after the
+  sign-off is journalled, resumes it through the API by id alone, and finds the same number of model
+  and tool calls as an uninterrupted run, one approval request and one case. With model journalling
+  disabled the same test fails (6 model calls against 4). `test_r090_durable.py` and
+  `test_r090_chaos.py` now count tool rows only, since the journal also holds model rows.
+
+### Fixed: case memory holds human decisions only; waiting for a human is not task time (0.10.0 item H6, findings AI-2-06, AI-2-07, AI-2-08)
+
+- **Human decisions only (AI-2-06).** An auto-approval or a timeout was stored as a case, and the
+  planner was told these were human precedents: a dev-mode auto-approval, or a REJECTED that was
+  really a 120-second timeout, carried the weight of a reviewed decision. The harness now records no
+  case when the decider is a system actor (`timeout`, `policy`, `auto-approver`), and
+  `CaseMemory.append` refuses one as well.
+- **Owner boundary and expiry (AI-2-07).** Cases were partitioned by dataset only, so one trader's
+  question and an approver's comment reached the next principal's planner prompt. A case now records
+  its owner (the task's requester) and is read back only for that owner, or for a principal with
+  `tasks:read-any`. A case older than 90 days (`ttl_days`) is not read and is pruned on the next
+  write; a full partition is still refused, now with a `case_memory.full` audit entry. The case id is
+  derived from the task and the step, so a resumed run does not write a second case. The store is
+  still per process (a database table remains a follow-up).
+- **Human wait does not count (AI-2-08).** An approval given after the task deadline was followed by
+  `TimeoutError("task deadline exceeded")`: the task failed after a person approved it. The task clock
+  (`RunContext.clock`) now stops while an approval is pending, and every deadline check reads
+  `RunContext.due()`, the deadline moved on by the time spent waiting. Concurrent approvals count
+  once. An agent's own overall timeout is still fixed when the agent starts.
+- Tests: `tests/agent/test_r0100_h6_case_memory.py`. An auto-approved and a timed-out sign-off leave
+  memory empty, a person's sign-off writes one case; an approver who takes ten minutes on a task with
+  a 300 s budget no longer times the task out (with the clock fix removed the same test fails with
+  "task deadline exceeded"); another principal does not see a case and a 91-day-old case is not read.
+  Existing tests updated: the 3B.7 recall test signs off with a person, the 3B.7 bounds test and the
+  case-memory injection surface test give their planted cases a current time and an owner.
+
+### Fixed: two baselines, two names (0.10.0 item H5, finding R-03)
+
+- One report gave two values for the same quantity under the same word. T06 at 0.9.0: the summary
+  said "implementation shortfall delta -3.7 bps" and observation 5 said shortfall "decreased by
+  28.6 bps relative to the baseline's +13.9 bps". The attribution measures against the pooled matched
+  peer windows; the execution agent measures against the task's baseline window, the hour before.
+  Each number was right, and both were "the baseline".
+- The two now have names, `ceap.analytics.attribution.baseline_name`: "matched peer windows" and
+  "prior window". The mock narrative's summary names the attribution's baseline; the execution
+  observations, the EXECUTION and MARKET CONDITIONS sections and the latency line name the prior
+  window; the quant agent's delta finding names its own. Findings that carry a delta also carry a
+  `baseline` attribute.
+- The critic has a new deterministic check, `critic_checks.baseline_conflicts`: two deltas of one
+  metric (from findings or the attribution) under the same baseline name must agree to 0.05 bps, or
+  the critic records a contradiction prefixed `baseline_conflict`.
+- Scope: the attribution's own rationale strings ("latency ratio vs baseline = 10.10") still say
+  "baseline"; they carry ratios, not a second delta of the same metric, and renaming them would
+  change every attribution record. The README example (already stale before this change: its
+  numbers are from an older run) is left for the documentation pass.
+- Test: `tests/agent/test_r0100_h5_named_baselines.py` runs T06 and finds the named baselines in the
+  summary and the observations and no delta line under "the baseline"; a planted finding that prints
+  the execution delta under the attribution's name makes the check fire.
+- Regenerated (wording only, reviewed): `tests/golden/tca_T01.json`, `tests/golden/tca_T05.json` and
+  the ten hand-built cassettes `tests/cassettes/investigation_T01.json` to `_T10.json` (the critic
+  request carries the finding statements, so its hash moved), and the 3B.8 approval review snapshot
+  `tests/agent/snapshots/approval_review_T10.json`.
+
+### Fixed: a citation must come from a chunk that supports the claim (0.10.0 item H4, finding R-09)
+
+- The citation audit proved that the quoted text is a real chunk, and that the citation is attached to
+  the claim's sentence; it never compared the chunk with the claim, so a real quote about venue
+  configuration could back a claim about escalation thresholds. `claim_citations` now also requires
+  `citation_supports`: every number in the claim occurs in the cited chunk, and the chunk shares at
+  least two of the claim's key terms (all of them when it has fewer) and at least half of them.
+- This is a lexical check, not entailment: a chunk that uses the claim's words to say the opposite
+  still passes. An NLI scorer is left for when a real corpus exists.
+- The local-model results page now shows the citation row with n = 0 and the reason: the Ollama
+  adapter returns no citation blocks, so no citation was ever verified against a real model.
+- Test: `tests/agent/test_r0100_h4_citation_support.py`, ten planted right-chunk and wrong-chunk pairs
+  over the shipped knowledge base: 0 of 10 wrong-chunk citations pass, 10 of 10 right-chunk citations
+  are kept, and a claim whose number the chunk does not state fails. The A7 fixture in
+  `tests/agent/test_r080_narrative_guardrails.py` now carries chunk text, since a citation with no
+  passage can no longer support a claim. No golden or snapshot changed.
+
 ### Fixed: standalone MCP servers no longer stage on capability alone (0.10.0 item H2, finding R-12)
 
 - **A signed grant for every HIGH-risk call.** A server started on its own (`python -m

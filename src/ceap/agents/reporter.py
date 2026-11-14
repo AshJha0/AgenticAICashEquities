@@ -1310,23 +1310,87 @@ def _words(text: str) -> set[str]:
     return set(_WORD.findall(unicodedata.normalize("NFKC", str(text)).lower()))
 
 
-def claim_citations(claim: dict[str, Any], cited: list[Evidence]) -> list[str]:
-    """A7: the verified citations whose citing sentence carries this claim.
+# ---- H4 (finding R-09): does the cited passage support the claim? ----------------------------
+#: a claim's key terms the cited passage must share: at least this many (or all, when fewer) ...
+SUPPORT_MIN_SHARED_TERMS = 2
+#: ... and at least this share of them
+SUPPORT_MIN_TERM_SHARE = 0.5
+_TERM = re.compile(r"[a-z][a-z0-9]+")
+_NUMBER = re.compile(r"\d+(?:\.\d+)?")
+_STOP_TERMS = frozenset(
+    """about above after again against also among because been before being below between both could
+    does doing down during each every from further have having here into itself just like made make more
+    most must only other over same shall should some such than that their them then there these they
+    this those through under until upon used uses using very were what when where which while whom whose
+    will with within without would your""".split()
+)
 
-    The citing sentence (``cited_sentence``, the narrative span the citation is attached to) must
-    contain the claim text, or share at least ``CLAIM_SPAN_OVERLAP`` of the claim's words. A
-    citation elsewhere in the prose does not support a claim it is not attached to.
+
+def _stem(word: str) -> str:
+    for suffix in ("ing", "ed", "es", "s"):
+        if word.endswith(suffix) and len(word) - len(suffix) >= 4:
+            return word[: -len(suffix)]
+    return word
+
+
+def key_terms(text: str) -> set[str]:
+    """Content words of four letters or more, stop words removed, crude plural and tense stemming."""
+    clean = unicodedata.normalize("NFKC", str(text)).lower()
+    return {_stem(w) for w in _TERM.findall(clean) if len(w) >= 4 and w not in _STOP_TERMS}
+
+
+def numbers_in(text: str) -> set[float]:
+    """Every number in ``text`` as a float; thousands separators are dropped (``500,000`` is 500000)."""
+    clean = re.sub(r"(?<=\d),(?=\d{3}\b)", "", unicodedata.normalize("NFKC", str(text)))
+    return {float(n) for n in _NUMBER.findall(clean)}
+
+
+def citation_supports(claim_text: str, passage: str) -> bool:
+    """H4 (R-09): a deterministic check that the cited passage supports the claim.
+
+    Plain idea. A real quote from the wrong chunk used to pass: the audit proved the quote is a chunk,
+    not that the chunk says what the claim says. Now every number in the claim must appear in the
+    passage, and the passage must share the claim's key terms: at least ``SUPPORT_MIN_SHARED_TERMS``
+    (all of them when the claim has fewer) and at least ``SUPPORT_MIN_TERM_SHARE`` of them.
+
+    It is a lexical check, not entailment: a passage that uses the claim's words to say the opposite
+    passes. An NLI scorer is the planned follow-up once a real corpus exists. Planted right-chunk and
+    wrong-chunk pairs are in ``tests/agent/test_r0100_h4_citation_support.py``.
     """
-    claim_norm = _norm(str(claim.get("text", ""))).lower()
+    if not numbers_in(claim_text) <= numbers_in(passage):
+        return False
+    terms = key_terms(claim_text)
+    if not terms:
+        return False
+    shared = terms & key_terms(passage)
+    return len(shared) >= min(SUPPORT_MIN_SHARED_TERMS, len(terms)) and len(shared) >= (
+        SUPPORT_MIN_TERM_SHARE * len(terms)
+    )
+
+
+def claim_citations(claim: dict[str, Any], cited: list[Evidence]) -> list[str]:
+    """A7 and H4: the verified citations that are attached to this claim and support it.
+
+    Attached: the citing sentence (``cited_sentence``, the narrative span the citation is attached to)
+    contains the claim text, or shares at least ``CLAIM_SPAN_OVERLAP`` of the claim's words, so a
+    citation elsewhere in the prose does not count. Supports: the cited chunk, with its document title
+    and section heading, passes :func:`citation_supports` (H4, R-09), so a real quote from an unrelated
+    chunk does not count.
+    """
+    claim_text = str(claim.get("text", ""))
+    claim_norm = _norm(claim_text).lower()
     claim_words = _words(claim_norm)
     out: list[str] = []
     for ev in cited:
         sentence = _norm(str(ev.attributes.get("cited_sentence") or "")).lower()
         if not sentence or not claim_words:
             continue
-        if claim_norm in sentence or len(claim_words & _words(sentence)) >= CLAIM_SPAN_OVERLAP * len(
+        attached = claim_norm in sentence or len(claim_words & _words(sentence)) >= CLAIM_SPAN_OVERLAP * len(
             claim_words
-        ):
+        )
+        # the passage is the chunk under its document title and section heading, as the reader sees it
+        passage = f"{ev.description} {ev.attributes.get('cited_text') or ''}"
+        if attached and citation_supports(claim_text, passage):
             out.append(ev.id)
     return out
 
