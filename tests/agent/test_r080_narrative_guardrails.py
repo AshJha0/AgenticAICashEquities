@@ -131,8 +131,13 @@ def test_claims_with_unknown_placeholders_are_dropped():
 
 
 def _doc(sentence: str) -> Evidence:
+    # 0.10.0 H4: the cited chunk must also support the claim, so the fixture carries chunk text
+    chunk = "Deterioration of more than 5 bps against the baseline needs a written explanation."
     return Evidence.create(
-        EvidenceType.DOCUMENT, source="knowledge.citation", description="d", attributes={"cited_sentence": sentence}
+        EvidenceType.DOCUMENT,
+        source="knowledge.citation",
+        description="d",
+        attributes={"cited_sentence": sentence, "cited_text": chunk},
     )
 
 

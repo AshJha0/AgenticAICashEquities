@@ -114,7 +114,9 @@ refuses a tag whose version has no section.
   adapter returns no citation blocks, so no citation was ever verified against a real model.
 - Test: `tests/agent/test_r0100_h4_citation_support.py`, ten planted right-chunk and wrong-chunk pairs
   over the shipped knowledge base: 0 of 10 wrong-chunk citations pass, 10 of 10 right-chunk citations
-  are kept, and a claim whose number the chunk does not state fails.
+  are kept, and a claim whose number the chunk does not state fails. The A7 fixture in
+  `tests/agent/test_r080_narrative_guardrails.py` now carries chunk text, since a citation with no
+  passage can no longer support a claim. No golden or snapshot changed.
 
 ### Fixed: standalone MCP servers no longer stage on capability alone (0.10.0 item H2, finding R-12)
 
