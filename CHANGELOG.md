@@ -6,6 +6,15 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: schema rollback could re-seal a forged audit chain (0.10.0 item X3, finding R-21)
+
+- Setting `PRAGMA user_version` below v4 made every audit row count as legacy, and the next normal
+  open re-ran migration 0004 and sealed the forged rows with the real key. Migration now refuses a
+  file that already has a `chain_epoch`, a `schema_seal` or any keyed row.
+- New migration **0006** stores the highest schema version reached, sealed with the chain key;
+  `verify_chain()` fails when `user_version` is below it or the seal does not verify.
+- Tests: `tests/unit/test_schema_rollback_r21.py` (the attack end to end, plus an edited seal).
+
 ### Fixed: four known issues from 0.9.0 (0.10.0 item X6)
 
 - **Lot larger than the session cap.** A paper order whose single lot exceeds the per-session ADV cap

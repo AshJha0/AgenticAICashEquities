@@ -46,6 +46,8 @@ MEMORY = ":memory:"
 GENESIS_HASH = "0" * 64
 DEFAULT_ARUN_TIMEOUT_S = 30.0
 KEYED_CHAINS_VERSION = 4
+SCHEMA_SEAL_VERSION = 6
+_CHAIN_TABLES = ("audit_log", "paper_ledger", "paper_days")
 _MIGRATION_RE = re.compile(r"^(\d{4})_[a-z0-9_]+\.sql$")
 
 
@@ -296,6 +298,13 @@ class Database:
         pending = [m for m in migrations if current < m.version <= target]
         if not pending:
             return []
+        if current < KEYED_CHAINS_VERSION <= target:
+            rollback = self.rollback_evidence()
+            if rollback:
+                raise DatabaseError(
+                    f"refusing to migrate {self.path} from v{current}: {rollback}; the schema version was "
+                    "set back by hand (finding R-21) - restore a backup"
+                )
         if backup and current > 0 and not self.is_memory:
             self.last_backup = self.backup(Path(f"{self.path}.v{current}.bak"))
 
@@ -313,7 +322,62 @@ class Database:
         self.run(apply, write=False)
         if any(m.version == KEYED_CHAINS_VERSION for m in pending):
             self._seal_epochs()
+        if target >= SCHEMA_SEAL_VERSION:
+            self._seal_schema(target)
         return [m.version for m in pending]
+
+    def _table_exists(self, conn: sqlite3.Connection, name: str) -> bool:
+        return conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone() is not None
+
+    def rollback_evidence(self) -> str:
+        """Why this file cannot be below v4 ("" when nothing shows it reached v4 before)."""
+
+        def probe(conn: sqlite3.Connection) -> str:
+            for t in ("chain_epoch", "schema_seal"):
+                if self._table_exists(conn, t):
+                    return f"table {t} already exists"
+            for t in _CHAIN_TABLES:
+                cols = {r[1] for r in conn.execute(f"PRAGMA table_info({t})").fetchall()}
+                if "hash_alg" in cols and conn.execute(
+                    f"SELECT 1 FROM {t} WHERE hash_alg != 'sha256' LIMIT 1"  # noqa: S608 - fixed names
+                ).fetchone():
+                    return f"{t} already holds keyed rows"
+            return ""
+
+        return str(self.run(probe, write=False))
+
+    def _seal_schema(self, version: int) -> None:
+        def seal(conn: sqlite3.Connection) -> None:
+            row = conn.execute("SELECT version, mac FROM schema_seal WHERE id=1").fetchone()
+            if row is not None and self.keys.schema_ok(int(row[0]), row[1]) and int(row[0]) >= version:
+                return
+            conn.execute(
+                "INSERT INTO schema_seal(id, version, mac) VALUES (1, ?, ?) "
+                "ON CONFLICT(id) DO UPDATE SET version=excluded.version, mac=excluded.mac",
+                (version, self.keys.seal_schema(version)),
+            )
+
+        self.run(seal)
+
+    def schema_seal_error(self) -> str:
+        """"" when the sealed high-water version is absent or consistent with ``user_version``."""
+        current = self.schema_version()
+        evidence = self.rollback_evidence() if current < KEYED_CHAINS_VERSION else ""
+        if evidence:
+            return f"schema v{current} is below v{KEYED_CHAINS_VERSION} but {evidence} (rolled back by hand)"
+        rows = self.run(
+            lambda c: c.execute("SELECT version, mac FROM schema_seal WHERE id=1").fetchall()
+            if self._table_exists(c, "schema_seal") else [],
+            write=False,
+        )
+        if not rows:
+            return ""
+        version, mac = int(rows[0][0]), rows[0][1]
+        if not self.keys.schema_ok(version, mac):
+            return "schema_seal does not verify (wrong key, or edited)"
+        if version > current:
+            return f"schema v{current} is below the sealed high-water v{version} (rolled back by hand)"
+        return ""
 
     def _seal_epochs(self) -> None:
         """Seal the legacy-prefix counts migration 0004 just wrote (only rows it left unsealed)."""
@@ -329,6 +393,9 @@ class Database:
 
     def legacy_rows(self, chain: str) -> tuple[int, str]:
         """Length of the unkeyed prefix allowed for ``chain`` and an error ("" when the seal is good)."""
+        seal_err = self.schema_seal_error()
+        if seal_err:
+            return 0, seal_err
         if self.schema_version() < KEYED_CHAINS_VERSION:
             return 1 << 62, ""  # pre-0.8.0 file opened without migrating: every row is legacy
         rows = self.query("SELECT legacy_rows, mac FROM chain_epoch WHERE chain=?", (chain,))
