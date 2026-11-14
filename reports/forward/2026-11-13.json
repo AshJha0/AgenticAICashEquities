@@ -1,0 +1,227 @@
+{
+  "label": "paper, synthetic or free daily data, not trading",
+  "book": "forward",
+  "date": "2026-11-13",
+  "status": "OK",
+  "halt": null,
+  "approval_id": null,
+  "staging_id": null,
+  "snapshot": {
+    "date": "2026-11-13",
+    "equity": 9995503.003372572,
+    "cash": 10070531.297672573,
+    "long_mv": 4876717.36,
+    "short_mv": -4951745.6543,
+    "gross_exposure": 0.9832884859305018,
+    "net_exposure": -0.007506204967842442,
+    "traded_notional": 9828463.0143,
+    "turnover": 0.98284630143,
+    "costs": 5496.996627426754,
+    "borrow": 0.0,
+    "financing": 1000.0,
+    "mark_pnl": 0.0,
+    "dividends": 0.0,
+    "rf": 0.0001,
+    "daily_return": -0.0004496996627427752,
+    "n_positions": 20,
+    "open_orders": 0,
+    "attribution": {
+      "signal": -72699.25950000001,
+      "drift": 72699.25950000001,
+      "financing": 1000.0,
+      "borrow": -0.0,
+      "costs": -5496.996627426754,
+      "dividends": 0.0
+    },
+    "early_close": false,
+    "halted": false
+  },
+  "reconciliation": {
+    "ok": true,
+    "breaks": [],
+    "drift_tolerance": 0.005
+  },
+  "fills": [
+    {
+      "symbol": "ADBE",
+      "quantity": -56379.0,
+      "price": 8.6625,
+      "cost": 150.5807720987689,
+      "order_id": "PAPER-STG-918d936bfa-001",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "AFRM",
+      "quantity": 14202.0,
+      "price": 35.0688,
+      "cost": 927.3981569441387,
+      "order_id": "PAPER-STG-918d936bfa-002",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "AMZN",
+      "quantity": -2597.0,
+      "price": 189.1984,
+      "cost": 80.74135272823685,
+      "order_id": "PAPER-STG-918d936bfa-003",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "AVGO",
+      "quantity": 230.0,
+      "price": 2140.0371,
+      "cost": 73.83372602100843,
+      "order_id": "PAPER-STG-918d936bfa-004",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "CRM",
+      "quantity": 1576.0,
+      "price": 309.1615,
+      "cost": 190.13812357810332,
+      "order_id": "PAPER-STG-918d936bfa-005",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "F",
+      "quantity": 488.0,
+      "price": 987.3924,
+      "cost": 187.94621635331438,
+      "order_id": "PAPER-STG-918d936bfa-006",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "GM",
+      "quantity": 510.0,
+      "price": 955.574,
+      "cost": 505.4458046229237,
+      "order_id": "PAPER-STG-918d936bfa-007",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "GOOGL",
+      "quantity": 1985.0,
+      "price": 245.5,
+      "cost": 55.26227341341034,
+      "order_id": "PAPER-STG-918d936bfa-008",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "JOBY",
+      "quantity": 17315.0,
+      "price": 27.5381,
+      "cost": 813.9033067542241,
+      "order_id": "PAPER-STG-918d936bfa-009",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "JPM",
+      "quantity": -3026.0,
+      "price": 163.3747,
+      "cost": 48.30959029123614,
+      "order_id": "PAPER-STG-918d936bfa-010",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "META",
+      "quantity": -830.0,
+      "price": 606.0457,
+      "cost": 63.807327134466625,
+      "order_id": "PAPER-STG-918d936bfa-011",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "MRNA",
+      "quantity": -4544.0,
+      "price": 107.0702,
+      "cost": 187.94192924106093,
+      "order_id": "PAPER-STG-918d936bfa-012",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "MSFT",
+      "quantity": -335.0,
+      "price": 1473.765,
+      "cost": 72.81987842466549,
+      "order_id": "PAPER-STG-918d936bfa-013",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "NVDA",
+      "quantity": -1686.0,
+      "price": 293.963,
+      "cost": 86.13063289010256,
+      "order_id": "PAPER-STG-918d936bfa-014",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "OPEN",
+      "quantity": 26783.0,
+      "price": 18.4176,
+      "cost": 968.7332969971219,
+      "order_id": "PAPER-STG-918d936bfa-015",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "RKLB",
+      "quantity": -6089.0,
+      "price": 83.3933,
+      "cost": 422.23885258565906,
+      "order_id": "PAPER-STG-918d936bfa-016",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "SBUX",
+      "quantity": -91635.0,
+      "price": 5.3689,
+      "cost": 361.7385269872374,
+      "order_id": "PAPER-STG-918d936bfa-017",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "UAL",
+      "quantity": 36154.0,
+      "price": 13.1331,
+      "cost": 199.65688293460752,
+      "order_id": "PAPER-STG-918d936bfa-018",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "UNH",
+      "quantity": -1114.0,
+      "price": 447.9387,
+      "cost": 38.78559680519658,
+      "order_id": "PAPER-STG-918d936bfa-019",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    },
+    {
+      "symbol": "XOM",
+      "quantity": 363.0,
+      "price": 1371.3515,
+      "cost": 61.58438062127074,
+      "order_id": "PAPER-STG-918d936bfa-020",
+      "staging_id": "PAPER-STG-918d936bfa",
+      "approval_id": "APR-PAPER-forward-2026-11-12"
+    }
+  ],
+  "exceptions": []
+}
