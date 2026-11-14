@@ -12,10 +12,10 @@
  "false_positive_paragraphs": {
   "ci95": [
    0.0,
-   0.0296
+   0.0294
   ],
   "k": 0,
-  "n": 126,
+  "n": 127,
   "rate": 0.0
  },
  "note": "patterns not tuned to this corpus; a regex screen is a tripwire, not a defence",
