@@ -117,6 +117,18 @@ refuses a tag whose version has no section.
   `docs/testing/coverage-by-package.md`; those packages are held at their measured figure as a
   ratchet until behaviour tests raise them. No coverage was added in this item.
 
+### Added: behaviour tests raise per-package coverage (0.10.0 item E1, lane W2)
+
+- Unit-tier tests for the study E1 runner (synthetic Ken French files, crash-rerun and refused
+  second opening, ETF gate with an in-memory `yfinance`), the HTTP gateway (every task state,
+  ownership and kind scoping, cancel, idempotency, rate limit, body limit, prewarm, key hashes),
+  fail-closed configuration, golden-set scoring, the AI SLO monitor and Prometheus exposition, MCP
+  grant signing and client reconnect rules, and the ingestion-screen measurement.
+- Unit tier, before -> after: `studies` 44.6 -> 99.7 %, `api` 55.0 -> 91.6 %, top-level modules
+  68.7 -> 79.3 %, `observability` 78.0 -> 96.5 %, `mcp` 73.8 -> 84.4 %, `eval` 72.4 -> 73.1 %. The
+  ratchet in `scripts/coverage_by_package.py` is tightened to the new figures; eight packages remain
+  under their floor. `tests/test_industry_momentum.py` moved to `tests/unit/`. No source changed.
+
 ### Fixed: deployment recipes (0.10.0 item E4, finding R-26)
 
 - **Pre-hashed keys alone now start the server.** `validate_for_serving` refused any configuration
