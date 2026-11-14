@@ -346,10 +346,10 @@ Being wired means importable from the product, not that every function in the mo
 | `ceap.execution.cost_loop` | library-only | execution simulator library, not used by the paper book (R-23) |
 | `ceap.execution.markouts` | library-only | execution simulator library, not used by the paper book (R-23) |
 | `ceap.execution.rules` | library-only | execution simulator library, not used by the paper book (R-23) |
-| `ceap.harness.paper_gate` | library-only | paper-day replay gate; not run by the daily workflow (R-22) |
 | `ceap.ml.inventory` | script-only | model inventory; `scripts/train_ml_models.py` |
 | `ceap.rag.dense` | library-only | optional dense retrieval and reranker (C2); evaluation only |
 | `ceap.rag.hybrid_eval` | library-only | C2 comparison of retrieval variants; evaluation only |
+| `ceap.smoke` | library-only | installed-wheel smoke check (E3); run by CI as `python -m ceap.smoke`, not by the product |
 | `ceap.studies` | script-only | package of preregistered studies; `scripts/run_e1_industry_momentum.py` |
 | `ceap.studies.industry_momentum` | script-only | study E1; `scripts/run_e1_industry_momentum.py`, `scripts/fetch_kf_industries.py` |
 <!-- wired-or-labelled:end -->
