@@ -6,6 +6,37 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: deflated Sharpe gate floored, tested on the production path, bar 0.95 (0.10.0 item Q2, finding R-16, decision O5)
+
+- **Variance floored at `1 / T`.** The trial ledger's cross-trial variance of the per-day Sharpe
+  replaced the null value `1 / T` whenever it was positive, so a ledger of near-identical trials
+  shrank the expected maximum Sharpe. The reviewer's case (Sharpe 0.3, ten years, 24 trials, ledger
+  variance 1e-8) scored 0.83; it now scores 0.15, as with the null variance. Under the null each
+  trial's per-day Sharpe has sampling variance about `1 / T` (Lo 2002), so a smaller spread means
+  correlated trials, not a lower bar.
+- **One production call.** `research_assessment.alpha_deflated_sharpe` is used by the verdict and
+  by the null sweep, which used to call the formula with its own arguments. The sweep passes no
+  ledger variance, which is the floor itself, so its rate bounds the shipped gate from above.
+- **Gross and net recorded consistently.** The backtest tool wrote the *net* in-sample Sharpe to the
+  ledger while the gate deflates the *gross* one. Records now carry the gross per-day Sharpe
+  (`sharpe_basis: "gross"`) with the net beside it (`sharpe_daily_net`, `sharpe_variance_net`);
+  pre-0.10 records, whose basis is unknown, are counted as trials but left out of the variance.
+- **Bar 0.5 -> 0.95** (one-sided 5 %, Bailey and Lopez de Prado 2014). **False-PROMOTE rate at the
+  new bar:** the 500-seed null sweep over the full 24-configuration search found 0 of 500 at every
+  grid hurdle, t >= 0 included (95 % Clopper-Pearson upper bound 0.74 %); the old bar gave 17 of 500
+  at t >= 0, 5 of 500 at 1.645 and 0 of 500 at 3.0. New sweep hash `8d1dc8bd91e4...`
+  (`data/reference/research_thresholds.json`, `docs/research/null_sweep_per_seed.json`, one line
+  appended to `data/reference/sweep_ledger.jsonl`).
+- **What moved.** The 30 research scenarios and the 18 research items of both golden sets were run
+  before and after on the same code base. **No verdict moved** (scenarios 25/30; golden verdicts
+  13/15 and 2/3). Flags moved in five rows: RS23 (`G-RES11-12`) `COST_DRAG` -> `NO_ALPHA` (DSR
+  0.93), RS25 (`G-RES11-13`) and RS26 `COST_DRAG` -> `NO_ALPHA` (DSR 0.82 and 0.81). Scenario flag
+  coverage goes from 25/30 to 24/30 (RS23 now carries its expected `NO_ALPHA`; the two reversal
+  scenarios lose their expected `COST_DRAG` because the alpha chain stops at `NO_ALPHA` first). The
+  golden must-flag counts are unchanged (13/15, 1/3: `G-RES11-12` gains, `G-RES11-13` loses). No
+  golden file and no ground truth was edited.
+- Tests: `tests/unit/analytics/test_q2_deflated_sharpe.py`.
+
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 
 - **E-09.** The redactor removed every 8 to 19 digit number, deleting quantities, notionals and

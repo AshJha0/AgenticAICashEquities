@@ -167,6 +167,19 @@ Clopper-Pearson upper bound 0.74 %); at 1.645, 5 of 500 (1.0 %; one seed's best 
 `data/reference/research_thresholds.json`, and every sweep run is appended to
 `data/reference/sweep_ledger.jsonl` with its generator version.
 
+**Deflated Sharpe bar 0.95 (0.10.0, Q2, decision O5) [simulation].** The deflated Sharpe gate is now the
+one-sided 5 % reading of Bailey and Lopez de Prado (2014), `DSR >= 0.95`, instead of 0.5 ("more likely
+than not"). The cross-trial variance from the trial ledger is floored at the null value `1 / T`, so a
+ledger of near-identical trials can no longer shrink the expected maximum Sharpe (a Sharpe of 0.3 over
+ten years with a ledger variance of 1e-8 had scored 0.83; it now scores 0.15). The ledger records the
+Sharpe before costs, the figure the gate deflates, with the net figure beside it. The null sweep calls
+the same production function, and omitting the ledger variance there is the floor itself, the most
+permissive value the shipped gate can use, so its rate is an upper bound. Re-run on the same 500
+seeds (hash `8d1dc8bd91e4…`), the full search gave **0 false PROMOTEs at every grid hurdle**,
+including t >= 0 (95 % Clopper-Pearson upper bound 0.74 %), against 17 of 500 at t >= 0, 5 of 500 at
+1.645 and 0 of 500 at 3.0 under the old bar. The power curve below measures the IC part of the gate
+only, so the change does not touch it; its file still names the sweep record of its own run.
+
 **Power at the hurdles in force (0.10.0, Q5) [simulation].** [`../quant_power_curve.json`](../quant_power_curve.json)
 gives the detection rate of the IC part of the gate (in-sample IC t at least the hurdle and
 out-of-sample IC t at least 1.0) against a planted momentum drift premium, 40 seeds a point, on the

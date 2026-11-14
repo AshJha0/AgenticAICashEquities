@@ -24,17 +24,23 @@ from ceap.mcp.cpu_pool import run_on_history
 from ceap.mcp.server import MCPServerDefinition
 
 
+def _per_day(sharpe_ann: float | None) -> float:
+    return sharpe_ann / math.sqrt(252) if sharpe_ann is not None and math.isfinite(sharpe_ann) else float("nan")
+
+
 def _backtest_compute(
     ds: HistoricalDataset, signal: str, gross_notional: float, kwargs: dict[str, Any], capacity: bool
-) -> tuple[dict[str, Any], float]:
-    """The CPU-heavy part of ``run_backtest``: pure, picklable, safe to run in a worker process."""
+) -> tuple[dict[str, Any], float, float]:
+    """The CPU-heavy part of ``run_backtest``: pure, picklable, safe to run in a worker process. Returns the
+    payload and the in-sample per-day Sharpe before and after costs (the ledger deflates the gross one, Q2)."""
     run = simulate_backtest(ds, signal, gross_notional=gross_notional, **kwargs)
     ins = run.result.period("in_sample")
-    sharpe_daily = ins.sharpe / math.sqrt(252) if ins is not None and math.isfinite(ins.sharpe) else float("nan")
+    gross = _per_day(ins.gross_sharpe if ins is not None else None)
+    net = _per_day(ins.sharpe if ins is not None else None)
     sweep = capacity_sweep(ds, signal, **kwargs) if capacity else None
     table = json_safe(profitability_from_run(run, ds, sweep))
     payload = to_jsonable(replace(run.result, profitability=table, trial={}))
-    return payload, sharpe_daily
+    return payload, gross, net
 
 
 def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) -> MCPServerDefinition:
@@ -80,8 +86,8 @@ def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) ->
             "execution_lag_days": execution_lag_days, "fill": fill, "top_fraction": SEARCH_TOP_FRACTION,
         }
         params = {"signal": signal, "gross_notional": gross_notional, **kwargs}
-        payload, sharpe_daily = await run_on_history(_backtest_compute, ds, signal, gross_notional, kwargs, capacity)
-        summary = trials.record(ds.dataset_hash, params, sharpe_daily)  # the ledger lives in this process
+        payload, gross, net = await run_on_history(_backtest_compute, ds, signal, gross_notional, kwargs, capacity)
+        summary = trials.record(ds.dataset_hash, params, gross, net)
         payload["trial"] = to_jsonable(summary.to_dict())
         return payload
 

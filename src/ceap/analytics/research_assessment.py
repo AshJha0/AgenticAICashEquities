@@ -63,7 +63,7 @@ UNSET_HURDLE = MINED_HURDLE
 # kept equal to data/reference/research_thresholds.json by a test; the file records the sweep that measured
 # the false-PROMOTE rate at the a-priori hurdle (it no longer sets the hurdle)
 COMMITTED_HURDLE = MINED_HURDLE
-COMMITTED_SWEEP_HASH = "ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4"
+COMMITTED_SWEEP_HASH = "8d1dc8bd91e407ccc135174860078a1b5f03150b6c3defaca0cea414c47a6af0"
 
 
 def _load_sweep_hash() -> str:
@@ -89,7 +89,10 @@ class ResearchThresholds:
     cost_share_max: float = 0.5
     pnl_concentration_max: float = 0.5
     min_dates: int = 30  # non-overlapping in-sample IC observations
-    dsr_min: float = 0.5  # deflated Sharpe probability: observed IS Sharpe beats the expected maximum of the trials
+    # deflated Sharpe probability that the observed IS Sharpe beats the expected maximum of the trials. 0.10 (Q2,
+    # decision O5): 0.95, the one-sided 5 % reading of Bailey and Lopez de Prado (2014); 0.5 only asked for "more
+    # likely than not". The false-PROMOTE rate at this bar is measured by the null sweep (research_thresholds.json).
+    dsr_min: float = 0.95
     trial_floor: int = 24  # D8: the enumerated search space; a preregistered study passes its own variant count
     inconclusive_z: float = 1.96  # D4: two-sided 95 % interval of the full-period net Sharpe
 
@@ -154,16 +157,19 @@ def deflated_sharpe(
 ) -> tuple[float, float]:
     """Deflated Sharpe ratio (Bailey and Lopez de Prado 2014): ``(DSR probability, SR0 annualised)``.
 
-    Per-day Sharpe ``SR``; ``SR0`` from the ledger's trial count and cross-trial variance (the null value
-    ``1 / T`` when the ledger has fewer than two trials with a variance);
+    Per-day Sharpe ``SR``; ``SR0`` from the ledger's trial count and the cross-trial variance of the per-day
+    Sharpe, **floored at the null value** ``1 / T`` (0.10 Q2, finding R-16): under the null each trial's
+    per-day Sharpe estimate has sampling variance about ``1 / T`` (Lo 2002), so a smaller cross-trial
+    variance says the trials are correlated, not that the expected maximum is lower; without the floor a
+    ledger of near-identical trials made a Sharpe of 0.3 pass. ``None`` (fewer than two trials) is the floor.
     ``DSR = Phi((SR - SR0) sqrt(T - 1) / sqrt(1 - skew SR + (kurt - 1) / 4 SR^2))``.
     """
     if not _finite(sharpe_ann) or n_days < 3:
         return float("nan"), float("nan")
     sr = sharpe_ann / math.sqrt(TRADING_DAYS)
     var = 1.0 / n_days
-    if sharpe_variance is not None and _finite(sharpe_variance) and sharpe_variance > 0:
-        var = float(sharpe_variance)
+    if sharpe_variance is not None and _finite(sharpe_variance):
+        var = max(var, float(sharpe_variance))
 
     sr0 = expected_max_sharpe(max(n_trials, 1), var)
     g3 = skew if _finite(skew) else 0.0
@@ -173,6 +179,25 @@ def deflated_sharpe(
         return float("nan"), sr0 * math.sqrt(TRADING_DAYS)
     z = (sr - sr0) * math.sqrt(n_days - 1) / math.sqrt(denom)
     return _N.cdf(z), sr0 * math.sqrt(TRADING_DAYS)
+
+
+def alpha_deflated_sharpe(
+    in_sample: Any, trial: dict[str, Any], th: ResearchThresholds | None = None
+) -> tuple[float, float, int]:
+    """The production deflated-Sharpe step of the alpha gate: ``(DSR, SR0 annualised, trials counted)``.
+
+    Deflates the in-sample Sharpe *before* trading costs (costs belong to ``COST_DRAG``, not ``NO_ALPHA``)
+    against the ledger's trial count and its gross cross-trial variance. :func:`assess_research` and the
+    null sweep both call this, so the sweep measures the gate that ships (Q2, finding R-16).
+    """
+    t = th or DEFAULT_THRESHOLDS
+    n_trials = trial_count(trial, t)
+    var = trial.get("sharpe_variance")
+    dsr, sr0_ann = deflated_sharpe(
+        in_sample.gross_sharpe, in_sample.n_days, in_sample.skew, in_sample.kurtosis, n_trials,
+        float(var) if var is not None else None,
+    )
+    return dsr, sr0_ann, n_trials
 
 
 def _p_one_sided(t: float) -> float | None:
@@ -214,14 +239,8 @@ def assess_research(
     breached = [c for c in risk.checks if c.breached]
     history_breaches = [c for c in risk.history_checks if c.get("breached")]
     trial = backtest.trial or {}
-    n_trials = trial_count(trial, th)
+    dsr, sr0_ann, n_trials = alpha_deflated_sharpe(is_b, trial, th)
     hurdle = hurdle_for(n_trials, th)
-    trial_var = trial.get("sharpe_variance")
-    # the alpha test deflates the in-sample Sharpe *before* trading costs: costs belong to COST_DRAG, not NO_ALPHA
-    dsr, sr0_ann = deflated_sharpe(
-        is_b.gross_sharpe, is_b.n_days, is_b.skew, is_b.kurtosis, n_trials,
-        float(trial_var) if trial_var is not None else None,
-    )
 
     flags: list[ResearchFlag] = []
     rationale: list[str] = []

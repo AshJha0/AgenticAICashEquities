@@ -122,7 +122,8 @@ Student-t shocks, latent premia the signal code never touches, delistings and la
 
 Full chain in `docs/quant/quant.md` (which still describes the 0.7.1 hurdle): IC t >= 3.0 for a
 searched result and 1.645 for one preregistered test, fixed a priori since 0.8.0 (it was t >= 0.40,
-read from the 500-seed null sweep, hash `ef474869...`), deflated Sharpe >= 0.5 over ledger-counted trials, out-of-sample IC t >= 1
+read from the 500-seed null sweep, hash `ef474869...`), deflated Sharpe >= 0.95 over ledger-counted trials with the
+ledger variance floored at `1 / T` (0.10.0 Q2; it was 0.5, unfloored), out-of-sample IC t >= 1
 (REGIME_BREAK at <= -2), out-of-sample net Sharpe >= 0.5, costs < 50 % of gross, concentration,
 and limits over the out-of-sample history.
 
