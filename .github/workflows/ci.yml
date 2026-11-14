@@ -70,7 +70,10 @@ jobs:
         # H13: coverage is measured once (3.12); 3.11 runs the same tests without the tracer.
         run: |
           if [ "$PYV" = "3.12" ]; then
-            pytest -n auto -m "not nightly" --cov=ceap --cov-branch --cov-report=term --cov-fail-under=90
+            pytest -n auto -m "not nightly" --cov=ceap --cov-branch --cov-report=term \
+              --cov-report=json:coverage.json --cov-fail-under=90
+            # E1 (C-P2-1): per-package table in the log; fails on a package below its floor and baseline
+            python scripts/coverage_by_package.py coverage.json
           else
             pytest -n auto -m "not nightly" --no-cov
           fi

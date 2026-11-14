@@ -6,6 +6,17 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Added: per-package branch coverage gate (0.10.0 item E1, finding C-P2-1)
+
+- `[tool.coverage]` in `pyproject.toml` (branch, source `ceap`, parallel for xdist).
+  `scripts/coverage_by_package.py` reads the JSON report, prints a per-package table and fails
+  when a package is under its floor (90 %, 95 % for `analytics` and `domain`) and under its
+  recorded baseline. The 3.12 test job now writes `coverage.json` and runs it.
+- **Measured, not met.** On the unit tier, 11 of 19 packages are under the floor (lowest:
+  `studies` 44.6 %, `api` 55.0 %, top-level modules 68.7 %). The table is in
+  `docs/testing/coverage-by-package.md`; those packages are held at their measured figure as a
+  ratchet until behaviour tests raise them. No coverage was added in this item.
+
 ### Fixed: deployment recipes (0.10.0 item E4, finding R-26)
 
 - **Pre-hashed keys alone now start the server.** `validate_for_serving` refused any configuration
