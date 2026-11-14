@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Coroutine
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Any, TypeVar
 
@@ -179,7 +179,11 @@ class StepExecutor:
                 deadline=run.deadline,
                 principal=run.policy_context.principal,
                 capabilities=run.policy_context.capabilities,
+                idempotency_key=key,
             )
+            # AI-2-04: a side-effecting call is attempted once. A timeout or transport error after the
+            # write would otherwise repeat it; the tool gets ``ctx.idempotency_key`` to dedupe instead.
+            policy = self.retry_policy if tool.metadata.read_only else replace(self.retry_policy, max_attempts=1)
             attempts = {"n": 0}
             # A cpu_bound tool runs its heavy part in ceap.mcp.cpu_pool, so the wait_for below really
             # stops it: cancelling the await terminates the worker process (G3). A CPU-bound tool that
@@ -203,7 +207,7 @@ class StepExecutor:
                     )
                 except TimeoutError as exc:
                     if (
-                        attempts["n"] >= self.retry_policy.max_attempts
+                        attempts["n"] >= policy.max_attempts
                         or (run.deadline - utc_now()).total_seconds() < MIN_ATTEMPT_SECONDS
                     ):
                         return ToolResult(
@@ -217,7 +221,7 @@ class StepExecutor:
                 self.tracer.event("tool.retry", attempt=n, error=f"{type(exc).__name__}: {exc}")
 
             try:
-                result = await retry_async(attempt, self.retry_policy, on_retry)
+                result = await retry_async(attempt, policy, on_retry)
             except TaskCancelled:
                 raise
             except TimeoutError:

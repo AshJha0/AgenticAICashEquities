@@ -78,6 +78,49 @@ refuses a tag whose version has no section.
 - A constant dependent series gives R-squared NaN with an `r2_note`; a near-constant market leaves the
   beta unestimated (standard error infinite, so shrinkage takes the target); `factor_alpha` returns NaN
   with a `note`. Regressions on varying data are unchanged.
+### Fixed: standalone MCP servers no longer stage on capability alone (0.10.0 item H2, finding R-12)
+
+- **A signed grant for every HIGH-risk call.** A server started on its own (`python -m
+  ceap.mcp.execution`) adds an `approval_grant` argument to each HIGH-risk tool and refuses the call
+  unless it is an HMAC-SHA256, keyed with `CEAP_MCP_GRANT_KEY`, over the tool id and the exact
+  arguments (`MCPServerDefinition.sign_grant`). With the key unset every HIGH-risk call is refused.
+  Before, the `admin` role alone was enough to stage paper orders with no approval and no four-eyes.
+- **The portfolio hash is required.** `stage_orders` refuses a call without `approved_portfolio_hash`.
+  It stays optional in the schema because the harness binds it after the approval gate, which is
+  later than plan validation reads the schema. The in-process harness path is unchanged.
+- Test: `tests/contract/test_r0100_h2_stdio_grant.py` drives the server over stdio with the `admin`
+  role: no grant and a grant signed with the wrong key are refused; a valid grant gets through.
+
+### Fixed: side-effecting tool calls are attempted once and carry the idempotency key (0.10.0 item H7, finding AI-2-04)
+
+- The executor no longer retries a tool whose metadata says `read_only=False`. A timeout or transport
+  error after the write used to repeat it up to three times. Read-only tools keep their retries.
+- `ToolExecutionContext.idempotency_key` now carries the run's key for the call
+  (`ceap.harness.durable.idempotency_key`), so a side-effecting tool can make a repeat a no-op, for
+  example after a resume.
+- Test: `tests/unit/test_r0100_h7_idempotent_side_effects.py` injects a failure after the write of a
+  `stage_orders` double and finds one staged set and the run's key on the call.
+
+### Fixed: the harness cannot finalise without a critique and an evidence check (0.10.0 item H8, finding AI-2-11)
+
+- `StateMachine` refuses FINALISING unless the critic has run since the last agent output and the
+  evidence has been validated since that critique. The engine records both, and a FINALISE step that
+  comes without a prior validation step now validates the evidence itself; before, a plan whose
+  critic had already run went from EXECUTING to FINALISING with no evidence check.
+- The step dispatch has an `else`: an unknown step type fails the run instead of being skipped.
+- Test: a Hypothesis property (`tests/properties/test_r0100_h8_state_machine_guards.py`) drives random
+  transition sequences and finds no path to FINALISING without both flags.
+
+### Fixed: the ingestion injection screen normalises first, and is measured (0.10.0 item H3, finding R-08)
+
+- `screen_document` now applies the same NFKC and zero-width stripping as the prompt path (both use
+  `ceap.util.unicode_clean.clean_untrusted`), so one zero-width character no longer bypasses it.
+- Recall and false-positive rate are measured on every CI run and committed in
+  `docs/evaluation/ingestion_screen.json`. On the 50 base strings of `injection_corpus_v1` the screen
+  flags 10 (recall 0.20, 95 % Wilson interval 0.11 to 0.33), the same with zero-width characters
+  inserted; it flags none of the 10 knowledge documents or their 126 paragraphs. The patterns were
+  not tuned to the corpus, so 0.20 is an honest and a low figure: the screen is a tripwire, and the
+  defence remains the nonce-tagged data blocks on the prompt path.
 
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 

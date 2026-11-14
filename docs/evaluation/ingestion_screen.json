@@ -1,0 +1,53 @@
+{
+ "attack_corpus": "injection_corpus_v1 retrieved_doc surface (50 base strings)",
+ "false_positive_documents": {
+  "ci95": [
+   0.0,
+   0.2775
+  ],
+  "k": 0,
+  "n": 10,
+  "rate": 0.0
+ },
+ "false_positive_paragraphs": {
+  "ci95": [
+   0.0,
+   0.0296
+  ],
+  "k": 0,
+  "n": 126,
+  "rate": 0.0
+ },
+ "note": "patterns not tuned to this corpus; a regex screen is a tripwire, not a defence",
+ "recall": {
+  "ci95": [
+   0.1124,
+   0.3304
+  ],
+  "k": 10,
+  "n": 50,
+  "rate": 0.2
+ },
+ "recall_by_style": {
+  "authority": 0,
+  "base64": 0,
+  "direct": 5,
+  "fake_system": 5,
+  "french": 0,
+  "json_smuggle": 0,
+  "polite": 0,
+  "roleplay": 0,
+  "split": 0,
+  "urgent": 0
+ },
+ "recall_zero_width": {
+  "ci95": [
+   0.1124,
+   0.3304
+  ],
+  "k": 10,
+  "n": 50,
+  "rate": 0.2
+ },
+ "screen": "ceap.rag.ingestion.screen_document"
+}
