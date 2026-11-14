@@ -19,6 +19,26 @@ refuses a tag whose version has no section.
 - Test: `tests/contract/test_r0100_h2_stdio_grant.py` drives the server over stdio with the `admin`
   role: no grant and a grant signed with the wrong key are refused; a valid grant gets through.
 
+### Fixed: side-effecting tool calls are attempted once and carry the idempotency key (0.10.0 item H7, finding AI-2-04)
+
+- The executor no longer retries a tool whose metadata says `read_only=False`. A timeout or transport
+  error after the write used to repeat it up to three times. Read-only tools keep their retries.
+- `ToolExecutionContext.idempotency_key` now carries the run's key for the call
+  (`ceap.harness.durable.idempotency_key`), so a side-effecting tool can make a repeat a no-op, for
+  example after a resume.
+- Test: `tests/unit/test_r0100_h7_idempotent_side_effects.py` injects a failure after the write of a
+  `stage_orders` double and finds one staged set and the run's key on the call.
+
+### Fixed: the harness cannot finalise without a critique and an evidence check (0.10.0 item H8, finding AI-2-11)
+
+- `StateMachine` refuses FINALISING unless the critic has run since the last agent output and the
+  evidence has been validated since that critique. The engine records both, and a FINALISE step that
+  comes without a prior validation step now validates the evidence itself; before, a plan whose
+  critic had already run went from EXECUTING to FINALISING with no evidence check.
+- The step dispatch has an `else`: an unknown step type fails the run instead of being skipped.
+- Test: a Hypothesis property (`tests/properties/test_r0100_h8_state_machine_guards.py`) drives random
+  transition sequences and finds no path to FINALISING without both flags.
+
 ### Fixed: the ingestion injection screen normalises first, and is measured (0.10.0 item H3, finding R-08)
 
 - `screen_document` now applies the same NFKC and zero-width stripping as the prompt path (both use
