@@ -5,8 +5,8 @@ approvals apply only when ``CEAP_ENV=dev`` (the default). In any other
 environment the key map must be supplied explicitly, approvals are queued for
 a human, and ``CEAP_AUTO_APPROVE=true`` makes the server refuse to start.
 
-The LLM layer fails closed: ``CEAP_LLM_PROVIDER`` is ``mock`` or ``anthropic``
-(``auto`` was removed in 0.4.0); outside dev it must be set explicitly; model
+The LLM layer fails closed: ``CEAP_LLM_PROVIDER`` is ``mock``, ``anthropic`` or
+``ollama`` (``auto`` was removed in 0.4.0); outside dev it must be set explicitly; model
 ids must be pinned in ``llm/model_pins.toml``; ``CEAP_LLM_DISABLED=true`` is the
 kill switch that forces the deterministic path everywhere.
 """
@@ -26,7 +26,7 @@ DEV_API_KEYS = (
     "dev-trader-key:trader,dev-quant-key:quant,dev-admin-key:admin,dev-viewer-key:viewer,"
     "dev-approver-key:approver,dev-approver2-key:approver,dev-auditor-key:auditor"
 )
-LLM_PROVIDERS = ("mock", "anthropic")
+LLM_PROVIDERS = ("mock", "anthropic", "ollama")  # ollama: local model, live or from a cassette (T11)
 
 
 class SettingsError(ValueError):
@@ -81,7 +81,7 @@ def _default_provider() -> str:
     if raw is None or raw.strip() == "":
         if _environment() != "dev":
             raise SettingsError(
-                f"CEAP_LLM_PROVIDER must be set explicitly (mock or anthropic) for CEAP_ENV={_environment()!r}"
+                f"CEAP_LLM_PROVIDER must be set explicitly (mock, anthropic or ollama) for CEAP_ENV={_environment()!r}"
             )
         return "mock"
     provider = raw.strip().lower()

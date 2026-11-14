@@ -39,7 +39,7 @@ gate that sees the assessment. An admin can ask for a second approval and a *pap
 step behind the platform's only non-read-only tool.
 
 ```
-Python 3.11+  ·  MCP  ·  LLM (Anthropic, local Ollama for evaluation, or offline mock)  ·  multi-agent harness  ·  FastAPI  ·  RAG  ·  policy engine  ·  OpenTelemetry-ready
+Python 3.11+  ·  MCP  ·  LLM (Anthropic, local Ollama for evaluation, or offline mock)  ·  multi-agent harness  ·  FastAPI  ·  RAG  ·  policy engine  ·  GenAI spans (OTel attribute names)
 ```
 
 **Current release: v0.9.0**, the last planned release (details in [CHANGELOG.md](CHANGELOG.md)).

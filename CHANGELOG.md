@@ -46,6 +46,33 @@ refuses a tag whose version has no section.
   is published.
 - `tests/repo/test_t2_golden_slice_withdrawn.py` fails if "golden slice cause 6/9", or the false
   replay explanation, appears anywhere outside `docs/review/` and this file.
+### Added: "wired or labelled" table and its repo test (0.10.0 item E5, finding R-34)
+
+- `scripts/wired_or_labelled.py` follows imports from the product entry points (`ceap.cli`,
+  `ceap.api`, `ceap.platform`, each MCP server's `__main__`). Each of the 23 modules none of them
+  reaches is listed in section 3.13 of `docs/architecture/overview.md` as `library-only` (16) or
+  `script-only` (7). The `ceap.execution` simulator modules are counted library-only.
+- `tests/repo/test_wired_or_labelled.py` fails on an uncalled module with no row and on a row
+  for a module that is wired or gone. Reached means importable from the product, not that every
+  function is called.
+- The OpenTelemetry tracer export was already removed under T11, which does not use it.
+
+### Changed: AI SLO monitor wired into the platform; GenAI spans; Ollama as a provider (0.10.0 item T11, findings R-14, R-34)
+
+- **R-14.** `Platform` now owns one `AISLOMonitor` and sets it on its router. The planner reports
+  each plan under a new `planner` series: valid only when the first reply was usable as is, so a
+  repaired or fallback plan moves the indicator. The per-call `planning` series is unchanged.
+- Each routed model call is one `gen_ai.chat:<model>` span under the agent span that made it, with
+  OpenTelemetry GenAI attribute names (model, token counts, finish reason, and temperature and seed
+  where the client has them).
+- **R-34.** `CEAP_LLM_PROVIDER=ollama` is accepted. `CEAP_OLLAMA_CASSETTE` replays a recorded
+  cassette; otherwise the live model runs only with `CEAP_LOCAL_MODEL=1`. There is no mock
+  fallback. Cost is recorded as `cpu_seconds` (wall-clock seconds of each local call), not dollars.
+- Removed `OpenTelemetryTracer` and `build_tracer()`: nothing in the product called them. The
+  README no longer says "OpenTelemetry-ready"; cookbook recipe 25 now reads the GenAI spans from
+  the trace API. The `[observability]` extra still lists the OpenTelemetry packages until the lock
+  file is regenerated.
+- Tests: `tests/unit/test_r0100_t11_ai_slo_wiring.py`. No snapshot changed.
 
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 

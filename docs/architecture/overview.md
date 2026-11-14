@@ -257,7 +257,9 @@ behind that choice are in `docs/ai-agents/rag-hybrid-0.9.0.md`.
 ### 3.10 Observability (`ceap.observability`)
 
 `InMemoryTracer` records nested spans and events per investigation (returned by the API);
-`OpenTelemetryTracer` mirrors them to an OTel SDK when configured. `MetricsRegistry` exposes
+each routed model call is a `gen_ai.chat` child span with OpenTelemetry GenAI attribute names (there
+is no OTLP exporter). `Platform` owns one `AISLOMonitor`, fed by the router per call and by the
+planner per plan. `MetricsRegistry` exposes
 counters and histograms in Prometheus text format at `/metrics`. Logging is JSON lines.
 
 ### 3.10a Utilities (`ceap.util`)
@@ -312,6 +314,45 @@ A bundle records the request, tool outputs, redacted model I/O, approval decisio
 seed. Replay swaps in recording-backed MCP, LLM and approval clients and injects the clock and id
 source through context variables in `ceap.domain.common`, so the stored result is reproduced byte
 for byte.
+
+### 3.13 Wired or labelled (0.10.0 E5)
+
+A module counts as wired when the product imports it: the `ceap` command, the HTTP API,
+`ceap.platform` or an MCP server, followed through every import including those inside functions.
+Every other module is listed here. `library-only` means no product path and no script calls it;
+`script-only` means a script in `scripts/` calls it but the product does not. The `ceap.execution`
+package is library-only apart from the auction model and the order-book cost measurement, which the
+opt-in paper settings import. `tests/repo/test_wired_or_labelled.py` fails when a module is missing
+from this table or listed here while wired (`python scripts/wired_or_labelled.py` prints the gaps).
+Being wired means importable from the product, not that every function in the module is called.
+
+<!-- wired-or-labelled:begin -->
+| Module | Status | What it is and who calls it |
+|---|---|---|
+| `ceap.agents.critic_planted` | library-only | planted-fault evaluation of the critic; run by tests |
+| `ceap.analytics.adversarial` | library-only | adversarial power and false-positive curves (R-20); not in the verdict path |
+| `ceap.analytics.alpha_decay` | library-only | IC term structure and half-life; no result field yet |
+| `ceap.analytics.factor_check` | script-only | replication gate against Ken French UMD; `scripts/fetch_real_reports.py` |
+| `ceap.analytics.power` | library-only | power curve of the IC gate (R-19); results committed as JSON |
+| `ceap.analytics.risk_research` | library-only | Ledoit-Wolf, factor regression, residualise, robustness report (R-17) |
+| `ceap.data.real.momentum` | script-only | real-data momentum study; `scripts/fetch_real_reports.py`, `scripts/r5v2_insample_checks.py` |
+| `ceap.data.real.quality` | script-only | real-price data quality gate; the same two scripts |
+| `ceap.data.real.vintage` | script-only | download hashing and diff; `scripts/rebuild_study.py` |
+| `ceap.drift` | library-only | drift monitors; no scheduled caller |
+| `ceap.eval.ingestion_screen` | library-only | recall of the ingestion injection screen; run by tests |
+| `ceap.eval.judge` | library-only | local LLM-as-judge and its calibration gate; evaluation only |
+| `ceap.execution.algo` | library-only | execution simulator library, not used by the paper book (R-23) |
+| `ceap.execution.child` | library-only | execution simulator library, not used by the paper book (R-23) |
+| `ceap.execution.cost_loop` | library-only | execution simulator library, not used by the paper book (R-23) |
+| `ceap.execution.markouts` | library-only | execution simulator library, not used by the paper book (R-23) |
+| `ceap.execution.rules` | library-only | execution simulator library, not used by the paper book (R-23) |
+| `ceap.harness.paper_gate` | library-only | paper-day replay gate; not run by the daily workflow (R-22) |
+| `ceap.ml.inventory` | script-only | model inventory; `scripts/train_ml_models.py` |
+| `ceap.rag.dense` | library-only | optional dense retrieval and reranker (C2); evaluation only |
+| `ceap.rag.hybrid_eval` | library-only | C2 comparison of retrieval variants; evaluation only |
+| `ceap.studies` | script-only | package of preregistered studies; `scripts/run_e1_industry_momentum.py` |
+| `ceap.studies.industry_momentum` | script-only | study E1; `scripts/run_e1_industry_momentum.py`, `scripts/fetch_kf_industries.py` |
+<!-- wired-or-labelled:end -->
 
 ## 4. Data flow for the MVP question
 
@@ -526,7 +567,7 @@ src/ceap/
 │                  judge, challenger (0.9.0)
 ├── persistence/   SQLite (WAL, single writer, forward-only migrations) · HMAC chain keys · chain anchors
 ├── util/          canonical bytes for hashing (LF, sorted-key JSON, UTC datetimes) · redaction, cassette scrubbing
-├── observability/ tracing (in-memory + OpenTelemetry) · metrics (Prometheus text) · JSON logging · AI SLOs (0.9.0)
+├── observability/ tracing (in-memory, GenAI span attributes) · metrics (Prometheus text) · JSON logging · AI SLOs (0.9.0)
 ├── api/           FastAPI app · routes · auth · schemas · request parsing
 ├── platform.py    composition root (InvestigationRequest · ResearchRequest)
 ├── evaluation.py  50-scenario execution evaluation · 30-scenario research evaluation

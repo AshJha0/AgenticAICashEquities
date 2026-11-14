@@ -478,16 +478,17 @@ pytest tests/evaluation                    # the 50-scenario run, ~1 minute
 ruff check src tests && ruff format --check src tests
 ```
 
-## 25. Export traces to OpenTelemetry
+## 25. Read the model-call spans of an investigation
 
 ```bash
-pip install -e ".[observability]"
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-ceap serve
+curl -s localhost:8000/investigations/$ID/trace -H "X-API-Key: $KEY"   | python -c "import json,sys; [print(s['name'], s['attributes']) for s in json.load(sys.stdin)['spans'] if s['name'].startswith('gen_ai.chat')]"
 ```
 
-`build_tracer()` returns an `OpenTelemetryTracer` when the endpoint is set and the SDK is
-installed; the API's in-memory trace is unchanged. Prometheus scrapes `GET /metrics`.
+Every routed model call is one `gen_ai.chat:<model>` span under the agent span that made it. The
+attribute names follow the OpenTelemetry GenAI conventions (`gen_ai.request.model`,
+`gen_ai.usage.input_tokens`, `gen_ai.response.finish_reasons`, `gen_ai.request.temperature`,
+`gen_ai.request.seed`). The trace is held in memory and returned by the API; there is no OTLP
+exporter. Prometheus scrapes `GET /metrics`, which carries the AI SLO counters.
 
 ## 26. Run in Docker
 
