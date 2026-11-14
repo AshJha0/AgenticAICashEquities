@@ -334,7 +334,6 @@ Being wired means importable from the product, not that every function in the mo
 | `ceap.analytics.alpha_decay` | library-only | IC term structure and half-life; no result field yet |
 | `ceap.analytics.factor_check` | script-only | replication gate against Ken French UMD; `scripts/fetch_real_reports.py` |
 | `ceap.analytics.power` | library-only | power curve of the IC gate (R-19); results committed as JSON |
-| `ceap.analytics.risk_research` | library-only | Ledoit-Wolf, factor regression, residualise, robustness report (R-17) |
 | `ceap.data.real.momentum` | script-only | real-data momentum study; `scripts/fetch_real_reports.py`, `scripts/r5v2_insample_checks.py` |
 | `ceap.data.real.quality` | script-only | real-price data quality gate; the same two scripts |
 | `ceap.data.real.vintage` | script-only | download hashing and diff; `scripts/rebuild_study.py` |
