@@ -6,6 +6,19 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: four known issues from 0.9.0 (0.10.0 item X6)
+
+- **Lot larger than the session cap.** A paper order whose single lot exceeds the per-session ADV cap
+  is now cancelled at once (`reason="lot_above_cap"`) instead of sitting unfilled until its TTL.
+- **Zero sigma band.** A name whose window prices never moved gets the band cap, not a zero band
+  that blocked every move.
+- **Andrews lag on constant residuals.** `industry_momentum.andrews_lag` returns 0 instead of
+  dividing by zero.
+- **Idempotency key for non-JSON arguments.** Sets, dataclasses, bytes, dates, enums, decimals,
+  paths and pydantic models now have a canonical form; any other type raises `TypeError` rather
+  than hashing a memory address. All current callers pass JSON-native arguments, so no key changes.
+- One test each (`tests/unit/test_known_issues_090.py`, `tests/unit/paper/test_r090_l4_paper.py`).
+
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 
 - **Why the scheduled job wrote nothing on 10 and 11 November.** Both scheduled runs failed with
