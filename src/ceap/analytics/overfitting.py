@@ -48,22 +48,35 @@ def pbo_cscv(returns: np.ndarray, n_blocks: int = 16) -> dict[str, Any]:
     t = (r.shape[0] // n_blocks) * n_blocks
     if t < 2 * n_blocks:
         raise ValueError("too few rows for the number of blocks")
-    blocks = np.split(r[:t], n_blocks)
-    lam = []
-    degradations = []
+    # 0.10 Q4: per-block sums make each split's Sharpe two matrix products, so the paper's S = 16
+    # (12,870 splits) runs in well under a second; identical to the per-split nanmean / nanstd (ddof 1).
+    blocks = r[:t].reshape(n_blocks, t // n_blocks, r.shape[1])
+    fin = np.isfinite(blocks)
+    xb = np.where(fin, blocks, 0.0)
+    cnt, s1, s2 = fin.sum(axis=1).astype(float), xb.sum(axis=1), (xb * xb).sum(axis=1)
+    combos = np.array(list(combinations(range(n_blocks), n_blocks // 2)))
+    member = np.zeros((combos.shape[0], n_blocks))
+    member[np.arange(combos.shape[0])[:, None], combos] = 1.0
+
+    def split_sharpe(m: np.ndarray) -> np.ndarray:
+        c, a, b = m @ cnt, m @ s1, m @ s2
+        with np.errstate(divide="ignore", invalid="ignore"):
+            mu = a / c
+            sd = np.sqrt(np.maximum(b - c * mu * mu, 0.0) / (c - 1.0))
+            return np.where((c >= 2) & (sd > 0), mu / sd, np.nan)
+
+    sr_is_all, sr_oos_all = split_sharpe(member), split_sharpe(1.0 - member)
     n = r.shape[1]
-    for chosen in combinations(range(n_blocks), n_blocks // 2):
-        rest = [k for k in range(n_blocks) if k not in chosen]
-        sr_is = _sharpe_cols(np.vstack([blocks[k] for k in chosen]))
-        sr_oos = _sharpe_cols(np.vstack([blocks[k] for k in rest]))
-        if not np.isfinite(sr_is).any():
-            continue
-        best = int(np.nanargmax(sr_is))
-        # relative rank in (0, 1): (rank + 1) / (N + 1), rank 0 = worst
-        rank = float((sr_oos[np.isfinite(sr_oos)] < sr_oos[best]).sum())
-        w = (rank + 1.0) / (n + 1.0)
-        lam.append(math.log(w / (1.0 - w)))
-        degradations.append((float(sr_is[best]), float(sr_oos[best])))
+    keep = np.isfinite(sr_is_all).any(axis=1)
+    sr_is_all, sr_oos_all = sr_is_all[keep], sr_oos_all[keep]
+    best = np.nanargmax(sr_is_all, axis=1) if sr_is_all.size else np.zeros(0, dtype=int)
+    rows = np.arange(best.size)
+    oos_best = sr_oos_all[rows, best]
+    with np.errstate(invalid="ignore"):
+        rank = (sr_oos_all < oos_best[:, None]).sum(axis=1).astype(float)  # rank 0 = worst; NaN never counts
+    w = (rank + 1.0) / (n + 1.0)  # relative rank in (0, 1)
+    lam = list(np.log(w / (1.0 - w)))
+    degradations = list(zip(sr_is_all[rows, best].tolist(), oos_best.tolist(), strict=True))
     lam_arr = np.array(lam)
     deg = np.array(degradations)
     slope = float(np.polyfit(deg[:, 0], deg[:, 1], 1)[0]) if deg.shape[0] > 2 else float("nan")

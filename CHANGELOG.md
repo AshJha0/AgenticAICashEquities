@@ -6,6 +6,35 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Added: research realism toolkit wired into the verdict (0.10.0 item Q4, findings R-17, R-20)
+
+- **Factor-neutral IC is a gate condition.** `evaluate_signal` now reports
+  `ic_t_stat_factor_neutral`: the gate's non-overlapping IC with the signal ranks and the forward return
+  both residualised, date by date, on each name's trailing five-year market beta
+  (`risk_research.rolling_betas`, ex-self market; `risk_research.factor_neutral_ic`, which calls
+  `residualise`). `NO_ALPHA` is raised when it is below the hurdle, with its own rationale and
+  hypothesis row. A one-year beta was tried first and left a 2400 bps beta premium at IC t 5-7.
+- **Market-beta family through the full verdict** (`adversarial.full_verdict_study`, 16 seeds a point,
+  `docs/research/adversarial_full_verdict.json`): PROMOTE 0, 0, 0 and **2 of 16** at 0, 600, 1100 and
+  2400 bps; re-scored without the new statistic, 0, 0, 1 and 16 of 16. The drift baseline keeps
+  14 of 16 at 2400 bps (unchanged). The two that still pass are the limit of residualising on an
+  estimated beta.
+- **PBO and effective trial count on the 24-trial matrix.** The backtest tool's trial record carries
+  `search` (`ceap.analytics.search_diagnostics`: PBO by CSCV with 16 blocks, effective trials by the
+  eigenvalue participation ratio and by clusters at 0.7) and writes `n_trials_effective`, which the
+  deflated Sharpe reads (floored at 24, so it cannot relax the gate). Cached per dataset and window;
+  the tool's description and schema are unchanged, so the catalogue hash and cassettes do not move.
+  `pbo_cscv` is now vectorised (12,870 splits in about 0.3 s; equal to the per-split definition).
+- **Ledoit-Wolf predicted volatility in the risk step.** The as-of target portfolio reports
+  `predicted_vol_ann` and `covariance_shrinkage` from the held names' trailing 252-day returns.
+- All of these are fields of the assessment's metrics.
+- **What moved.** The 30 research scenarios and 18 golden research items were re-run: **no verdict
+  and no flag moved** relative to Q2 (scenarios 25/30). **Snapshot change:** `tests/golden/research_R01.json`
+  and `research_R03.json` regenerated; the diff only adds fields (the new metrics, the factor-neutral
+  hypothesis row, the trial `search` block, and the Q2 ledger fields `sharpe_basis` and
+  `sharpe_variance_net`, which the Q2 commit had left out of these two files).
+- Tests: `tests/unit/analytics/test_q4_realism_wiring.py`.
+
 ### Fixed: model registry checks staleness and drift at load; trial ledger persistent (0.10.0 item Q7, findings Q-10, Q-12)
 
 - **Stale models fail a test.** All three registered models had been fitted to generator

@@ -16,6 +16,12 @@ and reported. The LLM never decides the verdict.
    deflated Sharpe uses the ledger's trial count floored at the enumerated
    (or preregistered) variants and, when known, the effective count of
    correlated trials (D8, :mod:`ceap.analytics.trial_accounting`).
+   0.10 (Q4, finding R-20): the same hurdle applies to the in-sample IC of the
+   signal residualised on each name's trailing market beta
+   (:func:`ceap.analytics.risk_research.factor_neutral_ic`). A premium planted on
+   market beta passed the plain IC test; it is market exposure, not alpha, and
+   now fails here. A record without the statistic (pre-0.10 payloads) is not
+   failed for its absence.
 2. ``REGIME_BREAK`` when the out-of-sample IC t is at or below
    ``-regime_break_t``: the premium reversed.
 3. ``OOS_DECAY`` (0.4 name ``OVERFIT``; nothing is fitted) when the
@@ -200,6 +206,10 @@ def alpha_deflated_sharpe(
     return dsr, sr0_ann, n_trials
 
 
+def _num(x: Any) -> float:
+    return float(x) if isinstance(x, int | float) and not isinstance(x, bool) else float("nan")
+
+
 def _p_one_sided(t: float) -> float | None:
     return 1.0 - _N.cdf(t) if _finite(t) else None
 
@@ -239,6 +249,7 @@ def assess_research(
     breached = [c for c in risk.checks if c.breached]
     history_breaches = [c for c in risk.history_checks if c.get("breached")]
     trial = backtest.trial or {}
+    search = trial.get("search") if isinstance(trial.get("search"), dict) else {}
     dsr, sr0_ann, n_trials = alpha_deflated_sharpe(is_b, trial, th)
     hurdle = hurdle_for(n_trials, th)
 
@@ -246,14 +257,23 @@ def assess_research(
     rationale: list[str] = []
 
     # ---- alpha chain: no alpha -> regime break -> OOS decay -> cost drag
-    weak_t = not _finite(is_s.ic_t_stat) or is_s.n_dates < th.min_dates or is_s.ic_t_stat < hurdle
+    weak_raw_t = not _finite(is_s.ic_t_stat) or is_s.n_dates < th.min_dates or is_s.ic_t_stat < hurdle
+    fn_t = is_s.ic_t_stat_factor_neutral
+    weak_fn = _finite(fn_t) and fn_t < hurdle
+    weak_t = weak_raw_t or weak_fn
     weak_dsr = not _finite(dsr) or dsr < th.dsr_min
     if weak_t or weak_dsr:
         flags.append(ResearchFlag.NO_ALPHA)
-        if weak_t:
+        if weak_raw_t:
             rationale.append(
                 f"in-sample {is_s.horizon_days}-day IC t-stat {is_s.ic_t_stat:.2f} over {is_s.n_dates} "
                 f"non-overlapping periods is below the a-priori {hurdle:.2f} hurdle ({n_trials} trial(s) counted)"
+            )
+        elif weak_fn:
+            rationale.append(
+                f"factor-neutral in-sample IC t-stat {fn_t:.2f} (signal and return residualised on market beta) is "
+                f"below the {hurdle:.2f} hurdle although the plain IC t-stat is {is_s.ic_t_stat:.2f}: the premium "
+                "is market exposure, not alpha"
             )
         if weak_dsr:
             rationale.append(
@@ -342,13 +362,22 @@ def assess_research(
         "deflated_sharpe": dsr,
         "deflated_sharpe_bar": sr0_ann,
         "n_trials": float(n_trials),
+        # 0.10 Q4 (R-17, R-20): the realism toolkit's outputs, recorded with the verdict
+        "is_ic_t_factor_neutral": fn_t,
+        "pbo": _num(search.get("pbo")),
+        "n_trials_effective": _num(search.get("n_trials_effective")),
+        "n_trials_effective_cluster": _num(search.get("n_trials_effective_cluster")),
+        "predicted_vol_ann": risk.predicted_vol_ann,
+        "covariance_shrinkage": risk.covariance_shrinkage,
     }
     oos_years = oos_b.n_days / TRADING_DAYS if oos_b.n_days else float("nan")
     oos_sr_t = oos_b.sharpe * math.sqrt(oos_years) if _finite(oos_b.sharpe) and _finite(oos_years) else float("nan")
     hypotheses = HypothesisTable(
         rows=(
             HypothesisRow("in_sample_ic_t", is_s.ic_t_stat, _p_one_sided(is_s.ic_t_stat), is_s.n_dates,
-                          "PASS" if not weak_t else "FAIL"),
+                          "PASS" if not weak_raw_t else "FAIL"),
+            HypothesisRow("in_sample_ic_t_factor_neutral", fn_t, _p_one_sided(fn_t), is_s.n_dates,
+                          "FAIL" if weak_fn else ("PASS" if _finite(fn_t) else "NOT_RUN")),
             HypothesisRow("deflated_sharpe", dsr, None if not _finite(dsr) else 1.0 - dsr, is_b.n_days,
                           "PASS" if not weak_dsr else "FAIL"),
             HypothesisRow("out_of_sample_ic_t", oos_s.ic_t_stat, _p_one_sided(oos_s.ic_t_stat), oos_s.n_dates,

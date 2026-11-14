@@ -1,4 +1,11 @@
-"""Backtest MCP server: daily backtests under t+1 execution, with costs, financing and a trial ledger."""
+"""Backtest MCP server: daily backtests under t+1 execution, with costs, financing and a trial ledger.
+
+0.10 (Q4, finding R-17): the trial record also carries the search diagnostics of the full 24-configuration
+search on the same dataset and window (:mod:`ceap.analytics.search_diagnostics`): PBO by CSCV and the
+effective trial count, written as ``n_trials_effective`` for the deflated Sharpe. They do not depend on
+which configuration was asked for, so they are cached per dataset and window. The tool's description and
+schema are unchanged (the reviewed catalogue hash stays valid).
+"""
 
 from __future__ import annotations
 
@@ -23,6 +30,19 @@ from ceap.mcp.common import DEFAULT_RESEARCH_DATASET, select_history
 from ceap.mcp.cpu_pool import run_on_history
 from ceap.mcp.server import MCPServerDefinition
 
+_SEARCH_CACHE: dict[tuple[Any, ...], dict[str, Any]] = {}
+_SEARCH_KEYS = ("start", "end", "in_sample_end", "cost_multiplier", "execution_lag_days", "fill")
+
+
+def _search(ds: HistoricalDataset, gross_notional: float, kwargs: dict[str, Any]) -> dict[str, Any]:
+    from ceap.analytics.search_diagnostics import search_diagnostics
+
+    window = {k: kwargs[k] for k in _SEARCH_KEYS if k in kwargs}
+    key = (ds.dataset_hash, gross_notional, *sorted(window.items()))
+    if key not in _SEARCH_CACHE:
+        _SEARCH_CACHE[key] = search_diagnostics(ds, gross_notional=gross_notional, **window)
+    return _SEARCH_CACHE[key]
+
 
 def _per_day(sharpe_ann: float | None) -> float:
     return sharpe_ann / math.sqrt(252) if sharpe_ann is not None and math.isfinite(sharpe_ann) else float("nan")
@@ -30,9 +50,10 @@ def _per_day(sharpe_ann: float | None) -> float:
 
 def _backtest_compute(
     ds: HistoricalDataset, signal: str, gross_notional: float, kwargs: dict[str, Any], capacity: bool
-) -> tuple[dict[str, Any], float, float]:
+) -> tuple[dict[str, Any], float, float, dict[str, Any]]:
     """The CPU-heavy part of ``run_backtest``: pure, picklable, safe to run in a worker process. Returns the
-    payload and the in-sample per-day Sharpe before and after costs (the ledger deflates the gross one, Q2)."""
+    payload, the in-sample per-day Sharpe before and after costs (the ledger deflates the gross one, Q2) and
+    the search diagnostics (Q4)."""
     run = simulate_backtest(ds, signal, gross_notional=gross_notional, **kwargs)
     ins = run.result.period("in_sample")
     gross = _per_day(ins.gross_sharpe if ins is not None else None)
@@ -40,7 +61,7 @@ def _backtest_compute(
     sweep = capacity_sweep(ds, signal, **kwargs) if capacity else None
     table = json_safe(profitability_from_run(run, ds, sweep))
     payload = to_jsonable(replace(run.result, profitability=table, trial={}))
-    return payload, gross, net
+    return payload, gross, net, _search(ds, gross_notional, kwargs)
 
 
 def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) -> MCPServerDefinition:
@@ -86,9 +107,13 @@ def build_server(history: HistoricalStore, ledger: TrialLedger | None = None) ->
             "execution_lag_days": execution_lag_days, "fill": fill, "top_fraction": SEARCH_TOP_FRACTION,
         }
         params = {"signal": signal, "gross_notional": gross_notional, **kwargs}
-        payload, gross, net = await run_on_history(_backtest_compute, ds, signal, gross_notional, kwargs, capacity)
+        payload, gross, net, search = await run_on_history(
+            _backtest_compute, ds, signal, gross_notional, kwargs, capacity
+        )
         summary = trials.record(ds.dataset_hash, params, gross, net)
-        payload["trial"] = to_jsonable(summary.to_dict())
+        payload["trial"] = to_jsonable(
+            {**summary.to_dict(), "n_trials_effective": search.get("n_trials_effective"), "search": search}
+        )
         return payload
 
     @server.tool("Read the trial ledger for a dataset: how many distinct configurations have been backtested.")

@@ -215,6 +215,38 @@ The last row is the important one: when expected return is planted on market bet
 "detects" it because past winners are high-beta names in a rising market. The IC gate cannot tell
 beta from alpha; factor-neutral residuals (D16, `ceap.analytics.risk_research.residualise`) can.
 
+**Through the full verdict, with the factor-neutral gate (0.10.0, Q4) [simulation].**
+[`adversarial_full_verdict.json`](adversarial_full_verdict.json) runs the market-beta family and the
+drift baseline through the production verdict (`assess_research` on the signal statistics, the
+backtest and the target portfolio's risk report, the 24-trial search counted; 16 seeds a point). Since
+Q4 the alpha gate also needs the in-sample IC of the signal ranks and the forward return, both
+residualised date by date on each name's trailing five-year market beta
+(`risk_research.factor_neutral_ic`), to clear the same hurdle. The column "before" re-scores the same
+inputs with that statistic removed.
+
+| Family | Premium (bps) | PROMOTE | before | Plain IC t >= 3 | Factor-neutral IC t >= 3 |
+|---|---|---|---|---|---|
+| premium on market beta (false) | 0 | 0 of 16 | 0 of 16 | 0 | 0 |
+| premium on market beta (false) | 600 | 0 of 16 | 0 of 16 | 2 | 0 |
+| premium on market beta (false) | 1100 | 0 of 16 | 1 of 16 | 10 | 0 |
+| premium on market beta (false) | 2400 | 2 of 16 | 16 of 16 | 16 | 2 |
+| drift (true) | 1100 | 0 of 16 | 0 of 16 | 2 | 3 |
+| drift (true) | 2400 | 14 of 16 | 14 of 16 | 16 | 16 |
+
+In plain terms: at four times a realistic premium, a beta premium used to be promoted every time and
+is now promoted 2 times in 16; a true premium keeps its detection rate. The two that still pass are
+the limit of the method: a beta estimated with error leaves part of a true beta premium in both
+residuals (with a one-year beta the residual IC t stayed at 5-7, which is why the window is five
+years). Evidence class: simulation, on the synthetic generator only.
+
+**Search diagnostics on every backtest (0.10.0, Q4).** The backtest tool's trial record now carries
+PBO by CSCV with 16 blocks (Bailey, Borwein, Lopez de Prado and Zhu 2017) and the effective trial
+count (eigenvalue participation ratio and clusters at correlation 0.7) of the full 24-configuration
+search on the same dataset and window (`ceap.analytics.search_diagnostics`), and the risk step
+reports the book's Ledoit-Wolf predicted volatility. Each is a field of the assessment's metrics.
+They describe; the factor-neutral IC is the only one that gates, and the effective count cannot
+lower the deflated Sharpe's 24-trial floor.
+
 **Other checks.** Leakage canary through `simulate_backtest` (D7): a feature equal to the realised
 holding-period return, delayed d days, gives gross Sharpe 9.1, 7.7, 6.2, 3.9 at d = 0..3 and 0.0 at
 d = 4 with a five-day hold and a one-day lag, collapsing exactly when d + lag >= hold. Trial

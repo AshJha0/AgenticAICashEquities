@@ -10,6 +10,9 @@ same on a synthetic backtest and on the real-data study. Each states its formula
   with Newey-West standard errors: loadings, R^2 and the **alpha t after factors** (D16).
 * :func:`residualise` - cross-sectional residuals of a signal on exposures (industry dummies, betas):
   factor-neutral research asks whether a signal predicts what the factors do not (D16).
+* :func:`rolling_betas` and :func:`factor_neutral_ic` - 0.10.0 Q4 (findings R-17, R-20): the gate's
+  non-overlapping IC recomputed with the signal and the forward return residualised, date by date, on each
+  name's trailing five-year market beta, so a premium that is only market exposure does not pass the gate.
 * :func:`multi_factor_stress` - P&L of a book under joint factor shocks (D13).
 * :func:`tail_report` - drawdown, historical CVaR, skew, kurtosis and the worst months (D19).
 * :func:`regime_split` - Sharpe in calm and stressed volatility regimes (D19, D6).
@@ -29,7 +32,7 @@ from typing import Any
 
 import numpy as np
 
-from ceap.analytics.numerics import negligible_variation
+from ceap.analytics.numerics import ABS_FLOOR, REL_TOL, negligible_variation
 
 TRADING_DAYS = 252
 
@@ -101,6 +104,75 @@ def residualise(signal_row: np.ndarray, exposures: np.ndarray) -> np.ndarray:
     xm = np.column_stack([np.ones(int(ok.sum())), x[ok]])
     coef, *_ = np.linalg.lstsq(xm, s[ok], rcond=None)
     out[ok] = s[ok] - xm @ coef
+    return out
+
+
+# Five years: with daily data a one-year beta has a standard error near the cross-sectional spread of betas,
+# so residualising on it removes little of a beta premium (Q4 probe: a 2400 bps premium planted on beta kept
+# an IC t of 5-7 after a one-year residualisation, 2.4-3.4 after a five-year one). Evidence class: simulation.
+BETA_WINDOW = 1260
+BETA_MIN_OBS = 252
+
+
+def rolling_betas(close: np.ndarray, window: int = BETA_WINDOW, min_obs: int = BETA_MIN_OBS) -> np.ndarray:
+    """Trailing OLS beta of every name's daily return on the equal-weight return of the *other* names.
+
+    Row ``t`` uses the returns of days ``t - window + 1 .. t``, all known at the close of ``t`` (no
+    look-ahead). Excluding the name itself from its market avoids the self-inclusion bias that matters in
+    a 30-name universe (as in :func:`ceap.analytics.portfolio_risk.raw_betas_ex_self`). NaN with fewer
+    than ``min_obs`` paired days or a market return that is constant to within the numerics tolerance.
+    """
+    c = np.asarray(close, dtype=float)
+    r = np.full(c.shape, np.nan)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        r[1:] = c[1:] / c[:-1] - 1.0
+    fin = np.isfinite(r)
+    x0 = np.where(fin, r, 0.0)
+    k = fin.sum(axis=1, keepdims=True).astype(float)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        m = (x0.sum(axis=1, keepdims=True) - x0) / (k - 1.0)
+    ok = fin & np.isfinite(m) & (k >= 3)
+    y, x, o = np.where(ok, r, 0.0), np.where(ok, m, 0.0), ok.astype(float)
+
+    def roll(a: np.ndarray) -> np.ndarray:
+        cs = np.cumsum(a, axis=0)
+        out = cs.copy()
+        out[window:] -= cs[:-window]
+        return out
+
+    n, sx, sy, sxx, sxy = roll(o), roll(x), roll(y), roll(x * x), roll(x * y)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ssx = sxx - sx * sx / n  # sum of squared deviations of the market return in the window
+        beta = (sxy - sx * sy / n) / ssx
+        rms = np.sqrt(sxx / n)
+    flat = ssx <= n * np.maximum((REL_TOL * rms) ** 2, ABS_FLOOR**2)
+    beta[(n < min_obs) | flat | ~np.isfinite(beta)] = np.nan
+    return beta
+
+
+def factor_neutral_ic(
+    signal: np.ndarray, forward: np.ndarray, betas: np.ndarray, dates: np.ndarray, min_names: int = 8
+) -> np.ndarray:
+    """Rank IC on each of ``dates`` between the forward return and the signal, *both* residualised
+    cross-sectionally on an intercept and the trailing beta (:func:`residualise`): does the signal predict
+    the part of the return that beta does not? The signal is ranked first, so one extreme value cannot set
+    the regression. NaN where fewer than ``min_names`` names have all three.
+
+    Limit: a beta estimated with error leaves part of a true beta premium in both residuals, so a very
+    large premium on beta can still pass (published in ``docs/research/adversarial_power.json``)."""
+    from ceap.analytics.signal_statistics import rank_average, rowwise_rank_corr
+
+    out = np.full(len(dates), np.nan)
+    for i, t in enumerate(dates):
+        row, fwd, b = (np.asarray(a[t], dtype=float) for a in (signal, forward, betas))
+        ok = np.isfinite(row) & np.isfinite(b) & np.isfinite(fwd)
+        if ok.sum() < min_names:
+            continue
+        ranks = np.full(row.shape, np.nan)
+        ranks[ok] = rank_average(row[ok])
+        res_s = residualise(ranks, b)
+        res_r = residualise(np.where(ok, fwd, np.nan), b)
+        out[i] = rowwise_rank_corr(res_s[None, :], res_r[None, :], min_names)[0]
     return out
 
 
