@@ -6,6 +6,20 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: one zero-variance tolerance in five regressions (0.10.0 item Q3, finding Q-14)
+
+- Five places tested a sum of squares or a standard deviation for exactly zero, so a constant input
+  carrying floating-point noise (a sum of squares near 1e-30) produced an R-squared or a beta of
+  arbitrary size. The review found three more sites than the 0.9.0 errata disclosed. All five
+  (`risk_research.factor_regression`, `portfolio_risk.raw_betas_ex_self`,
+  `profitability.factor_alpha`, `ml_signals._moments`, `attribution._ridge_contributions`) now call
+  `ceap.analytics.numerics.negligible_variation`: a series counts as constant when
+  `sum((y - mean)^2) <= n * max((1e-9 * max|y|)^2, (1e-12)^2)`. The scale is `max|y|`, not the mean,
+  so a zero-mean series is handled; the absolute floor covers an all-zero series.
+- A constant dependent series gives R-squared NaN with an `r2_note`; a near-constant market leaves the
+  beta unestimated (standard error infinite, so shrinkage takes the target); `factor_alpha` returns NaN
+  with a `note`. Regressions on varying data are unchanged.
+
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 
 - **Why the scheduled job wrote nothing on 10 and 11 November.** Both scheduled runs failed with
