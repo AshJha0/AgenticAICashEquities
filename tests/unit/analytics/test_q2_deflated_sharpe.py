@@ -60,7 +60,7 @@ def test_backtest_tool_records_the_gross_in_sample_sharpe():
     from ceap.mcp.backtest.server import _backtest_compute
 
     ds = HistoricalStore().get("R01")
-    payload, gross, net = _backtest_compute(ds, "momentum_12_1", 50_000_000.0, {"rebalance_days": 21}, False)
+    payload, gross, net, _search = _backtest_compute(ds, "momentum_12_1", 50_000_000.0, {"rebalance_days": 21}, False)
     ins = backtest_result_from_dict(payload).period("in_sample")
     assert gross == pytest.approx(ins.gross_sharpe / math.sqrt(252))
     assert net == pytest.approx(ins.sharpe / math.sqrt(252))
