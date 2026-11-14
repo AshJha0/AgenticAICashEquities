@@ -6,6 +6,17 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Added: "wired or labelled" table and its repo test (0.10.0 item E5, finding R-34)
+
+- `scripts/wired_or_labelled.py` follows imports from the product entry points (`ceap.cli`,
+  `ceap.api`, `ceap.platform`, each MCP server's `__main__`). Each of the 23 modules none of them
+  reaches is listed in section 3.13 of `docs/architecture/overview.md` as `library-only` (16) or
+  `script-only` (7). The `ceap.execution` simulator modules are counted library-only.
+- `tests/repo/test_wired_or_labelled.py` fails on an uncalled module with no row and on a row
+  for a module that is wired or gone. Reached means importable from the product, not that every
+  function is called.
+- The OpenTelemetry tracer export was already removed under T11, which does not use it.
+
 ### Changed: AI SLO monitor wired into the platform; GenAI spans; Ollama as a provider (0.10.0 item T11, findings R-14, R-34)
 
 - **R-14.** `Platform` now owns one `AISLOMonitor` and sets it on its router. The planner reports
