@@ -798,6 +798,7 @@ python scripts/check_forward_log_staleness.py --csv forward_log.csv   # exit 1 =
 ## 44. Run a parent order through the simulated book
 
 ```python
+# ceap.execution is a simulator library, not used by the default paper book (0.10.0 status)
 from ceap.execution.algo import ParentOrder, execute
 from ceap.execution.child import ChildPolicy
 from ceap.execution.lob import BUY, LOBSimulator

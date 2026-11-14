@@ -6,6 +6,18 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: execution library labelled truthfully; POV band and completion (0.10.0 item X5)
+
+- **R-23.** `ceap.execution` is now described everywhere as a *simulator library, not used by the
+  default paper book*; the paper book imports only the auction model and the LOB cost measurement,
+  behind opt-in settings. `tests/repo/test_execution_label.py` keeps the label in place. Wiring a
+  scheduler and the trading rules into the paper path is 0.11.0.
+- **X-07.** The POV band did nothing: the target `clip(rate * V, lo, hi)` is always inside the band.
+  POV now follows its plan and the band clips it.
+- **X-08.** Schedulers left the parent unfinished and the last slice crossed at its start. The last
+  slice is now worked like the others, and a completion step shortly before the end cancels what
+  rests and takes the remainder with a market order. A parent completes in all 40 seeds tested.
+
 ### Fixed: schema rollback could re-seal a forged audit chain (0.10.0 item X3, finding R-21)
 
 - Setting `PRAGMA user_version` below v4 made every audit row count as legacy, and the next normal

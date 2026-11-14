@@ -697,7 +697,7 @@ settle a Sharpe question for years; read it for breaks, blocks and reconciliatio
 
 Sections 5 and 6 measure an execution after the fact. Up to 0.7.1 the synthetic market also gave
 passive orders free fills at the touch and planted impact as a drift chosen in advance, so nothing
-the platform did could move the price. The `ceap.execution` package (0.8.0) closes that gap, still on
+the platform did could move the price. The `ceap.execution` package (0.8.0), a simulator library, not used by the default paper book, closes that gap, still on
 synthetic data only:
 
 * a limit order book where a resting order fills only when the market trades through the queue
