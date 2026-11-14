@@ -195,6 +195,32 @@ async def golden_scores(platform: Any, limit: int | None = None) -> dict[str, An
     return {"version": doc["version"], "signoff": doc["signoff"]["status"], **summarise(rows), "rows": rows}
 
 
+def research_universe_block(
+    res: dict[str, Any], universe: str, core: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    """The research evaluation on another universe (0.10.0 Q6): scored against the scenarios' ground truth,
+    which is derived for the 30-name universe, so agreement is not accuracy (a premium that is
+    INCONCLUSIVE on 30 names can be detectable on 500)."""
+    from ceap.data.generator_params import UNIVERSES
+
+    n = res.get("scenarios") or 0
+    base = {r["scenario"]: r["verdict"] for r in (core or {}).get("rows", [])}
+    moved = [{"scenario": r["scenario"], "expected": r["expected_verdict"], "core30": base[r["scenario"]],
+              universe: r["verdict"]} for r in res.get("rows", []) if r["scenario"] in base
+             and base[r["scenario"]] != r["verdict"]]
+    return {
+        "universe": universe,
+        "names": len(UNIVERSES[universe]),
+        "scenarios": n,
+        "agreement_with_30_name_truth": round(res.get("verdict_accuracy", 0.0), 4) if n else None,
+        "clear_agreement": round(res.get("clear_verdict_accuracy", 0.0), 4) if n else None,
+        "flags_coverage": round(res.get("flags_coverage", 0.0), 4) if n else None,
+        "completed": round(res.get("completed", 0.0), 4) if n else None,
+        "verdicts": res.get("verdicts", {}),
+        "moved_from_core30": moved,
+    }
+
+
 async def build_report(limit: int | None = None, research_limit: int | None = None) -> dict[str, Any]:
     """The whole report. ``limit`` caps every scenario sweep (used by tests and ``--quick``)."""
     from ceap.evaluation import (
@@ -218,6 +244,9 @@ async def build_report(limit: int | None = None, research_limit: int | None = No
         calibration = run_calibration_evaluation()
     except Exception as exc:  # noqa: BLE001 - a missing card is reported, not fatal
         calibration = {"error": f"{type(exc).__name__}: {exc}"}
+    res500 = await run_research_evaluation(
+        limit=research_limit if research_limit is not None else limit, platform=evaluation_platform("synthetic500")
+    )
     golden = await golden_scores(platform, limit=limit)
     ai = await ai_sections(full=limit is None)
     safety = await safety_and_robustness(factory)
@@ -234,6 +263,7 @@ async def build_report(limit: int | None = None, research_limit: int | None = No
             "completed": round(inv["completed"], 4),
             "research_scenarios": research_n,
             "research_verdict_accuracy": round(res.get("verdict_accuracy", 0.0), 4) if research_n else None,
+            "research_500": research_universe_block(res500, "synthetic500", res),
             "golden": {k: v for k, v in golden.items() if k != "rows"},
             "calibration": calibration,
         },
@@ -384,6 +414,11 @@ def render_markdown(report: dict[str, Any]) -> str:
         ("capability", "completed", cap["completed"]),
         ("capability", "research_scenarios", cap["research_scenarios"]),
         ("capability", "research_verdict_accuracy", cap["research_verdict_accuracy"]),
+        *(
+            [("capability", "research_500 agreement_with_30_name_truth (500 names)",
+              cap["research_500"]["agreement_with_30_name_truth"])]
+            if cap.get("research_500") else []
+        ),
         (
             "capability",
             f"golden set v{gold['version']} (sign-off {gold['signoff']}) primary_cause_accuracy",

@@ -1,9 +1,12 @@
 """Gate a release: run by ``release.yml`` on a ``v*`` tag before anything is built.
 
 Checks, in order, and exits non-zero on the first failure:
-1. the latest run of the CI workflow on the tagged commit completed with success. Only CI gates:
-   the daily paper job, the nightly run and Pages also report on main commits, and a refused
-   paper session (a holiday, a run before the forward start) must not block a release;
+1. the latest run of the CI workflow on the tagged commit completed with success. Only CI gates
+   per commit: the daily paper job and Pages also report on main commits, and a refused paper
+   session (a holiday, a run before the forward start) must not block a release; and the last
+   three completed Nightly runs on main all succeeded (R-25, 0.10.0 E2): the nightly runs the
+   statistical sweeps, random order and mutation testing that CI does not, so a tag after a red
+   or cancelled night is refused;
 2. the version agrees in ``pyproject.toml``, ``src/ceap/__init__.py`` and the tag;
 3. ``CHANGELOG.md`` has a ``## [<version>]`` section;
 4. the banned-word check is clean;
@@ -41,6 +44,9 @@ LICENCE_EXCEPTIONS = {
 }
 #: Workflows whose result gates a release (by workflow name).
 GATING_WORKFLOWS = {"CI"}
+#: Nightly workflow file and how many consecutive green completed runs on main a release needs.
+NIGHTLY_WORKFLOW = "nightly.yml"
+NIGHTLY_GREEN_STREAK = 3
 
 
 class ReleaseRefusedError(Exception):
@@ -61,17 +67,43 @@ def evaluate_workflow_runs(runs: list[dict[str, Any]]) -> str:
     return desc
 
 
+def evaluate_nightly_runs(runs: list[dict[str, Any]], streak: int = NIGHTLY_GREEN_STREAK) -> str:
+    """Raise ``ReleaseRefusedError`` unless the latest ``streak`` completed nightly runs all succeeded.
+
+    A run still in progress is ignored (tonight's run must not block a tag cut this afternoon); a
+    cancelled run counts as not green, because a job time-out shows as cancelled.
+    """
+    done = sorted(
+        (r for r in runs if r.get("status") == "completed"),
+        key=lambda r: (r.get("created_at") or "", r.get("run_attempt") or 0),
+        reverse=True,
+    )[:streak]
+    if len(done) < streak:
+        raise ReleaseRefusedError(f"only {len(done)} completed nightly run(s) on main; {streak} green needed")
+    red = [f"{r.get('id')} ({r.get('created_at')}: {r.get('conclusion')})" for r in done if r.get("conclusion") != "success"]
+    if red:
+        raise ReleaseRefusedError(f"the last {streak} nightly runs are not all green: " + ", ".join(red))
+    return f"last {streak} nightly runs green ({', '.join(str(r.get('id')) for r in done)})"
+
+
+def _get(url: str, token: str) -> dict[str, Any]:
+    req = urllib.request.Request(
+        url, headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"}
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 - fixed https host
+        body: dict[str, Any] = json.load(resp)
+    return body
+
+
 def check_runs(repo: str, sha: str) -> None:
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
         raise ReleaseRefusedError("GH_TOKEN not set; cannot verify the CI run")
-    req = urllib.request.Request(
-        f"https://api.github.com/repos/{repo}/actions/runs?head_sha={sha}&per_page=100",
-        headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
-    )
-    with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 - fixed https host
-        runs = json.load(resp)["workflow_runs"]
+    api = f"https://api.github.com/repos/{repo}/actions"
+    runs = _get(f"{api}/runs?head_sha={sha}&per_page=100", token)["workflow_runs"]
     print(f"ok: {evaluate_workflow_runs(runs)} succeeded on {sha[:12]}")
+    nightly = _get(f"{api}/workflows/{NIGHTLY_WORKFLOW}/runs?branch=main&per_page=20", token)["workflow_runs"]
+    print(f"ok: {evaluate_nightly_runs(nightly)}")
 
 
 def versions(tag: str, root: Path = ROOT) -> str:

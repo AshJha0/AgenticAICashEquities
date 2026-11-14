@@ -23,11 +23,25 @@ from typing import Any
 
 import numpy as np
 
+from ceap.analytics.numerics import negligible_variation
 from ceap.domain.execution import ExecutionMetrics
 from ceap.domain.market import MarketStatistics
 
 MATERIAL_SCORE = 0.35  # a cause with score >= this is reported as material
 ATTRIBUTION_ENV = "CEAP_ATTRIBUTION"  # "regression" adds the F8 regression next to the scores
+
+#: H5 (R-03): the printed name of each baseline. The attribution compares the window with the pooled
+#: matched peer windows when it has them; the execution agent compares it with the task's baseline
+#: window, the hour before. Both used to be printed as "the baseline", so one report gave two
+#: implementation-shortfall deltas under one word.
+PRIOR_WINDOW = "prior window"
+MATCHED_PEERS = "matched peer windows"
+BASELINE_NAMES = {"time_of_day_matched": MATCHED_PEERS, "same_day": PRIOR_WINDOW}
+
+
+def baseline_name(kind: str | None) -> str:
+    """The printed name of an attribution ``baseline_kind``; the prior window when unknown."""
+    return BASELINE_NAMES.get(str(kind or ""), PRIOR_WINDOW)
 
 
 class Cause(str, Enum):
@@ -628,8 +642,9 @@ def _ridge_contributions(
     x: np.ndarray, y: np.ndarray, xw: np.ndarray, ridge: float
 ) -> tuple[np.ndarray, np.ndarray, float]:
     mu, sd = x.mean(axis=0), x.std(axis=0, ddof=1)
-    sd = np.where(sd > 0, sd, 1.0)
-    z = (x - mu) / sd
+    flat = np.array([negligible_variation(x[:, k]) for k in range(x.shape[1])], dtype=bool)
+    sd = np.where(flat, 1.0, sd)
+    z = np.where(flat, 0.0, (x - mu) / sd)
     yc = y - y.mean()
     beta = np.linalg.solve(z.T @ z + ridge * np.eye(z.shape[1]), z.T @ yc)
     return beta, beta * (xw - mu) / sd, float(y.mean())

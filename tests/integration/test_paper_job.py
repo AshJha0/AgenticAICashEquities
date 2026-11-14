@@ -149,6 +149,7 @@ def test_paper_daily_workflow_is_disabled_by_default():
     text = (Path(__file__).resolve().parents[2] / ".github/workflows/paper-daily.yml").read_text(encoding="utf-8")
     job = text[text.index("\n  run-day:") :]
     gate = re.search(r"^    if: (.+)$", job, flags=re.M)
-    assert gate and gate.group(1).replace(" ", "") == "${{vars.PAPER_DAILY_ENABLED=='true'}}"
+    # X2 adds a staleness schedule; run-day still needs the opt-in variable and skips that schedule
+    assert gate and gate.group(1).replace(" ", "").startswith("${{vars.PAPER_DAILY_ENABLED=='true'&&")
     assert re.search(r'^\s*- cron: "30 21 \* \* 1-5"', text, flags=re.M)
     assert "--allow-paper-auto" in job and "forward-log" in job and "ANTHROPIC_API_KEY" not in text

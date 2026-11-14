@@ -167,7 +167,7 @@ def books(draw):
     return close, np.array(orders).reshape(n, m), rf
 
 
-@settings(max_examples=200, derandomize=True, deadline=None)
+@settings(max_examples=200, deadline=None)  # the profile decides randomisation (E2)
 @given(books())
 def test_property_cash_plus_positions_is_equity_and_pnl_decomposes(case):
     """cash + position value = equity, and equity - capital = mark P&L + financing - borrow - costs."""

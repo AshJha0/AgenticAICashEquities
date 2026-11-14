@@ -14,7 +14,7 @@ side effects, each with known-answer unit tests.
 | | Execution-quality (TCA), Stage 1 | Signal research, Stage 2 |
 |---|---|---|
 | Question | why did execution quality change? | does this signal actually work? |
-| Deterministic scorer | `attribute_causes` → primary/secondary cause | `assess_research` → `PROMOTE`/`REJECT` + flags |
+| Deterministic scorer | `attribute_causes` → primary/secondary cause | `assess_research` → `PROMOTE`/`REJECT`/`INCONCLUSIVE` + flags |
 | Synthetic data | `ceap.data.synthetic` — tick-level quotes/fills, 6 symbols, 1 hour window | `ceap.data.historical` — daily bars, 30 names, 20 years, NYSE calendar |
 | Ground truth | 10 templates × 5 symbols = 50 scenarios | 10 templates × 3 seeds = 30 scenarios, derived from generator parameters |
 | Evaluation | `ceap evaluate --suite investigation` | `ceap evaluate --suite research` and `--suite null` |
@@ -168,32 +168,34 @@ signal/horizon families (momentum at 21 days: 5.6 %), inside the [3.0 %, 7.5 %] 
   The gate is `DSR >= 0.5`: the observed Sharpe must beat the expected best of the trials run.
 - **Locked holdout**: `in_sample_end` is fixed per dataset; a caller may shorten the in-sample
   window but never move the boundary into the holdout.
-- **The PROMOTE hurdle is measured, not chosen.** `ceap evaluate --suite null --seeds 500` runs
-  all 24 configurations on 500 pure-noise datasets through the full gate chain. A seed is a false
-  PROMOTE at hurdle `h` when any configuration passes every gate. The hurdle is the lowest `t` on
-  a 0.05 grid whose Clopper-Pearson 95 % upper bound is at most 5 %.
+- **The PROMOTE hurdle is fixed in advance; the null sweep measures it.** The in-sample IC t
+  hurdle is set before any result is seen: `3.0` for a result chosen from a search (the default
+  24-configuration flow) and `1.645` (one-sided 5 %) when exactly one preregistered trial counts
+  (Harvey, Liu and Zhu 2016; `MINED_HURDLE` and `SINGLE_TEST_HURDLE` in
+  `ceap.analytics.research_assessment`). `ceap evaluate --suite null --seeds 500` runs all 24
+  configurations on 500 pure-noise datasets through the full gate chain and reports the
+  false-PROMOTE rate, with its Clopper-Pearson band, across a grid of hurdles. A seed is a false
+  PROMOTE at hurdle `h` when any configuration passes every gate.
 
 | Sweep (committed in `data/reference/research_thresholds.json`) | Value |
 |---|---|
 | Seeds x configurations | 500 x 24 |
-| Chosen in-sample IC t hurdle | **0.40** (0.65 before rf was committed) |
-| False PROMOTEs at the hurdle | 15 / 500 = 3.0 %, 95 % band [1.7 %, 4.9 %] |
+| In-sample IC t hurdle (a priori) | **3.0** for a search, 1.645 for one preregistered test |
+| False PROMOTEs at 3.0 | 0 / 500, 95 % upper bound 0.74 % |
+| Lowest hurdle with upper bound <= 5 % (`lowest_hurdle_with_upper_le_5pct`) | 0.40, where 15 / 500 = 3.0 % were false |
 | False PROMOTEs with no IC hurdle at all | 17 / 500 = 3.4 % (upper bound 5.4 %) |
 | Sweep hash | `ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4` |
 
-What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,
-out-of-sample IC t >= 1, out-of-sample net Sharpe >= 0.5, costs below half of gross) already hold
-the false-PROMOTE rate near 5 %, so the in-sample IC hurdle only has to remove the last few. A
-fixed `t >= 3` would have been chosen before measuring and would have rejected the realistic
-premia below. With the Ken French rf series committed, long-only books pay rf in their excess
-return, fewer noise configurations clear the Sharpe gates, and the hurdle fell from 0.65 (rf = 0)
-to 0.40 - the sweep was re-run, not the number edited.
+Why the hurdle is not read off the sweep: a hurdle chosen as the lowest value that keeps the noise
+set under 5 % is itself fitted to that noise set. Up to 0.7.1 the project did exactly that (0.65,
+then 0.40 once the Ken French rf series was committed). The price of the a-priori hurdle is power:
+at `t >= 3` the realistic premia in the power curve below are detected far less often than at 0.40.
 
 ### The assessment (`assess_research`)
 
 | Flag | Condition |
 |---|---|
-| `NO_ALPHA` | in-sample non-overlapping IC t < 0.40 (null-sweep hurdle), fewer than 30 periods, or deflated Sharpe < 0.5 |
+| `NO_ALPHA` | in-sample non-overlapping IC t below the a-priori hurdle (3.0, or 1.645 for one preregistered trial), fewer than 30 periods, or deflated Sharpe < 0.5 |
 | `REGIME_BREAK` | out-of-sample IC t <= -2: the premium reversed |
 | `OOS_DECAY` | out-of-sample IC t < 1, or net out-of-sample Sharpe < 0.5 without a cost explanation (0.4 name `OVERFIT`: nothing is fitted) |
 | `COST_DRAG` | gross out-of-sample Sharpe >= 0.5 but net below it, or costs >= 50 % of gross |
@@ -204,6 +206,18 @@ Every assessment carries a `HypothesisTable`: each test run (in-sample IC t, def
 out-of-sample IC t, out-of-sample Sharpe t) with its statistic, p-value, sample size and pass or
 fail, and the trial count it was corrected for.
 
+The verdict is `PROMOTE` with no flag and `REJECT` otherwise, except that it is `INCONCLUSIVE` when
+every flag is statistical (`NO_ALPHA` or `OOS_DECAY`) and the 95 % interval of the full-period net
+Sharpe covers both 0 and 0.5. The interval uses the Lo (2002) standard error in its daily form:
+with `SR_d = SR / sqrt(252)` the daily Sharpe and `T` the number of days,
+`SE(SR) = sqrt((1 + SR_d^2 / 2) / T) * sqrt(252)` (Lo 2002, eq. 9, annualised under iid).
+
+Worked example: a net Sharpe of 0.3 over 5 years (1,260 days) has
+`SE = sqrt((1 + 0.000179) / 5) = 0.447`, so the interval is [-0.58, 1.18]. It covers both 0 and
+0.5, so the verdict is INCONCLUSIVE, not REJECT. Putting the annual Sharpe in the squared term
+instead (`sqrt(1.045 / 5) = 0.457`) overstates the error, by about 22 % at Sharpe 1 and 73 % at
+Sharpe 2.
+
 ### Risk (`ceap.analytics.portfolio_risk`, 2.12)
 
 The target portfolio is still **recomputed** from the signal at the report date. Beta is
@@ -212,6 +226,12 @@ Vasicek weight `w = s2_prior / (s2_prior + se^2)`. Stress adds a reversal of the
 factor (5 % per unit of z-score), a +20 % short squeeze and the cost and days of liquidating at
 10 % of ADV. Limits are evaluated on every out-of-sample rebalance date and the worst date per
 limit is reported.
+
+Near-constant series: a total or cross sum of squares that is a rounding residue rather than an
+exact zero (about 1e-31 for a constant 0.3 over 120 months) is treated as zero through a relative
+tolerance (`ceap.analytics.numerics.negligible_variation`). `factor_regression` then reports R² as
+undefined (NaN) instead of noise, and `raw_betas_ex_self` skips a name whose market excluding it is
+flat instead of reporting a beta near 4e15.
 
 ### Capacity and profitability (2.6, 2.14)
 
@@ -265,17 +285,10 @@ in place of observations. A scenario whose gate margins are within one standard 
 **near-threshold**: its realised verdict is partly luck and it is reported separately.
 
 The power curve (`docs/quant_power_curve.json`, `python -m ceap.analytics.power`) compares
-detection by the IC gates with the closed-form prediction across premia:
-
-| Premium (bps a year, cross-sectional sd) | 0 | 600 | 900 | 1200 | 1500 | 1800 | 2400 |
-|---|---|---|---|---|---|---|---|
-| Expected in-sample t | 0.0 | 0.5 | 1.1 | 2.0 | 3.0 | 4.1 | 6.7 |
-| Predicted detection | 4 % | 11 % | 26 % | 52 % | 77 % | 93 % | 100 % |
-| Observed detection (40 seeds) | 13 % | 20 % | 35 % | 60 % | 80 % | 93 % | 100 % |
-
-The closed form is slightly conservative (realised t runs about 15 % above expectation); the
-0-premium point (5 of 40 seeds against an expected 1.6) is within sampling error but worth
-watching.
+detection by the IC gates with the closed-form prediction across premia, at both hurdles in force
+(1.645 and 3.0). The closed form is slightly conservative (realised t runs about 15 to 20 % above
+expectation). The detectable premium at each hurdle and the per-premium table are in the power
+section of `docs/research/README.md`.
 
 ## Evaluated honestly
 
@@ -283,11 +296,11 @@ watching.
 (not tuned away) false positive.
 
 `ceap evaluate --suite research`: 30 scenarios (10 templates x 3 seeds) against parameter-derived
-truth. Deterministic pipeline: **23/24 clear scenarios** verdict-correct (the miss is a strong
-momentum premium whose 5-year out-of-sample net Sharpe came in at 0.21 against an expected 1.34,
-a 1.8-standard-error draw) and **6/6 near-threshold** scenarios; 29/30 overall. The full
-pipeline with the mock model gives the same 29/30 (flags 27/30, every run completed and approved,
-no unresolved finding, no narrative number warning); see `docs/evaluation/evaluation.md`. Under t+1 execution the
+truth. The mock-model pipeline scores **25/30**: 23/24 clear
+scenarios verdict-correct (the miss is a strong momentum premium whose 5-year out-of-sample net
+Sharpe came in at 0.21 against an expected 1.34, a 1.8-standard-error draw) and 2/6
+near-threshold scenarios (`docs/evaluation/latest.json`, accuracy 0.8333; see
+`docs/evaluation/evaluation.md`). The 29/30 reported earlier was the score at the 0.40 hurdle. Under t+1 execution the
 reversal and the costly-momentum templates flip from PROMOTE to REJECT and stay REJECT (decision
 D5); the per-scenario table is in the CHANGELOG.
 

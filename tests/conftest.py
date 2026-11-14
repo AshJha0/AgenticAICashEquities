@@ -15,6 +15,8 @@ import pytest
 # CPU-bound MCP tools run in a thread here, not in worker processes (each would cost seconds to
 # start on Windows). tests/unit/test_cpu_pool.py turns the process pool on for itself.
 os.environ.setdefault("CEAP_CPU_TOOL_PROCESSES", "0")
+# The trial ledger persists to var/ by default (Q7); tests keep it in memory so no test sees another's trials.
+os.environ.setdefault("CEAP_TRIAL_LEDGER", ":memory:")
 
 from ceap.config import Settings
 from ceap.data.historical import HistoricalStore
@@ -88,8 +90,10 @@ try:  # hypothesis profiles: 100 examples on PR, 1000 nightly (HYPOTHESIS_PROFIL
 
     from hypothesis import settings as hsettings
 
+    # PR: derandomised, so a PR is never red from a fresh example. Nightly (E2, E-13): randomised, so
+    # each night explores new examples; print_blob prints the @reproduce_failure line for a failure.
     hsettings.register_profile("pr", max_examples=100, derandomize=True, deadline=None)
-    hsettings.register_profile("nightly", max_examples=1000, derandomize=True, deadline=None)
+    hsettings.register_profile("nightly", max_examples=1000, derandomize=False, deadline=None, print_blob=True)
     hsettings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "pr"))
 except ImportError:  # pragma: no cover - hypothesis is in the dev extra
     pass

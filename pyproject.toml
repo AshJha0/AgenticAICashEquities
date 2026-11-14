@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cash-equities-agentic-platform"
-version = "0.9.0"
+version = "0.10.0"
 description = "Enterprise-style Agentic AI platform for investigating cash-equity execution quality (Python + MCP + LLM + multi-agent harness)."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -14,6 +14,7 @@ keywords = ["agentic-ai", "mcp", "cash-equities", "tca", "execution-quality", "l
 classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Framework :: FastAPI",
     "Topic :: Office/Business :: Financial :: Investment",
 ]
@@ -80,6 +81,26 @@ markers = [
     "real_paper_clock: keep the wall clock for the paper completed-session guard (tests/conftest.py)",
 ]
 
+[tool.coverage.run]
+# E1 (C-P2-1): branch coverage of the installed package only; parallel for pytest-xdist workers
+source = ["ceap"]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+show_missing = false
+skip_covered = false
+precision = 1
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    '@(abc.)?abstractmethod',
+]
+
+[tool.coverage.json]
+output = "coverage.json"
+
 [tool.ruff]
 line-length = 110
 target-version = "py311"
@@ -141,6 +162,12 @@ ignore_missing_imports = true
 [tool.mutmut]
 # H3 (0.9.0): nightly mutation testing (.github/workflows/nightly.yml, job `mutation`). mutmut is a
 # job-only tool (ADR 0003) and needs Linux; scripts/mutation_ratchet.py enforces the ceiling.
-paths_to_mutate = ["src/ceap/analytics/", "src/ceap/domain/"]
-tests_dir = ["tests/unit/analytics/", "tests/properties/", "tests/unit/test_domain.py"]
+# E2 (R-25): mutmut copies only `source_paths` into mutants/, so naming the two sub-packages there
+# left mutants/src/ceap without its __init__ and every other module, and the stats run could not
+# import ceap (the nightly "succeeded" with zero mutants). Copy all of src/, mutate only the two
+# packages, and copy the data and documents the tests read.
+source_paths = ["src/"]
+only_mutate = ["src/ceap/analytics/*", "src/ceap/domain/*"]
+also_copy = ["data/", "docs/", "config/", "scripts/"]
+pytest_add_cli_args_test_selection = ["tests/unit/analytics/", "tests/properties/", "tests/unit/test_domain.py"]
 pytest_add_cli_args = ["-p", "no:randomly", "--no-cov", "-o", "addopts="]

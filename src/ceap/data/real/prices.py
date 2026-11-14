@@ -21,8 +21,9 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ceap.data.real.prereg import PreregLock, check_in_sample, require_prereg_lock
+from ceap.paths import data_path
 
-CACHE = Path(__file__).resolve().parents[4] / "data" / "real_cache"
+CACHE = data_path("real_cache")
 
 
 @dataclass(frozen=True)

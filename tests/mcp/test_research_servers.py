@@ -104,8 +104,12 @@ async def test_portfolio_risk_tools(mcp_client, history):
 
 
 async def test_stage_orders_is_idempotent_and_recorded_as_order_evidence(mcp_client, registry, history):
+    from ceap.analytics.portfolio_risk import target_portfolio
+    from ceap.mcp.execution.staging import report_hash
+
     ds = history.get("R01")
     args = {**R01, "as_of": ds.end, "gross_notional": 50_000_000.0}
+    args["approved_portfolio_hash"] = report_hash(target_portfolio(ds, R01["signal"], ds.end, True, 50_000_000.0))
     first = await mcp_client.invoke("execution", "stage_orders", args)
     second = await mcp_client.invoke("execution", "stage_orders", args)
     assert first["staging_id"].startswith("STG-") and first["already_staged"] is False

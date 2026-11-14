@@ -1,0 +1,347 @@
+{
+ "audit": "0.10.0 T5: each number bound to the claim's own fact keys, metric, direction and cause checked",
+ "evidence_class": "local_model",
+ "model": "qwen2.5:7b-instruct",
+ "per_seed": {
+  "1": {
+   "claims_kept_by_audit": {
+    "ci95": [
+     0.4171,
+     0.8482
+    ],
+    "k": 10,
+    "n": 15,
+    "rate": 0.6667
+   },
+   "claims_with_number_not_in_own_facts": {
+    "ci95": [
+     0.0374,
+     0.3788
+    ],
+    "k": 2,
+    "n": 15,
+    "rate": 0.1333
+   },
+   "drop_reasons": {
+    "evidence_id_unknown": 2,
+    "fact_key_not_in_facts": 3,
+    "number_not_traceable": 2
+   },
+   "dropped": [
+    {
+     "case": "RC-01",
+     "reasons": [
+      "fact key 'findings.finding.statement' not in facts",
+      "number 6.2 not traceable to the claim's fact keys (implementation shortfall)"
+     ],
+     "text": "AAPL implementation shortfall changed by 6.2 bps; primary cause MARKET_VOLATILITY"
+    },
+    {
+     "case": "RC-01",
+     "reasons": [
+      "fact key 'policy_context.policies.0.excerpt' not in facts",
+      "number 5 not traceable to the claim's fact keys (implementation shortfall)"
+     ],
+     "text": "Deterioration of implementation shortfall of more than 5 bps over a one-hour window requires a written explanation"
+    },
+    {
+     "case": "RC-01",
+     "reasons": [
+      "fact key 'policy_context.policies.0.excerpt' not in facts"
+     ],
+     "text": "The implementation shortfall of AAPL exceeded the policy threshold, requiring a written explanation"
+    },
+    {
+     "case": "RC-03",
+     "reasons": [
+      "evidence id 'CH-ESC' unknown"
+     ],
+     "text": "A written explanation is required for deterioration of implementation shortfall exceeding 5 bps over a one-hour window."
+    },
+    {
+     "case": "RC-03",
+     "reasons": [
+      "evidence id 'CH-VEN' unknown"
+     ],
+     "text": "ARCA has experienced intermittent acknowledgement delays during venue-side maintenance windows, which may have contributed to the implementation shortfall."
+    }
+   ],
+   "planted_rejected": {
+    "wrong_cause": {
+     "ci95": [
+      0.5101,
+      1.0
+     ],
+     "k": 4,
+     "n": 4,
+     "rate": 1.0
+    },
+    "wrong_metric": {
+     "ci95": [
+      0.5101,
+      1.0
+     ],
+     "k": 4,
+     "n": 4,
+     "rate": 1.0
+    },
+    "wrong_sign": {
+     "ci95": [
+      0.5101,
+      1.0
+     ],
+     "k": 4,
+     "n": 4,
+     "rate": 1.0
+    }
+   }
+  },
+  "2": {
+   "claims_kept_by_audit": {
+    "ci95": [
+     0.1682,
+     0.6873
+    ],
+    "k": 4,
+    "n": 10,
+    "rate": 0.4
+   },
+   "claims_with_number_not_in_own_facts": {
+    "ci95": [
+     0.2366,
+     0.7634
+    ],
+    "k": 5,
+    "n": 10,
+    "rate": 0.5
+   },
+   "drop_reasons": {
+    "evidence_id_unknown": 4,
+    "fact_key_not_in_facts": 4,
+    "number_not_traceable": 5
+   },
+   "dropped": [
+    {
+     "case": "RC-01",
+     "reasons": [
+      "fact key 'findings.finding.statement' not in facts",
+      "evidence id 'F-R1' unknown",
+      "number 6.2 not traceable to the claim's fact keys (implementation shortfall)"
+     ],
+     "text": "AAPL implementation shortfall changed by 6.2 bps; primary cause MARKET_VOLATILITY"
+    },
+    {
+     "case": "RC-01",
+     "reasons": [
+      "fact key 'policy_context.policy.excerpt' not in facts",
+      "evidence id 'CH-ESC' unknown",
+      "number 5 not traceable to the claim's fact keys (implementation shortfall)"
+     ],
+     "text": "Deterioration of implementation shortfall of more than 5 bps requires a written explanation"
+    },
+    {
+     "case": "RC-02",
+     "reasons": [
+      "fact key 'findings.F-R2.statement' not in facts",
+      "number 5.4 not traceable to the claim's fact keys (implementation shortfall)"
+     ],
+     "text": "The implementation shortfall changed by 5.4 bps, indicating that the primary cause of the issue is TECHNOLOGY_LATENCY."
+    },
+    {
+     "case": "RC-02",
+     "reasons": [
+      "fact key 'policy_context.CH-LAT.excerpt' not in facts",
+      "number 3 not traceable to the claim's fact keys"
+     ],
+     "text": "The execution path latency ratio was 4.2, exceeding the threshold of 3, supporting the primary cause of TECHNOLOGY_LATENCY."
+    },
+    {
+     "case": "RC-03",
+     "reasons": [
+      "evidence id 'CH-ESC' unknown",
+      "number 5 not traceable to the claim's fact keys (implementation shortfall)"
+     ],
+     "text": "No written explanation is required for the implementation shortfall change, as it did not exceed 5 bps."
+    },
+    {
+     "case": "RC-03",
+     "reasons": [
+      "evidence id 'CH-VEN' unknown"
+     ],
+     "text": "The issue may be related to the known venue-side maintenance windows that caused intermittent acknowledgement delays."
+    }
+   ],
+   "planted_rejected": {
+    "wrong_cause": {
+     "ci95": [
+      0.5101,
+      1.0
+     ],
+     "k": 4,
+     "n": 4,
+     "rate": 1.0
+    },
+    "wrong_metric": {
+     "ci95": [
+      0.5101,
+      1.0
+     ],
+     "k": 4,
+     "n": 4,
+     "rate": 1.0
+    },
+    "wrong_sign": {
+     "ci95": [
+      0.5101,
+      1.0
+     ],
+     "k": 4,
+     "n": 4,
+     "rate": 1.0
+    }
+   }
+  },
+  "3": {
+   "claims_kept_by_audit": {
+    "ci95": [
+     0.3259,
+     0.7862
+    ],
+    "k": 8,
+    "n": 14,
+    "rate": 0.5714
+   },
+   "claims_with_number_not_in_own_facts": {
+    "ci95": [
+     0.1172,
+     0.5465
+    ],
+    "k": 4,
+    "n": 14,
+    "rate": 0.2857
+   },
+   "drop_reasons": {
+    "evidence_id_unknown": 2,
+    "fact_key_not_in_facts": 1,
+    "no_fact_keys_or_evidence": 1,
+    "number_not_traceable": 4
+   },
+   "dropped": [
+    {
+     "case": "RC-01",
+     "reasons": [
+      "number 5 not traceable to the claim's fact keys"
+     ],
+     "text": "The implementation shortfall for AAPL changed by 6.2 bps, exceeding the 5 bps threshold over a one-hour window."
+    },
+    {
+     "case": "RC-01",
+     "reasons": [
+      "evidence id 'F-R1' unknown"
+     ],
+     "text": "The primary cause of the implementation shortfall change was MARKET_VOLATILITY."
+    },
+    {
+     "case": "RC-01",
+     "reasons": [
+      "number 5 not traceable to the claim's fact keys (implementation shortfall)"
+     ],
+     "text": "A written explanation is required for the implementation shortfall change exceeding 5 bps over a one-hour window."
+    },
+    {
+     "case": "RC-02",
+     "reasons": [
+      "number 3 not traceable to the claim's fact keys"
+     ],
+     "text": "The incident runbook suggests comparing route_latency_us with the baseline hour; a ratio above 3 confirms a technology cause."
+    },
+    {
+     "case": "RC-02",
+     "reasons": [
+      "no fact keys and no evidence ids"
+     ],
+     "text": "No alternative explanations were identified for the execution shortfall during the 14:00-15:00 trading session."
+    },
+    {
+     "case": "RC-04",
+     "reasons": [
+      "fact key 'findings.finding.statement' not in facts",
+      "evidence id 'F-R4' unknown",
+      "number 0.4 not traceable to the claim's fact keys (implementation shortfall)"
+     ],
+     "text": "AMZN implementation shortfall changed by 0.4 bps; primary cause NORMAL"
+    }
+   ],
+   "planted_rejected": {
+    "wrong_cause": {
+     "ci95": [
+      0.5101,
+      1.0
+     ],
+     "k": 4,
+     "n": 4,
+     "rate": 1.0
+    },
+    "wrong_metric": {
+     "ci95": [
+      0.5101,
+      1.0
+     ],
+     "k": 4,
+     "n": 4,
+     "rate": 1.0
+    },
+    "wrong_sign": {
+     "ci95": [
+      0.5101,
+      1.0
+     ],
+     "k": 4,
+     "n": 4,
+     "rate": 1.0
+    }
+   }
+  }
+ },
+ "pooled": {
+  "claims_kept_by_audit": {
+   "ci95": [
+    0.4098,
+    0.707
+   ],
+   "k": 22,
+   "n": 39,
+   "per_seed": {
+    "1": 0.6667,
+    "2": 0.4,
+    "3": 0.5714
+   },
+   "rate": 0.5641
+  },
+  "claims_with_number_not_in_own_facts": {
+   "ci95": [
+    0.1654,
+    0.4378
+   ],
+   "k": 11,
+   "n": 39,
+   "per_seed": {
+    "1": 0.1333,
+    "2": 0.5,
+    "3": 0.2857
+   },
+   "rate": 0.2821
+  },
+  "drop_reasons": {
+   "evidence_id_unknown": 8,
+   "fact_key_not_in_facts": 8,
+   "no_fact_keys_or_evidence": 1,
+   "number_not_traceable": 11
+  }
+ },
+ "seeds": [
+  1,
+  2,
+  3
+ ]
+}

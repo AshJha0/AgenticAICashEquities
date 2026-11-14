@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ceap.agents.base import BaseAgent, confidence_from_excess, finite
+from ceap.analytics.attribution import PRIOR_WINDOW
 from ceap.domain.agents import AgentContext, AgentResult
 from ceap.domain.findings import Finding
 
@@ -68,20 +69,22 @@ class ExecutionAgent(BaseAgent):
             )
             add(
                 f"Implementation shortfall was {is_w:+.1f} bps versus arrival {win['arrival_price']:.4f} "
-                f"({direction} by {abs(is_delta):.1f} bps relative to the baseline's {_fmt_bps(is_b)}).",
+                f"({direction} by {abs(is_delta):.1f} bps relative to the {PRIOR_WINDOW}'s {_fmt_bps(is_b)}).",
                 0.9 if finite(is_delta) else 0.7,
                 ev,
                 is_bps=is_w,
                 is_delta_bps=is_delta,
+                baseline=PRIOR_WINDOW,  # H5 (R-03): this agent's baseline is the task's prior window
             )
         if finite(vs_w):
             add(
                 f"Execution VWAP {win['vwap']:.4f} versus interval VWAP {win['market_vwap']:.4f}: slippage {vs_w:+.1f} bps "
-                f"(baseline {_fmt_bps(vs_b)}, delta {_fmt_bps(vs_delta)}).",
+                f"({PRIOR_WINDOW} {_fmt_bps(vs_b)}, delta {_fmt_bps(vs_delta)}).",
                 0.9,
                 ev,
                 vwap_slippage_bps=vs_w,
                 vwap_slippage_delta_bps=vs_delta,
+                baseline=PRIOR_WINDOW,
             )
         fr, part = win.get("fill_rate"), win.get("participation_rate")
         if finite(fr):

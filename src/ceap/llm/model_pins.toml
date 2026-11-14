@@ -36,6 +36,13 @@ fallback_model = "claude-sonnet-5-5"
 effort = "low"
 max_tokens = 4000
 
+# Local open-weight models (R-13): name -> Ollama content digest (sha256 from /api/tags). The live
+# client compares the server's digest with this pin at start and refuses to run on a mismatch or an
+# empty digest. The values are the digests recorded in the 0.9.0 cassettes.
+[local_models]
+"qwen2.5:7b-instruct" = "845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e"
+"llama3.1:8b-instruct-q4_K_M" = "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e"
+
 # USD per million tokens, used ONLY for the local cost estimate and the task budget (3A.6).
 # Source: the published list prices as cached on 2026-10-06; never fetched at run time.
 [pricing."claude-opus-5-5"]

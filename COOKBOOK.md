@@ -163,8 +163,8 @@ A MEDIUM-risk tool (`risk.calculate_stress`) called by a principal without `risk
 (e.g. viewer) parks the investigation in `AWAITING_APPROVAL`:
 
 ```bash
-curl -s localhost:8000/approvals -H "X-API-Key: dev-admin-key"
-curl -s -X POST localhost:8000/approvals/APR-xxxx -H "X-API-Key: dev-admin-key" \
+curl -s localhost:8000/approvals -H "X-API-Key: dev-approver-key"
+curl -s -X POST localhost:8000/approvals/APR-xxxx -H "X-API-Key: dev-approver-key" \
   -H "Content-Type: application/json" -d '{"approved": true, "comment": "ok for TCA review"}'
 ```
 
@@ -478,23 +478,31 @@ pytest tests/evaluation                    # the 50-scenario run, ~1 minute
 ruff check src tests && ruff format --check src tests
 ```
 
-## 25. Export traces to OpenTelemetry
+## 25. Read the model-call spans of an investigation
 
 ```bash
-pip install -e ".[observability]"
-export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
-ceap serve
+curl -s localhost:8000/investigations/$ID/trace -H "X-API-Key: $KEY"   | python -c "import json,sys; [print(s['name'], s['attributes']) for s in json.load(sys.stdin)['spans'] if s['name'].startswith('gen_ai.chat')]"
 ```
 
-`build_tracer()` returns an `OpenTelemetryTracer` when the endpoint is set and the SDK is
-installed; the API's in-memory trace is unchanged. Prometheus scrapes `GET /metrics`.
+Every routed model call is one `gen_ai.chat:<model>` span under the agent span that made it. The
+attribute names follow the OpenTelemetry GenAI conventions (`gen_ai.request.model`,
+`gen_ai.usage.input_tokens`, `gen_ai.response.finish_reasons`, `gen_ai.request.temperature`,
+`gen_ai.request.seed`). The trace is held in memory and returned by the API; there is no OTLP
+exporter. Prometheus scrapes `GET /metrics`, which carries the AI SLO counters.
 
 ## 26. Run in Docker
 
 ```bash
 docker build -t ceap .
-docker run --rm -p 8000:8000 -e CEAP_API_KEYS="prod-key:trader" -e ANTHROPIC_API_KEY=... ceap
+export KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"   # keep this; clients send it
+docker run --rm -p 8000:8000 -e CEAP_API_KEY_HASHES="$(python scripts/hash_api_key.py --role trader)" ceap
+curl -s localhost:8000/tools -H "X-API-Key: $KEY"
 ```
+
+Outside `CEAP_ENV=dev` a raw key must carry at least 256 estimated bits, so short keys such as
+`prod-key` are refused at start-up; pre-hashed keys (`CEAP_API_KEY_HASHES`) alone are a complete
+configuration and keep the raw key out of the container environment. The reverse-proxy example in
+`deploy/compose/` uses the same variable and is started in CI (`scripts/compose_smoke.sh`).
 
 The image sets `CEAP_ENV=prod` and `CEAP_AUTO_APPROVE=false`.
 
@@ -798,6 +806,7 @@ python scripts/check_forward_log_staleness.py --csv forward_log.csv   # exit 1 =
 ## 44. Run a parent order through the simulated book
 
 ```python
+# ceap.execution is a simulator library, not used by the default paper book (0.10.0 status)
 from ceap.execution.algo import ParentOrder, execute
 from ceap.execution.child import ChildPolicy
 from ceap.execution.lob import BUY, LOBSimulator
@@ -905,7 +914,7 @@ python -m ceap.eval.judge --replay                                       # rubri
 ```
 
 A killed run resumes from the cassette. `CEAP_OLLAMA_URL` points at another Ollama host. Results go
-to `docs/evaluation/local_model/`; the headline numbers are plan valid 15/30, critic 35/45, 0/39 untraceable numbers, injection obeyed 3/40; full table in docs/evaluation/local_model/README.md. A judge
+to `docs/evaluation/local_model/`; the headline numbers are plan valid 15/30, critic 35/45, claims with a number outside their own fact keys 11/39 (0.10.0 re-audit), injection obeyed 3/40; full table in docs/evaluation/local_model/README.md. A judge
 dimension counts only when its Cohen's kappa against the 50-item reference is above 0.6
 (`ceap.eval.judge.enabled_dimensions()`).
 
@@ -955,9 +964,14 @@ Do not pass `--open-holdout`: the 1990-2015 holdout was opened once on 2026-11-0
 
 ```bash
 CEAP_DURABLE_RUNS=1 CEAP_DB_PATH=var/ceap.db ceap serve
+# after a crash and a restart, the task is INTERRUPTED; resume it under the same id
+curl -X POST -H "X-API-Key: $CEAP_KEY" http://127.0.0.1:8000/tasks/TASK-1a2b3c4d/resume
+CEAP_DB_PATH=var/ceap.db ceap resume TASK-1a2b3c4d     # the same from the command line
 ```
 
-Each completed tool call is journalled at the step boundary under an idempotency key; a re-run of the
-same task id reads it back instead of calling the tool again, and a human decision for the same
-content hash is reused. What to do after a crash or a stuck approval: `docs/RUNBOOK.md`.
+Each completed tool call and each model reply is journalled under the task id, as are human
+decisions and the principal the run started under. The resume reads them back instead of calling
+the tool or the model again, and does not ask an approver twice for the same question (0.10.0 H1).
+Only `INTERRUPTED` or `FAILED` tasks resume. What to do after a crash or a stuck approval:
+`docs/RUNBOOK.md`.
 

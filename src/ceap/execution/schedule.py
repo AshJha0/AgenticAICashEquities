@@ -121,8 +121,11 @@ class POV:
     """Participate at ``rate`` of market volume, held inside ``[rate - band, rate + band]``.
 
     ``forecast`` (expected market volume per slice) sets the static weights used for planning;
-    in execution :meth:`adjust` returns ``clip(rate * V, lo, hi)`` where ``V`` is the market volume
-    printed so far, so a quiet market slows the order and a busy one speeds it up.
+    in execution :meth:`adjust` returns the planned cumulative quantity clipped into
+    ``[(rate - band) V, (rate + band) V]``, where ``V`` is the market volume printed so far: the order
+    follows its plan while participation stays inside the band, and the band binds when the market
+    is quieter or busier than forecast. (Before 0.10.0 the target was ``clip(rate * V, lo, hi)``,
+    which is always inside the band, so the band did nothing: finding X-07.)
     """
 
     rate: float = 0.10
@@ -147,7 +150,7 @@ class POV:
     def adjust(self, slice_index: int, planned_cumulative: int, executed: int, market_volume: float) -> int:  # noqa: ARG002
         lo, hi = self.bounds(max(market_volume, 0.0))
         cap = self.total if self.total is not None else math.inf
-        target = min(max(self.rate * market_volume, lo), hi, cap)
+        target = min(max(float(planned_cumulative), lo), hi, cap)
         return int(max(round(target), 0))
 
 

@@ -17,30 +17,48 @@
       0.10663104094724335
     ]
   },
-  "conformal_q": 1.6534236173676284,
+  "conformal_q": 1.7142766843865505,
   "exec_noise_bps": 3.0800057845500595,
   "generator_hash": "78d1f783d404",
   "impact_coefficient": 0.37865333478353497,
   "label": "fitted to synthetic generator 78d1f783d404",
   "meta": {
+    "calibration_method": "two-layer conformal over regimes (rank ceil((K+1) * nominal) of K regime quantiles)",
+    "calibration_regimes": [
+      "T01+volatilityx2",
+      "T01+spreadx2",
+      "T01+depthx0.5",
+      "T01+order_sizex2",
+      "T01+latencyx2"
+    ],
     "calibration_seeds": [
       201,
       202,
       203
     ],
+    "challengers": {
+      "constant": [
+        3.219439,
+        0.0
+      ],
+      "spread_only": [
+        2.619143,
+        0.222237
+      ]
+    },
     "coverage_in_family_fresh_seed": {
-      "T01": 0.893125,
-      "T03": 0.895,
-      "T05": 0.8925,
-      "T07": 0.893125,
-      "T09": 0.875625
+      "T01": 0.911875,
+      "T03": 0.913125,
+      "T05": 0.90625,
+      "T07": 0.911875,
+      "T09": 0.888125
     },
     "coverage_shifted": {
-      "T02": 0.89875,
-      "T04": 0.905625,
-      "T06": 0.886875,
-      "T08": 0.859375,
-      "T10": 0.883125
+      "T02": 0.91125,
+      "T04": 0.9175,
+      "T06": 0.9025,
+      "T08": 0.870625,
+      "T10": 0.893125
     },
     "features": [
       "spread_bps at arrival",
@@ -52,8 +70,279 @@
       101,
       102
     ],
-    "n_calibration": 12000,
+    "law_shift": {
+      "cells": {
+        "T02": {
+          "bias": {
+            "constant": -4.996902,
+            "model": -0.821193,
+            "spread_only": -5.001649
+          },
+          "coverage": 0.9025,
+          "coverage_ci95": [
+            0.879491,
+            0.921508
+          ],
+          "coverage_ci95_iid": [
+            0.886986,
+            0.916085
+          ],
+          "design_effect": 2.080567,
+          "mae": {
+            "constant": 38.121954,
+            "model": 37.776979,
+            "spread_only": 38.117189
+          },
+          "n": 1600,
+          "n_effective": 769.021008,
+          "nominal_inside_ci": true
+        },
+        "T04": {
+          "bias": {
+            "constant": -0.007836,
+            "model": -0.594759,
+            "spread_only": -0.147728
+          },
+          "coverage": 0.9075,
+          "coverage_ci95": [
+            0.883622,
+            0.926884
+          ],
+          "coverage_ci95_iid": [
+            0.892311,
+            0.920737
+          ],
+          "design_effect": 2.309239,
+          "mae": {
+            "constant": 12.580914,
+            "model": 12.491391,
+            "spread_only": 12.574891
+          },
+          "n": 1600,
+          "n_effective": 692.869048,
+          "nominal_inside_ci": true
+        },
+        "T06": {
+          "bias": {
+            "constant": -0.196328,
+            "model": -0.785527,
+            "spread_only": -0.337604
+          },
+          "coverage": 0.89375,
+          "coverage_ci95": [
+            0.868299,
+            0.914765
+          ],
+          "coverage_ci95_iid": [
+            0.877696,
+            0.907918
+          ],
+          "design_effect": 2.35927,
+          "mae": {
+            "constant": 13.325547,
+            "model": 13.20622,
+            "spread_only": 13.31421
+          },
+          "n": 1600,
+          "n_effective": 678.175966,
+          "nominal_inside_ci": true
+        },
+        "T08": {
+          "bias": {
+            "constant": -23.076787,
+            "model": -18.587371,
+            "spread_only": -23.218238
+          },
+          "coverage": 0.52375,
+          "coverage_ci95": [
+            0.481626,
+            0.565539
+          ],
+          "coverage_ci95_iid": [
+            0.49925,
+            0.548136
+          ],
+          "design_effect": 2.960269,
+          "mae": {
+            "constant": 42.863316,
+            "model": 40.303637,
+            "spread_only": 42.92663
+          },
+          "n": 1600,
+          "n_effective": 540.491449,
+          "nominal_inside_ci": false
+        },
+        "T10": {
+          "bias": {
+            "constant": -6.124112,
+            "model": -1.94366,
+            "spread_only": -6.122941
+          },
+          "coverage": 0.885625,
+          "coverage_ci95": [
+            0.86288,
+            0.905013
+          ],
+          "coverage_ci95_iid": [
+            0.869098,
+            0.900305
+          ],
+          "design_effect": 1.821157,
+          "mae": {
+            "constant": 39.067019,
+            "model": 38.623471,
+            "spread_only": 39.068356
+          },
+          "n": 1600,
+          "n_effective": 878.562158,
+          "nominal_inside_ci": true
+        }
+      },
+      "crossover_q_over_adv": 0.01,
+      "law": "linear"
+    },
+    "n_calibration": 24000,
     "n_fit": 8000,
+    "pooled_conformal_q": 1.653424,
+    "regime_conformal_q": {
+      "T01": 1.622075,
+      "T01+depthx0.5": 1.622827,
+      "T01+latencyx2": 1.592089,
+      "T01+order_sizex2": 1.653956,
+      "T01+spreadx2": 1.618422,
+      "T01+volatilityx2": 1.611838,
+      "T03": 1.613668,
+      "T05": 1.705177,
+      "T07": 1.622075,
+      "T09": 1.714277
+    },
+    "shift_evaluation": {
+      "T02": {
+        "bias": {
+          "constant": -3.720966,
+          "model": 0.452754,
+          "spread_only": -3.727339
+        },
+        "coverage": 0.91125,
+        "coverage_ci95": [
+          0.88862,
+          0.929646
+        ],
+        "coverage_ci95_iid": [
+          0.896312,
+          0.924218
+        ],
+        "design_effect": 2.155156,
+        "mae": {
+          "constant": 37.171917,
+          "model": 37.123781,
+          "spread_only": 37.168724
+        },
+        "n": 1600,
+        "n_effective": 742.405664,
+        "nominal_inside_ci": true
+      },
+      "T04": {
+        "bias": {
+          "constant": 0.408776,
+          "model": -0.17726,
+          "spread_only": 0.268754
+        },
+        "coverage": 0.9175,
+        "coverage_ci95": [
+          0.894745,
+          0.935689
+        ],
+        "coverage_ci95_iid": [
+          0.902998,
+          0.930002
+        ],
+        "design_effect": 2.289929,
+        "mae": {
+          "constant": 12.272155,
+          "model": 12.263946,
+          "spread_only": 12.265731
+        },
+        "n": 1600,
+        "n_effective": 698.711538,
+        "nominal_inside_ci": true
+      },
+      "T06": {
+        "bias": {
+          "constant": 0.254206,
+          "model": -0.334058,
+          "spread_only": 0.110662
+        },
+        "coverage": 0.9025,
+        "coverage_ci95": [
+          0.878117,
+          0.922436
+        ],
+        "coverage_ci95_iid": [
+          0.886986,
+          0.916085
+        ],
+        "design_effect": 2.313684,
+        "mae": {
+          "constant": 13.055268,
+          "model": 12.997154,
+          "spread_only": 13.042048
+        },
+        "n": 1600,
+        "n_effective": 691.537783,
+        "nominal_inside_ci": true
+      },
+      "T08": {
+        "bias": {
+          "constant": -4.481935,
+          "model": 0.005635,
+          "spread_only": -4.623683
+        },
+        "coverage": 0.870625,
+        "coverage_ci95": [
+          0.844744,
+          0.892739
+        ],
+        "coverage_ci95_iid": [
+          0.853288,
+          0.886186
+        ],
+        "design_effect": 2.12718,
+        "mae": {
+          "constant": 16.639185,
+          "model": 16.016768,
+          "spread_only": 16.673125
+        },
+        "n": 1600,
+        "n_effective": 752.169688,
+        "nominal_inside_ci": false
+      },
+      "T10": {
+        "bias": {
+          "constant": -4.791122,
+          "model": -0.612633,
+          "spread_only": -4.792118
+        },
+        "coverage": 0.893125,
+        "coverage_ci95": [
+          0.869295,
+          0.913045
+        ],
+        "coverage_ci95_iid": [
+          0.877034,
+          0.907333
+        ],
+        "design_effect": 2.081679,
+        "mae": {
+          "constant": 38.00409,
+          "model": 37.923135,
+          "spread_only": 38.005547
+        },
+        "n": 1600,
+        "n_effective": 768.610452,
+        "nominal_inside_ci": true
+      }
+    },
     "target": "arrival shortfall bps (Perold IS minus delay leg, fees included)",
     "test_families": [
       "T02",
@@ -78,10 +367,12 @@
       "child_interval": 30,
       "family": "T01",
       "gap_broker": "BRK_C",
+      "impact_law": "sqrt",
       "luld": true,
       "multi_session_fraction": 0.05,
       "n_sessions": 20,
       "parents_per_session": 40,
+      "regime": [],
       "symbols": [
         "AAPL",
         "MSFT",

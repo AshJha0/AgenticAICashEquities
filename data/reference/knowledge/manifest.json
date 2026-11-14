@@ -1,6 +1,6 @@
 {
  "note": "Documents outside this directory that are part of the knowledge corpus. Paths are relative to this directory; metadata replaces front matter.",
  "external": [
-  {"path": "../../../docs/quant/quant.md", "version": "0.4.0", "effective_date": "2026-11-07", "classification": "internal"}
+  {"path": "../../../docs/quant/quant.md", "version": "0.5.0", "effective_date": "2026-11-14", "classification": "internal"}
  ]
 }

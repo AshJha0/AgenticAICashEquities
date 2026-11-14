@@ -191,7 +191,8 @@ def build_server(
         "Stage a PAPER order list that moves the book to the signal's recomputed target portfolio at as_of. "
         "Nothing is routed to a venue. Idempotent per (signal, dataset, as_of, gross_notional, long_short). "
         "Pre-trade checks (restricted, hard to borrow, per-name and gross limits) run first; refused while "
-        "the kill switch is set. Requires the trading:execute capability and human approval.",
+        "the kill switch is set. Requires the trading:execute capability and the approved portfolio hash; a "
+        "standalone server also requires a signed approval_grant.",
         read_only=False,
         risk_level=RiskLevel.HIGH,
         required_capabilities={TRADING_EXECUTE},
@@ -204,9 +205,15 @@ def build_server(
         gross_notional: float = DEFAULT_GROSS_NOTIONAL,
         approved_portfolio_hash: str | None = None,
     ) -> dict[str, Any]:
+        # R-12: the hash is required at call time. It stays optional in the schema only because the
+        # harness binds it after the approval gate, later than plan validation checks the schema.
+        if not approved_portfolio_hash:
+            raise StagingRefusedError(
+                "staging refused: approved_portfolio_hash is required (stage only an approved portfolio)"
+            )
         ds = select_history(history, dataset)
         report = target_portfolio(ds, signal, as_of, long_short, gross_notional)
-        if approved_portfolio_hash is not None and report_hash(report) != approved_portfolio_hash:
+        if report_hash(report) != approved_portfolio_hash:
             raise StagingRefusedError(
                 "staging refused: the recomputed target portfolio differs from the approved one "
                 "(the data changed between approval and staging); request a new approval"

@@ -87,6 +87,7 @@ def test_enabled_dimensions_reads_only_dimensions_over_the_bar(tmp_path):
     bad.write_text("{not json", encoding="utf-8")
     assert judge.enabled_dimensions(bad) == []
     doc = {
+        "labels_by": "independent human raters",
         "enabled": ["faithful", "complete", "hedged", "made_up"],
         "dimensions": {"faithful": {"kappa": 0.8}, "complete": {"kappa": 0.6}, "hedged": {"kappa": None}},
     }
@@ -94,6 +95,15 @@ def test_enabled_dimensions_reads_only_dimensions_over_the_bar(tmp_path):
     p.write_text(json.dumps(doc), encoding="utf-8")
     # 0.6 is not strictly above the bar; None counts as 0; unknown names are dropped
     assert judge.enabled_dimensions(p) == ["faithful"]
+
+
+def test_t10_model_written_labels_enable_nothing(tmp_path):
+    """0.10.0 T10 (R-07): labels written by a model cannot validate the judge."""
+    doc = {"labels_by": "Claude", "enabled": ["hedged"], "dimensions": {"hedged": {"kappa": 1.0}}}
+    p = tmp_path / "cal.json"
+    p.write_text(json.dumps(doc), encoding="utf-8")
+    assert judge.enabled_dimensions(p) == []
+    assert judge.enabled_dimensions() == []  # the committed file is labelled by Claude
 
 
 # ------------------------------------------------------------------------------------ challenger

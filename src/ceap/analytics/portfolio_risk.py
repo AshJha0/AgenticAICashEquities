@@ -17,6 +17,12 @@ risk view never depends on a backtest's output.
   the out-of-sample period and the worst date per limit is reported, not only
   the as-of view.
 * Non-members are never ranked or held.
+
+0.10 (Q4, finding R-17): the as-of report carries the book's **predicted volatility** from the
+Ledoit-Wolf (2004) shrinkage covariance of the held names' trailing daily returns
+(:func:`ceap.analytics.risk_research.ledoit_wolf`), ``sqrt(252 w' S w)``, and the shrinkage intensity.
+With 30 names and a year of data the sample covariance is badly conditioned; shrinkage is what makes
+the forecast usable. It is reported, not gated.
 """
 
 from __future__ import annotations
@@ -27,6 +33,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from ceap.analytics.backtest import daily_returns, rolling_vol_bps, target_weights
+from ceap.analytics.numerics import negligible_variation
 from ceap.analytics.signals import cross_sectional_zscore, dataset_signal
 from ceap.domain.research import (
     DEFAULT_GROSS_NOTIONAL,
@@ -84,8 +91,8 @@ def raw_betas_ex_self(window: np.ndarray, min_obs: int = MIN_BETA_OBS) -> tuple[
         y = r[ok, j]
         xd = x - x.mean()
         sxx = float(xd @ xd)
-        if sxx <= 0:
-            continue
+        if negligible_variation(x, sxx):
+            continue  # near-constant market: no estimate; se stays inf, which flags it to shrink_betas
         b = float(xd @ (y - y.mean())) / sxx
         resid = y - y.mean() - b * xd
         beta[j] = b
@@ -119,6 +126,27 @@ def market_betas(close: np.ndarray, end_index: int, lookback: int = BETA_LOOKBAC
     return shrink_betas(beta, se)
 
 
+def predicted_volatility(
+    close: np.ndarray, weights: np.ndarray, end_index: int, lookback: int = BETA_LOOKBACK
+) -> tuple[float, float]:
+    """``(annualised volatility, shrinkage)`` of the book ``weights`` from the Ledoit-Wolf covariance of the
+    held names' daily returns over the ``lookback`` days ending at ``end_index`` (Q4). NaN when fewer than
+    two complete days or no position."""
+    from ceap.analytics.risk_research import ledoit_wolf
+
+    held = np.flatnonzero(weights != 0)
+    if held.size == 0:
+        return float("nan"), float("nan")
+    lo = max(1, end_index - lookback + 1)
+    window = daily_returns(close[lo - 1 : end_index + 1])[1:, held]
+    window = window[np.isfinite(window).all(axis=1)]
+    if window.shape[0] < 2:
+        return float("nan"), float("nan")
+    cov, delta = ledoit_wolf(window)
+    w = weights[held]
+    return float(np.sqrt(max(float(w @ cov @ w), 0.0) * 252.0)), delta
+
+
 def _report_at(
     ds: HistoricalDataset,
     sig: np.ndarray,
@@ -129,6 +157,7 @@ def _report_at(
     top_fraction: float,
     weighting: str,
     betas: np.ndarray | None = None,
+    predict_vol: bool = False,
 ) -> PortfolioRiskReport:
     row = sig[t]
     if np.isfinite(row).sum() < MIN_NAMES:
@@ -170,7 +199,15 @@ def _report_at(
         effective_names=round(1.0 / hhi, 3) if hhi and np.isfinite(hhi) and hhi > 0 else float("nan"),
         beta=round(float((w * betas).sum()), 4),
         max_adv_participation=round(float(participation[held].max()) if held.size else 0.0, 6),
+        **_vol_fields(ds.close, w, t, predict_vol),
     )
+
+
+def _vol_fields(close: np.ndarray, w: np.ndarray, t: int, on: bool) -> dict[str, float]:
+    if not on:
+        return {}
+    vol, delta = predicted_volatility(close, w, t)
+    return {"predicted_vol_ann": round(vol, 6), "covariance_shrinkage": round(delta, 6)}
 
 
 def target_portfolio(
@@ -186,7 +223,7 @@ def target_portfolio(
         raise ValueError("gross_notional must be positive")
     t = ds.index_at_or_before(as_of) if as_of else ds.n_days - 1
     sig = dataset_signal(ds, signal)
-    return _report_at(ds, sig, t, signal, long_short, gross_notional, top_fraction, weighting)
+    return _report_at(ds, sig, t, signal, long_short, gross_notional, top_fraction, weighting, predict_vol=True)
 
 
 def check_limits(report: PortfolioRiskReport, limits: PortfolioLimits | None = None) -> tuple[LimitCheck, ...]:

@@ -5,8 +5,8 @@ approvals apply only when ``CEAP_ENV=dev`` (the default). In any other
 environment the key map must be supplied explicitly, approvals are queued for
 a human, and ``CEAP_AUTO_APPROVE=true`` makes the server refuse to start.
 
-The LLM layer fails closed: ``CEAP_LLM_PROVIDER`` is ``mock`` or ``anthropic``
-(``auto`` was removed in 0.4.0); outside dev it must be set explicitly; model
+The LLM layer fails closed: ``CEAP_LLM_PROVIDER`` is ``mock``, ``anthropic`` or
+``ollama`` (``auto`` was removed in 0.4.0); outside dev it must be set explicitly; model
 ids must be pinned in ``llm/model_pins.toml``; ``CEAP_LLM_DISABLED=true`` is the
 kill switch that forces the deterministic path everywhere.
 """
@@ -26,7 +26,7 @@ DEV_API_KEYS = (
     "dev-trader-key:trader,dev-quant-key:quant,dev-admin-key:admin,dev-viewer-key:viewer,"
     "dev-approver-key:approver,dev-approver2-key:approver,dev-auditor-key:auditor"
 )
-LLM_PROVIDERS = ("mock", "anthropic")
+LLM_PROVIDERS = ("mock", "anthropic", "ollama")  # ollama: local model, live or from a cassette (T11)
 
 
 class SettingsError(ValueError):
@@ -81,7 +81,7 @@ def _default_provider() -> str:
     if raw is None or raw.strip() == "":
         if _environment() != "dev":
             raise SettingsError(
-                f"CEAP_LLM_PROVIDER must be set explicitly (mock or anthropic) for CEAP_ENV={_environment()!r}"
+                f"CEAP_LLM_PROVIDER must be set explicitly (mock, anthropic or ollama) for CEAP_ENV={_environment()!r}"
             )
         return "mock"
     provider = raw.strip().lower()
@@ -178,10 +178,14 @@ class Settings:
 
     def validate_for_serving(self) -> None:
         """Refuse to serve with an unsafe configuration outside development."""
-        if not self.api_keys:
+        # R-26: pre-hashed keys alone are a complete configuration (the compose example ships only
+        # CEAP_API_KEY_HASHES); parse them here so a malformed entry fails at start-up, not per request
+        from ceap.api.auth import parse_key_hashes
+
+        if not self.api_keys and not parse_key_hashes(self.api_key_hashes):
             raise SettingsError(
-                f"no API keys configured for CEAP_ENV={self.environment!r}; set CEAP_API_KEYS=key:role,... "
-                "(the dev-* keys are only applied when CEAP_ENV=dev)"
+                f"no API keys configured for CEAP_ENV={self.environment!r}; set CEAP_API_KEY_HASHES "
+                "(preferred) or CEAP_API_KEYS=key:role,... (the dev-* keys are only applied when CEAP_ENV=dev)"
             )
         if not self.is_dev and any(key.startswith("dev-") for key in self.api_keys):
             raise SettingsError("development API keys (dev-*) must not be used outside CEAP_ENV=dev")
@@ -217,7 +221,8 @@ def _parse_api_keys(raw: str) -> dict[str, str]:
         if not pair:
             continue
         if ":" not in pair:
-            raise SettingsError(f"CEAP_API_KEYS entry {pair!r} must be key:role")
+            # never echo the entry: it is (or contains) the raw key (0.10.0 E7, finding E-08)
+            raise SettingsError("a CEAP_API_KEYS entry must be key:role (entry not shown: it holds key material)")
         key, role = (part.strip() for part in pair.split(":", 1))
         if len(key) < 8:
             raise SettingsError("API keys must be at least 8 characters")

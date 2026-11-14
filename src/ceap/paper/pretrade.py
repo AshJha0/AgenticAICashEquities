@@ -160,7 +160,11 @@ def sigma_band(adj_close: np.ndarray, i: int, j: int, limits: RiskLimits) -> flo
     r = r[np.isfinite(r)]
     if r.size < max(5, limits.sigma_window // 2):
         return limits.price_band_cap
-    return float(min(limits.price_band_cap, limits.price_band_sigma * float(np.std(r, ddof=1))))
+    sd = float(np.std(r, ddof=1))
+    if not sd > 1e-12:
+        # prices that never moved give no volatility estimate; a zero band would block every move
+        return limits.price_band_cap
+    return float(min(limits.price_band_cap, limits.price_band_sigma * sd))
 
 
 def check_orders(deltas: dict[str, float], positions: dict[str, float], equity: float, panel: MarketPanel, i: int,

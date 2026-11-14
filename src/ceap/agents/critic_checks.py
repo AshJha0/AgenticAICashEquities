@@ -173,3 +173,52 @@ def check_statement(
             word = "up" if sign > 0 else "down"
             out.append(("direction_mismatch", f"statement says {word}; cited {dict(changes)} says otherwise"))
     return out
+
+
+# ------------------------------------------------------------------ H5 (R-03): one name per baseline
+#: delta attributes that findings and the attribution both report, with their printed metric name
+DELTA_METRICS: dict[str, str] = {
+    "is_delta_bps": "implementation shortfall",
+    "vwap_slippage_delta_bps": "slippage versus interval VWAP",
+}
+#: deltas are printed to 0.1 bps; two values within half of that are the same number
+BASELINE_DELTA_TOLERANCE_BPS = 0.05
+UNNAMED_BASELINE = "the baseline"
+BASELINE_FLAG = "baseline_conflict"
+
+
+def baseline_conflicts(
+    findings: Iterable[Any], attribution: Mapping[str, Any] | None, attribution_baseline: str | None
+) -> list[str]:
+    """Two deltas of one metric in one report must name different baselines or agree (H5, R-03).
+
+    Plain idea. T06 at 0.9.0 said "shortfall delta -3.7 bps" in the summary (against the matched peer
+    windows) and "decreased by 28.6 bps relative to the baseline" in an observation (against the prior
+    window). Each number was right; printed under one word they contradict each other.
+
+    Every finding attribute in :data:`DELTA_METRICS` is read with its ``baseline`` attribute (a finding
+    without one is under :data:`UNNAMED_BASELINE`), and the attribution's deltas with
+    ``attribution_baseline``. Two values of the same metric under the same name that differ by more
+    than :data:`BASELINE_DELTA_TOLERANCE_BPS` are a conflict; one line per conflicting pair.
+    """
+    stated: dict[str, list[tuple[str, str, float]]] = {key: [] for key in DELTA_METRICS}
+    for f in findings:
+        attrs = getattr(f, "attributes", None) or {}
+        for key in DELTA_METRICS:
+            value = attrs.get(key)
+            if isinstance(value, int | float) and math.isfinite(value):
+                stated[key].append((str(f.id), str(attrs.get("baseline") or UNNAMED_BASELINE), float(value)))
+    for key in DELTA_METRICS:
+        value = (attribution or {}).get(key)
+        if isinstance(value, int | float) and math.isfinite(value):
+            stated[key].append(("attribution", attribution_baseline or UNNAMED_BASELINE, float(value)))
+    out: list[str] = []
+    for key, rows in stated.items():
+        for i, (a, name_a, va) in enumerate(rows):
+            for b, name_b, vb in rows[i + 1 :]:
+                if name_a == name_b and abs(va - vb) > BASELINE_DELTA_TOLERANCE_BPS:
+                    out.append(
+                        f"{a} and {b}: {DELTA_METRICS[key]} delta {va:+.1f} and {vb:+.1f} bps "
+                        f"under one baseline name ({name_a!r})"
+                    )
+    return out

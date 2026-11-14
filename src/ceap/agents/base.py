@@ -65,7 +65,9 @@ class BaseAgent(Agent):
 
     # ---------------------------------------------------------------- helpers
     async def call_llm(self, ctx: AgentContext, llm: LLMClient, request: LLMRequest) -> LLMResponse:
-        """Every model call goes through here: per-task call cap, then raced against cancellation."""
+        """Every model call goes through here: per-task call cap, the run journal (a resumed run reads a
+        reply it already has instead of asking again, H1), then raced against cancellation."""
+        journal = (ctx.state or {}).get("model_journal")
         scratch = (ctx.state or {}).get("scratch")
         if isinstance(scratch, dict):
             cap = int(getattr(llm, "max_calls_per_task", DEFAULT_MAX_LLM_CALLS_PER_TASK))
@@ -75,10 +77,18 @@ class BaseAgent(Agent):
 
                 raise LLMBudgetExceededError(f"per-task model-call cap of {cap} reached")
             scratch["llm_calls"] = used + 1
+        if journal is not None:
+            replayed = journal.lookup(request)
+            if replayed is not None:
+                return replayed
         coro = llm.complete(request)
         if ctx.cancellation_event is None:
-            return await coro
-        return await race_cancellation(coro, ctx.cancellation_event)
+            response = await coro
+        else:
+            response = await race_cancellation(coro, ctx.cancellation_event)
+        if journal is not None:
+            journal.record(request, response)
+        return response
 
     def checkpoint(self, ctx: AgentContext, **partial: Any) -> None:
         """Record partial output; if the agent times out the harness returns it as ``PARTIAL``."""

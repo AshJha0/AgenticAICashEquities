@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from ceap.paths import DataFileMissing, data_path, require
 from ceap.rag.bm25 import BM25
 from ceap.rag.ingestion import (
     DEFAULT_CHUNKING,
@@ -44,7 +45,7 @@ from ceap.rag.ingestion import (
 )
 from ceap.rag.text import tokenize
 
-DEFAULT_KNOWLEDGE_DIR = Path(__file__).resolve().parents[3] / "data" / "reference" / "knowledge"
+DEFAULT_KNOWLEDGE_DIR = data_path("reference", "knowledge")
 # The weakest support of a relevant top-3 hit on the train split, rounded down to 0.1
 # (``ceap.rag.evaluation.calibrate_min_support``; table and caveats in docs/ai-agents/ai-agents.md).
 DEFAULT_MIN_SUPPORT = 2.5  # 0.6.0: re-calibrated after the corpus grew (was 2.4)
@@ -219,8 +220,16 @@ class KnowledgeBase:
 def build_knowledge_base(
     directory: str | Path | None = None, chunking: ChunkingStrategy = DEFAULT_CHUNKING
 ) -> KnowledgeBase:
-    path = Path(directory) if directory else DEFAULT_KNOWLEDGE_DIR
+    """The knowledge base from ``directory``, else the packaged corpus.
+
+    R-27 (E3): the default corpus is required, so a missing one raises ``DataFileMissing`` instead of
+    serving an empty knowledge base. An explicit ``directory`` that holds no documents still only
+    warns: that is a deliberate configuration (an empty corpus for a test or a demo).
+    """
+    path = Path(directory) if directory else require("reference", "knowledge")
     docs = load_documents(path) if path.exists() else []
+    if not docs and not directory:
+        raise DataFileMissing(f"the knowledge corpus under {path} holds no *.md documents")
     if not docs:
         log.warning("knowledge base is empty: no *.md documents under %s (set CEAP_KNOWLEDGE_DIR)", path)
     return KnowledgeBase(docs, chunking=chunking, screen=True)

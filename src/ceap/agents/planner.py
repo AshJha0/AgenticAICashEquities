@@ -30,6 +30,7 @@ import asyncio
 import json
 import logging
 import re
+import time
 from dataclasses import replace
 from typing import Any
 
@@ -124,8 +125,10 @@ class PlannerAgent(BaseAgent):
     agent_id = "planner"
     agent_type = "planner"
 
-    def __init__(self, llm: LLMClient) -> None:
+    def __init__(self, llm: LLMClient, slo: Any = None) -> None:
         self.llm = llm
+        # T11: an observability.ai_slo.AISLOMonitor; None uses the router's, then the process default
+        self.slo = slo
 
     async def execute(self, context: AgentContext) -> AgentResult:
         task = context.state["task"]
@@ -174,9 +177,11 @@ class PlannerAgent(BaseAgent):
             return raw, errors
 
         degradations: list[Degradation] = []
+        started = time.perf_counter()
         raw: dict[str, Any] | None = None
         response: LLMResponse | None = None
         repairs = 0
+        first_errors: list[str] = []  # R-04: kept in the output so a reader can see why a plan failed
         if llm_disabled(self.llm):
             degradations.append(
                 Degradation(RUNG_KILL_SWITCH, "LLM_DISABLED", "kill switch on: canonical plan used")
@@ -186,6 +191,7 @@ class PlannerAgent(BaseAgent):
                 response = await self.call_llm(context, self.llm, request)
                 degradations.extend(response.degradations)
                 raw, errors = problems(response)
+                first_errors = list(errors)
                 if errors:
                     # rung 2: exactly one repair, with the schema and semantic errors as its target
                     repairs = 1
@@ -275,6 +281,7 @@ class PlannerAgent(BaseAgent):
             generated_by=source,
         )
         scope = _scope(raw, facts, steps, cases, research)
+        self._report_plan(response, source, repairs, started)
         output: dict[str, Any] = {
             "plan": plan,
             "rejected_steps": rejected,
@@ -282,6 +289,7 @@ class PlannerAgent(BaseAgent):
             "tokens": token_view(response),  # A20: labelled when the counts are a mock estimate
             "degradations": degradation_records(degradations),
             "repairs": repairs,
+            "validation_errors": first_errors,
             "prompt": prompt.ref(),
             "scope": scope,
         }
@@ -290,6 +298,31 @@ class PlannerAgent(BaseAgent):
             success=True,
             output=output,
             summary=f"{len(steps)} steps planned ({source}); {len(rejected)} rejected",
+        )
+
+    def _report_plan(
+        self,
+        response: LLMResponse | None,
+        source: str,
+        repairs: int,
+        started: float,
+    ) -> None:
+        """T11 (R-14): feed the AI SLO monitor the plan's own validity and repair outcome."""
+        if llm_disabled(self.llm):
+            return  # the kill switch is not a model outcome
+        from ceap.observability import ai_slo
+
+        monitor = self.slo or getattr(self.llm, "slo", None) or ai_slo.default_monitor
+        if monitor is None:
+            return
+        fallback = source == "canonical-fallback"
+        monitor.record_plan(
+            model=response.model if response is not None else "none",
+            # the same definition as the evaluation's planner.plan_valid (eval/agents.py)
+            plan_valid=source.startswith("llm:") and repairs == 0,
+            repaired=repairs > 0,
+            fallback=fallback,
+            latency_ms=(time.perf_counter() - started) * 1000.0,
         )
 
     @staticmethod

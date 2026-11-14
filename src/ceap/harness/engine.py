@@ -74,7 +74,7 @@ from ceap.harness.common import (  # noqa: F401 - re-exported, engine is the fac
     task_kind,
 )
 from ceap.harness.dispatch import DispatchMixin
-from ceap.harness.durable import RunJournal
+from ceap.harness.durable import RunJournal, id_scope, scope_seed
 from ceap.harness.evidence import EvidenceMixin
 from ceap.harness.executor import RunContext, StepExecutor
 from ceap.harness.memory import (
@@ -91,6 +91,7 @@ from ceap.policy.approvals import (
     ApprovalGateway,
     DenyApprovalGateway,
 )
+from ceap.policy.permissions import READ_ANY
 
 log = logging.getLogger(__name__)
 
@@ -176,12 +177,18 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
         # so concurrent tasks on one router never share a cost meter)
         llm_scope = task_scope(task.id)
         llm_scope.__enter__()
+        # H1: with a journal, ids minted at run level derive from the task id, so a resumed run
+        # reproduces them (the execution id above stays fresh: each attempt is its own execution)
+        ids = id_scope(scope_seed(task.id, "run") if self.journal is not None else None)
+        ids.__enter__()
 
         try:
             async with self.tracer.span("harness.execute", task_id=task.id, execution_id=execution_id):
                 # ---- planning ---------------------------------------------------
                 sm.transition(HarnessState.PLANNING, "task accepted")
-                memory.scratch["cases"] = self._recall_cases(task, memory)
+                memory.scratch["cases"] = self._recall_cases(
+                    task, memory, read_any=READ_ANY in policy_context.capabilities
+                )
                 async with self.tracer.span("harness.plan"):
                     planner_result = await self._run_agent(self.planner, "plan", memory, run, executor, task)
                     if not planner_result.success or "plan" not in planner_result.output:
@@ -211,7 +218,7 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
                 declined: set[str] = set()  # optional approval steps a human declined
                 for batch in _batches(plan.ordered_steps()):
                     cancellation.raise_if_cancelled()
-                    if utc_now() > deadline:
+                    if utc_now() > run.due():  # H6: time waiting for approvers does not count
                         raise TimeoutError("task deadline exceeded")
                     blocked = [s for s in batch if any(d in declined for d in s.depends_on)]
                     if blocked:
@@ -326,9 +333,11 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
                                 memory, run, executor, run_task, step_results, warnings
                             )
                             critic_ran, agents_since_critic = True, 0
+                            sm.mark_critiqued()
                             sm.transition(HarnessState.EXECUTING, "critique complete")
                         else:
                             agents_since_critic += 1
+                            sm.mark_new_work()
                     elif step.type is StepType.HUMAN_APPROVAL:
                         self._hypotheses(memory)
                         approved = await self._human_gate(step, run, sm, warnings, memory, task)
@@ -350,8 +359,10 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
                         if not critic_ran or agents_since_critic:  # governance: critique what was added
                             await self._force_critic(memory, run, executor, run_task, step_results, warnings)
                             critic_ran, agents_since_critic = True, 0
+                            sm.mark_critiqued()
                         sm.transition(HarnessState.VALIDATING_EVIDENCE, "validation step")
                         dropped = self._validate_evidence(memory, warnings)
+                        sm.mark_evidence_validated()
                         step_results.append(
                             {
                                 "step_id": step.id,
@@ -365,7 +376,12 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
                         if not critic_ran or agents_since_critic:
                             await self._force_critic(memory, run, executor, run_task, step_results, warnings)
                             critic_ran, agents_since_critic = True, 0
+                            sm.mark_critiqued()
+                        if not sm.evidence_validated:  # AI-2-11: never finalise unvalidated evidence
+                            sm.transition(HarnessState.VALIDATING_EVIDENCE, "evidence check before finalising")
                             self._validate_evidence(memory, warnings)
+                            sm.mark_evidence_validated()
+                            sm.transition(HarnessState.EXECUTING, "evidence validated")
                         sm.transition(HarnessState.FINALISING, "finalise step")
                         table = self._hypotheses(memory)
                         rep_result = await self._run_agent(
@@ -389,6 +405,8 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
                                 "error": "ANALYSIS steps are informational",
                             }
                         )
+                    else:  # AI-2-11: an unknown step type fails the run instead of being skipped
+                        raise PlanValidationError(f"step {step.id}: unsupported step type {step.type!r}")
 
                 if report is None:
                     raise RuntimeError("plan finished without producing a report")
@@ -412,6 +430,7 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
                 sm.fail(error)
                 metrics.inc("ceap_investigations_failed_total")
 
+        ids.__exit__(None, None, None)
         llm_scope.__exit__(None, None, None)
         cost = task_cost(task.id)  # R3A 3A.6: per-task cost span (local estimate, labelled)
         if cost.calls:

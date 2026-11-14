@@ -6,74 +6,74 @@
   ],
   "curve": [
     {
-      "false_promotes": 17,
+      "false_promotes": 0,
       "hurdle": 0.0,
-      "lower": 0.019929,
-      "rate": 0.034,
-      "upper": 0.05388
+      "lower": 0.0,
+      "rate": 0.0,
+      "upper": 0.007351
     },
     {
-      "false_promotes": 16,
+      "false_promotes": 0,
       "hurdle": 0.25,
-      "lower": 0.018399,
-      "rate": 0.032,
-      "upper": 0.051447
+      "lower": 0.0,
+      "rate": 0.0,
+      "upper": 0.007351
     },
     {
-      "false_promotes": 13,
+      "false_promotes": 0,
       "hurdle": 0.5,
-      "lower": 0.013915,
-      "rate": 0.026,
-      "upper": 0.04405
+      "lower": 0.0,
+      "rate": 0.0,
+      "upper": 0.007351
     },
     {
-      "false_promotes": 11,
+      "false_promotes": 0,
       "hurdle": 0.75,
-      "lower": 0.011032,
-      "rate": 0.022,
-      "upper": 0.039023
+      "lower": 0.0,
+      "rate": 0.0,
+      "upper": 0.007351
     },
     {
-      "false_promotes": 10,
+      "false_promotes": 0,
       "hurdle": 1.0,
-      "lower": 0.009631,
-      "rate": 0.02,
-      "upper": 0.036472
+      "lower": 0.0,
+      "rate": 0.0,
+      "upper": 0.007351
     },
     {
-      "false_promotes": 8,
+      "false_promotes": 0,
       "hurdle": 1.25,
-      "lower": 0.006932,
-      "rate": 0.016,
-      "upper": 0.031282
+      "lower": 0.0,
+      "rate": 0.0,
+      "upper": 0.007351
     },
     {
-      "false_promotes": 7,
+      "false_promotes": 0,
       "hurdle": 1.5,
-      "lower": 0.005647,
-      "rate": 0.014,
-      "upper": 0.028632
+      "lower": 0.0,
+      "rate": 0.0,
+      "upper": 0.007351
     },
     {
-      "false_promotes": 4,
+      "false_promotes": 0,
       "hurdle": 1.75,
-      "lower": 0.002184,
-      "rate": 0.008,
-      "upper": 0.020356
+      "lower": 0.0,
+      "rate": 0.0,
+      "upper": 0.007351
     },
     {
-      "false_promotes": 2,
+      "false_promotes": 0,
       "hurdle": 2.0,
-      "lower": 0.000485,
-      "rate": 0.004,
-      "upper": 0.014374
+      "lower": 0.0,
+      "rate": 0.0,
+      "upper": 0.007351
     },
     {
-      "false_promotes": 2,
+      "false_promotes": 0,
       "hurdle": 2.25,
-      "lower": 0.000485,
-      "rate": 0.004,
-      "upper": 0.014374
+      "lower": 0.0,
+      "rate": 0.0,
+      "upper": 0.007351
     },
     {
       "false_promotes": 0,
@@ -115,7 +115,7 @@
   "first_seed": 0,
   "gates": {
     "cost_share_max": 0.5,
-    "dsr_min": 0.5,
+    "dsr_min": 0.95,
     "min_dates": 30,
     "oos_ic_t_min": 1.0,
     "sharpe_min": 0.5
@@ -123,7 +123,7 @@
   "generator": "realistic_v1",
   "ic_t_single_test": 1.645,
   "ic_t_stat_min": 3.0,
-  "lowest_hurdle_with_upper_le_5pct": 0.4,
+  "lowest_hurdle_with_upper_le_5pct": 0.0,
   "n_seeds": 500,
   "quick_check_50": {
     "false_promotes": 0,
@@ -132,5 +132,5 @@
   },
   "rate": 0.0,
   "rule": "a-priori hurdle: t >= 3 for a result chosen from a search, t >= 1.645 for one preregistered test (Harvey, Liu and Zhu 2016); the sweep measures the false-PROMOTE rate of the full 24-configuration search on the pure-noise set at that hurdle",
-  "sweep_hash": "ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4"
+  "sweep_hash": "8d1dc8bd91e407ccc135174860078a1b5f03150b6c3defaca0cea414c47a6af0"
 }

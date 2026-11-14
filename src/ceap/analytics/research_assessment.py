@@ -16,6 +16,12 @@ and reported. The LLM never decides the verdict.
    deflated Sharpe uses the ledger's trial count floored at the enumerated
    (or preregistered) variants and, when known, the effective count of
    correlated trials (D8, :mod:`ceap.analytics.trial_accounting`).
+   0.10 (Q4, finding R-20): the same hurdle applies to the in-sample IC of the
+   signal residualised on each name's trailing market beta
+   (:func:`ceap.analytics.risk_research.factor_neutral_ic`). A premium planted on
+   market beta passed the plain IC test; it is market exposure, not alpha, and
+   now fails here. A record without the statistic (pre-0.10 payloads) is not
+   failed for its absence.
 2. ``REGIME_BREAK`` when the out-of-sample IC t is at or below
    ``-regime_break_t``: the premium reversed.
 3. ``OOS_DECAY`` (0.4 name ``OVERFIT``; nothing is fitted) when the
@@ -36,10 +42,10 @@ from __future__ import annotations
 import json
 import math
 from dataclasses import dataclass
-from pathlib import Path
 from statistics import NormalDist
 from typing import Any
 
+from ceap.analytics.numerics import sharpe_standard_error
 from ceap.domain.findings import HypothesisRow, HypothesisTable
 from ceap.domain.research import (
     BacktestResult,
@@ -49,8 +55,9 @@ from ceap.domain.research import (
     ResearchVerdict,
     SignalStatistics,
 )
+from ceap.paths import data_path
 
-THRESHOLDS_PATH = Path(__file__).resolve().parents[3] / "data" / "reference" / "research_thresholds.json"
+THRESHOLDS_PATH = data_path("reference", "research_thresholds.json")
 TRADING_DAYS = 252
 EULER_GAMMA = 0.5772156649015329
 _N = NormalDist()
@@ -62,7 +69,7 @@ UNSET_HURDLE = MINED_HURDLE
 # kept equal to data/reference/research_thresholds.json by a test; the file records the sweep that measured
 # the false-PROMOTE rate at the a-priori hurdle (it no longer sets the hurdle)
 COMMITTED_HURDLE = MINED_HURDLE
-COMMITTED_SWEEP_HASH = "ef474869e5fa503d593b460c7e8921a7d26f106d483a2c5c6c2708dc1faf57d4"
+COMMITTED_SWEEP_HASH = "8d1dc8bd91e407ccc135174860078a1b5f03150b6c3defaca0cea414c47a6af0"
 
 
 def _load_sweep_hash() -> str:
@@ -88,7 +95,10 @@ class ResearchThresholds:
     cost_share_max: float = 0.5
     pnl_concentration_max: float = 0.5
     min_dates: int = 30  # non-overlapping in-sample IC observations
-    dsr_min: float = 0.5  # deflated Sharpe probability: observed IS Sharpe beats the expected maximum of the trials
+    # deflated Sharpe probability that the observed IS Sharpe beats the expected maximum of the trials. 0.10 (Q2,
+    # decision O5): 0.95, the one-sided 5 % reading of Bailey and Lopez de Prado (2014); 0.5 only asked for "more
+    # likely than not". The false-PROMOTE rate at this bar is measured by the null sweep (research_thresholds.json).
+    dsr_min: float = 0.95
     trial_floor: int = 24  # D8: the enumerated search space; a preregistered study passes its own variant count
     inconclusive_z: float = 1.96  # D4: two-sided 95 % interval of the full-period net Sharpe
 
@@ -114,12 +124,11 @@ def hurdle_for(n_trials: int, th: ResearchThresholds) -> float:
 
 
 def sharpe_interval(sharpe_ann: float, n_days: int, z: float = 1.96) -> tuple[float, float]:
-    """Two-sided interval for an annualised Sharpe ratio with the iid standard error of Lo (2002),
-    ``SE = sqrt((1 + SR^2 / 2) / years)``. Evidence class: method."""
+    """Two-sided interval for an annualised Sharpe ratio with the iid standard error of Lo (2002) in its
+    daily form (``ceap.analytics.numerics.sharpe_standard_error``; Q1, finding R-15). Evidence class: method."""
     if sharpe_ann is None or not math.isfinite(sharpe_ann) or n_days < 2:
         return float("nan"), float("nan")
-    years = n_days / TRADING_DAYS
-    se = math.sqrt((1.0 + sharpe_ann**2 / 2.0) / years)
+    se = sharpe_standard_error(sharpe_ann, n_days, TRADING_DAYS)
     return sharpe_ann - z * se, sharpe_ann + z * se
 
 
@@ -154,16 +163,19 @@ def deflated_sharpe(
 ) -> tuple[float, float]:
     """Deflated Sharpe ratio (Bailey and Lopez de Prado 2014): ``(DSR probability, SR0 annualised)``.
 
-    Per-day Sharpe ``SR``; ``SR0`` from the ledger's trial count and cross-trial variance (the null value
-    ``1 / T`` when the ledger has fewer than two trials with a variance);
+    Per-day Sharpe ``SR``; ``SR0`` from the ledger's trial count and the cross-trial variance of the per-day
+    Sharpe, **floored at the null value** ``1 / T`` (0.10 Q2, finding R-16): under the null each trial's
+    per-day Sharpe estimate has sampling variance about ``1 / T`` (Lo 2002), so a smaller cross-trial
+    variance says the trials are correlated, not that the expected maximum is lower; without the floor a
+    ledger of near-identical trials made a Sharpe of 0.3 pass. ``None`` (fewer than two trials) is the floor.
     ``DSR = Phi((SR - SR0) sqrt(T - 1) / sqrt(1 - skew SR + (kurt - 1) / 4 SR^2))``.
     """
     if not _finite(sharpe_ann) or n_days < 3:
         return float("nan"), float("nan")
     sr = sharpe_ann / math.sqrt(TRADING_DAYS)
     var = 1.0 / n_days
-    if sharpe_variance is not None and _finite(sharpe_variance) and sharpe_variance > 0:
-        var = float(sharpe_variance)
+    if sharpe_variance is not None and _finite(sharpe_variance):
+        var = max(var, float(sharpe_variance))
 
     sr0 = expected_max_sharpe(max(n_trials, 1), var)
     g3 = skew if _finite(skew) else 0.0
@@ -173,6 +185,29 @@ def deflated_sharpe(
         return float("nan"), sr0 * math.sqrt(TRADING_DAYS)
     z = (sr - sr0) * math.sqrt(n_days - 1) / math.sqrt(denom)
     return _N.cdf(z), sr0 * math.sqrt(TRADING_DAYS)
+
+
+def alpha_deflated_sharpe(
+    in_sample: Any, trial: dict[str, Any], th: ResearchThresholds | None = None
+) -> tuple[float, float, int]:
+    """The production deflated-Sharpe step of the alpha gate: ``(DSR, SR0 annualised, trials counted)``.
+
+    Deflates the in-sample Sharpe *before* trading costs (costs belong to ``COST_DRAG``, not ``NO_ALPHA``)
+    against the ledger's trial count and its gross cross-trial variance. :func:`assess_research` and the
+    null sweep both call this, so the sweep measures the gate that ships (Q2, finding R-16).
+    """
+    t = th or DEFAULT_THRESHOLDS
+    n_trials = trial_count(trial, t)
+    var = trial.get("sharpe_variance")
+    dsr, sr0_ann = deflated_sharpe(
+        in_sample.gross_sharpe, in_sample.n_days, in_sample.skew, in_sample.kurtosis, n_trials,
+        float(var) if var is not None else None,
+    )
+    return dsr, sr0_ann, n_trials
+
+
+def _num(x: Any) -> float:
+    return float(x) if isinstance(x, int | float) and not isinstance(x, bool) else float("nan")
 
 
 def _p_one_sided(t: float) -> float | None:
@@ -214,27 +249,31 @@ def assess_research(
     breached = [c for c in risk.checks if c.breached]
     history_breaches = [c for c in risk.history_checks if c.get("breached")]
     trial = backtest.trial or {}
-    n_trials = trial_count(trial, th)
+    search = trial.get("search") if isinstance(trial.get("search"), dict) else {}
+    dsr, sr0_ann, n_trials = alpha_deflated_sharpe(is_b, trial, th)
     hurdle = hurdle_for(n_trials, th)
-    trial_var = trial.get("sharpe_variance")
-    # the alpha test deflates the in-sample Sharpe *before* trading costs: costs belong to COST_DRAG, not NO_ALPHA
-    dsr, sr0_ann = deflated_sharpe(
-        is_b.gross_sharpe, is_b.n_days, is_b.skew, is_b.kurtosis, n_trials,
-        float(trial_var) if trial_var is not None else None,
-    )
 
     flags: list[ResearchFlag] = []
     rationale: list[str] = []
 
     # ---- alpha chain: no alpha -> regime break -> OOS decay -> cost drag
-    weak_t = not _finite(is_s.ic_t_stat) or is_s.n_dates < th.min_dates or is_s.ic_t_stat < hurdle
+    weak_raw_t = not _finite(is_s.ic_t_stat) or is_s.n_dates < th.min_dates or is_s.ic_t_stat < hurdle
+    fn_t = is_s.ic_t_stat_factor_neutral
+    weak_fn = _finite(fn_t) and fn_t < hurdle
+    weak_t = weak_raw_t or weak_fn
     weak_dsr = not _finite(dsr) or dsr < th.dsr_min
     if weak_t or weak_dsr:
         flags.append(ResearchFlag.NO_ALPHA)
-        if weak_t:
+        if weak_raw_t:
             rationale.append(
                 f"in-sample {is_s.horizon_days}-day IC t-stat {is_s.ic_t_stat:.2f} over {is_s.n_dates} "
                 f"non-overlapping periods is below the a-priori {hurdle:.2f} hurdle ({n_trials} trial(s) counted)"
+            )
+        elif weak_fn:
+            rationale.append(
+                f"factor-neutral in-sample IC t-stat {fn_t:.2f} (signal and return residualised on market beta) is "
+                f"below the {hurdle:.2f} hurdle although the plain IC t-stat is {is_s.ic_t_stat:.2f}: the premium "
+                "is market exposure, not alpha"
             )
         if weak_dsr:
             rationale.append(
@@ -323,13 +362,22 @@ def assess_research(
         "deflated_sharpe": dsr,
         "deflated_sharpe_bar": sr0_ann,
         "n_trials": float(n_trials),
+        # 0.10 Q4 (R-17, R-20): the realism toolkit's outputs, recorded with the verdict
+        "is_ic_t_factor_neutral": fn_t,
+        "pbo": _num(search.get("pbo")),
+        "n_trials_effective": _num(search.get("n_trials_effective")),
+        "n_trials_effective_cluster": _num(search.get("n_trials_effective_cluster")),
+        "predicted_vol_ann": risk.predicted_vol_ann,
+        "covariance_shrinkage": risk.covariance_shrinkage,
     }
     oos_years = oos_b.n_days / TRADING_DAYS if oos_b.n_days else float("nan")
     oos_sr_t = oos_b.sharpe * math.sqrt(oos_years) if _finite(oos_b.sharpe) and _finite(oos_years) else float("nan")
     hypotheses = HypothesisTable(
         rows=(
             HypothesisRow("in_sample_ic_t", is_s.ic_t_stat, _p_one_sided(is_s.ic_t_stat), is_s.n_dates,
-                          "PASS" if not weak_t else "FAIL"),
+                          "PASS" if not weak_raw_t else "FAIL"),
+            HypothesisRow("in_sample_ic_t_factor_neutral", fn_t, _p_one_sided(fn_t), is_s.n_dates,
+                          "FAIL" if weak_fn else ("PASS" if _finite(fn_t) else "NOT_RUN")),
             HypothesisRow("deflated_sharpe", dsr, None if not _finite(dsr) else 1.0 - dsr, is_b.n_days,
                           "PASS" if not weak_dsr else "FAIL"),
             HypothesisRow("out_of_sample_ic_t", oos_s.ic_t_stat, _p_one_sided(oos_s.ic_t_stat), oos_s.n_dates,

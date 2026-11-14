@@ -5,8 +5,21 @@ never pass a trial count. A re-run of identical parameters on the same dataset
 does not add a trial. ``summary`` returns the count and the cross-trial
 variance of the per-day Sharpe ratio, which the deflated Sharpe ratio needs.
 
-Persistence: JSON lines at ``CEAP_TRIAL_LEDGER`` when set (append-only, one
-record per line, never rewritten); otherwise in memory for the process.
+Basis (0.10 Q2, finding R-16): every record carries the per-day Sharpe
+**before** trading costs (``sharpe_daily``, ``sharpe_basis = "gross"``), the
+quantity the deflated Sharpe deflates, and the net one beside it
+(``sharpe_daily_net``) when the caller has it. The variance is taken over
+gross records only; a record written before 0.10 has no basis (the backtest
+tool then wrote the net figure), so it is counted as a trial but left out of
+the variance rather than mixed with gross ones.
+
+Persistence (0.10 Q7, finding Q-12): JSON lines, append-only, one record per
+line, never rewritten, at ``CEAP_TRIAL_LEDGER`` or, when that is unset, at
+:data:`DEFAULT_LEDGER_PATH` (``var/trial_ledger.jsonl``, beside the default
+database). A trial count that resets with every process undercounts the search
+across sessions, which flatters the deflated Sharpe. ``CEAP_TRIAL_LEDGER=:memory:``
+(or ``TrialLedger(":memory:")``) keeps it in memory: the test suite and the
+scenario evaluation use that so one run cannot change another's verdict.
 """
 
 from __future__ import annotations
@@ -26,9 +39,11 @@ from ceap.util.canonical import content_hash
 class TrialSummary:
     dataset_hash: str
     n_trials: int
-    sharpe_variance: float  # variance of the per-day Sharpe across trials (NaN below two trials)
+    sharpe_variance: float  # variance of the gross per-day Sharpe across trials (NaN below two trials)
     params_hash: str
     new_trial: bool
+    sharpe_variance_net: float = float("nan")  # the same over the records that carry a net Sharpe
+    sharpe_basis: str = "gross"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -37,13 +52,26 @@ class TrialSummary:
             "sharpe_variance": self.sharpe_variance,
             "params_hash": self.params_hash,
             "new_trial": self.new_trial,
+            "sharpe_variance_net": self.sharpe_variance_net,
+            "sharpe_basis": self.sharpe_basis,
         }
+
+
+def _sample_variance(xs: list[float]) -> float:
+    if len(xs) < 2:
+        return float("nan")
+    mean = sum(xs) / len(xs)
+    return sum((x - mean) ** 2 for x in xs) / (len(xs) - 1)
+
+
+DEFAULT_LEDGER_PATH = Path("var") / "trial_ledger.jsonl"
+MEMORY = ":memory:"
 
 
 class TrialLedger:
     def __init__(self, path: str | Path | None = None) -> None:
-        env = os.environ.get("CEAP_TRIAL_LEDGER")
-        self._path = Path(path) if path else (Path(env) if env else None)
+        chosen = path if path else (os.environ.get("CEAP_TRIAL_LEDGER") or DEFAULT_LEDGER_PATH)
+        self._path = None if str(chosen) == MEMORY else Path(chosen)
         self._lock = threading.Lock()
         self._records: list[dict[str, Any]] = []
         if self._path and self._path.exists():
@@ -54,7 +82,11 @@ class TrialLedger:
     def params_hash(params: dict[str, Any]) -> str:
         return content_hash({k: params[k] for k in sorted(params)})
 
-    def record(self, dataset_hash: str, params: dict[str, Any], sharpe_daily: float) -> TrialSummary:
+    def record(
+        self, dataset_hash: str, params: dict[str, Any], sharpe_daily: float, sharpe_daily_net: float | None = None
+    ) -> TrialSummary:
+        """Record one trial. ``sharpe_daily`` is the per-day Sharpe **before** trading costs; ``sharpe_daily_net``
+        the same after costs, when known."""
         ph = self.params_hash(params)
         with self._lock:
             seen = any(r["dataset_hash"] == dataset_hash and r["params_hash"] == ph for r in self._records)
@@ -64,6 +96,11 @@ class TrialLedger:
                     "params_hash": ph,
                     "params": params,
                     "sharpe_daily": sharpe_daily if sharpe_daily == sharpe_daily else None,
+                    "sharpe_daily_net": (
+                        sharpe_daily_net if sharpe_daily_net is not None and sharpe_daily_net == sharpe_daily_net
+                        else None
+                    ),
+                    "sharpe_basis": "gross",
                     "recorded_at": datetime.now(UTC).isoformat(timespec="seconds"),
                 }
                 self._records.append(rec)
@@ -79,12 +116,10 @@ class TrialLedger:
 
     def _summary(self, dataset_hash: str, ph: str, new: bool) -> TrialSummary:
         rows = [r for r in self._records if r["dataset_hash"] == dataset_hash]
-        sharpes = [float(r["sharpe_daily"]) for r in rows if r.get("sharpe_daily") is not None]
-        var = float("nan")
-        if len(sharpes) >= 2:
-            mean = sum(sharpes) / len(sharpes)
-            var = sum((s - mean) ** 2 for s in sharpes) / (len(sharpes) - 1)
-        return TrialSummary(dataset_hash, len(rows), var, ph, new)
+        gross = [float(r["sharpe_daily"]) for r in rows
+                 if r.get("sharpe_basis") == "gross" and r.get("sharpe_daily") is not None]
+        net = [float(r["sharpe_daily_net"]) for r in rows if r.get("sharpe_daily_net") is not None]
+        return TrialSummary(dataset_hash, len(rows), _sample_variance(gross), ph, new, _sample_variance(net))
 
     def __len__(self) -> int:
         return len(self._records)

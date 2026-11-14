@@ -6,6 +6,621 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+## [0.10.0] - 2026-11-14
+
+**Make every published claim true.** This release fixes or withdraws what the 2026-11-12 review
+found (docs/review/2026-11-12/). **After 0.10.0 the project is paused**: the owner decided not to
+spend the remaining plan on a 26 CPU-hour local-model re-recording whose small samples could not
+settle model quality.
+
+**Not done in 0.10.0 (open, project paused):**
+
+- T8/T9: the local-model runs were not re-recorded. Every AI metric on the results page is the 0.9.0
+  recording, re-audited where stated (reporter 22/39 after T5); the challenger agreement is still
+  not measured. T6 (generated results table) depends on it and is not done.
+- T4: the schema changes that alter request hashes (null-free optional members, window enum,
+  dataset and symbol constants) were not made, because they would need the re-recording.
+- X4: pre-trade interval coverage still misses nominal 90 % in T08 (orders ten times larger,
+  87.1 %, Wilson interval 84.5-89.3 %); `scripts/train_pretrade.py` exits 1; the test is a strict xfail.
+- E1: eight packages remain under their branch-coverage floor; analytics and paper read slightly
+  below their ratchet under machine load (docs/testing/coverage-by-package.md).
+- E2: the mutation baseline has never been measured (the ratchet fails on a null baseline after
+  2026-11-30); the release gate's three green nightlies were not yet available at tagging.
+- The signed research golden set v1.1 is frozen, so it still asks RS25 and RS27 (G-RES11-13, -14)
+  for COST_DRAG; under Q2's 0.95 bar their expected flag is NO_ALPHA (verdict REJECT unchanged). The
+  test lists this exact divergence; a v1.2 re-sign is left open.
+- The forward log has 2 sessions at tagging (12 and 13 November; restarted 2026-11-12); the five-session gate moved to 0.11.0 (O12).
+
+
+### Changed: the rubric judge is an unvalidated prototype (0.10.0 item T10, finding R-07, decision O3)
+
+- The 50 calibration labels were written by Claude, not by independent raters, so agreement with
+  them does not validate the judge. `enabled_dimensions()` now enables a dimension only when the
+  calibration file says its labels come from independent human raters; the committed file says
+  Claude, so no dimension is enabled and the judge leaves the headline. The results page and README
+  say who labelled what. Owner labels (option a) would re-enable it in a later release.
+
+### Fixed: the claims audit binds each number to the claim's own fact keys (0.10.0 item T5, finding R-05)
+
+- **What was wrong.** `validate_claims` passed a number if it equalled any fact under any key, so a
+  real figure attached to the wrong metric, a wrong direction word or a wrong cause all passed
+  (the reviewer's four examples in AI-3-03). "Faithful claims" and "0/39 untraceable numbers" were
+  therefore set-membership counts, and the sentence "the guardrail, not the model, is what keeps the
+  report honest" was not supported. It is withdrawn from the results page.
+- **The audit now** traces each number only to facts under the claim's own `fact_keys`; if the
+  clause names a metric, the fact must hold that metric; a direction word must agree with the sign
+  of the fact's move ("improved" is down for a cost); a cause stated as the cause must be the
+  primary, and any cause token must be one that was scored (`audit_claim_numbers`,
+  `audit_claim_cause` in `src/ceap/agents/reporter.py`). The free-text narrative backstop
+  (`audit_numbers`) is unchanged.
+- **Renamed metrics.** `reporter.faithfulness` is published as `reporter.claims_kept_by_audit` and
+  `claims.untraceable_number` as `claims.number_not_in_own_facts` (`RATE_PATHS` in
+  `src/ceap/eval/local_model.py`). The 0.9.0 result files keep the old keys until re-recorded.
+- **Drop reasons published.** `python -m ceap.eval.local_model --replay --claims-audit` re-audits the
+  recorded claims with no model call and writes
+  `docs/evaluation/local_model/qwen2.5_7b-instruct_claims_audit.json`: claims kept 22/39 (25/39
+  under the 0.9.0 audit); 11/39 carry a number outside their own fact keys (seven cite a path that
+  does not resolve, four quote a policy threshold without citing it); every drop reason by category.
+- **Planted cases.** `planted_audit_claims` (in `src/ceap/eval/clients.py`) builds wrong-metric,
+  wrong-sign and wrong-cause claims from each case's real figures; all 12 are rejected, each for its
+  own reason. Tests: `tests/agent/test_t5_claim_audit.py`, including the four 0.9.0 examples.
+- **Changed recorded result.** The slow replay test in `tests/evaluation/test_local_model_090.py`
+  now compares the reporter's kept share with the re-audit file. Seed 3 moves from 11/14 to 8/14
+  kept, so its prose request is no longer in the 0.9.0 cassette; that case is a strict xfail until
+  the T8 re-recording.
+  Results page, README, site, LEARN, COOKBOOK and lessons 3 and 7 use the new names and figures.
+
+### Fixed: the golden-slice withdrawal is complete and pinned (0.10.0 item T2, finding R-01)
+
+- The rows were withdrawn from the README, the results page and the site on 2026-11-12 (see the
+  correction note below). One sentence was left: lesson 6 still said that live and replayed runs
+  give identical model replies, so replay is the measurement of record. For the golden slice that
+  is false; the replayed answers were mock fallback output. The lesson now says replay is the
+  measurement of record for the planner, reporter and critic rows only, and why no golden number
+  is published.
+- `tests/repo/test_t2_golden_slice_withdrawn.py` fails if "golden slice cause 6/9", or the false
+  replay explanation, appears anywhere outside `docs/review/` and this file.
+### Added: "wired or labelled" table and its repo test (0.10.0 item E5, finding R-34)
+
+- `scripts/wired_or_labelled.py` follows imports from the product entry points (`ceap.cli`,
+  `ceap.api`, `ceap.platform`, each MCP server's `__main__`). Each of the 23 modules none of them
+  reaches is listed in section 3.13 of `docs/architecture/overview.md` as `library-only` (16) or
+  `script-only` (7). The `ceap.execution` simulator modules are counted library-only.
+- `tests/repo/test_wired_or_labelled.py` fails on an uncalled module with no row and on a row
+  for a module that is wired or gone. Reached means importable from the product, not that every
+  function is called.
+- The OpenTelemetry tracer export was already removed under T11, which does not use it.
+
+### Changed: AI SLO monitor wired into the platform; GenAI spans; Ollama as a provider (0.10.0 item T11, findings R-14, R-34)
+
+- **R-14.** `Platform` now owns one `AISLOMonitor` and sets it on its router. The planner reports
+  each plan under a new `planner` series: valid only when the first reply was usable as is, so a
+  repaired or fallback plan moves the indicator. The per-call `planning` series is unchanged.
+- Each routed model call is one `gen_ai.chat:<model>` span under the agent span that made it, with
+  OpenTelemetry GenAI attribute names (model, token counts, finish reason, and temperature and seed
+  where the client has them).
+- **R-34.** `CEAP_LLM_PROVIDER=ollama` is accepted. `CEAP_OLLAMA_CASSETTE` replays a recorded
+  cassette; otherwise the live model runs only with `CEAP_LOCAL_MODEL=1`. There is no mock
+  fallback. Cost is recorded as `cpu_seconds` (wall-clock seconds of each local call), not dollars.
+- Removed `OpenTelemetryTracer` and `build_tracer()`: nothing in the product called them. The
+  README no longer says "OpenTelemetry-ready"; cookbook recipe 25 now reads the GenAI spans from
+  the trace API. The `[observability]` extra still lists the OpenTelemetry packages until the lock
+  file is regenerated.
+- Tests: `tests/unit/test_r0100_t11_ai_slo_wiring.py`. No snapshot changed.
+### Changed: quant errata folded into the corpus page; corpus re-pinned and retrieval re-measured (0.10.0 item Q8)
+
+- **R-18.** `docs/quant/quant.md` now states the a-priori PROMOTE hurdle (3.0 for a search, 1.645
+  for one preregistered test), the INCONCLUSIVE verdict with the daily Lo (2002) standard error and
+  Q1's corrected worked value (0.447 for Sharpe 0.3 over 1,260 days), the research score of 25/30,
+  a pointer to the regenerated power curve, and the near-constant-series tolerance. The errata page
+  `docs/quant/quant-errata-0.9.0.md` is removed. Corpus pin: quant.md 0.4.0 to 0.5.0, corpus hash
+  `ee8200cd3d90` to `2c4016d335b2`. BM25 retrieval re-measured (`python -m ceap.rag.evaluation`):
+  chunking winner (section) and support gate (2.5) unchanged; train R@1 0.90 to 0.95, MRR 0.935 to
+  0.960; held-out unchanged at 1.00; negative max support 2.06 to 2.08, no negative leaks.
+  Snapshot change (needs the `snapshot-change` label): report goldens `research_R01`,
+  `research_R03`, `tca_T01`, `tca_T05` (corpus hash, retrieved policy chunks, and the Q1 Sharpe
+  interval). Not yet done: the dense and rerank caches in `data/rag/` need a rebuild with
+  `fastembed` (`python -m ceap.rag.hybrid_eval --build`), after which `rag-hybrid-0.9.0` results are
+  regenerated. Tests: `tests/unit/test_quant_errata_folded.py`.
+
+### Added: CI replay gate for local-model results (0.10.0 item T3)
+
+- **R-01.** `scripts/check_replay.py` runs in the CI lint job. For each committed per-seed result
+  in `docs/evaluation/local_model/` it replays the matching cassette with no model running and fails
+  when a request has no recording, when a recording is never asked for, or when any number in the
+  committed file differs from the replay. Cassettes recorded before 0.10.0 have no manifest; the
+  three 0.9.0 seed files are printed as "not gated (pre-0.10.0, awaiting re-record)" rather than
+  passed, and any cassette with a manifest is gated, so a new recording cannot opt out. They become
+  gated when T8 re-records them. Tests: `tests/repo/test_check_replay.py`.
+### Fixed: the nightly can go green and its gates bite (0.10.0 item E2, findings R-25, E-13)
+
+- **Why the nightly was red.** The `full` job ran the nightly sweeps under the coverage tracer and
+  hit its 60-minute limit (cancelled 11, 12 and 14 November); on 13 November
+  `test_cause_recall_200_seeds` passed its own 1800 s ceiling. The sweeps now run in a separate
+  `sweeps` job (3.12, no tracer, 150 minutes) and the cause-recall sweep is one test per template,
+  so xdist spreads it. `full` runs everything else in random order on 3.11, 3.12 and 3.13.
+- **Why mutation testing never measured anything.** mutmut copies only `source_paths`; naming the
+  two sub-packages left `mutants/src/ceap` without the rest of the package, the stats run could not
+  import it, and the ratchet read the empty result as 0 survivors. The config now copies `src/`,
+  mutates only `analytics` and `domain`, and copies `data/`, `docs/`, `config/`, `scripts/`.
+- **Ratchet.** Fails when mutmut recorded no mutants, and on a null baseline after
+  `null_allowed_until` (2026-11-30) in `tests/mutation/baseline.json`.
+- **Baseline not measured.** A local run in WSL (8 workers) was still generating mutants when its
+  30-minute cap ended, so the baseline is still null; the first nightly with this config must
+  measure it before 30 November.
+- **Hypothesis** is randomised in the nightly profile (`print_blob` for reproduction); PR stays
+  derandomised.
+- **Release gate.** `scripts/release_check.py` refuses a tag unless the last three completed
+  nightly runs on main succeeded (a cancelled run counts as red).
+- `ceap.llm.router.task_scope` no longer raises when an abandoned task's generator is finalised in
+  another context (the unraisable warnings in the 13 November log).
+- Tests: `tests/repo/test_e2_nightly_gates.py`. Three consecutive green nightlies need CI.
+
+### Added: Python 3.13 declared and tested; 3.14 assessed (0.10.0 item E6, finding C-P2-2)
+
+- `test (3.13)` joins the CI matrix and the 3.13 classifier joins `pyproject.toml`;
+  `tests/repo/test_e6_python_versions.py` fails if the classifiers and the matrix differ.
+- **Goldens.** One set, compared on every interpreter: no per-version golden files and no version
+  branches in the golden code (checked by the same test), so a green matrix proves equality. It
+  already holds across numpy 2.4.6 (3.11) and 2.5.3 (3.12 and later).
+- **3.14.** The committed lock resolves for 3.14 with binary wheels only on Linux and Windows
+  (resolver run, 2026-11-14), so no dependency blocks it; it is not in the matrix because it has
+  not been run. `test (3.13)` has not run yet either: it needs CI. Note in
+  `docs/testing/python-versions.md`.
+
+### Fixed: the wheel and the image carry their data; installed-copy smoke check (0.10.0 item E3, finding R-27)
+
+- **One resolver.** `ceap.paths.data_root()` replaces the module constants that resolved `data/`
+  from the source tree (`Path(__file__).parents[3] / "data"`), which pointed nowhere once
+  installed. Order: `CEAP_DATA_ROOT`, then the copy inside the wheel (`ceap/_data`), then `data/`
+  in a checkout.
+- **The data ships.** `setup.py` (a build hook only; metadata stays in `pyproject.toml`) copies the
+  runtime files listed in `ceap.paths.PACKAGED` into the wheel, including `docs/quant/quant.md`,
+  which the knowledge manifest lists outside `data/`, so the installed corpus hash equals the
+  checkout's. The image now gets its data from the installed package; the separate `/app/data`
+  copy is gone.
+- **Loud failure.** A missing default knowledge corpus or model store raises `DataFileMissing`
+  (not an `OSError`, so the detector and calibration fallbacks cannot swallow it). Before, the
+  knowledge base came up empty and the change detector and calibration ran unfitted.
+- **Smoke check.** `python -m ceap.smoke` runs one investigation and fails unless every corpus
+  document, the change detector and the calibration model loaded. CI runs it from an installed
+  wheel outside the checkout (new `wheel-smoke` job) and inside the image (`docker` job). Checked
+  locally against an installed wheel (10 documents, both model hashes); the image was not built
+  locally (no Docker on this machine). Tests: `tests/unit/test_e3_data_root.py`.
+
+### Changed: pre-trade model card: challengers, regime-level conformal, functional-form test (0.10.0 item X4, finding R-24)
+
+- The card shows MAE and bias against a constant and a spread-only challenger; the model's MAE is
+  close to theirs (price risk dominates) and its gain is lower bias where impact is large.
+- **Interval repair.** The conformal quantile is now calibrated per regime (two-layer conformal,
+  Dunn, Wasserman and Ramdas 2022) over the five fit families plus five stressed variants of T01
+  (each generator axis doubled, depth halved; new `UniverseConfig.regime`). q rises from 1.653 to
+  1.714. Coverage is tested with a Wilson interval at the Kish effective sample size (session
+  clusters, design effect about 2.1); the script exits 1 when a shifted family's interval excludes
+  nominal 90 %.
+- Result: T02, T04, T06 and T10 now contain nominal (T10 was outside); **T08 still fails**
+  (87.1 %, interval 84.5-89.3 %): an order-size multiplier of ten is outside the calibration
+  regimes. Kept open and marked by a strict xfail test; not tuned on the test families.
+- **Functional-form shift.** New `UniverseConfig.impact_law="linear"` (equal to the square-root law
+  at 1 % ADV). On the five shifted families under it, without refitting, coverage is 88.6-90.8 %
+  except T08 at 52.4 %, where the model under-predicts cost by 18.6 bps.
+- Snapshot change: `src/ceap/ml/pretrade_model.json` (new q, evaluation tables); the pre-trade
+  interval bounds in the TCA goldens (`tests/golden/tca_T01.json`, `tca_T05.json`) move with q.
+### Added: research evaluation on the 500-name universe (0.10.0 item Q6, finding R-30)
+
+- `evaluation_platform(universe)` builds the research datasets on `core30` (default) or
+  `synthetic500`; `scripts/research_eval_universes.py` runs the 30 scenarios on both (in parallel
+  slices, each on a fresh platform and in-memory ledger), refuses to publish unless every scenario
+  completes, and writes `capability.research_500` into `latest.json` (the report builder does the same).
+- **Results.** 30 names: 25/30 verdicts match the truth (0.8333, unchanged). 500 names: 21/30 agree
+  with the 30-name truth (0.70; clear scenarios 0.875); verdicts 14 PROMOTE, 16 REJECT. Nine verdicts
+  move, all to PROMOTE: RS02, RS22, RS24 (truth PROMOTE or INCONCLUSIVE) and RS07, RS08, RS09, RS19,
+  RS20, RS21 (30-name truth REJECT). The ground truth is derived for 30 names, so the 500-name figure
+  is agreement, not accuracy; deriving truth for 500 names is not done. The 500-name run needs
+  `CEAP_STEP_TIMEOUT_SECONDS` well above the 30 s default (1800 was used; about 140 s a scenario).
+- README corrected: the scenarios run on the 30-name universe and are re-run on 500 names.
+- Tests: `tests/unit/test_q6_universe_eval.py`.
+
+### Added: research realism toolkit wired into the verdict (0.10.0 item Q4, findings R-17, R-20)
+
+- **Factor-neutral IC is a gate condition.** `evaluate_signal` now reports
+  `ic_t_stat_factor_neutral`: the gate's non-overlapping IC with the signal ranks and the forward return
+  both residualised, date by date, on each name's trailing five-year market beta
+  (`risk_research.rolling_betas`, ex-self market; `risk_research.factor_neutral_ic`, which calls
+  `residualise`). `NO_ALPHA` is raised when it is below the hurdle, with its own rationale and
+  hypothesis row. A one-year beta was tried first and left a 2400 bps beta premium at IC t 5-7.
+- **Market-beta family through the full verdict** (`adversarial.full_verdict_study`, 16 seeds a point,
+  `docs/research/adversarial_full_verdict.json`): PROMOTE 0, 0, 0 and **2 of 16** at 0, 600, 1100 and
+  2400 bps; re-scored without the new statistic, 0, 0, 1 and 16 of 16. The drift baseline keeps
+  14 of 16 at 2400 bps (unchanged). The two that still pass are the limit of residualising on an
+  estimated beta.
+- **PBO and effective trial count on the 24-trial matrix.** The backtest tool's trial record carries
+  `search` (`ceap.analytics.search_diagnostics`: PBO by CSCV with 16 blocks, effective trials by the
+  eigenvalue participation ratio and by clusters at 0.7) and writes `n_trials_effective`, which the
+  deflated Sharpe reads (floored at 24, so it cannot relax the gate). Cached per dataset and window;
+  the tool's description and schema are unchanged, so the catalogue hash and cassettes do not move.
+  `pbo_cscv` is now vectorised (12,870 splits in about 0.3 s; equal to the per-split definition).
+- **Ledoit-Wolf predicted volatility in the risk step.** The as-of target portfolio reports
+  `predicted_vol_ann` and `covariance_shrinkage` from the held names' trailing 252-day returns.
+- All of these are fields of the assessment's metrics.
+- **What moved.** The 30 research scenarios and 18 golden research items were re-run: **no verdict
+  and no flag moved** relative to Q2 (scenarios 25/30). **Snapshot change:** `tests/golden/research_R01.json`
+  and `research_R03.json` regenerated; the diff only adds fields (the new metrics, the factor-neutral
+  hypothesis row, the trial `search` block, and the Q2 ledger fields `sharpe_basis` and
+  `sharpe_variance_net`, which the Q2 commit had left out of these two files).
+- Tests: `tests/unit/analytics/test_q4_realism_wiring.py`.
+
+### Fixed: model registry checks staleness and drift at load; trial ledger persistent (0.10.0 item Q7, findings Q-10, Q-12)
+
+- **Stale models fail a test.** All three registered models had been fitted to generator
+  `ce0da55d75b78559` and the model-card header named a third hash, `d3074158ce168b03`; the generator
+  is now `7f59073801a673bc`. `ModelRegistry.load` emits a `StaleModelWarning` when a card's generator
+  hash differs from the current one, and `tests/unit/ml/test_q7_registry.py` fails for any stored model
+  in that state and for a card header that names any other hash.
+- **Retrained.** `python scripts/train_ml_models.py` refitted the change detector, the change-point
+  calibration and the ridge combination. **No parameter and no metric moved**: the three model hashes
+  are unchanged (`b2a6c3822c3e4459`, `29d16b7ea00c171f`, `1b5b2fcd6870c289`); only the card provenance
+  (generator hash, label, date, the 0.10 inventory fields, and the training-data hash of the two
+  engineering models, which embeds the generator hash) changed, in
+  `data/models/*.json` and `docs/ml/model_cards.md`.
+- **Drift checked at load.** `ModelRegistry.load(name, features=...)` runs the PSI drift check and keeps
+  the values on `RegisteredModel.drift`. The engineering change-point scan now calls
+  `anomaly.detector_drift` on the live reference window before detecting, so the check runs in
+  production rather than only in tests (finding R-17 listed `check_drift` as uncalled).
+- **Trial ledger persistent by default.** Without `CEAP_TRIAL_LEDGER` the ledger was per process, so
+  the trial count reset at every restart and undercounted the search. It now appends to
+  `var/trial_ledger.jsonl` by default; `CEAP_TRIAL_LEDGER=:memory:` opts out. The test suite, the
+  scenario evaluation (`evaluation_platform`, beside case memory being off) and model training use an
+  in-memory ledger so one run cannot change another's verdict. `Platform` and
+  `build_in_process_client` take an optional `trial_ledger`.
+- Tests: `tests/unit/ml/test_q7_registry.py`.
+
+### Fixed: deflated Sharpe gate floored, tested on the production path, bar 0.95 (0.10.0 item Q2, finding R-16, decision O5)
+
+- **Variance floored at `1 / T`.** The trial ledger's cross-trial variance of the per-day Sharpe
+  replaced the null value `1 / T` whenever it was positive, so a ledger of near-identical trials
+  shrank the expected maximum Sharpe. The reviewer's case (Sharpe 0.3, ten years, 24 trials, ledger
+  variance 1e-8) scored 0.83; it now scores 0.15, as with the null variance. Under the null each
+  trial's per-day Sharpe has sampling variance about `1 / T` (Lo 2002), so a smaller spread means
+  correlated trials, not a lower bar.
+- **One production call.** `research_assessment.alpha_deflated_sharpe` is used by the verdict and
+  by the null sweep, which used to call the formula with its own arguments. The sweep passes no
+  ledger variance, which is the floor itself, so its rate bounds the shipped gate from above.
+- **Gross and net recorded consistently.** The backtest tool wrote the *net* in-sample Sharpe to the
+  ledger while the gate deflates the *gross* one. Records now carry the gross per-day Sharpe
+  (`sharpe_basis: "gross"`) with the net beside it (`sharpe_daily_net`, `sharpe_variance_net`);
+  pre-0.10 records, whose basis is unknown, are counted as trials but left out of the variance.
+- **Bar 0.5 -> 0.95** (one-sided 5 %, Bailey and Lopez de Prado 2014). **False-PROMOTE rate at the
+  new bar:** the 500-seed null sweep over the full 24-configuration search found 0 of 500 at every
+  grid hurdle, t >= 0 included (95 % Clopper-Pearson upper bound 0.74 %); the old bar gave 17 of 500
+  at t >= 0, 5 of 500 at 1.645 and 0 of 500 at 3.0. New sweep hash `8d1dc8bd91e4...`
+  (`data/reference/research_thresholds.json`, `docs/research/null_sweep_per_seed.json`, one line
+  appended to `data/reference/sweep_ledger.jsonl`).
+- **What moved.** The 30 research scenarios and the 18 research items of both golden sets were run
+  before and after on the same code base. **No verdict moved** (scenarios 25/30; golden verdicts
+  13/15 and 2/3). Flags moved in five rows: RS23 (`G-RES11-12`) `COST_DRAG` -> `NO_ALPHA` (DSR
+  0.93), RS25 (`G-RES11-13`) and RS26 `COST_DRAG` -> `NO_ALPHA` (DSR 0.82 and 0.81). Scenario flag
+  coverage goes from 25/30 to 24/30 (RS23 now carries its expected `NO_ALPHA`; the two reversal
+  scenarios lose their expected `COST_DRAG` because the alpha chain stops at `NO_ALPHA` first). The
+  golden must-flag counts are unchanged (13/15, 1/3: `G-RES11-12` gains, `G-RES11-13` loses). No
+  golden file and no ground truth was edited.
+- Tests: `tests/unit/analytics/test_q2_deflated_sharpe.py`.
+
+### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
+
+- **E-09.** The redactor removed every 8 to 19 digit number, deleting quantities, notionals and
+  order ids from the user's question. A bare long number now survives ("Buy 12000000 shares"); it
+  is redacted only after an account word (account, acct, card, a/c) or in card-style groups.
+- **E-08.** A malformed `CEAP_API_KEYS` entry no longer appears in the error message.
+- Tests: `tests/unit/test_redact_e7.py`.
+### Added: per-package branch coverage gate (0.10.0 item E1, finding C-P2-1)
+
+- `[tool.coverage]` in `pyproject.toml` (branch, source `ceap`, parallel for xdist).
+  `scripts/coverage_by_package.py` reads the JSON report, prints a per-package table and fails
+  when a package is under its floor (90 %, 95 % for `analytics` and `domain`) and under its
+  recorded baseline. The 3.12 test job now writes `coverage.json` and runs it.
+- **Measured, not met.** On the unit tier, 11 of 19 packages are under the floor (lowest:
+  `studies` 44.6 %, `api` 55.0 %, top-level modules 68.7 %). The table is in
+  `docs/testing/coverage-by-package.md`; those packages are held at their measured figure as a
+  ratchet until behaviour tests raise them. No coverage was added in this item.
+
+### Added: behaviour tests raise per-package coverage (0.10.0 item E1, lane W2)
+
+- Unit-tier tests for the study E1 runner (synthetic Ken French files, crash-rerun and refused
+  second opening, ETF gate with an in-memory `yfinance`), the HTTP gateway (every task state,
+  ownership and kind scoping, cancel, idempotency, rate limit, body limit, prewarm, key hashes),
+  fail-closed configuration, golden-set scoring, the AI SLO monitor and Prometheus exposition, MCP
+  grant signing and client reconnect rules, and the ingestion-screen measurement.
+- Unit tier, before -> after: `studies` 44.6 -> 99.7 %, `api` 55.0 -> 91.6 %, top-level modules
+  68.7 -> 79.3 %, `observability` 78.0 -> 96.5 %, `mcp` 73.8 -> 84.4 %, `eval` 72.4 -> 73.1 %. The
+  ratchet in `scripts/coverage_by_package.py` is tightened to the new figures; eight packages remain
+  under their floor. `tests/test_industry_momentum.py` moved to `tests/unit/`. No source changed.
+- Lane W9: unit-tier behaviour tests for the knowledge-corpus pin check, the injection corpus and
+  its runner, the B3 sensitivity check (every model metric moves under its degraded client), the T5
+  claims-audit replay, the R-01 fallback refusal, the drift monitors on synthetic cassettes, model
+  pins and prompt integrity, untrusted data blocks and context truncation, cassette match keys and
+  the publish gate, and the harness evidence-binding rules. Unit tier, before -> after: `eval`
+  73.1 -> 91.3 % (now meets the floor), top-level modules 79.3 -> 85.6 %, `llm` 74.8 -> 81.2 %,
+  `harness` 78.2 -> 80.0 %. Ratchet tightened; `analytics` and `paper` baselines kept (four
+  analytics tests fail on the base branch). No source changed; no bug found.
+
+### Fixed: deployment recipes (0.10.0 item E4, finding R-26)
+
+- **Pre-hashed keys alone now start the server.** `validate_for_serving` refused any configuration
+  without raw `CEAP_API_KEYS`, so the shipped compose example, which sets only
+  `CEAP_API_KEY_HASHES`, could not start. Hashed keys now count, and they are parsed at start-up so
+  a malformed entry fails there rather than on the first request. No keys at all is still refused.
+- **The compose stack is started in CI.** A new `compose` job runs `scripts/compose_smoke.sh`: it
+  generates a key, hashes it with the new standard-library `scripts/hash_api_key.py` (key read
+  from the environment, never the command line), brings the stack up behind Caddy, and checks
+  `/health`, a 401 without a key and a 200 from `/tools` with it.
+- **Cookbook recipes corrected.** Recipe 26 used an 8-character raw key that the 256-bit entropy
+  rule refuses; it now uses a hashed key. Recipe 6 listed and decided approvals with the admin key,
+  whose role lacks `approvals:decide`; it now uses the approver key. Tests in
+  `tests/repo/test_e4_deploy_recipes.py` check each recipe against the code.
+### Fixed: one Sharpe standard error, Lo (2002) daily form (0.10.0 item Q1, finding R-15)
+
+- The Sharpe interval that separates INCONCLUSIVE from REJECT used `sqrt((1 + SR_ann^2 / 2) / years)`.
+  In Lo (2002, eq. 9) the squared term is the per-period Sharpe, so with daily data the annual Sharpe
+  squared must be divided by 252. The old interval was about 22 % too wide at Sharpe 1 and 73 % at
+  Sharpe 2 (one year of data). There is now one function,
+  `ceap.analytics.numerics.sharpe_standard_error`, used by `research_assessment.sharpe_interval`,
+  `profitability` and `paper.forward.sharpe_ci`; the wrong copy is gone. A simulation test checks
+  that the 95 % interval covers the true Sharpe in 93-97 % of 2,000 draws.
+- **Verdicts re-run.** The 30 research scenarios and every research item of both golden sets
+  (`golden_set.json`, `golden_set_research_v1_1.json`; 48 rows in all) were assessed with the old and
+  the new interval on the same inputs. **No verdict moved** (0 of 48); the scenario score stays 25/30.
+  Example: RS01's full-period interval narrows from [0.50, 1.63] to [0.61, 1.51]. No golden or
+  snapshot file changed.
+- The 0.9.0 errata repeated the wrong value: for Sharpe 0.3 over five years the standard error is
+  0.447, not 0.457, and the interval is [-0.58, 1.18]. Corrected in `docs/quant/quant-errata-0.9.0.md`
+  (`quant.md` itself is corrected with item Q8).
+
+### Changed: power curve at the hurdles in force (0.10.0 item Q5, finding R-19)
+
+- `docs/quant_power_curve.json` was computed at the retired hurdle 0.40. It is regenerated by
+  simulation (40 seeds a point, `python -m ceap.analytics.power`) at both hurdles the gate uses: 1.645
+  for one preregistered test and 3.0 for a result mined from a search. With 80 % power the IC gate
+  detects a planted premium of about 1500 bps a year (expected gross Sharpe 0.75) at 1.645 and about
+  1800 bps (gross Sharpe 1.04) at 3.0, on the 30-name synthetic universe. A gross Sharpe of 0.5 is
+  detected 18 % of the time at 3.0. The table and the plain statement are in `docs/research/README.md`.
+
+### Fixed: one zero-variance tolerance in five regressions (0.10.0 item Q3, finding Q-14)
+
+- Five places tested a sum of squares or a standard deviation for exactly zero, so a constant input
+  carrying floating-point noise (a sum of squares near 1e-30) produced an R-squared or a beta of
+  arbitrary size. The review found three more sites than the 0.9.0 errata disclosed. All five
+  (`risk_research.factor_regression`, `portfolio_risk.raw_betas_ex_self`,
+  `profitability.factor_alpha`, `ml_signals._moments`, `attribution._ridge_contributions`) now call
+  `ceap.analytics.numerics.negligible_variation`: a series counts as constant when
+  `sum((y - mean)^2) <= n * max((1e-9 * max|y|)^2, (1e-12)^2)`. The scale is `max|y|`, not the mean,
+  so a zero-mean series is handled; the absolute floor covers an all-zero series.
+- A constant dependent series gives R-squared NaN with an `r2_note`; a near-constant market leaves the
+  beta unestimated (standard error infinite, so shrinkage takes the target); `factor_alpha` returns NaN
+  with a `note`. Regressions on varying data are unchanged.
+
+### Added: durable runs resume through the product (0.10.0 item H1, findings R-11 and AI-2-05)
+
+- **Entry point.** `POST /tasks/{id}/resume` and `ceap resume <id>` continue an `INTERRUPTED` or
+  `FAILED` task under its own id. Before, nothing in the product re-ran a task id; the 0.9.0 chaos test
+  replaced the id by hand. The owner or an admin may resume; the run uses the principal and roles it
+  was first submitted with, which are now journalled. A finished task, a running one, or one whose
+  first attempt ran without `CEAP_DURABLE_RUNS=1` is refused with 409.
+- **Model replies are journalled.** A resumed run used to call the planner and every model-backed
+  agent again, so a model that answers differently could return another plan (AI-2-05). Each reply is
+  now journalled by agent, step and call order and read back on resume. With the journal on, ids are
+  minted from the task id and the scope, so the finding and evidence ids those replies cite are the
+  same in the resumed run. Runs without the journal are unchanged.
+- **The approval match ignores run-minted ids.** The journal keyed a decision on the approval's full
+  content hash, which includes fresh finding and evidence ids, so a resume asked the approver again
+  and wrote a second case. It now keys on `stable_content_hash`, which leaves those ids out. The
+  approver still signs the full content hash (A14).
+- Test: `tests/unit/test_r0100_h1_resume.py` kills a signed-off run with `os._exit` straight after the
+  sign-off is journalled, resumes it through the API by id alone, and finds the same number of model
+  and tool calls as an uninterrupted run, one approval request and one case. With model journalling
+  disabled the same test fails (6 model calls against 4). `test_r090_durable.py` and
+  `test_r090_chaos.py` now count tool rows only, since the journal also holds model rows.
+
+### Fixed: case memory holds human decisions only; waiting for a human is not task time (0.10.0 item H6, findings AI-2-06, AI-2-07, AI-2-08)
+
+- **Human decisions only (AI-2-06).** An auto-approval or a timeout was stored as a case, and the
+  planner was told these were human precedents: a dev-mode auto-approval, or a REJECTED that was
+  really a 120-second timeout, carried the weight of a reviewed decision. The harness now records no
+  case when the decider is a system actor (`timeout`, `policy`, `auto-approver`), and
+  `CaseMemory.append` refuses one as well.
+- **Owner boundary and expiry (AI-2-07).** Cases were partitioned by dataset only, so one trader's
+  question and an approver's comment reached the next principal's planner prompt. A case now records
+  its owner (the task's requester) and is read back only for that owner, or for a principal with
+  `tasks:read-any`. A case older than 90 days (`ttl_days`) is not read and is pruned on the next
+  write; a full partition is still refused, now with a `case_memory.full` audit entry. The case id is
+  derived from the task and the step, so a resumed run does not write a second case. The store is
+  still per process (a database table remains a follow-up).
+- **Human wait does not count (AI-2-08).** An approval given after the task deadline was followed by
+  `TimeoutError("task deadline exceeded")`: the task failed after a person approved it. The task clock
+  (`RunContext.clock`) now stops while an approval is pending, and every deadline check reads
+  `RunContext.due()`, the deadline moved on by the time spent waiting. Concurrent approvals count
+  once. An agent's own overall timeout is still fixed when the agent starts.
+- Tests: `tests/agent/test_r0100_h6_case_memory.py`. An auto-approved and a timed-out sign-off leave
+  memory empty, a person's sign-off writes one case; an approver who takes ten minutes on a task with
+  a 300 s budget no longer times the task out (with the clock fix removed the same test fails with
+  "task deadline exceeded"); another principal does not see a case and a 91-day-old case is not read.
+  Existing tests updated: the 3B.7 recall test signs off with a person, the 3B.7 bounds test and the
+  case-memory injection surface test give their planted cases a current time and an owner.
+
+### Fixed: two baselines, two names (0.10.0 item H5, finding R-03)
+
+- One report gave two values for the same quantity under the same word. T06 at 0.9.0: the summary
+  said "implementation shortfall delta -3.7 bps" and observation 5 said shortfall "decreased by
+  28.6 bps relative to the baseline's +13.9 bps". The attribution measures against the pooled matched
+  peer windows; the execution agent measures against the task's baseline window, the hour before.
+  Each number was right, and both were "the baseline".
+- The two now have names, `ceap.analytics.attribution.baseline_name`: "matched peer windows" and
+  "prior window". The mock narrative's summary names the attribution's baseline; the execution
+  observations, the EXECUTION and MARKET CONDITIONS sections and the latency line name the prior
+  window; the quant agent's delta finding names its own. Findings that carry a delta also carry a
+  `baseline` attribute.
+- The critic has a new deterministic check, `critic_checks.baseline_conflicts`: two deltas of one
+  metric (from findings or the attribution) under the same baseline name must agree to 0.05 bps, or
+  the critic records a contradiction prefixed `baseline_conflict`.
+- Scope: the attribution's own rationale strings ("latency ratio vs baseline = 10.10") still say
+  "baseline"; they carry ratios, not a second delta of the same metric, and renaming them would
+  change every attribution record. The README example (already stale before this change: its
+  numbers are from an older run) is left for the documentation pass.
+- Test: `tests/agent/test_r0100_h5_named_baselines.py` runs T06 and finds the named baselines in the
+  summary and the observations and no delta line under "the baseline"; a planted finding that prints
+  the execution delta under the attribution's name makes the check fire.
+- Regenerated (wording only, reviewed): `tests/golden/tca_T01.json`, `tests/golden/tca_T05.json` and
+  the ten hand-built cassettes `tests/cassettes/investigation_T01.json` to `_T10.json` (the critic
+  request carries the finding statements, so its hash moved), and the 3B.8 approval review snapshot
+  `tests/agent/snapshots/approval_review_T10.json`.
+
+### Fixed: a citation must come from a chunk that supports the claim (0.10.0 item H4, finding R-09)
+
+- The citation audit proved that the quoted text is a real chunk, and that the citation is attached to
+  the claim's sentence; it never compared the chunk with the claim, so a real quote about venue
+  configuration could back a claim about escalation thresholds. `claim_citations` now also requires
+  `citation_supports`: every number in the claim occurs in the cited chunk, and the chunk shares at
+  least two of the claim's key terms (all of them when it has fewer) and at least half of them.
+- This is a lexical check, not entailment: a chunk that uses the claim's words to say the opposite
+  still passes. An NLI scorer is left for when a real corpus exists.
+- The local-model results page now shows the citation row with n = 0 and the reason: the Ollama
+  adapter returns no citation blocks, so no citation was ever verified against a real model.
+- Test: `tests/agent/test_r0100_h4_citation_support.py`, ten planted right-chunk and wrong-chunk pairs
+  over the shipped knowledge base: 0 of 10 wrong-chunk citations pass, 10 of 10 right-chunk citations
+  are kept, and a claim whose number the chunk does not state fails. The A7 fixture in
+  `tests/agent/test_r080_narrative_guardrails.py` now carries chunk text, since a citation with no
+  passage can no longer support a claim. No golden or snapshot changed.
+
+### Fixed: standalone MCP servers no longer stage on capability alone (0.10.0 item H2, finding R-12)
+
+- **A signed grant for every HIGH-risk call.** A server started on its own (`python -m
+  ceap.mcp.execution`) adds an `approval_grant` argument to each HIGH-risk tool and refuses the call
+  unless it is an HMAC-SHA256, keyed with `CEAP_MCP_GRANT_KEY`, over the tool id and the exact
+  arguments (`MCPServerDefinition.sign_grant`). With the key unset every HIGH-risk call is refused.
+  Before, the `admin` role alone was enough to stage paper orders with no approval and no four-eyes.
+- **The portfolio hash is required.** `stage_orders` refuses a call without `approved_portfolio_hash`.
+  It stays optional in the schema because the harness binds it after the approval gate, which is
+  later than plan validation reads the schema. The in-process harness path is unchanged.
+- Test: `tests/contract/test_r0100_h2_stdio_grant.py` drives the server over stdio with the `admin`
+  role: no grant and a grant signed with the wrong key are refused; a valid grant gets through.
+
+### Fixed: side-effecting tool calls are attempted once and carry the idempotency key (0.10.0 item H7, finding AI-2-04)
+
+- The executor no longer retries a tool whose metadata says `read_only=False`. A timeout or transport
+  error after the write used to repeat it up to three times. Read-only tools keep their retries.
+- `ToolExecutionContext.idempotency_key` now carries the run's key for the call
+  (`ceap.harness.durable.idempotency_key`), so a side-effecting tool can make a repeat a no-op, for
+  example after a resume.
+- Test: `tests/unit/test_r0100_h7_idempotent_side_effects.py` injects a failure after the write of a
+  `stage_orders` double and finds one staged set and the run's key on the call.
+
+### Fixed: the harness cannot finalise without a critique and an evidence check (0.10.0 item H8, finding AI-2-11)
+
+- `StateMachine` refuses FINALISING unless the critic has run since the last agent output and the
+  evidence has been validated since that critique. The engine records both, and a FINALISE step that
+  comes without a prior validation step now validates the evidence itself; before, a plan whose
+  critic had already run went from EXECUTING to FINALISING with no evidence check.
+- The step dispatch has an `else`: an unknown step type fails the run instead of being skipped.
+- Test: a Hypothesis property (`tests/properties/test_r0100_h8_state_machine_guards.py`) drives random
+  transition sequences and finds no path to FINALISING without both flags.
+
+### Fixed: the ingestion injection screen normalises first, and is measured (0.10.0 item H3, finding R-08)
+
+- `screen_document` now applies the same NFKC and zero-width stripping as the prompt path (both use
+  `ceap.util.unicode_clean.clean_untrusted`), so one zero-width character no longer bypasses it.
+- Recall and false-positive rate are measured on every CI run and committed in
+  `docs/evaluation/ingestion_screen.json`. On the 50 base strings of `injection_corpus_v1` the screen
+  flags 10 (recall 0.20, 95 % Wilson interval 0.11 to 0.33), the same with zero-width characters
+  inserted; it flags none of the 10 knowledge documents or their 127 paragraphs (after the Q8 errata fold). The patterns were
+  not tuned to the corpus, so 0.20 is an honest and a low figure: the screen is a tripwire, and the
+  defence remains the nonce-tagged data blocks on the prompt path.
+### Added: local model digests pinned and checked; cassette manifest (0.10.0 item T7, findings R-13, AI-1-10)
+
+- **Digest pinned, not only the tag.** `model_pins.toml` gains `[local_models]` with the Ollama
+  content digest of each local model (the digests recorded in the 0.9.0 cassettes). The live
+  `OllamaLLMClient` reads `/api/tags` at start and raises `ModelDigestError` when the server's digest
+  is empty or differs from the pin. Before, the digest was fetched for provenance only, came back
+  empty on any error and was never compared.
+- **Every new interaction carries its manifest:** the request text, the prompt id and version, the
+  source commit and the Ollama version (from `/api/version`). Cassettes recorded before 0.10.0 load
+  unchanged with these fields empty.
+
+### Fixed: the planner validator agrees with the sanitiser on `None` (0.10.0 item T4, finding R-04)
+
+- **A null optional argument is "not given".** `plan_semantic_errors` now skips `None` arguments,
+  as `_sanitise_arguments` already did. Before, `"dataset": null` was compared as the string
+  `"None"` with the pinned dataset and the plan was rejected; on replay 72 of 73 validation errors
+  were this one rule. Re-scoring the recorded 0.9.0 planner replies gives at least 27 of 30 valid at
+  the first attempt (0.9.0 published 15 of 30); the published result files are not rewritten here.
+- **Errors are kept.** The planner output carries `validation_errors` (the first attempt's list)
+  and each planner-eval result row stores it, so a reader can see why a plan needed a repair.
+- **Not done in this item:** removing `null` from optional schema members and making windows an
+  enum and dataset and symbol constants. Each changes the schema sent with the request, and so the
+  cassette match key; it waits for the re-recording (T8/T9).
+
+### Fixed: local-model evaluation runs use no fallback (0.10.0 item T1, finding R-01)
+
+- **A cassette miss is now an error.** `ceap.eval.local_model.run_seed` builds its `LLMRouter`
+  with no fallback client, and `run` raises `EvaluationFallbackError` when a seed's run hits a
+  request with no recording. `LocalCassetteClient` counts its misses, so a miss is still caught
+  when a caller downstream swallowed the error and carried on.
+- **No `local_model` label on fallback answers.** `run` refuses to return
+  `evidence_class: local_model` when any call in the run missed the cassette or was answered by a
+  fallback client. Replaying the 0.9.0 cassettes through the golden path now fails by name instead
+  of reproducing the mock's numbers.
+### Changed: pre-trade model card reports point error and a coverage test (0.10.0 item X4, finding R-24, partial)
+
+- The card now shows MAE and bias against a constant and a spread-only challenger, and coverage per
+  shifted family with a Wilson 95 % interval. Result: the model's MAE is within a few hundredths of a
+  bps of the challengers; its gain is lower bias where impact is large (T08, T10).
+- Coverage is significantly below nominal 90 % in T08 (85.9 %) and T10 (88.3 %); the training script
+  now exits 1 when an interval excludes nominal. **Not fixed yet**: the interval repair and a test on a
+  different functional form remain open for this release.
+
+### Added: forward-log tamper evidence and staleness check (0.10.0 item X2, finding R-22)
+
+- Each paper-daily run verifies the previous day's anchor before appending, runs the replay gate
+  (`ceap paper gate`), writes `anchor.json` and puts its digest in the commit message. A rewritten
+  or truncated history fails the next run.
+- New `ceap paper staleness` and a weekday 15:00 UTC job: any NYSE session before today with no row
+  opens a `paper-stale` issue (one miss is enough). Tests: `tests/unit/paper/test_staleness_x2.py`.
+- Wording: the log is append-only by git history, not by key, while the published development key
+  is used. Checked on the real `forward-log-v2` (2 sessions): gate passes, no session missed.
+
+### Fixed: execution library labelled truthfully; POV band and completion (0.10.0 item X5)
+
+- **R-23.** `ceap.execution` is now described everywhere as a *simulator library, not used by the
+  default paper book*; the paper book imports only the auction model and the LOB cost measurement,
+  behind opt-in settings. `tests/repo/test_execution_label.py` keeps the label in place. Wiring a
+  scheduler and the trading rules into the paper path is 0.11.0.
+- **X-07.** The POV band did nothing: the target `clip(rate * V, lo, hi)` is always inside the band.
+  POV now follows its plan and the band clips it.
+- **X-08.** Schedulers left the parent unfinished and the last slice crossed at its start. The last
+  slice is now worked like the others, and a completion step shortly before the end cancels what
+  rests and takes the remainder with a market order. A parent completes in all 40 seeds tested.
+
+### Fixed: schema rollback could re-seal a forged audit chain (0.10.0 item X3, finding R-21)
+
+- Setting `PRAGMA user_version` below v4 made every audit row count as legacy, and the next normal
+  open re-ran migration 0004 and sealed the forged rows with the real key. Migration now refuses a
+  file that already has a `chain_epoch`, a `schema_seal` or any keyed row.
+- New migration **0006** stores the highest schema version reached, sealed with the chain key;
+  `verify_chain()` fails when `user_version` is below it or the seal does not verify.
+- Tests: `tests/unit/test_schema_rollback_r21.py` (the attack end to end, plus an edited seal).
+
+### Fixed: four known issues from 0.9.0 (0.10.0 item X6)
+
+- **Lot larger than the session cap.** A paper order whose single lot exceeds the per-session ADV cap
+  is now cancelled at once (`reason="lot_above_cap"`) instead of sitting unfilled until its TTL.
+- **Zero sigma band.** A name whose window prices never moved gets the band cap, not a zero band
+  that blocked every move.
+- **Andrews lag on constant residuals.** `industry_momentum.andrews_lag` returns 0 instead of
+  dividing by zero.
+- **Idempotency key for non-JSON arguments.** Sets, dataclasses, bytes, dates, enums, decimals,
+  paths and pydantic models now have a canonical form; any other type raises `TypeError` rather
+  than hashing a memory address. All current callers pass JSON-native arguments, so no key changes.
+- One test each (`tests/unit/test_known_issues_090.py`, `tests/unit/paper/test_r090_l4_paper.py`).
+
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 
 - **Why the scheduled job wrote nothing on 10 and 11 November.** Both scheduled runs failed with

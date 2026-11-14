@@ -12,14 +12,14 @@ commit); pytest's collected count is higher because of `@pytest.mark.parametrize
 | Layer | Folder | Functions | What it catches | Runs |
 |---|---|---|---|---|
 | Unit | `tests/unit/` | 478 | a formula or a rule is wrong (IS legs, policy decisions, parsers) | every PR, Linux 3.11 and 3.12, Windows fast tier |
-| Property (Hypothesis) | `tests/properties/` | 19 + 0.9.0 additions | an invariant fails on an input nobody thought of | every PR (100 examples), nightly (1000) |
+| Property (Hypothesis) | `tests/properties/` | 19 + 0.9.0 additions | an invariant fails on an input nobody thought of | every PR (100 examples, derandomised), nightly (1000, randomised: new examples each night) |
 | Metamorphic | `tests/properties/test_r090_metamorphic.py` | 0.9.0 | the answer moves the wrong way when the input moves in a known way | every PR |
 | Contract | `tests/contract/` | 22 | the wire format to the LLM provider or the public `ceap.domain` signatures drifted | every PR (`lint` job) |
 | MCP | `tests/mcp/` | 20 | a tool's schema, discovery or stdio transport broke | every PR |
 | Agent | `tests/agent/` | 173 | the harness, planner, critic or audits misbehave with a scripted model | every PR |
 | Adversarial | `tests/adversarial/` | 16 | injected instructions, fabricated numbers, rogue plans get through | every PR |
 | Integration | `tests/integration/` | 62 | the API, CLI, persistence and paper job fail end to end | every PR |
-| Evaluation | `tests/evaluation/` | 28 | the platform stops finding the planted root cause in the 50 + 30 scenarios | every PR; 500-seed sweeps nightly |
+| Evaluation | `tests/evaluation/` | 28 | the platform stops finding the planted root cause in the 50 + 30 scenarios | every PR; 200 to 500-seed sweeps in the nightly `sweeps` job |
 | Golden | `tests/golden/` | 12 | an answer to an owner-signed question changed | every PR; edits need the `golden-change` label |
 | Repository | `tests/repo/` | 17 | docs, lock, workflows or banned words drifted | every PR |
 | CLI | `tests/unit/cli/` | 0.9.0 | a subcommand, exit code or usage message changed | every PR |
@@ -44,7 +44,9 @@ at a time (`>` to `>=`, `+` to `-`) and reruns the tests; a change the tests do 
 "survives". Example from 0.8.0: `m > 0` in the Perold fill-mid filter could become `m >= 0` and every
 test still passed, because no test used a zero mid. `test_non_positive_or_missing_mid_equals_arrival_mid`
 (0.9.0) kills that mutant. The nightly job keeps a ceiling on survivors in
-`tests/mutation/baseline.json`.
+`tests/mutation/baseline.json`. Until 0.10.0 that ceiling was never measured: the mutation job
+crashed before testing a mutant and the ratchet passed on the empty result (R-25). The ratchet
+now fails on an empty run, and on a null ceiling after `null_allowed_until`.
 
 ## Running them locally
 
@@ -74,4 +76,5 @@ module's row: `--cov=ceap.<module>` imports the package early and trips numpy's 
 than once" error.
 
 Mutation testing needs Linux (mutmut does not run natively on Windows): `pip install mutmut==3.8.1`,
-`mutmut run`, then `python scripts/mutation_ratchet.py`.
+`mutmut run`, then `python scripts/mutation_ratchet.py` (WSL works). A release needs the last
+three nightly runs on main green (`scripts/release_check.py`).
