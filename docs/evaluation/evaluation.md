@@ -120,7 +120,8 @@ Student-t shocks, latent premia the signal code never touches, delistings and la
 
 ### Gates
 
-Full chain in `docs/quant/quant.md`: IC t >= 3.0 for a
+Full chain in `docs/quant/quant.md` (a pinned corpus file that still states the old deflated Sharpe bar of 0.5;
+the code uses 0.95, `dsr_min` in `src/ceap/analytics/research_assessment.py`): IC t >= 3.0 for a
 searched result and 1.645 for one preregistered test, fixed a priori since 0.8.0 (it was t >= 0.40,
 read from the 500-seed null sweep, hash `ef474869...`), deflated Sharpe >= 0.95 over ledger-counted trials with the
 ledger variance floored at `1 / T` (0.10.0 Q2; it was 0.5, unfloored), the same IC hurdle on the factor-neutral IC
@@ -434,7 +435,7 @@ recorded under `tests/cassettes/local_model/` keyed by the canonical request has
 the rubric judge (`ceap.eval.judge`, Cohen's kappa per dimension against 50 hand-built items; a
 dimension is used only when kappa > 0.6) run the same way. COOKBOOK recipe 49.
 
-Results: qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); claims with a number outside their own fact keys 11/39 (0.10.0 re-audit); end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (`docs/evaluation/local_model/`). Evidence class: local model on
+Results: qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); claims with a number outside their own fact keys 11/39 (0.10.0 re-audit); end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables no dimension (`hedged` kappa 1.00 against labels written by Claude, so not validated; 0.10.0 T10); challenger not measured (known issue) (`docs/evaluation/local_model/`). Evidence class: local model on
 one machine. These numbers describe a 7-8B open-weight model, not the pinned hosted models, whose
 rows above stay UNKNOWN / NOT RUN LIVE.
 

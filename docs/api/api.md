@@ -61,6 +61,7 @@ paper order staging - the only non-read-only tool - and even then the harness as
 | GET | `/approvals` | `approvals:decide` | pending human approvals (`CEAP_AUTO_APPROVE=false`) - research proposals carry `arguments.proposal` (verdict, flags, scores, rationale) and `arguments.target_portfolio`; staging approvals carry `arguments.orders_preview` |
 | GET | `/approvals/{id}` | `approvals:decide` | one pending request: `tool_id`, the exact `arguments` the tool will receive, `content_hash`, `hash_verified` and the `review` payload |
 | POST | `/approvals/{id}` | `approvals:decide` | `{"approved": true, "comment": "...", "content_hash": "<hash you reviewed>"}`; `content_hash` is optional, and a mismatch is 409 |
+| POST | `/tasks/{id}/resume` | the task's start capability; owner, or `tasks:cancel-any` | continue an `INTERRUPTED` or `FAILED` task under its own id from the run journal (202 Accepted; 409 while running, in another state, or when the first attempt ran without `CEAP_DURABLE_RUNS=1`; 0.10.0 H1, also `ceap resume <id>`) |
 
 Investigation and research ids live in separate namespaces: a research task is 404 under
 `/investigations/{id}` and vice versa.

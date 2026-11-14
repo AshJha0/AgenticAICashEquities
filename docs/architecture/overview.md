@@ -197,7 +197,8 @@ mixins that share a typed `HarnessBase` (`base.py`): `planning.py`, `dispatch.py
 `evidence.py`, with constants in `common.py`. `from ceap.harness.engine import ...` still works.
 `durable.py` adds an opt-in run journal (`CEAP_DURABLE_RUNS=1`): each tool call has an idempotency
 key `sha256(task | step | tool | canonical args)`, a re-run of the same task reads completed calls
-back, and a human decision for the same content hash is reused. Recovery steps are in
+back, and a human decision for the same stable content hash is reused. `POST /tasks/{id}/resume` and
+`ceap resume <id>` continue an `INTERRUPTED` or `FAILED` task (0.10.0 H1). Recovery steps are in
 `docs/RUNBOOK.md`.
 
 ### 3.7 Agents (`ceap.agents`)
@@ -280,7 +281,8 @@ writers. WAL and `busy_timeout` let `ceap db` read while the server writes. Sche
 an online backup of the file. Tables: `tasks`, `results`, `approvals`, `staged_orders`, `audit_log`
 (v1); `llm_calls`, `trial_ledger`, `idempotency_keys` (v2); the paper tables (v3); `hash_alg` columns,
 `chain_epoch` and `kill_switch_events` (v4, 0.8.0); `run_journal` (v5, 0.9.0, used only with
-`CEAP_DURABLE_RUNS=1`). Repositories (`repositories.py`) are thin,
+`CEAP_DURABLE_RUNS=1`); `schema_seal` (v6, 0.10.0 X3: the highest version reached, sealed with the
+chain key, so `verify_chain()` fails if `user_version` is rolled back). Repositories (`repositories.py`) are thin,
 one per table. Startup recovery turns in-flight tasks into `INTERRUPTED` and pending approvals into
 `EXPIRED`. The Postgres path stays open: repositories speak plain SQL and own no connection logic.
 

@@ -31,7 +31,7 @@ Contents:
 22. [Inspect the critic's assessment](#22-inspect-the-critics-assessment)
 23. [Run the evaluation and read the table](#23-run-the-evaluation-and-read-the-table)
 24. [Run only the fast tests](#24-run-only-the-fast-tests)
-25. [Export traces to OpenTelemetry](#25-export-traces-to-opentelemetry)
+25. [Read the model-call spans of an investigation](#25-read-the-model-call-spans-of-an-investigation)
 26. [Run in Docker](#26-run-in-docker)
 27. [Publish the docs site](#27-publish-the-docs-site)
 28. [Run a signal research proposal (Stage 2)](#28-run-a-signal-research-proposal-stage-2)
@@ -790,17 +790,21 @@ The feed is synthetic, so this record checks operations and controls, not profit
 Stooq feed (`"feed": "stooq"`) needs a local, git-ignored cache under `data/real_cache/stooq/` (Stooq
 blocks scripted downloads, so files must be placed by hand), refuses rows up to 2025-12-31, and cannot
 produce a 12-1 signal before about January 2027. The scheduled workflow runs because the owner set
-the repository variable `PAPER_DAILY_ENABLED=true` on 2026-11-08 (D22); the forward record starts on
-2026-11-09.
+the repository variable `PAPER_DAILY_ENABLED=true` on 2026-11-08 (D22). The record was restarted on
+2026-11-12 on branch `forward-log-v2` (0.10.0 X1, decision O4); branch `forward-log` is the kept
+0.9.0 false start. At the 0.10.0 tag it held 2 sessions (12 and 13 November). Each run checks the
+previous day's `anchor.json`, runs the replay gate (`ceap paper gate`) and commits the new chain head.
 
 If the record stops, you hear about it: a failed `paper-daily` run opens (or comments on) an issue
-labelled `paper-failure`, and the weekly `paper-staleness` workflow opens a `paper-stale` issue when
-the `forward-log` head is more than 2 NYSE sessions old. Check by hand:
+labelled `paper-failure`; a weekday 15:00 UTC job (`ceap paper staleness`, 0.10.0 X2) opens a
+`paper-stale` issue when any NYSE session before today has no row; and the weekly `paper-staleness`
+workflow still fails when the `forward-log-v2` head is more than 2 sessions old. Check by hand:
 
 ```bash
-git fetch origin forward-log
+git fetch origin forward-log-v2
 git show FETCH_HEAD:forward_log.csv > forward_log.csv
-python scripts/check_forward_log_staleness.py --csv forward_log.csv   # exit 1 = stale
+ceap paper staleness --csv forward_log.csv                            # exit 1 = a session is missing
+python scripts/check_forward_log_staleness.py --csv forward_log.csv   # exit 1 = more than 2 behind
 ```
 
 ## 44. Run a parent order through the simulated book

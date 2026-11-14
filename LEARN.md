@@ -8,7 +8,7 @@ worked examples. Everything cited here can be reproduced from the committed code
 If you only have an hour, read §3 (the architectural boundary), §7 (the harness as a control
 plane) and §10 (the critic and the audits) — they carry the platform's central ideas.
 
-**Learning path (0.9.0).** Three passes, each building on the last:
+**Learning path (written for 0.9.0, still current at 0.10.0).** Three passes, each building on the last:
 
 1. *Orientation (about 2 hours).* §1-§4, then [the glossary](docs/glossary.md) for any term you
    do not know, then the five [ADRs](docs/adr/README.md): they are the decisions the rest follows.
@@ -686,8 +686,9 @@ Next day, at rf = 1 bp, cash earns $92.49 and the BBB borrow (10 % a year) costs
 
 **Where this leaves the forward record today.** The record runs on synthetic data (feed
 `synthetic` in `config/paper.json`), so it tests operations and controls, not profitability. The
-scheduled job is enabled (repository variable `PAPER_DAILY_ENABLED=true`, set 2026-11-08) and the
-first forward session is 2026-11-09. The real Stooq feed is written but disabled: `config/paper.json`
+scheduled job is enabled (repository variable `PAPER_DAILY_ENABLED=true`, set 2026-11-08). The first record
+(from 2026-11-09) failed; it restarted on 2026-11-12 on branch `forward-log-v2` and held 2 sessions
+at the 0.10.0 tag (CHANGELOG 0.10.0, X1). A weekday check opens an issue after one missed session (X2). The real Stooq feed is written but disabled: `config/paper.json`
 stays on the synthetic feed, no Stooq data is in the repository (the cache is git-ignored), it must refuse the unspent R5
 pseudo-holdout (to 2025-12-31), and 12-1 momentum needs a year of history after that, so January
 2027 is the earliest real-price start. Even then, at 1980 sessions for S = 1, the record cannot
@@ -725,7 +726,8 @@ recorded replies with no model present. The questions asked of it: how often the
 how often a repair or fallback was needed, how often the narrative carried an untraceable number,
 how often a planted instruction in a data block was obeyed (200 attacks, canary-based, Wilson
 intervals), and whether a rubric judge agrees with a hand-built reference (a dimension counts only
-when Cohen's kappa > 0.6). *Results:* plan valid 15/30, critic 35/45, claims with a number outside their own fact keys 11/39 (0.10.0 re-audit), injection obeyed 3/40; full table in docs/evaluation/local_model/README.md (evidence:
+when Cohen's kappa > 0.6 against labels from independent human raters; the committed labels were
+written by Claude, so no dimension is enabled and the judge is an unvalidated prototype, 0.10.0 T10). *Results:* plan valid 15/30, critic 35/45, claims with a number outside their own fact keys 11/39 (0.10.0 re-audit), injection obeyed 3/40; full table in docs/evaluation/local_model/README.md (evidence:
 `docs/evaluation/local_model/`; class: local model, this machine). A 7-billion-parameter model is
 not the hosted model the platform pins, so these numbers bound nothing about that model.
 

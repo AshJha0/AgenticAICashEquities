@@ -18,8 +18,9 @@ cross-check passed (99.56 % of 2,620,341 name-days within 10 bps). The attempt s
 preregistration; no statistic was computed and the pseudo-holdout is still unspent.
 
 **RP, evidence class synthetic (no forward result yet: UNKNOWN).** The daily job was enabled on
-2026-11-08 (repository variable `PAPER_DAILY_ENABLED=true`) and the first forward session is
-2026-11-09. The paper book fills at the next
+2026-11-08 (repository variable `PAPER_DAILY_ENABLED=true`). The first record (from 2026-11-09)
+failed and was restarted on 2026-11-12 on branch `forward-log-v2` (0.10.0 X1, decision O4); it held
+2 sessions at the 0.10.0 tag. The paper book fills at the next
 close at `|x| p (h + 0.6 sigma sqrt(|x|/ADV)) / 1e4`, capped at 10 % of ADV, with the backtest's own
 cost, financing and position-cap code. The hand-checked two-name example in LEARN §18a (checked by
 `test_two_name_three_day_ledger_by_hand`) ends day two at equity $1,002,445.07. The feed is
@@ -60,8 +61,8 @@ stay plain SHA-256 so anyone can verify them. A DB-backed kill switch (`ceap db 
 set|clear|status`) is checked by the paper job and by `stage_orders`, next to `CEAP_PAPER_HALT`.
 `stage_orders` runs the pre-trade checks before staging and persists staged sets in SQLite. A failed
 `paper-daily` run opens a `paper-failure` issue, and the weekly `paper-staleness` workflow opens a
-`paper-stale` issue when the `forward-log` head is more than 2 NYSE sessions old. Source:
-`CHANGELOG.md` [0.8.0] and COOKBOOK recipe 43.
+`paper-stale` issue when the forward-log head is more than 2 NYSE sessions old (0.10.0 adds a
+stricter weekday check, below). Source: `CHANGELOG.md` [0.8.0] and COOKBOOK recipe 43.
 
 ## Paper trading and the forward log (moved from the README in 0.9.0)
 
@@ -82,16 +83,19 @@ DB-backed `ceap db kill-switch set|clear|status`, checked by the paper job and b
 borrow availability, the NYSE calendar, an end-of-day reconciliation that fails loudly, P&L
 attribution and a markdown/JSON artefact per run. A free daily feed plugs in through `ceap.paper.feed.register_feed`. The scheduled workflow
 `paper-daily.yml` runs when the repository variable `PAPER_DAILY_ENABLED` is `true`, which the owner
-set on 2026-11-08; it appends to the `forward-log` branch. See COOKBOOK recipe 43 and
+set on 2026-11-08; since 2026-11-12 it appends to the `forward-log-v2` branch (`forward-log` is
+the kept 0.9.0 false start). Each run verifies the previous `anchor.json` and runs the replay gate
+(`ceap paper gate`) before committing. See COOKBOOK recipe 43 and
 LEARN section 18a.
 
 **Last recorded session:** see the head of the
-[`forward-log` branch](https://github.com/AshJha0/AgenticAICashEquities/commits/forward-log) (the last
-line of `forward_log.csv`). Two dead-man's switches watch it: a failed `paper-daily` run opens or
-updates an issue labelled `paper-failure`, and the weekly `paper-staleness` workflow fails and opens
-an issue labelled `paper-stale` when the branch head is more than 2 NYSE sessions old. The owner
-should protect `forward-log` against force-push and deletion (Settings > Rules), since the
-record's value is that it is append-only.
+[`forward-log-v2` branch](https://github.com/AshJha0/AgenticAICashEquities/commits/forward-log-v2) (the last
+line of `forward_log.csv`). Three dead-man's switches watch it: a failed `paper-daily` run opens or
+updates an issue labelled `paper-failure`; a weekday 15:00 UTC job (`ceap paper staleness`, 0.10.0
+X2) opens a `paper-stale` issue when any NYSE session before today has no row; and the weekly
+`paper-staleness` workflow fails when the branch head is more than 2 NYSE sessions old. The rows are
+keyed with the published development key, so the log is append-only by git history, not by key; the
+owner should protect `forward-log-v2` against force-push and deletion (Settings > Rules).
 
 **What the forward log is, and what it is not.**
 
