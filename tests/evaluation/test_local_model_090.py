@@ -153,19 +153,14 @@ async def test_recorded_qwen_cassettes_replay(seed):
         (RESULTS / f"{slug(PRIMARY_LOCAL_MODEL)}_s{seed}.json").read_text(encoding="utf-8")
     )
     assert agents["evidence_class"] == "local_model"
-<<<<<<< HEAD
     # T4 (R-04): a null optional argument no longer fails validation, so validity can only rise
     assert agents["planner"]["plan_valid"]["k"] >= published["agents"]["planner"]["plan_valid"]["k"]
-    assert agents["reporter"]["faithfulness"] == published["agents"]["reporter"]["faithfulness"]
-=======
-    assert agents["planner"]["plan_valid"] == published["agents"]["planner"]["plan_valid"]
     # 0.10.0 T5 re-audits the recorded claims with numbers bound to their own fact keys, so the
     # reporter's kept share is compared with the re-audit file, not the 0.9.0 per-seed result
     audit = json.loads(
         (RESULTS / f"{slug(PRIMARY_LOCAL_MODEL)}_claims_audit.json").read_text(encoding="utf-8")
     )
     assert agents["reporter"]["faithfulness"] == audit["per_seed"][str(seed)]["claims_kept_by_audit"]
->>>>>>> r0100-w3-eval
 
 
 # ------------------------------------------------------------------------------------ B4 corpus
