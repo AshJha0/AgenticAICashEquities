@@ -16,8 +16,12 @@ RUN python -m venv /opt/ceap
 ENV PATH=/opt/ceap/bin:$PATH
 COPY requirements.lock ./
 RUN pip install --require-hashes -r requirements.lock
-COPY pyproject.toml README.md ./
+COPY pyproject.toml setup.py MANIFEST.in README.md ./
 COPY src ./src
+# R-27 (E3): setup.py ships the runtime data inside the wheel (ceap/_data), so the installed
+# package finds its knowledge corpus and registered models without a source checkout
+COPY data ./data
+COPY docs/quant/quant.md ./docs/quant/quant.md
 # the project itself has no hash; its dependencies were installed above, so --no-deps
 RUN pip install --no-deps ".[llm]" \
     && pip uninstall -y pip setuptools wheel || true \
@@ -34,7 +38,8 @@ RUN python -m pip uninstall -y pip setuptools wheel || true \
     && mkdir -p /var/lib/ceap && chown ceap:ceap /var/lib/ceap
 COPY --from=build /opt/ceap /opt/ceap
 WORKDIR /app
-COPY --chown=ceap:ceap data ./data
+# no separate /app/data copy (R-27): the data travels inside the installed package; mount a
+# directory and set CEAP_DATA_ROOT to override it
 
 ENV CEAP_ENV=prod \
     CEAP_AUTO_APPROVE=false \

@@ -98,6 +98,61 @@ refuses a tag whose version has no section.
   three 0.9.0 seed files are printed as "not gated (pre-0.10.0, awaiting re-record)" rather than
   passed, and any cassette with a manifest is gated, so a new recording cannot opt out. They become
   gated when T8 re-records them. Tests: `tests/repo/test_check_replay.py`.
+### Fixed: the nightly can go green and its gates bite (0.10.0 item E2, findings R-25, E-13)
+
+- **Why the nightly was red.** The `full` job ran the nightly sweeps under the coverage tracer and
+  hit its 60-minute limit (cancelled 11, 12 and 14 November); on 13 November
+  `test_cause_recall_200_seeds` passed its own 1800 s ceiling. The sweeps now run in a separate
+  `sweeps` job (3.12, no tracer, 150 minutes) and the cause-recall sweep is one test per template,
+  so xdist spreads it. `full` runs everything else in random order on 3.11, 3.12 and 3.13.
+- **Why mutation testing never measured anything.** mutmut copies only `source_paths`; naming the
+  two sub-packages left `mutants/src/ceap` without the rest of the package, the stats run could not
+  import it, and the ratchet read the empty result as 0 survivors. The config now copies `src/`,
+  mutates only `analytics` and `domain`, and copies `data/`, `docs/`, `config/`, `scripts/`.
+- **Ratchet.** Fails when mutmut recorded no mutants, and on a null baseline after
+  `null_allowed_until` (2026-11-30) in `tests/mutation/baseline.json`.
+- **Baseline not measured.** A local run in WSL (8 workers) was still generating mutants when its
+  30-minute cap ended, so the baseline is still null; the first nightly with this config must
+  measure it before 30 November.
+- **Hypothesis** is randomised in the nightly profile (`print_blob` for reproduction); PR stays
+  derandomised.
+- **Release gate.** `scripts/release_check.py` refuses a tag unless the last three completed
+  nightly runs on main succeeded (a cancelled run counts as red).
+- `ceap.llm.router.task_scope` no longer raises when an abandoned task's generator is finalised in
+  another context (the unraisable warnings in the 13 November log).
+- Tests: `tests/repo/test_e2_nightly_gates.py`. Three consecutive green nightlies need CI.
+
+### Added: Python 3.13 declared and tested; 3.14 assessed (0.10.0 item E6, finding C-P2-2)
+
+- `test (3.13)` joins the CI matrix and the 3.13 classifier joins `pyproject.toml`;
+  `tests/repo/test_e6_python_versions.py` fails if the classifiers and the matrix differ.
+- **Goldens.** One set, compared on every interpreter: no per-version golden files and no version
+  branches in the golden code (checked by the same test), so a green matrix proves equality. It
+  already holds across numpy 2.4.6 (3.11) and 2.5.3 (3.12 and later).
+- **3.14.** The committed lock resolves for 3.14 with binary wheels only on Linux and Windows
+  (resolver run, 2026-11-14), so no dependency blocks it; it is not in the matrix because it has
+  not been run. `test (3.13)` has not run yet either: it needs CI. Note in
+  `docs/testing/python-versions.md`.
+
+### Fixed: the wheel and the image carry their data; installed-copy smoke check (0.10.0 item E3, finding R-27)
+
+- **One resolver.** `ceap.paths.data_root()` replaces the module constants that resolved `data/`
+  from the source tree (`Path(__file__).parents[3] / "data"`), which pointed nowhere once
+  installed. Order: `CEAP_DATA_ROOT`, then the copy inside the wheel (`ceap/_data`), then `data/`
+  in a checkout.
+- **The data ships.** `setup.py` (a build hook only; metadata stays in `pyproject.toml`) copies the
+  runtime files listed in `ceap.paths.PACKAGED` into the wheel, including `docs/quant/quant.md`,
+  which the knowledge manifest lists outside `data/`, so the installed corpus hash equals the
+  checkout's. The image now gets its data from the installed package; the separate `/app/data`
+  copy is gone.
+- **Loud failure.** A missing default knowledge corpus or model store raises `DataFileMissing`
+  (not an `OSError`, so the detector and calibration fallbacks cannot swallow it). Before, the
+  knowledge base came up empty and the change detector and calibration ran unfitted.
+- **Smoke check.** `python -m ceap.smoke` runs one investigation and fails unless every corpus
+  document, the change detector and the calibration model loaded. CI runs it from an installed
+  wheel outside the checkout (new `wheel-smoke` job) and inside the image (`docker` job). Checked
+  locally against an installed wheel (10 documents, both model hashes); the image was not built
+  locally (no Docker on this machine). Tests: `tests/unit/test_e3_data_root.py`.
 
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 

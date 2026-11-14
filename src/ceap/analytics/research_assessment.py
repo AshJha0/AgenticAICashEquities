@@ -36,7 +36,6 @@ from __future__ import annotations
 import json
 import math
 from dataclasses import dataclass
-from pathlib import Path
 from statistics import NormalDist
 from typing import Any
 
@@ -50,8 +49,9 @@ from ceap.domain.research import (
     ResearchVerdict,
     SignalStatistics,
 )
+from ceap.paths import data_path
 
-THRESHOLDS_PATH = Path(__file__).resolve().parents[3] / "data" / "reference" / "research_thresholds.json"
+THRESHOLDS_PATH = data_path("reference", "research_thresholds.json")
 TRADING_DAYS = 252
 EULER_GAMMA = 0.5772156649015329
 _N = NormalDist()

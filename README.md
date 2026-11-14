@@ -113,7 +113,7 @@ retry, a canonical plan, a templated narrative) is recorded and marks the result
 only by the evaluation runners and needs `CEAP_LOCAL_MODEL=1` (COOKBOOK recipe 49).
 
 The bootstrap scripts install `.venv` from `requirements.lock`, a universal hashed lock that
-installs on Windows and Linux with Python 3.11 and 3.12. Every environment variable and every CI
+installs on Windows and Linux with Python 3.11, 3.12 and 3.13 ([versions](docs/testing/python-versions.md)). Every environment variable and every CI
 check is listed in [docs/configuration.md](docs/configuration.md).
 
 ### Example output (scenario T06, technology latency)
@@ -197,7 +197,8 @@ Six parallel lanes integrated on one branch; the full list, with every number an
   approvals), an approval TTL sweep, a runbook and alert rules, chaos tests, a paper-day replay
   gate, stricter API keys outside dev (breaking for short raw keys), a two-stage Docker image.
 - **Engineering:** `mypy src` clean, Windows CI, supply-chain workflows (Dependabot, CodeQL,
-  Scorecard, SBOM, signing), nightly mutation testing with a ratchet, benchmarks gate, checked-in
+  Scorecard, SBOM, signing), nightly mutation testing with a ratchet (not measured until 0.10.0: the job crashed
+  before testing a mutant, R-25), benchmarks gate, checked-in
   OpenAPI, ADRs, a learning path, glossary and exercises.
 
 ## Architecture in one picture

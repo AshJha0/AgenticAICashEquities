@@ -13,5 +13,7 @@ venv
 .claude
 tests
 docs
+# R-27 (E3): part of the knowledge corpus (data/reference/knowledge/manifest.json)
+!docs/quant/quant.md
 Claude outputs
 *.log

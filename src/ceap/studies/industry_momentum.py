@@ -30,6 +30,7 @@ import numpy as np
 import pandas as pd
 
 from ceap.data.real.prereg import PreregistrationError, file_sha256, require_prereg_lock
+from ceap.paths import data_path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 STUDY_DIR = REPO_ROOT / "docs" / "research" / "e1"
@@ -37,7 +38,7 @@ PREREG = STUDY_DIR / "prereg_industry_momentum_2026-11.md"
 LOCK = STUDY_DIR / "prereg_lock.json"
 LEDGER = STUDY_DIR / "holdout_ledger.json"
 HASHES = STUDY_DIR / "data_hashes.json"
-CACHE_DIR = REPO_ROOT / "data" / "real_cache" / "kf"
+CACHE_DIR = data_path("real_cache", "kf")
 
 IND49 = "49_Industry_Portfolios_CSV.zip"
 FF3 = "F-F_Research_Data_Factors_CSV.zip"

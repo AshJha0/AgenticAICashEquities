@@ -1,4 +1,5 @@
 {
-  "_comment": "H3 ratchet: ceiling on surviving mutmut mutants in ceap.analytics and ceap.domain. null until the first Linux nightly measures it; see scripts/mutation_ratchet.py.",
-  "survived": null
+  "_comment": "H3 ratchet: ceiling on surviving mutmut mutants in ceap.analytics and ceap.domain; see scripts/mutation_ratchet.py. A null 'survived' fails the nightly after null_allowed_until (0.10.0 E2, R-25).",
+  "survived": null,
+  "null_allowed_until": "2026-11-30"
 }

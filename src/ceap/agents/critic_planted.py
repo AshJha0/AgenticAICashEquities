@@ -18,7 +18,6 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import Any
 
 from ceap.agents.critic import CAP_FLAG, CriticAgent
@@ -29,8 +28,9 @@ from ceap.domain.policy import PolicyContext
 from ceap.domain.tools import ToolRegistry
 from ceap.eval.stats import rate
 from ceap.harness.memory import InvestigationMemory
+from ceap.paths import data_path
 
-HELDOUT = Path(__file__).resolve().parents[3] / "data" / "eval" / "critic_planted_heldout_v1.json"
+HELDOUT = data_path("eval", "critic_planted_heldout_v1.json")
 
 
 class _NoTools(ToolInvoker):
