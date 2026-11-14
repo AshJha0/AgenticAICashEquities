@@ -19,9 +19,12 @@ from ceap.harness.durable import (
     TOOL_KIND,
     RunJournal,
     approval_key,
+    id_scope,
     idempotency_key,
     result_from_payload,
     result_payload,
+    scope_seed,
+    stable_content_hash,
 )
 from ceap.harness.memory import InvestigationMemory
 from ceap.harness.retry import RetryPolicy, retry_async
@@ -221,7 +224,9 @@ class StepExecutor:
                 self.tracer.event("tool.retry", attempt=n, error=f"{type(exc).__name__}: {exc}")
 
             try:
-                result = await retry_async(attempt, policy, on_retry)
+                # H1: with a journal, ids minted by the call derive from its key (same on resume)
+                with id_scope(scope_seed(run.task_id, "tool", key) if self.journal is not None else None):
+                    result = await retry_async(attempt, policy, on_retry)
             except TaskCancelled:
                 raise
             except TimeoutError:
@@ -255,7 +260,7 @@ class StepExecutor:
         approval = ApprovalRequest.create(
             run.task_id, step_id, request.tool_id, request.arguments, reason, run.policy_context.principal
         )
-        akey = approval_key(step_id, approval.content_hash)
+        akey = approval_key(step_id, stable_content_hash(request.tool_id, dict(request.arguments)))
         prior = self.journal.get(run.task_id, akey) if self.journal is not None else None
         if prior is not None:  # G5: resumable approval - this content was already decided in this run
             decision = ApprovalDecision(

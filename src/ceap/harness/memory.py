@@ -40,6 +40,8 @@ class InvestigationMemory:
     agent_outputs: dict[str, dict[str, Any]] = field(default_factory=dict)
     scratch: dict[str, Any] = field(default_factory=dict)
     messages: list[Any] = field(default_factory=list)  # R3B 3B.6: typed AgentMessage envelopes
+    # H1: per-run counters of journalled scopes (model calls per agent step, agent step occurrences)
+    durable_counts: dict[str, int] = field(default_factory=dict)
 
     def add_evidence(self, *items: Evidence) -> None:
         for e in items:

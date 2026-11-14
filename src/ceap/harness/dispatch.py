@@ -30,6 +30,7 @@ from ceap.harness.common import (
     _w,
     task_kind,
 )
+from ceap.harness.durable import StepModelJournal, id_scope, scope_seed
 from ceap.harness.executor import HarnessToolInvoker, RunContext, StepExecutor
 from ceap.harness.memory import (
     InvestigationMemory,
@@ -97,6 +98,31 @@ class DispatchMixin(HarnessBase):
         executor: StepExecutor,
         task: Task,
     ) -> AgentResult:
+        journal = getattr(self, "journal", None)
+        model_journal: StepModelJournal | None = None
+        seed: str | None = None
+        if journal is not None:  # H1: model replies are journalled and ids are reproducible on resume
+            model_journal = StepModelJournal(journal, task.id, agent.id, step_id, memory.durable_counts)
+            scope = f"agent|{agent.id}|{step_id}"
+            occurrence = memory.durable_counts.get(scope, 0)
+            memory.durable_counts[scope] = occurrence + 1
+            seed = scope_seed(task.id, scope, str(occurrence))
+        with id_scope(seed):
+            result = await self._run_agent_scoped(agent, step_id, memory, run, executor, task, model_journal)
+        if model_journal is not None and model_journal.replayed:
+            self.tracer.event("agent.model_replayed", agent_id=agent.id, step_id=step_id, calls=model_journal.replayed)
+        return result
+
+    async def _run_agent_scoped(
+        self,
+        agent: Agent,
+        step_id: str,
+        memory: InvestigationMemory,
+        run: RunContext,
+        executor: StepExecutor,
+        task: Task,
+        model_journal: StepModelJournal | None,
+    ) -> AgentResult:
         async with self.tracer.span(f"agent:{agent.id}", step_id=step_id) as span:
             # A16: the agent's tool calls run with its own capability set and tool allowlist
             agent_run = replace(run, policy_context=agent_policy_context(run.policy_context, agent.id))
@@ -116,6 +142,7 @@ class DispatchMixin(HarnessBase):
                     "tool_catalogue": self.tools.list(),
                     "messages": tuple(memory.messages),  # R3B 3B.6: typed, read-only
                     "cases": memory.scratch.get("cases") or (),  # R3B 3B.7: read-only views
+                    **({"model_journal": model_journal} if model_journal is not None else {}),
                 },
                 tool_registry=self.tools,
                 policy_context=agent_run.policy_context,

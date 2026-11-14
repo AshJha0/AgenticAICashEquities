@@ -119,9 +119,9 @@ def test_kill_9_mid_investigation_resumes_from_the_journal(tmp_path):
             def put(*a, **k):
                 nonlocal puts
                 ok = inner(*a, **k)
-                puts += 1
+                puts += a[2] == "tool"  # 0.10.0 H1: model replies are journalled too; count tools
                 if puts == 3:
-                    os._exit(137)  # die like kill -9 straight after the third step boundary
+                    os._exit(137)  # die like kill -9 straight after the third tool step boundary
                 return ok
             journal.put = put
             h.journal = journal
@@ -132,7 +132,7 @@ def test_kill_9_mid_investigation_resumes_from_the_journal(tmp_path):
     )
     code = proc.wait(240)
     assert code == 137, f"child exited {code}"
-    assert _count(db_path, "SELECT COUNT(*) FROM run_journal") == 3
+    assert _count(db_path, "SELECT COUNT(*) FROM run_journal WHERE kind='tool'") == 3
 
     import asyncio
 

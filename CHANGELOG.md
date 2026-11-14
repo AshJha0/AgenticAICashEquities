@@ -78,6 +78,29 @@ refuses a tag whose version has no section.
 - A constant dependent series gives R-squared NaN with an `r2_note`; a near-constant market leaves the
   beta unestimated (standard error infinite, so shrinkage takes the target); `factor_alpha` returns NaN
   with a `note`. Regressions on varying data are unchanged.
+
+### Added: durable runs resume through the product (0.10.0 item H1, findings R-11 and AI-2-05)
+
+- **Entry point.** `POST /tasks/{id}/resume` and `ceap resume <id>` continue an `INTERRUPTED` or
+  `FAILED` task under its own id. Before, nothing in the product re-ran a task id; the 0.9.0 chaos test
+  replaced the id by hand. The owner or an admin may resume; the run uses the principal and roles it
+  was first submitted with, which are now journalled. A finished task, a running one, or one whose
+  first attempt ran without `CEAP_DURABLE_RUNS=1` is refused with 409.
+- **Model replies are journalled.** A resumed run used to call the planner and every model-backed
+  agent again, so a model that answers differently could return another plan (AI-2-05). Each reply is
+  now journalled by agent, step and call order and read back on resume. With the journal on, ids are
+  minted from the task id and the scope, so the finding and evidence ids those replies cite are the
+  same in the resumed run. Runs without the journal are unchanged.
+- **The approval match ignores run-minted ids.** The journal keyed a decision on the approval's full
+  content hash, which includes fresh finding and evidence ids, so a resume asked the approver again
+  and wrote a second case. It now keys on `stable_content_hash`, which leaves those ids out. The
+  approver still signs the full content hash (A14).
+- Test: `tests/unit/test_r0100_h1_resume.py` kills a signed-off run with `os._exit` straight after the
+  sign-off is journalled, resumes it through the API by id alone, and finds the same number of model
+  and tool calls as an uninterrupted run, one approval request and one case. With model journalling
+  disabled the same test fails (6 model calls against 4). `test_r090_durable.py` and
+  `test_r090_chaos.py` now count tool rows only, since the journal also holds model rows.
+
 ### Fixed: standalone MCP servers no longer stage on capability alone (0.10.0 item H2, finding R-12)
 
 - **A signed grant for every HIGH-risk call.** A server started on its own (`python -m

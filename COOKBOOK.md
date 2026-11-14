@@ -962,9 +962,14 @@ Do not pass `--open-holdout`: the 1990-2015 holdout was opened once on 2026-11-0
 
 ```bash
 CEAP_DURABLE_RUNS=1 CEAP_DB_PATH=var/ceap.db ceap serve
+# after a crash and a restart, the task is INTERRUPTED; resume it under the same id
+curl -X POST -H "X-API-Key: $CEAP_KEY" http://127.0.0.1:8000/tasks/TASK-1a2b3c4d/resume
+CEAP_DB_PATH=var/ceap.db ceap resume TASK-1a2b3c4d     # the same from the command line
 ```
 
-Each completed tool call is journalled at the step boundary under an idempotency key; a re-run of the
-same task id reads it back instead of calling the tool again, and a human decision for the same
-content hash is reused. What to do after a crash or a stuck approval: `docs/RUNBOOK.md`.
+Each completed tool call and each model reply is journalled under the task id, as are human
+decisions and the principal the run started under. The resume reads them back instead of calling
+the tool or the model again, and does not ask an approver twice for the same question (0.10.0 H1).
+Only `INTERRUPTED` or `FAILED` tasks resume. What to do after a crash or a stuck approval:
+`docs/RUNBOOK.md`.
 

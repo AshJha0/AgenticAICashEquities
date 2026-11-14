@@ -74,7 +74,7 @@ from ceap.harness.common import (  # noqa: F401 - re-exported, engine is the fac
     task_kind,
 )
 from ceap.harness.dispatch import DispatchMixin
-from ceap.harness.durable import RunJournal
+from ceap.harness.durable import RunJournal, id_scope, scope_seed
 from ceap.harness.evidence import EvidenceMixin
 from ceap.harness.executor import RunContext, StepExecutor
 from ceap.harness.memory import (
@@ -176,6 +176,10 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
         # so concurrent tasks on one router never share a cost meter)
         llm_scope = task_scope(task.id)
         llm_scope.__enter__()
+        # H1: with a journal, ids minted at run level derive from the task id, so a resumed run
+        # reproduces them (the execution id above stays fresh: each attempt is its own execution)
+        ids = id_scope(scope_seed(task.id, "run") if self.journal is not None else None)
+        ids.__enter__()
 
         try:
             async with self.tracer.span("harness.execute", task_id=task.id, execution_id=execution_id):
@@ -423,6 +427,7 @@ class AgentHarness(PlanningMixin, DispatchMixin, ApprovalsMixin, EvidenceMixin):
                 sm.fail(error)
                 metrics.inc("ceap_investigations_failed_total")
 
+        ids.__exit__(None, None, None)
         llm_scope.__exit__(None, None, None)
         cost = task_cost(task.id)  # R3A 3A.6: per-task cost span (local estimate, labelled)
         if cost.calls:
