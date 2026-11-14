@@ -40,6 +40,11 @@ jobs:
         run: python scripts/check_banned_words.py
       - name: Docs numbers and commands match measured artefacts (3E.3)
         run: python scripts/check_docs.py
+      - name: Local-model replay gate (T3, R-01)
+        # every recorded interaction consumed, none missing, every published number reproduced
+        env:
+          ANTHROPIC_API_KEY: ""
+        run: python scripts/check_replay.py
       - name: Contract and drift monitors (3E.4)
         env:
           ANTHROPIC_API_KEY: ""

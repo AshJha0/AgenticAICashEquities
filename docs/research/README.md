@@ -208,8 +208,8 @@ d = 4 with a five-day hold and a one-day lag, collapsing exactly when d + lag >=
 accounting (D8, `ceap.analytics.trial_accounting`), PBO by CSCV and stationary block bootstrap
 intervals (D9, `ceap.analytics.overfitting`), Newey-West over gaps with the Andrews bandwidth (D11),
 an equal-weight baseline with a paired bootstrap and Diebold-Mariano test for the ridge (D12),
-Ledoit-Wolf covariance, factor regression with alpha t after factors (its R² is not reliable for a
-constant series; see the known numerical issues in [docs/quant/quant.md](../quant/quant.md)) and
+Ledoit-Wolf covariance, factor regression with alpha t after factors (its R² is undefined, NaN, for a
+constant series; see the near-constant series note in [docs/quant/quant.md](../quant/quant.md)) and
 multi-factor stress (D13, D16), data-vintage hashes (D14, `ceap.data.real.vintage`), the IC term structure and half-life (D15,
 `ceap.analytics.alpha_decay`), turnover-penalised construction and the cost frontier (D17, D18),
 drawdown, CVaR and volatility-regime splits (D19), a robustness report per verdict (D6) and

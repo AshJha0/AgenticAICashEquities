@@ -73,6 +73,31 @@ refuses a tag whose version has no section.
   the trace API. The `[observability]` extra still lists the OpenTelemetry packages until the lock
   file is regenerated.
 - Tests: `tests/unit/test_r0100_t11_ai_slo_wiring.py`. No snapshot changed.
+### Changed: quant errata folded into the corpus page; corpus re-pinned and retrieval re-measured (0.10.0 item Q8)
+
+- **R-18.** `docs/quant/quant.md` now states the a-priori PROMOTE hurdle (3.0 for a search, 1.645
+  for one preregistered test), the INCONCLUSIVE verdict with the daily Lo (2002) standard error and
+  Q1's corrected worked value (0.447 for Sharpe 0.3 over 1,260 days), the research score of 25/30,
+  a pointer to the regenerated power curve, and the near-constant-series tolerance. The errata page
+  `docs/quant/quant-errata-0.9.0.md` is removed. Corpus pin: quant.md 0.4.0 to 0.5.0, corpus hash
+  `ee8200cd3d90` to `2c4016d335b2`. BM25 retrieval re-measured (`python -m ceap.rag.evaluation`):
+  chunking winner (section) and support gate (2.5) unchanged; train R@1 0.90 to 0.95, MRR 0.935 to
+  0.960; held-out unchanged at 1.00; negative max support 2.06 to 2.08, no negative leaks.
+  Snapshot change (needs the `snapshot-change` label): report goldens `research_R01`,
+  `research_R03`, `tca_T01`, `tca_T05` (corpus hash, retrieved policy chunks, and the Q1 Sharpe
+  interval). Not yet done: the dense and rerank caches in `data/rag/` need a rebuild with
+  `fastembed` (`python -m ceap.rag.hybrid_eval --build`), after which `rag-hybrid-0.9.0` results are
+  regenerated. Tests: `tests/unit/test_quant_errata_folded.py`.
+
+### Added: CI replay gate for local-model results (0.10.0 item T3)
+
+- **R-01.** `scripts/check_replay.py` runs in the CI lint job. For each committed per-seed result
+  in `docs/evaluation/local_model/` it replays the matching cassette with no model running and fails
+  when a request has no recording, when a recording is never asked for, or when any number in the
+  committed file differs from the replay. Cassettes recorded before 0.10.0 have no manifest; the
+  three 0.9.0 seed files are printed as "not gated (pre-0.10.0, awaiting re-record)" rather than
+  passed, and any cassette with a manifest is gated, so a new recording cannot opt out. They become
+  gated when T8 re-records them. Tests: `tests/repo/test_check_replay.py`.
 
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 
