@@ -113,7 +113,7 @@ retry, a canonical plan, a templated narrative) is recorded and marks the result
 only by the evaluation runners and needs `CEAP_LOCAL_MODEL=1` (COOKBOOK recipe 49).
 
 The bootstrap scripts install `.venv` from `requirements.lock`, a universal hashed lock that
-installs on Windows and Linux with Python 3.11 and 3.12. Every environment variable and every CI
+installs on Windows and Linux with Python 3.11, 3.12 and 3.13 ([versions](docs/testing/python-versions.md)). Every environment variable and every CI
 check is listed in [docs/configuration.md](docs/configuration.md).
 
 ### Example output (scenario T06, technology latency)

@@ -6,6 +6,18 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Added: Python 3.13 declared and tested; 3.14 assessed (0.10.0 item E6, finding C-P2-2)
+
+- `test (3.13)` joins the CI matrix and the 3.13 classifier joins `pyproject.toml`;
+  `tests/repo/test_e6_python_versions.py` fails if the classifiers and the matrix differ.
+- **Goldens.** One set, compared on every interpreter: no per-version golden files and no version
+  branches in the golden code (checked by the same test), so a green matrix proves equality. It
+  already holds across numpy 2.4.6 (3.11) and 2.5.3 (3.12 and later).
+- **3.14.** The committed lock resolves for 3.14 with binary wheels only on Linux and Windows
+  (resolver run, 2026-11-14), so no dependency blocks it; it is not in the matrix because it has
+  not been run. `test (3.13)` has not run yet either: it needs CI. Note in
+  `docs/testing/python-versions.md`.
+
 ### Fixed: the wheel and the image carry their data; installed-copy smoke check (0.10.0 item E3, finding R-27)
 
 - **One resolver.** `ceap.paths.data_root()` replaces the module constants that resolved `data/`

@@ -14,6 +14,7 @@ keywords = ["agentic-ai", "mcp", "cash-equities", "tca", "execution-quality", "l
 classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Framework :: FastAPI",
     "Topic :: Office/Business :: Financial :: Investment",
 ]
