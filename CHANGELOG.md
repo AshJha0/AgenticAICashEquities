@@ -309,6 +309,14 @@ refuses a tag whose version has no section.
   68.7 -> 79.3 %, `observability` 78.0 -> 96.5 %, `mcp` 73.8 -> 84.4 %, `eval` 72.4 -> 73.1 %. The
   ratchet in `scripts/coverage_by_package.py` is tightened to the new figures; eight packages remain
   under their floor. `tests/test_industry_momentum.py` moved to `tests/unit/`. No source changed.
+- Lane W9: unit-tier behaviour tests for the knowledge-corpus pin check, the injection corpus and
+  its runner, the B3 sensitivity check (every model metric moves under its degraded client), the T5
+  claims-audit replay, the R-01 fallback refusal, the drift monitors on synthetic cassettes, model
+  pins and prompt integrity, untrusted data blocks and context truncation, cassette match keys and
+  the publish gate, and the harness evidence-binding rules. Unit tier, before -> after: `eval`
+  73.1 -> 91.3 % (now meets the floor), top-level modules 79.3 -> 85.6 %, `llm` 74.8 -> 81.2 %,
+  `harness` 78.2 -> 80.0 %. Ratchet tightened; `analytics` and `paper` baselines kept (four
+  analytics tests fail on the base branch). No source changed; no bug found.
 
 ### Fixed: deployment recipes (0.10.0 item E4, finding R-26)
 
