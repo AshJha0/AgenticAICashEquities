@@ -1,4 +1,4 @@
-"""Command-line interface: ``ceap investigate|research|scenarios|research-scenarios|evaluate|generate-data|serve``."""
+"""Command-line interface: ``ceap investigate|resume|research|scenarios|research-scenarios|evaluate|generate-data|serve``."""
 
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from ceap.platform import (
     Platform,
     RequestNotPermitted,
     ResearchRequest,
+    ResumeRefused,
 )
 from ceap.policy.permissions import Role
 
@@ -162,6 +163,24 @@ def _cmd_investigate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_resume(args: argparse.Namespace) -> int:
+    """H1 (R-11): continue an interrupted durable run under its original task id."""
+    platform = Platform()
+    try:
+        result = asyncio.run(platform.resume(args.task_id, resumed_by="cli"))
+    except KeyError:
+        print(f"Unknown task {args.task_id}", file=sys.stderr)
+        return 2
+    except ResumeRefused as exc:
+        print(f"Cannot resume: {exc}", file=sys.stderr)
+        return 2
+    finally:
+        platform.close()
+    if args.json:
+        _write_json(args.json, result, args.trace)
+    return _print_outcome(result)
+
+
 def _cmd_scenarios(args: argparse.Namespace) -> int:
     specs = all_scenarios() if args.all else list(SCENARIO_TEMPLATES)
     for s in specs:
@@ -257,6 +276,14 @@ def build_parser() -> argparse.ArgumentParser:
     inv.add_argument("--json", help="write the full result to this file")
     inv.add_argument("--trace", action="store_true", help="include the execution trace in --json output")
     inv.set_defaults(func=_cmd_investigate)
+
+    rsm = sub.add_parser(
+        "resume", help="continue an interrupted durable run (CEAP_DURABLE_RUNS=1) under its task id"
+    )
+    rsm.add_argument("task_id")
+    rsm.add_argument("--json", help="write the full result to this file")
+    rsm.add_argument("--trace", action="store_true", help="include the execution trace in --json output")
+    rsm.set_defaults(func=_cmd_resume)
 
     rs = sub.add_parser("research", help="evaluate a trading signal and propose whether to promote it (Stage 2)")
     rs.add_argument("question")

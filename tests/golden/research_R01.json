@@ -331,6 +331,7 @@
         "values": {
           "as_of": "2026-09-18",
           "beta": -0.0152,
+          "covariance_shrinkage": 0.155263,
           "dataset": "R01",
           "effective_names": 18.0,
           "gross": 1.0,
@@ -340,6 +341,7 @@
           "max_abs_weight": 0.055556,
           "max_adv_participation": 0.039175,
           "net": 0.0,
+          "predicted_vol_ann": 0.068842,
           "signal": "momentum_12_1",
           "stress": null
         }
@@ -429,12 +431,12 @@
         "task_id": "TASK-00000001",
         "tool_id": "knowledge.search_documents",
         "values": {
-          "corpus_hash": "ee8200cd3d904e456e62dc56b11fdab1220612a17930965ea1b14472764559e8",
-          "count": 3,
+          "corpus_hash": "2c4016d335b2587619a227bbdb557384f1029836c8ba48fa1cfe485e683a4db5",
+          "count": 2,
           "query": "out-of-sample cost; research promotion criteria out-of-sample cost drag approval policy"
         }
       },
-      "description": "knowledge.search_documents(query=out-of-sample cost; research pro, k=4, classifications=public,internal,restricted) -> 3 records",
+      "description": "knowledge.search_documents(query=out-of-sample cost; research pro, k=4, classifications=public,internal,restricted) -> 2 records",
       "id": "DOC-00000021",
       "source": "knowledge.search_documents",
       "timestamp": "2026-01-01T00:00:00.050000+00:00",
@@ -529,9 +531,11 @@
               "ic_std": 0.192412741,
               "ic_t_stat": 5.98635463,
               "ic_t_stat_1d": 7.61875957,
+              "ic_t_stat_factor_neutral": 5.7515542,
               "ic_t_stat_nw": 6.37197272,
               "mean_ic": 0.0764510296,
               "mean_ic_1d": 0.021535503,
+              "mean_ic_factor_neutral": 0.0759633752,
               "mean_ic_horizon": 0.0760257002,
               "n_dates": 227,
               "name": "full",
@@ -554,9 +558,11 @@
               "ic_std": 0.18804415,
               "ic_t_stat": 4.37158493,
               "ic_t_stat_1d": 6.375612,
+              "ic_t_stat_factor_neutral": 4.04517775,
               "ic_t_stat_nw": 4.96080747,
               "mean_ic": 0.0636122142,
               "mean_ic_1d": 0.0210457271,
+              "mean_ic_factor_neutral": 0.0607829157,
               "mean_ic_horizon": 0.065303442,
               "n_dates": 167,
               "name": "in_sample",
@@ -579,9 +585,11 @@
               "ic_std": 0.199971932,
               "ic_t_stat": 4.48452215,
               "ic_t_stat_1d": 4.38822588,
+              "ic_t_stat_factor_neutral": 4.57480649,
               "ic_t_stat_nw": 4.62175816,
               "mean_ic": 0.116750624,
               "mean_ic_1d": 0.0241687026,
+              "mean_ic_factor_neutral": 0.122857699,
               "mean_ic_horizon": 0.109535791,
               "n_dates": 59,
               "name": "out_of_sample",
@@ -1078,9 +1086,25 @@
           "trial": {
             "dataset_hash": "8a68d1fdd3f025c250657705c514201366c9edadf82846512e3a1891979165ca",
             "n_trials": 1,
+            "n_trials_effective": 3.8213,
             "new_trial": true,
             "params_hash": "ae3ade24bcdd6803f598c5482cbb5506d159dcb00b066c0370e80daf2485a375",
-            "sharpe_variance": null
+            "search": {
+              "basis": "in-sample net daily excess returns of the 24 enumerated configurations",
+              "cluster_threshold": 0.7,
+              "n_days": 3528,
+              "n_trials": 24,
+              "n_trials_effective": 3.8213,
+              "n_trials_effective_cluster": 5,
+              "pbo": 0.095804,
+              "pbo_median_logit": 0.944462,
+              "pbo_n_blocks": 16,
+              "pbo_n_splits": 12870,
+              "pbo_oos_on_is_slope": -0.853828
+            },
+            "sharpe_basis": "gross",
+            "sharpe_variance": null,
+            "sharpe_variance_net": null
           }
         },
         "derived_from": [
@@ -1112,6 +1136,13 @@
               "verdict": "PASS"
             },
             {
+              "n_obs": 167,
+              "name": "in_sample_ic_t_factor_neutral",
+              "p_value": 2.61417198e-05,
+              "statistic": 4.04517775,
+              "verdict": "PASS"
+            },
+            {
               "n_obs": 3528,
               "name": "deflated_sharpe",
               "p_value": 0.0424359047,
@@ -1138,20 +1169,26 @@
         "metrics": {
           "breached_checks": 0.0,
           "cost_share": 0.280432381,
+          "covariance_shrinkage": 0.155263,
           "deflated_sharpe": 0.957564095,
           "deflated_sharpe_bar": 0.529116621,
-          "full_sharpe_ci_high": 1.31957693,
-          "full_sharpe_ci_low": 0.285545837,
+          "full_sharpe_ci_high": 1.25250346,
+          "full_sharpe_ci_low": 0.352619312,
           "hurdle_t": 3.0,
+          "is_ic_t_factor_neutral": 4.04517775,
           "is_ic_t_stat": 4.37158493,
           "is_ic_t_stat_nw": 4.96080747,
           "is_sharpe": 0.595376598,
           "max_adv_participation": 0.039175,
           "n_trials": 24.0,
+          "n_trials_effective": 3.8213,
+          "n_trials_effective_cluster": 5.0,
           "oos_gross_sharpe": 1.8181139,
           "oos_ic_t_stat": 4.48452215,
           "oos_sharpe": 1.38966919,
+          "pbo": 0.095804,
           "pnl_concentration_top3": 0.241265083,
+          "predicted_vol_ann": 0.068842,
           "sharpe_ratio_oos_is": 2.33410112
         },
         "rationale": [
@@ -2382,9 +2419,25 @@
       "trial": {
         "dataset_hash": "8a68d1fdd3f025c250657705c514201366c9edadf82846512e3a1891979165ca",
         "n_trials": 1,
+        "n_trials_effective": 3.8213,
         "new_trial": true,
         "params_hash": "ae3ade24bcdd6803f598c5482cbb5506d159dcb00b066c0370e80daf2485a375",
-        "sharpe_variance": null
+        "search": {
+          "basis": "in-sample net daily excess returns of the 24 enumerated configurations",
+          "cluster_threshold": 0.7,
+          "n_days": 3528,
+          "n_trials": 24,
+          "n_trials_effective": 3.8213,
+          "n_trials_effective_cluster": 5,
+          "pbo": 0.095804,
+          "pbo_median_logit": 0.944462,
+          "pbo_n_blocks": 16,
+          "pbo_n_splits": 12870,
+          "pbo_oos_on_is_slope": -0.853828
+        },
+        "sharpe_basis": "gross",
+        "sharpe_variance": null,
+        "sharpe_variance_net": null
       }
     },
     "risk": {
@@ -2392,6 +2445,7 @@
         "as_of": "2026-09-18",
         "beta": -0.0152,
         "checks": [],
+        "covariance_shrinkage": 0.155263,
         "dataset": "R01",
         "effective_names": 18.0,
         "gross": 1.0,
@@ -2548,6 +2602,7 @@
             "weight": 0.055556
           }
         ],
+        "predicted_vol_ann": 0.068842,
         "signal": "momentum_12_1",
         "stress": null
       },
@@ -2702,9 +2757,11 @@
           "ic_std": 0.192412741,
           "ic_t_stat": 5.98635463,
           "ic_t_stat_1d": 7.61875957,
+          "ic_t_stat_factor_neutral": 5.7515542,
           "ic_t_stat_nw": 6.37197272,
           "mean_ic": 0.0764510296,
           "mean_ic_1d": 0.021535503,
+          "mean_ic_factor_neutral": 0.0759633752,
           "mean_ic_horizon": 0.0760257002,
           "n_dates": 227,
           "name": "full",
@@ -2727,9 +2784,11 @@
           "ic_std": 0.18804415,
           "ic_t_stat": 4.37158493,
           "ic_t_stat_1d": 6.375612,
+          "ic_t_stat_factor_neutral": 4.04517775,
           "ic_t_stat_nw": 4.96080747,
           "mean_ic": 0.0636122142,
           "mean_ic_1d": 0.0210457271,
+          "mean_ic_factor_neutral": 0.0607829157,
           "mean_ic_horizon": 0.065303442,
           "n_dates": 167,
           "name": "in_sample",
@@ -2752,9 +2811,11 @@
           "ic_std": 0.199971932,
           "ic_t_stat": 4.48452215,
           "ic_t_stat_1d": 4.38822588,
+          "ic_t_stat_factor_neutral": 4.57480649,
           "ic_t_stat_nw": 4.62175816,
           "mean_ic": 0.116750624,
           "mean_ic_1d": 0.0241687026,
+          "mean_ic_factor_neutral": 0.122857699,
           "mean_ic_horizon": 0.109535791,
           "n_dates": 59,
           "name": "out_of_sample",
@@ -2767,7 +2828,7 @@
       "universe_size": 30
     }
   },
-  "narrative": "MOMENTUM_12_1 RESEARCH PROPOSAL R01 2007-09-07 to 2026-09-18\n\nEXECUTIVE SUMMARY\n\nVerdict: PROMOTE. In-sample IC t-statistic 4.37, out-of-sample net Sharpe 1.39, costs consume 28% of gross return. No flags were raised; the signal clears every promotion hurdle.\n\nHYPOTHESIS\n\nTwelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.\nUniverse of 30 names, 4788 trading days from 2007-09-07 to 2026-09-18; in-sample period ends 2021-09-10.\n\nSIGNAL STATISTICS\n\nIn-sample: mean IC 0.0636, IC t-stat 4.37, IR 0.34, hit rate 60.5%, turnover n/a over 167 dates\nOut-of-sample: mean IC 0.1168, IC t-stat 4.48, IR 0.58, hit rate 69.5%, turnover n/a over 59 dates\nFull period: mean IC 0.0765, IC t-stat 5.99, IR 0.40, hit rate 62.6%, turnover n/a over 227 dates\n\nBACKTEST\n\nIn-sample: CAGR 4.2%, volatility 6.2%, net Sharpe 0.60 (gross 0.99), max drawdown 9.4%, cost drag 246 bps per year over 168 rebalances\nOut-of-sample: CAGR 12.9%, volatility 6.2%, net Sharpe 1.39 (gross 1.82), max drawdown 5.4%, cost drag 263 bps per year over 60 rebalances\nFull period: CAGR 6.4%, volatility 6.2%, net Sharpe 0.80 (gross 1.21), max drawdown 10.7%, cost drag 250 bps per year over 228 rebalances\nOut-of-sample to in-sample Sharpe ratio 2.33; top three names carry 24% of positive P&L.\n\nRISK\n\nTarget portfolio as of 2026-09-18: gross 100%, net 0%, max single-name weight 5.6%, beta -0.02, max ADV participation 3.9%.\nPortfolio limits respected.\nMarket shock of -500 bps: P&L through beta 38,000 USD, through net exposure -0 USD, worst single name -138,890 USD.\n\nVERDICT\n\nPROMOTE\n- in-sample IC t-stat 4.37 clears 3.00, deflated Sharpe 0.96 over 24 trial(s), out-of-sample net Sharpe 1.39, costs 28% of gross return, limits respected\n\nPRIMARY OBSERVATIONS\n\n1. Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.33 (in-sample 0.60, out-of-sample 1.39). [confidence 0.94]\n2. Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%). [confidence 0.85]\n3. Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates. [confidence 0.82]\n4. Transaction costs consume 28% of gross return (250 bps per year against gross 8.9%). [confidence 0.80]\n5. The strategy is profitable out-of-sample: net Sharpe 1.39, CAGR 12.9%, maximum drawdown 5.4% over 1260 days. [confidence 0.73]\n6. Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample. [confidence 0.70]\n7. Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10. [confidence 0.70]\n8. Regime: the equal-weight market returned 75.621% in-sample and -10.018% out-of-sample, with annualised volatility 15.727% versus 16.168%. [confidence 0.70]\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the flags above.\n\nCRITIC\n\nReviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: PROMOTE (no flags).\n\nAPPROVAL\n\nApproved by auto-approver: auto-approved (dev mode)\n\nSTAGED ORDERS\n\nOrder staging was not requested.\n\nPOLICY CONTEXT\n\n- Quant in CEAP / The assessment (`assess_research`): ### The assessment (`assess_research`)\n- Quant in CEAP / Multiple testing (2.8, 2.10, decision D4): What the number means: on twenty years of data the other gates (deflated Sharpe over 24 trials,\n- Quant in CEAP / Risk (`ceap.analytics.portfolio_risk`, 2.12): ### Risk (`ceap.analytics.portfolio_risk`, 2.12)\n\nEVIDENCE\n\n- BT-00000023\n- DOC-00000021\n- MARKET-0000001d\n- RISK-0000001e\n- RISK-0000001f\n- RISK-00000020\n- SIG-00000022\n- TCA-0000002a\n- TCA-00000030\n- TCA-00000040\n- TCA-00000041",
+  "narrative": "MOMENTUM_12_1 RESEARCH PROPOSAL R01 2007-09-07 to 2026-09-18\n\nEXECUTIVE SUMMARY\n\nVerdict: PROMOTE. In-sample IC t-statistic 4.37, out-of-sample net Sharpe 1.39, costs consume 28% of gross return. No flags were raised; the signal clears every promotion hurdle.\n\nHYPOTHESIS\n\nTwelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample.\nUniverse of 30 names, 4788 trading days from 2007-09-07 to 2026-09-18; in-sample period ends 2021-09-10.\n\nSIGNAL STATISTICS\n\nIn-sample: mean IC 0.0636, IC t-stat 4.37, IR 0.34, hit rate 60.5%, turnover n/a over 167 dates\nOut-of-sample: mean IC 0.1168, IC t-stat 4.48, IR 0.58, hit rate 69.5%, turnover n/a over 59 dates\nFull period: mean IC 0.0765, IC t-stat 5.99, IR 0.40, hit rate 62.6%, turnover n/a over 227 dates\n\nBACKTEST\n\nIn-sample: CAGR 4.2%, volatility 6.2%, net Sharpe 0.60 (gross 0.99), max drawdown 9.4%, cost drag 246 bps per year over 168 rebalances\nOut-of-sample: CAGR 12.9%, volatility 6.2%, net Sharpe 1.39 (gross 1.82), max drawdown 5.4%, cost drag 263 bps per year over 60 rebalances\nFull period: CAGR 6.4%, volatility 6.2%, net Sharpe 0.80 (gross 1.21), max drawdown 10.7%, cost drag 250 bps per year over 228 rebalances\nOut-of-sample to in-sample Sharpe ratio 2.33; top three names carry 24% of positive P&L.\n\nRISK\n\nTarget portfolio as of 2026-09-18: gross 100%, net 0%, max single-name weight 5.6%, beta -0.02, max ADV participation 3.9%.\nPortfolio limits respected.\nMarket shock of -500 bps: P&L through beta 38,000 USD, through net exposure -0 USD, worst single name -138,890 USD.\n\nVERDICT\n\nPROMOTE\n- in-sample IC t-stat 4.37 clears 3.00, deflated Sharpe 0.96 over 24 trial(s), out-of-sample net Sharpe 1.39, costs 28% of gross return, limits respected\n\nPRIMARY OBSERVATIONS\n\n1. Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.33 (in-sample 0.60, out-of-sample 1.39). [confidence 0.94]\n2. Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%). [confidence 0.85]\n3. Predictive power persists out-of-sample: IC t-statistic 4.48 over 59 dates. [confidence 0.82]\n4. Transaction costs consume 28% of gross return (250 bps per year against gross 8.9%). [confidence 0.80]\n5. The strategy is profitable out-of-sample: net Sharpe 1.39, CAGR 12.9%, maximum drawdown 5.4% over 1260 days. [confidence 0.73]\n6. Hypothesis: Twelve-month price momentum skipping the most recent month (momentum_12_1) predicts cross-sectional forward returns in the 30-name universe, so a long-short quantile portfolio rebalanced every 21 trading days earns a positive net return out-of-sample. [confidence 0.70]\n7. Data coverage is complete: 4788 trading days for 30 names from 2007-09-07 to 2026-09-18; the in-sample period ends 2021-09-10. [confidence 0.70]\n8. Regime: the equal-weight market returned 75.621% in-sample and -10.018% out-of-sample, with annualised volatility 15.727% versus 16.168%. [confidence 0.70]\n\nALTERNATIVE EXPLANATIONS\n\n- None material beyond the flags above.\n\nCRITIC\n\nReviewed 21 findings: 21 supported by resolvable evidence, 0 unsupported. Confidence lowered on 15 finding(s). No cross-agent contradictions. Research assessment: PROMOTE (no flags).\n\nAPPROVAL\n\nApproved by auto-approver: auto-approved (dev mode)\n\nSTAGED ORDERS\n\nOrder staging was not requested.\n\nPOLICY CONTEXT\n\n- Quant in CEAP / The assessment (`assess_research`): ### The assessment (`assess_research`)\n- Quant in CEAP / Risk (`ceap.analytics.portfolio_risk`, 2.12): ### Risk (`ceap.analytics.portfolio_risk`, 2.12)\n\nEVIDENCE\n\n- BT-00000023\n- DOC-00000021\n- MARKET-0000001d\n- RISK-0000001e\n- RISK-0000001f\n- RISK-00000020\n- SIG-00000022\n- TCA-0000002a\n- TCA-00000030\n- TCA-00000040\n- TCA-00000041",
   "primary_observations": [
     "Out-of-sample performance holds up: the out-of-sample to in-sample Sharpe ratio is 2.33 (in-sample 0.60, out-of-sample 1.39).",
     "Portfolio limits respected (peak utilisation 95%; maximum ADV participation 3.9%).",
@@ -2792,7 +2853,7 @@
     "approval": {
       "approved": true,
       "comment": "auto-approved (dev mode)",
-      "decided_at": "2026-01-01T00:00:00.092000+00:00",
+      "decided_at": "2026-01-01T00:00:00.093000+00:00",
       "decided_by": "auto-approver",
       "request_id": "APR-00000042",
       "step_id": "gov-approval",

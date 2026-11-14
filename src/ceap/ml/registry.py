@@ -15,9 +15,18 @@ Every card carries the label ``"fitted to synthetic generator <generator_hash>"`
 of a model carries its ``model_hash``.
 
 Drift
-    A card may hold a feature reference (decile edges and the expected share per bin). At load,
-    :meth:`ModelRegistry.check_drift` computes the population stability index of live features
-    against that reference and emits a :class:`DriftWarning` above :data:`PSI_WARN`.
+    A card may hold a feature reference (decile edges and the expected share per bin). At load
+    with live features (``ModelRegistry.load(name, features=...)``), :meth:`ModelRegistry.check_drift`
+    computes the population stability index of those features against that reference and emits a
+    :class:`DriftWarning` above :data:`PSI_WARN`; the values are kept on ``RegisteredModel.drift``.
+    0.10 (Q7, findings Q-10, R-17): the change detector's loader passes the live reference window,
+    so the check runs in production, not only in tests.
+
+Staleness
+    Every load compares the card's generator hash with :func:`generator_hash` and emits a
+    :class:`StaleModelWarning` on a mismatch: the model was fitted to a generator that no longer
+    exists. A unit test fails for any stored model in that state, so a generator change forces a
+    retrain (``python scripts/train_ml_models.py``).
 """
 
 from __future__ import annotations
@@ -33,9 +42,10 @@ from typing import Any
 
 import numpy as np
 
+from ceap.paths import data_path, require
 from ceap.util.canonical import canonical_text, content_hash, sha256_hex
 
-MODELS_DIR = Path(__file__).resolve().parents[3] / "data" / "models"
+MODELS_DIR = data_path("models")
 HASH_DECIMALS = 8
 PSI_WARN = 0.25  # conventional: < 0.1 stable, 0.1 to 0.25 moderate shift, > 0.25 significant shift
 PSI_BINS = 10
@@ -53,6 +63,10 @@ GENERATOR_MODULES = (
 
 class DriftWarning(UserWarning):
     """Live features have drifted from the model's training reference (PSI above threshold)."""
+
+
+class StaleModelWarning(UserWarning):
+    """The model was fitted to a synthetic generator whose sources have since changed."""
 
 
 class ModelIntegrityError(RuntimeError):
@@ -169,6 +183,7 @@ class ModelCard:
 class RegisteredModel:
     card: ModelCard
     params: dict[str, Any]
+    drift: dict[str, float] = field(default_factory=dict)  # PSI per feature when loaded with live features
 
     @property
     def model_hash(self) -> str:
@@ -177,7 +192,9 @@ class RegisteredModel:
 
 class ModelRegistry:
     def __init__(self, root: str | Path | None = None) -> None:
-        self.root = Path(root) if root is not None else MODELS_DIR
+        # R-27 (E3): the default store is required; an installed copy without it raises DataFileMissing
+        # (not an OSError, so load_detector and the calibration lookup cannot swallow it)
+        self.root = Path(root) if root is not None else require("models")
 
     def path_for(self, name: str, mhash: str) -> Path:
         return self.root / f"{name}-{mhash}.json"
@@ -225,8 +242,11 @@ class ModelRegistry:
         self.path_for(name, mhash).write_text(json.dumps(body, indent=1, sort_keys=True) + "\n", encoding="utf-8")
         return model
 
-    def load(self, name: str, mhash: str | None = None) -> RegisteredModel:
-        """Load by hash (or the only stored version of ``name``); recompute and verify the hash."""
+    def load(
+        self, name: str, mhash: str | None = None, features: dict[str, np.ndarray] | None = None
+    ) -> RegisteredModel:
+        """Load by hash (or the only stored version of ``name``); recompute and verify the hash; warn when the
+        generator has changed since fitting; with live ``features``, run the drift check (PSI) at load."""
         if mhash is None:
             found = sorted(self.root.glob(f"{name}-*.json"))
             if len(found) != 1:
@@ -239,7 +259,17 @@ class ModelRegistry:
         params = body["params"]
         if model_hash(card.name, card.kind, params) != card.model_hash or (mhash and mhash != card.model_hash):
             raise ModelIntegrityError(f"{path.name}: stored parameters do not reproduce hash {card.model_hash}")
-        return RegisteredModel(card, params)
+        if card.generator_hash != generator_hash():
+            warnings.warn(
+                f"{card.name} ({card.model_hash}) was fitted to generator {card.generator_hash}; the current "
+                f"generator is {generator_hash()}: retrain with scripts/train_ml_models.py",
+                StaleModelWarning,
+                stacklevel=2,
+            )
+        model = RegisteredModel(card, params)
+        if features is not None:
+            model = RegisteredModel(card, params, self.check_drift(model, features))
+        return model
 
     def list(self) -> list[ModelCard]:
         return [ModelCard(**json.loads(p.read_text(encoding="utf-8"))["card"]) for p in sorted(self.root.glob("*.json"))]

@@ -221,6 +221,42 @@ INJECTED_CLAIMS: tuple[tuple[str, dict[str, Any]], ...] = (
     ),
 )
 
+# 0.10.0 T5 (R-05): planted claims whose digits are real facts but whose metric, sign or cause is
+# wrong. The 0.9.0 audit kept all three kinds; :func:`ceap.agents.reporter.validate_claims` must drop
+# every one. Built per fact set, so the digits are always a real fact of that case.
+PLANTED_AUDIT_KINDS = ("wrong_metric", "wrong_sign", "wrong_cause")
+
+
+def planted_audit_claims(facts: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+    """``(kind, claim)`` for each planted kind that ``facts`` can host (see :data:`PLANTED_AUDIT_KINDS`).
+
+    * wrong_metric: the shortfall level written as the volatility ratio, citing all metrics;
+    * wrong_sign: the shortfall change with the opposite direction word, citing that change;
+    * wrong_cause: a cause other than the primary stated as the primary, citing the attribution.
+    """
+    metrics = facts.get("metrics") or {}
+    attribution = facts.get("attribution") or {}
+    out: list[tuple[str, dict[str, Any]]] = []
+
+    def claim(text: str, keys: list[str]) -> dict[str, Any]:
+        return {"section": "FINDINGS", "text": text, "fact_keys": keys, "evidence_ids": [],
+                "needs_policy_support": False}
+
+    level = metrics.get("is_bps")
+    if isinstance(level, (int, float)) and level != metrics.get("volatility_ratio"):
+        out.append(("wrong_metric", claim(f"Volatility was {level:g} times the baseline.", ["metrics"])))
+    change = metrics.get("is_change_bps")
+    if isinstance(change, (int, float)) and change != 0:
+        word = "fell" if change > 0 else "rose"
+        out.append(
+            ("wrong_sign", claim(f"Implementation shortfall {word} by {abs(change):g} bps.", ["metrics.is_change_bps"]))
+        )
+    primary = attribution.get("primary")
+    if primary:
+        other = next(c for c in ("VENUE_DEGRADATION", "MARKET_VOLATILITY") if c != primary)
+        out.append(("wrong_cause", claim(f"The primary cause was {other}.", ["attribution.primary"])))
+    return out
+
 
 class ClaimInjector(_Degraded):
     """Appends :data:`INJECTED_CLAIMS` to the claims reply, marked so the eval can find them."""

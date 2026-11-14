@@ -70,9 +70,12 @@ def test_cause_recall_pr_tier():
 
 
 @_apply(nightly)
-def test_cause_recall_200_seeds():
-    out = run_tca_cause_recall(200)
-    assert all(v["coverage"] >= 0.9 for v in out.values()), out
+@pytest.mark.parametrize("template", ["T05", "T06", "T07", "T08", "T09", "T10"])
+def test_cause_recall_200_seeds(template):
+    """One test per template (E2): the six-template sweep took over 1800 s in one test and timed
+    out the nightly of 2026-11-13; split, pytest-xdist runs the templates on separate workers."""
+    out = run_tca_cause_recall(200, (template,))
+    assert out[template]["coverage"] >= 0.9, out
 
 
 # ----------------------------------------------------------- 2T.1: planted 3 bps broker gap, power

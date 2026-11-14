@@ -186,6 +186,9 @@ class PeriodSignalStats:
     ic_t_stat_1d: float = float("nan")
     horizon_days: int = 1
     execution_lag_days: int = 0
+    # 0.10 Q4 (R-20): the gate statistic recomputed on the signal residualised on trailing market beta
+    mean_ic_factor_neutral: float = float("nan")
+    ic_t_stat_factor_neutral: float = float("nan")
 
     @property
     def turnover(self) -> float:  # 0.4 name, kept read-only for callers not yet migrated
@@ -296,6 +299,10 @@ class PortfolioRiskReport:
     checks: tuple[LimitCheck, ...] = ()
     stress: PortfolioStressResult | None = None
     history_checks: tuple[dict[str, Any], ...] = ()  # worst out-of-sample date per limit (2.12)
+    # 0.10 Q4 (R-17): annualised volatility of the target book predicted from the Ledoit-Wolf covariance of
+    # its names' trailing daily returns, and the shrinkage intensity used
+    predicted_vol_ann: float = float("nan")
+    covariance_shrinkage: float = float("nan")
 
     @property
     def any_breached(self) -> bool:
@@ -358,6 +365,8 @@ def period_signal_stats_from_dict(d: dict[str, Any]) -> PeriodSignalStats:
         ic_t_stat_1d=_f(d.get("ic_t_stat_1d")),
         horizon_days=int(d.get("horizon_days", 1) or 1),
         execution_lag_days=int(d.get("execution_lag_days", 0) or 0),
+        mean_ic_factor_neutral=_f(d.get("mean_ic_factor_neutral")),
+        ic_t_stat_factor_neutral=_f(d.get("ic_t_stat_factor_neutral")),
     )
 
 
@@ -481,6 +490,8 @@ def portfolio_risk_report_from_dict(d: dict[str, Any]) -> PortfolioRiskReport:
         effective_names=_f(exposure.get("effective_names")),
         beta=_f(exposure.get("beta")),
         max_adv_participation=_f(exposure.get("max_adv_participation")),
+        predicted_vol_ann=_f(exposure.get("predicted_vol_ann")),
+        covariance_shrinkage=_f(exposure.get("covariance_shrinkage")),
         checks=tuple(limit_check_from_dict(c) for c in (checks_src.get("checks") or [])),
         stress=portfolio_stress_from_dict(stress_src),
         history_checks=tuple(

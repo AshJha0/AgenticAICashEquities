@@ -145,6 +145,16 @@ def test_lot_rounding_records_the_residual_and_cancels_sub_lot_orders() -> None:
     assert "BBB" not in r.state.orders
 
 
+def test_lot_above_session_cap_cancels_instead_of_expiring() -> None:
+    # 0.10.0 X6: cap 12.34 < one lot of 100, so the order can never fill; cancel it now
+    p = panel([[100.0, 50.0], [100.0, 50.0]], adv=(123.4, 50_000.0))
+    s = held({}, {})
+    s.orders = {"AAA": OpenOrder("o1", "AAA", 500.0, "2026-01-05")}
+    r = simulate_day(s, p, 1, flat_params(lot_size=100), 0.0, VOL)
+    assert any(e["kind"] == "cancel" and e["detail"]["reason"] == "lot_above_cap" for e in r.events)
+    assert "AAA" not in r.state.orders and not any(e["kind"] == "fill" for e in r.events)
+
+
 # ---------------------------------------------------------------- F11 LOB engine
 def test_lob_engine_measures_the_cost_and_is_deterministic() -> None:
     p = panel([[100.0, 50.0], [100.0, 50.0]])

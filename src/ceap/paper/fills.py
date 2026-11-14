@@ -387,6 +387,14 @@ def simulate_day(
                 st.waived[sym] = st.waived.get(sym, 0.0) + want
                 del st.orders[sym]
                 continue
+            if lots == 0 and cap < params.lot_size:
+                # one lot is larger than the session cap: the order could never fill, so cancel it
+                # now instead of letting it sit until the TTL expires (0.9.0 known issue)
+                ev.append(_event("cancel", sym, quantity=want, order_id=o.order_id, reason="lot_above_cap",
+                                 lot_size=params.lot_size, cap=cap, **o.trace()))
+                st.waived[sym] = st.waived.get(sym, 0.0) + want
+                del st.orders[sym]
+                continue
             if lots != x:
                 ev.append(_event("lot_residual", sym, quantity=x - lots, order_id=o.order_id,
                                  lot_size=params.lot_size, carried=True, **o.trace()))

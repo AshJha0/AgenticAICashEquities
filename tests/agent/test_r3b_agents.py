@@ -574,7 +574,8 @@ async def test_3b7_evaluation_shows_zero_memory_reads():
 async def test_3b7_second_similar_investigation_cites_a_prior_case(store):
     audit: list[tuple[str, str]] = []
     memory = CaseMemory(audit=lambda actor, action, subject, payload: audit.append((action, subject)))
-    platform = _platform(store=store, case_memory=memory)
+    # 0.10.0 H6: only a person's decision is a case, so the sign-off is decided by an approver
+    platform = _platform(store=store, case_memory=memory, approvals=CapturingGateway())
     req = default_request("AAPL", "T10")
     req.attributes["signoff"] = True
     first = await platform.investigate(req)
@@ -590,11 +591,10 @@ async def test_3b7_second_similar_investigation_cites_a_prior_case(store):
 
 def test_3b7_case_memory_is_append_only_bounded_and_read_only():
     memory = CaseMemory(max_cases=1)
-    rec = CaseRecord("CASE-1", "T-1", "T01", "investigation", "AAPL", "why", "APPROVED", "ann", "", (), "now")
+    now = utc_now().isoformat()  # 0.10.0 H6: cases expire, so they carry a real time
+    rec = CaseRecord("CASE-1", "T-1", "T01", "investigation", "AAPL", "why", "APPROVED", "ann", "", (), now)
     assert memory.append(rec) and not memory.append(rec)  # duplicate refused
-    full = CaseRecord(
-        "CASE-2", "T-2", "T01", "investigation", "AAPL", "why", "APPROVED", "ann", "", (), "now"
-    )
+    full = CaseRecord("CASE-2", "T-2", "T01", "investigation", "AAPL", "why", "APPROVED", "ann", "", (), now)
     assert not memory.append(full) and len(memory) == 1  # the partition is full: refused, nothing deleted
     assert not any(hasattr(memory, m) for m in ("update", "delete", "remove", "clear"))
     view = memory.nearest("T01", "why AAPL")[0]

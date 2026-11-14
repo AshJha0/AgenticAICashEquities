@@ -284,12 +284,15 @@ def derive_ground_truth(spec: Any, thresholds: Any = None, lag: int = 1) -> Grou
     e = expected_statistics(spec, lag)
     flags: list[ResearchFlag] = []
     why: list[str] = []
-    detectable = e["t_is"] >= hurdle and e["gross_sharpe_is"] >= e["sr0_ann"]
+    # the deflated Sharpe passes when its probability clears dsr_min: the gross Sharpe must exceed SR0 by
+    # Phi^-1(dsr_min) standard errors (0.10 Q2 raised dsr_min from 0.5, where that margin was zero)
+    dsr_margin = _N.inv_cdf(th.dsr_min) * _se_in_sample(e["gross_sharpe_is"])
+    detectable = e["t_is"] >= hurdle and e["gross_sharpe_is"] >= e["sr0_ann"] + dsr_margin
     if not detectable:
         flags.append(ResearchFlag.NO_ALPHA)
         why.append(
             f"expected in-sample IC t {e['t_is']:.2f} vs hurdle {hurdle:.2f}; expected in-sample gross "
-            f"Sharpe {e['gross_sharpe_is']:.2f} vs deflation bar {e['sr0_ann']:.2f}"
+            f"Sharpe {e['gross_sharpe_is']:.2f} vs deflation bar {e['sr0_ann'] + dsr_margin:.2f}"
         )
     elif e["t_oos"] <= -th.regime_break_t:
         flags.append(ResearchFlag.REGIME_BREAK)
@@ -338,14 +341,21 @@ def derive_ground_truth(spec: Any, thresholds: Any = None, lag: int = 1) -> Grou
     return GroundTruth(verdict, tuple(flags), near, e, tuple(why))
 
 
+def _se_in_sample(gross_sharpe_ann: float) -> float:
+    """Lo (2002) standard error of the annualised in-sample Sharpe over the generator's in-sample length."""
+    from ceap.data.generator_params import IN_SAMPLE_DAYS
+
+    return math.sqrt((1.0 + gross_sharpe_ann**2 / (2.0 * TRADING_DAYS)) / (IN_SAMPLE_DAYS / TRADING_DAYS))
+
+
 def gate_z_scores(e: dict[str, float], th: Any, hurdle: float | None = None) -> dict[str, float]:
     """Expected margin of every PROMOTE gate in standard errors: IC t (SE 1), deflated Sharpe bar (SE of the
     in-sample Sharpe), out-of-sample IC t (SE 1), out-of-sample net Sharpe (SE of the OOS Sharpe), cost share
     (delta method: ``share * SE_oos / gross_oos``)."""
     from ceap.data.generator_params import IN_SAMPLE_DAYS
 
-    is_years = IN_SAMPLE_DAYS / TRADING_DAYS
-    se_is = math.sqrt((1.0 + e["gross_sharpe_is"] ** 2 / (2.0 * TRADING_DAYS)) / is_years)
+    del IN_SAMPLE_DAYS
+    se_is = _se_in_sample(e["gross_sharpe_is"])
     gross_oos = e["gross_sharpe_oos"]
     share = e["cost_share"]
     if gross_oos > 0 and math.isfinite(share):
@@ -354,7 +364,7 @@ def gate_z_scores(e: dict[str, float], th: Any, hurdle: float | None = None) -> 
         z_cost = -10.0
     return {
         "ic_t": e["t_is"] - (th.ic_t_stat_min if hurdle is None else hurdle),
-        "deflated_sharpe": (e["gross_sharpe_is"] - e["sr0_ann"]) / se_is,
+        "deflated_sharpe": (e["gross_sharpe_is"] - e["sr0_ann"]) / se_is - _N.inv_cdf(th.dsr_min),
         "oos_ic_t": e["t_oos"] - th.oos_ic_t_min,
         "oos_net_sharpe": (e["net_sharpe_oos"] - th.sharpe_min) / e["se_sharpe_oos"],
         "cost_share": z_cost,

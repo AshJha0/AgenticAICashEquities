@@ -124,6 +124,7 @@ async def planner_eval(client: LLMClient, platform: Any = None) -> dict[str, Any
                 "planned_n": len(planned),
                 "source": source,
                 "repairs": int(result.output.get("repairs", 0)),
+                "validation_errors": list(result.output.get("validation_errors", [])),
                 "plan_valid": source.startswith("llm:") and not result.output.get("repairs"),
                 "codes": [d["code"] for d in result.output.get("degradations", [])],
             }

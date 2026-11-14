@@ -7,6 +7,12 @@ a limit order book in which fills and impact are caused by the orders themselves
 schedulers, child-order logic, an auction model, and the loops that compare what a model
 predicted with what happened.
 
+> **Status (0.10.0, finding R-23).** `ceap.execution` is a **simulator library, not used by the default paper book**. The paper
+> book imports only the auction cost model and the LOB cost measurement, and only when a paper
+> setting opts in (`moc_auction`, `engine="lob"`). The schedulers, child logic, cost loop,
+> markouts and trading rules (tick, lot, LULD) run in tests, studies and the cookbook, not on a
+> product path. Wiring a scheduler and the rules into the paper path is planned for 0.11.0.
+
 Everything here is synthetic and deterministic in its seed. Nothing sends an order anywhere.
 
 Each section below gives the plain idea, then the formal statement, then a worked example or a

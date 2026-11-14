@@ -15,6 +15,7 @@ from ceap.ml.anomaly import (
     DetectionReport,
     alarm_confidence,
     attribute_deployment,
+    detector_drift,
     load_detector,
     minute_features,
     series_features,
@@ -244,6 +245,7 @@ async def change_point_scan(
     mf = minute_features(points, det.features)
     if len(mf) <= det.reference_minutes:
         return None, evidence, "not enough minutes for the reference period"
+    detector_drift(mf, det.reference_minutes)  # Q7: drift check at load; warns when the reference has drifted
     return det.detect(mf, only=features), evidence, None
 
 

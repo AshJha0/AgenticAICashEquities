@@ -22,6 +22,7 @@ def test_malformed_calibration_enables_nothing(tmp_path):
 def test_well_formed_calibration_enables_only_dimensions_above_the_bar(tmp_path):
     p = tmp_path / "cal.json"
     doc = {
+        "labels_by": "independent human raters",  # T10: only independent labels can enable a dimension
         "enabled": ["faithful", "hedged"],
         "dimensions": {"faithful": {"kappa": 0.75}, "hedged": {"kappa": 0.6}},
     }

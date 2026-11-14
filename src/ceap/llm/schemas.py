@@ -257,6 +257,8 @@ def plan_semantic_errors(
         args = step.get("arguments")
         if not isinstance(args, Mapping):
             continue
+        # R-04: a ``None`` argument is "not given", exactly as the planner's sanitiser treats it
+        args = {k: v for k, v in args.items() if v is not None}
         start, end = args.get("start"), args.get("end")
         if windows and start is not None and end is not None and (str(start), str(end)) not in windows:
             errors.append(f"steps.{i}: window {start}..{end} is neither the task window nor its baseline")

@@ -457,3 +457,20 @@ def load_detector(registry: Any = None) -> ChangeDetector:
     except (LookupError, OSError):
         return ChangeDetector()
     return ChangeDetector.from_params(m.params, m.model_hash, m.card.label)
+
+
+def detector_drift(mf: MinuteFeatures, reference_minutes: int, registry: Any = None) -> dict[str, float]:
+    """PSI of the live reference window against the registered detector's training reference, computed by
+    the registry at load (Q7). The robust z of every feature is scaled on this window, so it is the part
+    that must resemble the training law; a :class:`ceap.ml.registry.DriftWarning` is emitted above the
+    threshold. Empty when no detector is registered. With 60 minutes and ten bins the PSI of an undrifted
+    window is itself about ``(bins - 1) / n`` = 0.15 (its chi-square approximation), so a single warning
+    near the 0.25 threshold is weak evidence; a persistent one is not."""
+    from ceap.ml.registry import ModelRegistry
+
+    reg = registry or ModelRegistry()
+    window = {k: v[:reference_minutes] for k, v in mf.values.items()}
+    try:
+        return reg.load(DETECTOR_NAME, features=window).drift
+    except (LookupError, OSError):
+        return {}

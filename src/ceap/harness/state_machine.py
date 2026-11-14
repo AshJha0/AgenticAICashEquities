@@ -66,11 +66,31 @@ class Transition:
 class StateMachine:
     state: HarnessState = HarnessState.CREATED
     history: list[Transition] = field(default_factory=list)
+    #: guards for FINALISING (AI-2-11): the critic has reviewed the latest agent output, and the
+    #: evidence has been validated after that critique
+    critic_ran: bool = False
+    evidence_validated: bool = False
+
+    def mark_new_work(self) -> None:
+        """An agent added output: it needs a fresh critique and a fresh evidence check."""
+        self.critic_ran = self.evidence_validated = False
+
+    def mark_critiqued(self) -> None:
+        self.critic_ran, self.evidence_validated = True, False
+
+    def mark_evidence_validated(self) -> None:
+        self.evidence_validated = True
 
     def can(self, to: HarnessState) -> bool:
+        if to is HarnessState.FINALISING and not (self.critic_ran and self.evidence_validated):
+            return False
         return to in TRANSITIONS[self.state]
 
     def transition(self, to: HarnessState, reason: str = "") -> None:
+        if to is HarnessState.FINALISING and not (self.critic_ran and self.evidence_validated):
+            raise InvalidTransition(
+                f"cannot finalise: critic_ran={self.critic_ran}, evidence_validated={self.evidence_validated}"
+            )
         if not self.can(to):
             raise InvalidTransition(f"cannot move from {self.state.value} to {to.value}")
         self.history.append(Transition(self.state, to, reason, utc_now()))

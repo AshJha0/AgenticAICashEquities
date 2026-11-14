@@ -33,13 +33,15 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 
+from ceap.paths import data_path
+
 NEW_YORK = ZoneInfo("America/New_York")
 FIRST_YEAR = 2000
 LAST_YEAR = 2030
 REGULAR_OPEN = time(9, 30)
 REGULAR_CLOSE = time(16, 0)
 EARLY_CLOSE = time(13, 0)
-CALENDAR_PATH = Path(__file__).resolve().parents[3] / "data" / "reference" / "nyse_calendar.csv"
+CALENDAR_PATH = data_path("reference", "nyse_calendar.csv")
 
 SPECIAL_CLOSURES: dict[date, str] = {
     date(2001, 9, 11): "September 11 attacks",

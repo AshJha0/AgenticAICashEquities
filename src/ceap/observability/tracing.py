@@ -5,15 +5,15 @@ API returns under ``/investigations/{id}/trace``. The *current span* lives in
 a ``contextvars.ContextVar`` so spans opened by concurrent asyncio tasks
 (tool batches, agents calling tools) get the right parent and events attach
 to the span that emitted them. ``OpenTelemetryTracer`` forwards the same
-spans to an OTel SDK when it is installed and configured
-(``pip install .[observability]``); the harness code is identical in both cases.
+The tracer that opened the current span is kept in a second context variable, so code that has no
+tracer handle (the LLM router) can add a child span: :func:`current_tracer`. Each routed model call
+becomes one ``gen_ai.chat`` span under the agent span, with OpenTelemetry GenAI attribute names.
 """
 
 from __future__ import annotations
 
 import contextlib
 import contextvars
-import os
 import time
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
@@ -23,6 +23,14 @@ from typing import Any
 from ceap.domain.common import new_id, utc_now
 
 _current_span: contextvars.ContextVar[Span | None] = contextvars.ContextVar("ceap_current_span", default=None)
+_current_tracer: contextvars.ContextVar[ExecutionTracer | None] = contextvars.ContextVar(
+    "ceap_current_tracer", default=None
+)
+
+
+def current_tracer() -> ExecutionTracer | None:
+    """The tracer whose span is open in this context, or ``None`` outside any span."""
+    return _current_tracer.get()
 
 
 @dataclass
@@ -87,6 +95,7 @@ class InMemoryTracer(ExecutionTracer):
         else:
             self.dropped_spans += 1
         token = _current_span.set(span)
+        tracer_token = _current_tracer.set(self)
         try:
             yield span
         except BaseException as exc:
@@ -96,6 +105,7 @@ class InMemoryTracer(ExecutionTracer):
         finally:
             span.ended_at = utc_now().isoformat()
             span.duration_ms = round((time.perf_counter() - span._t0) * 1000.0, 3)
+            _current_tracer.reset(tracer_token)
             _current_span.reset(token)
 
     def event(self, name: str, **attributes: Any) -> None:
@@ -131,34 +141,3 @@ class InMemoryTracer(ExecutionTracer):
             entry["total_ms"] += s.duration_ms or 0.0
             entry["errors"] += 1 if s.status == "ERROR" else 0
         return {"trace_id": self.trace_id, "span_count": len(self.spans), "by_name": by_name}
-
-
-class OpenTelemetryTracer(InMemoryTracer):  # pragma: no cover - requires optional dependency
-    """Mirrors spans into OpenTelemetry while keeping the in-memory trace for the API."""
-
-    def __init__(self, service_name: str = "ceap") -> None:
-        super().__init__()
-        from opentelemetry import trace
-
-        self._otel = trace.get_tracer(service_name)
-
-    @contextlib.asynccontextmanager
-    async def span(self, name: str, **attributes: Any) -> AsyncIterator[Span]:
-        with self._otel.start_as_current_span(name) as otel_span:
-            for k, v in attributes.items():
-                if isinstance(v, (str, int, float, bool)):
-                    otel_span.set_attribute(k, v)
-            async with super().span(name, **attributes) as span:
-                yield span
-
-
-def build_tracer() -> ExecutionTracer:
-    """OpenTelemetry when configured (endpoint set + SDK installed), in-memory otherwise."""
-    if os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
-        try:
-            import opentelemetry  # noqa: F401
-
-            return OpenTelemetryTracer()
-        except ImportError:
-            pass
-    return InMemoryTracer()

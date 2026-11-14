@@ -17,6 +17,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from ceap.analytics.attribution import PRIOR_WINDOW, baseline_name
 from ceap.domain.research import research_tool_arguments
 from ceap.llm.models import LLMRequest, LLMResponse
 from ceap.llm.pins import load_pins
@@ -617,6 +618,9 @@ def _mock_narrative(f: dict[str, Any]) -> str:
     lines += ["EXECUTIVE SUMMARY", ""]
     is_delta = att.get("is_delta_bps")
     vw_delta = att.get("vwap_slippage_delta_bps")
+    # H5 (R-03): the attribution's deltas are against its own baseline, named; the execution figures
+    # below are against the prior window, so the two never share the words "the baseline"
+    base = baseline_name(att.get("baseline_kind"))
     deteriorated = bool(att.get("deteriorated"))
     contributing = ", ".join(r["cause"].replace("_", " ").lower() for r in material[1:])
     if primary == "UNKNOWN":
@@ -626,20 +630,20 @@ def _mock_narrative(f: dict[str, Any]) -> str:
         )
     elif primary == "NORMAL":
         lines.append(
-            f"Execution quality in the window was consistent with the baseline: implementation shortfall moved by "
+            f"Execution quality in the window was consistent with the {base}: implementation shortfall moved by "
             f"{_fmt(is_delta, 1, ' bps')} and slippage versus interval VWAP by {_fmt(vw_delta, 1, ' bps')}. "
             "No market, venue or technology anomaly of material size was identified."
         )
     elif deteriorated:
         lines.append(
             f"Execution quality deteriorated: implementation shortfall changed by {_fmt(is_delta, 1, ' bps')} relative to the "
-            f"baseline and slippage versus interval VWAP by {_fmt(vw_delta, 1, ' bps')}. The evidence attributes the "
+            f"{base} and slippage versus interval VWAP by {_fmt(vw_delta, 1, ' bps')}. The evidence attributes the "
             f"deterioration primarily to {primary.replace('_', ' ').lower()}"
             + (f", with {contributing} as contributing factors." if contributing else ".")
         )
     else:
         lines.append(
-            f"Headline execution cost did not deteriorate versus the baseline (implementation shortfall delta "
+            f"Headline execution cost did not deteriorate versus the {base} (implementation shortfall delta "
             f"{_fmt(is_delta, 1, ' bps')}, slippage versus interval VWAP delta {_fmt(vw_delta, 1, ' bps')}); however the "
             f"evidence identifies {primary.replace('_', ' ').lower()} as a material anomaly during the window"
             + (f", alongside {contributing}." if contributing else ".")
@@ -652,8 +656,8 @@ def _mock_narrative(f: dict[str, Any]) -> str:
     lines += [
         f"VWAP: {_fmt(w.get('vwap'), 4)} (market VWAP {_fmt(w.get('market_vwap'), 4)})",
         f"Arrival price: {_fmt(w.get('arrival_price'), 4)}",
-        f"Implementation shortfall: {_fmt(w.get('implementation_shortfall_bps'), 1, ' bps')} (baseline {_fmt(b.get('implementation_shortfall_bps'), 1, ' bps')})",
-        f"Slippage vs interval VWAP: {_fmt(w.get('slippage_vs_vwap_bps'), 1, ' bps')} (baseline {_fmt(b.get('slippage_vs_vwap_bps'), 1, ' bps')})",
+        f"Implementation shortfall: {_fmt(w.get('implementation_shortfall_bps'), 1, ' bps')} ({PRIOR_WINDOW} {_fmt(b.get('implementation_shortfall_bps'), 1, ' bps')})",
+        f"Slippage vs interval VWAP: {_fmt(w.get('slippage_vs_vwap_bps'), 1, ' bps')} ({PRIOR_WINDOW} {_fmt(b.get('slippage_vs_vwap_bps'), 1, ' bps')})",
         f"Average spread: {_fmt(w.get('average_spread_bps'), 2)} bps",
         f"Fill rate: {_fmt((w.get('fill_rate') or 0) * 100, 1)}%",
         f"Participation rate: {_fmt((w.get('participation_rate') or 0) * 100, 1)}%",
@@ -664,16 +668,16 @@ def _mock_narrative(f: dict[str, Any]) -> str:
     depth_ratio = _ratio(mw.get("average_displayed_depth"), mb.get("average_displayed_depth"))
     spread_ratio = _ratio(mw.get("average_spread_bps"), mb.get("average_spread_bps"))
     lines += [
-        f"Volatility: {_pct(vol_ratio)} vs baseline ({_fmt(mw.get('realised_volatility_bps'), 2)} bps/min)",
-        f"Displayed depth: {_pct(depth_ratio)} vs baseline",
-        f"Quoted spread: {_pct(spread_ratio)} vs baseline",
+        f"Volatility: {_pct(vol_ratio)} vs {PRIOR_WINDOW} ({_fmt(mw.get('realised_volatility_bps'), 2)} bps/min)",
+        f"Displayed depth: {_pct(depth_ratio)} vs {PRIOR_WINDOW}",
+        f"Quoted spread: {_pct(spread_ratio)} vs {PRIOR_WINDOW}",
         f"Price drift in window: {_fmt(mw.get('price_drift_bps'), 1, ' bps')}",
         f"Stale quotes: {_fmt((mw.get('stale_quote_fraction') or 0) * 100, 1)}%; crossed quotes: {mw.get('crossed_quote_count', 0)}",
     ]
     lines += ["", "TECHNOLOGY", ""]
     lr = eng.get("latency_ratio")
     lines += [
-        f"Execution latency: {'Elevated' if (lr or 0) > 3 else 'Normal'} (ratio {_fmt(lr, 2)} vs baseline)",
+        f"Execution latency: {'Elevated' if (lr or 0) > 3 else 'Normal'} (ratio {_fmt(lr, 2)} vs {PRIOR_WINDOW})",
         f"Reject rate: {'Elevated' if (w.get('reject_rate') or 0) > 0.05 else 'Normal'} ({_fmt((w.get('reject_rate') or 0) * 100, 1)}%)",
         f"Deployments in scope: {eng.get('deployments', 0)}; error logs: {eng.get('error_logs', 0)}",
     ]

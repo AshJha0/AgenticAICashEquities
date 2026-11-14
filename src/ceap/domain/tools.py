@@ -81,6 +81,9 @@ class ToolExecutionContext:
     deadline: datetime
     principal: str
     capabilities: frozenset[str] = frozenset()
+    #: stable key of this call within the run (``ceap.harness.durable.idempotency_key``); a
+    #: side-effecting tool uses it to make a repeated call a no-op (AI-2-04)
+    idempotency_key: str = ""
 
 
 class Tool(ABC):

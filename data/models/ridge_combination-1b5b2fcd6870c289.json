@@ -1,6 +1,7 @@
 {
  "card": {
-  "created": "2026-11-08",
+  "challenger": "",
+  "created": "2026-11-14",
   "description": "Ridge (no intercept) of the 21-day demeaned forward return on the three cross-sectional signal z-scores; penalty chosen by purged (21 days) and embargoed (5 days) walk-forward CV over five folds; every penalty and every single signal is a ledger trial.",
   "feature_reference": {
    "low_vol_60": {
@@ -79,10 +80,10 @@
     ]
    }
   },
-  "generator_hash": "ce0da55d75b78559",
+  "generator_hash": "7f59073801a673bc",
   "intended_use": "Reference combination for the alpha agent on the momentum-premium synthetic set.",
   "kind": "ridge_combination_v1",
-  "label": "fitted to synthetic generator ce0da55d75b78559",
+  "label": "fitted to synthetic generator 7f59073801a673bc",
   "limitations": "Gross of costs; constant weights between rebalances; synthetic premium only.",
   "metrics": {
    "cv_sharpe_daily": {
@@ -113,8 +114,14 @@
   },
   "model_hash": "1b5b2fcd6870c289",
   "name": "ridge_combination",
+  "owner": "CEAP maintainers",
+  "review_cadence_days": 365,
   "sklearn_version": "1.9.1",
-  "training_data_hash": "8a68d1fdd3f025c250657705c514201366c9edadf82846512e3a1891979165ca"
+  "status": "research",
+  "tier": "3",
+  "training_data_hash": "8a68d1fdd3f025c250657705c514201366c9edadf82846512e3a1891979165ca",
+  "validated_on": "",
+  "validator": "unassigned (no independent validation yet)"
  },
  "params": {
   "alpha": 100000.0,

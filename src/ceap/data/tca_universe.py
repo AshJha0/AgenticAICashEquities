@@ -71,6 +71,12 @@ class UniverseConfig:
     multi_session_fraction: float = 0.05
     u_shape: bool = True
     child_interval: int = 30
+    #: permanent-impact law of the generator: "sqrt" (the default, the form the pre-trade model
+    #: fits) or "linear" (a different functional form, used only to test the model off its form)
+    impact_law: str = "sqrt"
+    #: regime overrides applied on top of the family, e.g. ``(("order_size_multiplier", 2.0),)``;
+    #: only the multipliers in ``REGIME_AXES`` (used to build calibration regime mixtures)
+    regime: tuple[tuple[str, float], ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {k: (list(v) if isinstance(v, tuple) else v) for k, v in self.__dict__.items()}
@@ -163,8 +169,41 @@ def generator_hash() -> str:
     return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()[:12]
 
 
-def _family_spec(name: str) -> ScenarioSpec:
-    spec = get_scenario(name)
+REGIME_AXES: tuple[str, ...] = (
+    "volatility_multiplier",
+    "spread_multiplier",
+    "depth_multiplier",
+    "order_size_multiplier",
+    "latency_multiplier",
+)
+IMPACT_LAWS: tuple[str, ...] = ("sqrt", "linear")
+#: participation at which the linear law equals the square-root law (1 % of ADV, near the median order)
+LINEAR_LAW_CROSSOVER = 0.01
+
+
+def impact_drift_bps(quantity: float, sigma_bps: float, law: str = "sqrt") -> float:
+    """Generator truth: total permanent drift of a parent under the configured impact law.
+
+    ``"sqrt"`` is :func:`ceap.data.synthetic.expected_impact_drift_bps`,
+    ``gamma * sigma * sqrt(Q/ADV)``. ``"linear"`` is ``gamma * sigma * sqrt(x0) * (Q/ADV) / x0`` with
+    ``x0 = LINEAR_LAW_CROSSOVER``: the Kyle / Almgren-Chriss linear permanent impact, scaled so
+    both laws agree at 1 % of ADV. Below the crossover it is smaller, above it grows without the
+    concavity, so a square-root model under-predicts large orders on it.
+    """
+    if law == "sqrt":
+        return expected_impact_drift_bps(quantity, sigma_bps=sigma_bps)
+    if law == "linear":
+        x = max(quantity, 0.0) / ADV_SHARES
+        return IMPACT_GAMMA * sigma_bps * math.sqrt(LINEAR_LAW_CROSSOVER) * x / LINEAR_LAW_CROSSOVER
+    raise ValueError(f"unknown impact law {law!r}; expected one of {IMPACT_LAWS}")
+
+
+def _family_spec(name: str, regime: tuple[tuple[str, float], ...] = ()) -> ScenarioSpec:
+    bad = [k for k, _ in regime if k not in REGIME_AXES]
+    if bad:
+        raise ValueError(f"unknown regime axes {bad}; expected a subset of {REGIME_AXES}")
+    overrides: dict[str, Any] = {k: float(v) for k, v in regime}  # keys checked against REGIME_AXES (float fields)
+    spec = replace(get_scenario(name), **overrides)
     # market-data defects do not change execution in the universe; deployments are irrelevant
     return replace(spec, stale_quote_fraction=0.0, crossed_quotes=0, deployment_in_window=False)
 
@@ -181,8 +220,10 @@ class _Plan:
 def generate_tca_universe(seed: int, config: UniverseConfig | None = None) -> TcaUniverse:
     """Simulate a seeded universe (see the module docstring)."""
     cfg = config or UniverseConfig()
+    if cfg.impact_law not in IMPACT_LAWS:
+        raise ValueError(f"unknown impact law {cfg.impact_law!r}; expected one of {IMPACT_LAWS}")
     rng = np.random.default_rng([seed, 20_261_107])
-    fam = _family_spec(cfg.family)
+    fam = _family_spec(cfg.family, cfg.regime)
     regime = Regime.of(fam)
     sessions = tuple(reversed(previous_sessions(END_SESSION, cfg.n_sessions - 1))) + (END_SESSION,)
     t = np.arange(SESSION_SECONDS + 1, dtype=float)
@@ -255,9 +296,7 @@ def generate_tca_universe(seed: int, config: UniverseConfig | None = None) -> Tc
             }
             truth[pid] = {
                 "broker_extra_bps": extra,
-                "impact_drift_bps": sum(
-                    expected_impact_drift_bps(lq, sigma_bps=sigma_ref) for *_, lq in legs
-                ),
+                "impact_drift_bps": sum(impact_drift_bps(lq, sigma_ref, cfg.impact_law) for *_, lq in legs),
                 "aggressive_prob": AGGRESSION[algo],
                 "family": cfg.family,
                 "q_over_adv": qty / ADV_SHARES,
@@ -283,7 +322,7 @@ def generate_tca_universe(seed: int, config: UniverseConfig | None = None) -> Tc
                 (
                     p.plan.start_index,
                     max(1, p.plan.duration_seconds),
-                    p.plan.side.sign * expected_impact_drift_bps(p.plan.quantity, sigma_bps=sigma_ref),
+                    p.plan.side.sign * impact_drift_bps(p.plan.quantity, sigma_ref, cfg.impact_law),
                 )
                 for p in sym_plans
                 if p.plan.duration_seconds > 0

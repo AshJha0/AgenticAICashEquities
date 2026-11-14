@@ -31,6 +31,9 @@ def test_state_machine_happy_path_and_invalid_transition():
         HarnessState.FINALISING,
         HarnessState.COMPLETED,
     ):
+        if s is HarnessState.FINALISING:  # AI-2-11 guards: critique and evidence check came first
+            sm.mark_critiqued()
+            sm.mark_evidence_validated()
         sm.transition(s, "ok")
     assert sm.state.terminal
     with pytest.raises(InvalidTransition):

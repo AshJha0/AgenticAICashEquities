@@ -143,7 +143,11 @@ the docs lane.
 2. CI green including the new replay gate, the per-package coverage gate, the compose and wheel
    smoke tests, and `test (3.13)`.
 3. Three consecutive green nightlies with a numeric mutation baseline.
-4. Five consecutive forward-log sessions written by the scheduled job, each anchored.
+4. ~~Five consecutive forward-log sessions written by the scheduled job, each anchored.~~ Moved to
+   0.11.0 by decision O12. In its place: the docs state the forward log as "restarted 2026-11-12, N
+   sessions recorded so far" (never "runs daily"), and the integrator reads `forward-log-v2` once
+   before tagging and reports the session count and any gap in the PR. R-02 is listed as fixed
+   (cause, guard) and relabelled (continuity proof moved to 0.11.0).
 5. The D reviewer's number audit re-run with zero mismatches.
 
 ## 3. Release 0.11.0: capability, measured
@@ -224,6 +228,7 @@ session on 2026-11-12. Recorded outcome:
 | O9 | (a), owner action | Repository settings are the owner's to change; the session does not edit branch protection. Until it is done, the integrator runs the four extra checks before every merge and says so in the PR. |
 | O10 | (a) | Python 3.13 in 0.10.0; 3.14 when wheels exist. |
 | O11 | (a) | Moved goldens are listed with their diff and re-signed under the standing delegation, with the `snapshot-change` label. |
+| O12 | Skip the forward-log gate for 0.10.0 (owner, 2026-11-12) | X1 merged in PR #16 (job fetch, completed-session guard, restart on `forward-log-v2`). The five-session gate moves to 0.11.0. Two habits kept: honest wording in every doc (D1), and a look at `forward-log-v2` before tagging. X2 ships in the combined PR. |
 
 Still reserved to the owner: merging PRs if the merge is blocked for the session, branch protection
 (O9), the EDGAR contact (O6), any model download beyond those listed, and any spend (none planned).

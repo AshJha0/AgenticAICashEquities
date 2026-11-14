@@ -156,7 +156,7 @@ def train_combination(reg: ModelRegistry) -> None:
     from ceap.data.research_scenarios import research_scenario_for
 
     ds = HistoricalGenerator().generate(research_scenario_for("momentum_premium"))
-    res = combine_signals(ds, ledger=TrialLedger(path=None))
+    res = combine_signals(ds, ledger=TrialLedger(":memory:"))  # a fixed trial set, not the persistent ledger
     refs = {}
     for name in res.coef:
         sig = dataset_signal(ds, name)[ds.start_index : ds.in_sample_end_index + 1]

@@ -1,6 +1,7 @@
 {
  "card": {
-  "created": "2026-11-08",
+  "challenger": "",
+  "created": "2026-11-14",
   "description": "Robust z (median and MAD over a 60-minute reference) of seven per-minute technology and feed features, two-sided CUSUM with k = 1 and threshold h, PELT segments for the change picture. h minimises 30 analyst-minutes per false alarm against 10 per minute of incident delay (incident prior 5 %), subject to the 95 % Clopper-Pearson upper bound of the per-session false-alarm rate being at most 1/20 (ARL0 >= 20 sessions).",
   "feature_reference": {
    "ack_latency_p50": {
@@ -129,10 +130,10 @@
     ]
    }
   },
-  "generator_hash": "ce0da55d75b78559",
+  "generator_hash": "7f59073801a673bc",
   "intended_use": "Flag and time-stamp technology or market-data regime changes for the engineering and market agents.",
   "kind": "robust_z_cusum_pelt",
-  "label": "fitted to synthetic generator ce0da55d75b78559",
+  "label": "fitted to synthetic generator 7f59073801a673bc",
   "limitations": "Fitted to the synthetic generator's metric law only; a real feed needs its own reference and threshold.",
   "metrics": {
    "calibration_arl0_sessions": null,
@@ -148,8 +149,14 @@
   },
   "model_hash": "b2a6c3822c3e4459",
   "name": "change_detector",
+  "owner": "CEAP maintainers",
+  "review_cadence_days": 365,
   "sklearn_version": "1.9.1",
-  "training_data_hash": "fc4726bdf6c6ed4992052a12e44ed1b192c0f60a582b52b86cb7db88ca32a551"
+  "status": "research",
+  "tier": "3",
+  "training_data_hash": "8933289481051709529edcdce11ffea5b49c23f45eb6a74a306f08fcf7df04f3",
+  "validated_on": "",
+  "validator": "unassigned (no independent validation yet)"
  },
  "params": {
   "features": [

@@ -48,6 +48,16 @@ def _cmd_paper(args: argparse.Namespace) -> int:
         PaperReconciliationError,
     )
 
+    if args.paper_command == "staleness":
+        from datetime import UTC, datetime
+
+        from ceap.paper.staleness import last_recorded, missed_sessions
+
+        last = last_recorded(args.csv)
+        now = datetime.fromisoformat(args.now) if args.now else datetime.now(UTC)
+        missed = missed_sessions(last, now) if last else []
+        print(json.dumps({"last_recorded": str(last), "missed": [str(d) for d in missed], "label": LABEL}))
+        return 1 if last is None or missed else 0
     if args.paper_command == "verify-csv":
         rep_csv = verify_csv(args.csv)
         print(json.dumps(asdict(rep_csv)))
@@ -67,6 +77,12 @@ def _cmd_paper(args: argparse.Namespace) -> int:
             rep = build_report(job.ledger, args.book, is_sr, job.rf_source, cfg.forward_start)
             print(json.dumps(rep, indent=2, default=str) if args.json else format_report(rep))
             return 0
+        elif args.paper_command == "gate":
+            from ceap.harness.paper_gate import replay_gate
+
+            gate = replay_gate(db, job.config, args.date)
+            print(json.dumps({"ok": gate.ok, **asdict(gate)}, default=str))
+            return 0 if gate.ok else 1
         elif args.paper_command == "export":
             path = export_csv(job.ledger, args.book, args.out)
             print(f"wrote {path} ({LABEL})")
@@ -127,6 +143,12 @@ def register(sub: Any) -> None:
     vf = psub.add_parser("verify", help="verify a book's hash chains and reconcile positions and cash")
     vf.add_argument("--book", default=FORWARD_BOOK)
     common(vf)
+    gt = psub.add_parser("gate", help="replay the forward book to --date from the feed and compare (exit 1 on a difference)")
+    gt.add_argument("--date", required=True)
+    common(gt)
+    st = psub.add_parser("staleness", help="list NYSE sessions missing from an exported forward log (exit 1 on any)")
+    st.add_argument("--csv", required=True)
+    st.add_argument("--now", default=None, help="ISO timestamp with offset (default: now, UTC)")
     vc = psub.add_parser("verify-csv", help="verify an exported CSV's hash chain")
     vc.add_argument("--csv", required=True)
     pp.set_defaults(func=_cmd_paper)

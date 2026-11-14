@@ -34,6 +34,7 @@ from typing import Any
 
 import numpy as np
 
+from ceap.paths import data_path
 from ceap.rag.retrieval import KnowledgeBase, RetrievalHit, index_text
 
 EMBED_MODEL = "BAAI/bge-small-en-v1.5"
@@ -41,7 +42,7 @@ RERANK_MODEL = "Xenova/ms-marco-MiniLM-L-6-v2"
 RRF_K = 60
 RERANK_DEPTH = 20
 FULL_SCAN = 200
-CACHE_DIR = Path(__file__).resolve().parents[3] / "data" / "rag"
+CACHE_DIR = data_path("rag")
 VARIANTS = ("bm25", "dense", "rrf", "bm25_rerank", "rrf_rerank")
 
 

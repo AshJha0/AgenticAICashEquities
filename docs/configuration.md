@@ -41,12 +41,12 @@ modules named in each row; CI jobs are in `.github/workflows/`.
 | `CEAP_API_KEY_HASHES` | – | pre-hashed keys `sha256$salt$digest:role[:YYYY-MM-DD][:subject=NAME]` (expiry and subject optional); generate with `ceap.api.auth.hash_api_key`. A mapped key acts as `user:NAME`, so four-eyes compares persons |
 | `CEAP_API_KEY_SUBJECTS` | – | `role:xxxxxxxx=NAME,...`: map existing keys to named subjects |
 | `CEAP_MAX_RETAINED_RESULTS` | `200` | oldest investigation results are evicted beyond this |
-| `CEAP_KNOWLEDGE_DIR` | `data/reference/knowledge` | RAG corpus |
+| `CEAP_KNOWLEDGE_DIR` | `<data root>/reference/knowledge` | RAG corpus |
+| `CEAP_DATA_ROOT` | packaged `ceap/_data`, else `data/` in a checkout | where every data file is resolved (`ceap.paths.data_root`, 0.10.0 E3). The wheel and image carry the runtime data; a missing knowledge corpus or model store raises `DataFileMissing` instead of falling back. Check an installed copy with `python -m ceap.smoke` |
 | `CEAP_LOCAL_MODEL` | – | `1` allows live calls to a local Ollama model in the 0.9.0 evaluation runners (`ceap.eval.local_model`, `injection`, `judge`, `challenger`); unset, they only replay recorded cassettes. Not a `CEAP_LLM_PROVIDER` value |
 | `CEAP_OLLAMA_URL` | `http://localhost:11434` | Ollama endpoint for `ceap.llm.ollama` |
 | `CEAP_DURABLE_RUNS` | – | `1` turns on the step-boundary run journal and resumable approvals (`ceap.harness.durable`, 0.9.0) |
 | `CEAP_APPROVAL_SWEEP_S` | `60` | interval of the API's sweep that expires abandoned PENDING approvals (0.9.0) |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | – | mirrors harness spans to OpenTelemetry |
 
 
 ## CI checks

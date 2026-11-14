@@ -167,6 +167,38 @@ Clopper-Pearson upper bound 0.74 %); at 1.645, 5 of 500 (1.0 %; one seed's best 
 `data/reference/research_thresholds.json`, and every sweep run is appended to
 `data/reference/sweep_ledger.jsonl` with its generator version.
 
+**Deflated Sharpe bar 0.95 (0.10.0, Q2, decision O5) [simulation].** The deflated Sharpe gate is now the
+one-sided 5 % reading of Bailey and Lopez de Prado (2014), `DSR >= 0.95`, instead of 0.5 ("more likely
+than not"). The cross-trial variance from the trial ledger is floored at the null value `1 / T`, so a
+ledger of near-identical trials can no longer shrink the expected maximum Sharpe (a Sharpe of 0.3 over
+ten years with a ledger variance of 1e-8 had scored 0.83; it now scores 0.15). The ledger records the
+Sharpe before costs, the figure the gate deflates, with the net figure beside it. The null sweep calls
+the same production function, and omitting the ledger variance there is the floor itself, the most
+permissive value the shipped gate can use, so its rate is an upper bound. Re-run on the same 500
+seeds (hash `8d1dc8bd91e4…`), the full search gave **0 false PROMOTEs at every grid hurdle**,
+including t >= 0 (95 % Clopper-Pearson upper bound 0.74 %), against 17 of 500 at t >= 0, 5 of 500 at
+1.645 and 0 of 500 at 3.0 under the old bar. The power curve below measures the IC part of the gate
+only, so the change does not touch it; its file still names the sweep record of its own run.
+
+**Power at the hurdles in force (0.10.0, Q5) [simulation].** [`../quant_power_curve.json`](../quant_power_curve.json)
+gives the detection rate of the IC part of the gate (in-sample IC t at least the hurdle and
+out-of-sample IC t at least 1.0) against a planted momentum drift premium, 40 seeds a point, on the
+30-name synthetic universe over the generator's full horizon. Earlier files were at the retired
+hurdle 0.40.
+
+| Premium (bps a year) | 0 | 600 | 900 | 1200 | 1500 | 1800 | 2100 | 2400 |
+|---|---|---|---|---|---|---|---|---|
+| Expected gross Sharpe | 0.00 | 0.13 | 0.29 | 0.50 | 0.75 | 1.04 | 1.35 | 1.68 |
+| Detection, single test (t >= 1.645) | 0 % | 5 % | 18 % | 48 % | 80 % | 93 % | 95 % | 100 % |
+| Detection, mined result (t >= 3.0) | 0 % | 0 % | 3 % | 18 % | 60 % | 93 % | 95 % | 100 % |
+
+In plain terms: with 80 % power the gate detects a premium of about 1500 bps a year (expected gross
+Sharpe 0.75) when the signal is one preregistered test, and about 1800 bps (gross Sharpe 1.04) when
+it was chosen from a search. A strategy with gross Sharpe 0.5 is found 18 % of the time at the mined
+hurdle (the review's closed-form estimate was about 9 %). Above 1800 bps the out-of-sample condition,
+not the hurdle, is what limits detection. These are statements about the synthetic generator, not
+about real markets; "80 % power" follows the usual convention (Cohen 1988).
+
 **Adversarial power curves (D2) [simulation].** [`adversarial_power.json`](adversarial_power.json):
 detection rate of the IC gate against the planted premium for five generator families written without
 reference to the signal code (8 seeds a point; a coarse first look, not a precise rate):
@@ -183,14 +215,46 @@ The last row is the important one: when expected return is planted on market bet
 "detects" it because past winners are high-beta names in a rising market. The IC gate cannot tell
 beta from alpha; factor-neutral residuals (D16, `ceap.analytics.risk_research.residualise`) can.
 
+**Through the full verdict, with the factor-neutral gate (0.10.0, Q4) [simulation].**
+[`adversarial_full_verdict.json`](adversarial_full_verdict.json) runs the market-beta family and the
+drift baseline through the production verdict (`assess_research` on the signal statistics, the
+backtest and the target portfolio's risk report, the 24-trial search counted; 16 seeds a point). Since
+Q4 the alpha gate also needs the in-sample IC of the signal ranks and the forward return, both
+residualised date by date on each name's trailing five-year market beta
+(`risk_research.factor_neutral_ic`), to clear the same hurdle. The column "before" re-scores the same
+inputs with that statistic removed.
+
+| Family | Premium (bps) | PROMOTE | before | Plain IC t >= 3 | Factor-neutral IC t >= 3 |
+|---|---|---|---|---|---|
+| premium on market beta (false) | 0 | 0 of 16 | 0 of 16 | 0 | 0 |
+| premium on market beta (false) | 600 | 0 of 16 | 0 of 16 | 2 | 0 |
+| premium on market beta (false) | 1100 | 0 of 16 | 1 of 16 | 10 | 0 |
+| premium on market beta (false) | 2400 | 2 of 16 | 16 of 16 | 16 | 2 |
+| drift (true) | 1100 | 0 of 16 | 0 of 16 | 2 | 3 |
+| drift (true) | 2400 | 14 of 16 | 14 of 16 | 16 | 16 |
+
+In plain terms: at four times a realistic premium, a beta premium used to be promoted every time and
+is now promoted 2 times in 16; a true premium keeps its detection rate. The two that still pass are
+the limit of the method: a beta estimated with error leaves part of a true beta premium in both
+residuals (with a one-year beta the residual IC t stayed at 5-7, which is why the window is five
+years). Evidence class: simulation, on the synthetic generator only.
+
+**Search diagnostics on every backtest (0.10.0, Q4).** The backtest tool's trial record now carries
+PBO by CSCV with 16 blocks (Bailey, Borwein, Lopez de Prado and Zhu 2017) and the effective trial
+count (eigenvalue participation ratio and clusters at correlation 0.7) of the full 24-configuration
+search on the same dataset and window (`ceap.analytics.search_diagnostics`), and the risk step
+reports the book's Ledoit-Wolf predicted volatility. Each is a field of the assessment's metrics.
+They describe; the factor-neutral IC is the only one that gates, and the effective count cannot
+lower the deflated Sharpe's 24-trial floor.
+
 **Other checks.** Leakage canary through `simulate_backtest` (D7): a feature equal to the realised
 holding-period return, delayed d days, gives gross Sharpe 9.1, 7.7, 6.2, 3.9 at d = 0..3 and 0.0 at
 d = 4 with a five-day hold and a one-day lag, collapsing exactly when d + lag >= hold. Trial
 accounting (D8, `ceap.analytics.trial_accounting`), PBO by CSCV and stationary block bootstrap
 intervals (D9, `ceap.analytics.overfitting`), Newey-West over gaps with the Andrews bandwidth (D11),
 an equal-weight baseline with a paired bootstrap and Diebold-Mariano test for the ridge (D12),
-Ledoit-Wolf covariance, factor regression with alpha t after factors (its R² is not reliable for a
-constant series; see the known numerical issues in [docs/quant/quant.md](../quant/quant.md)) and
+Ledoit-Wolf covariance, factor regression with alpha t after factors (its R² is undefined, NaN, for a
+constant series; see the near-constant series note in [docs/quant/quant.md](../quant/quant.md)) and
 multi-factor stress (D13, D16), data-vintage hashes (D14, `ceap.data.real.vintage`), the IC term structure and half-life (D15,
 `ceap.analytics.alpha_decay`), turnover-penalised construction and the cost frontier (D17, D18),
 drawdown, CVaR and volatility-regime splits (D19), a robustness report per verdict (D6) and

@@ -47,7 +47,7 @@
       ]
     ],
     [
-      "Execution VWAP 228.1369 versus interval VWAP 228.1000: slippage +1.6 bps (baseline +0.2 bps, delta +1.5 bps).",
+      "Execution VWAP 228.1369 versus interval VWAP 228.1000: slippage +1.6 bps (prior window +0.2 bps, delta +1.5 bps).",
       [
         "vwap_slippage_delta_bps"
       ]
@@ -70,7 +70,7 @@
       ]
     ],
     [
-      "Implementation shortfall was -48.8 bps versus arrival 228.7850 (decreased by 45.1 bps relative to the baseline's -3.7 bps).",
+      "Implementation shortfall was -48.8 bps versus arrival 228.7850 (decreased by 45.1 bps relative to the prior window's -3.7 bps).",
       [
         "is_delta_bps"
       ]

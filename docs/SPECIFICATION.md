@@ -253,7 +253,7 @@ movement, mixed market + technology) with expected results as structured ground 
 ## 15. Observability
 
 **S-31.** OpenTelemetry, Prometheus, Grafana.
-*Status: partial* — in-memory span tracer with optional OpenTelemetry mirroring,
+*Status: partial* — in-memory span tracer with OpenTelemetry GenAI attribute names (no OTLP exporter),
 Prometheus text exposition at `/metrics`, JSON-lines logs. Grafana dashboards are not
 shipped (roadmap).
 
@@ -268,7 +268,7 @@ shipped (roadmap).
 | ML | scikit-learn, XGBoost, PyTorch — only where deterministic analysis is insufficient | not needed for the MVP; `ml` extra reserved |
 | Storage | PostgreSQL, Parquet, DuckDB, object storage, vector DB | in-memory repositories + Parquet/CSV export; BM25 keyword index, dependency-free (hashed TF-IDF vector until 0.5.x) — roadmap for Postgres/vector DB |
 | LLM | provider-agnostic | `LLMClient` with Anthropic adapter and deterministic mock; router with fallback |
-| Observability | OpenTelemetry, Prometheus, Grafana | OTel-optional tracer, Prometheus text metrics; Grafana roadmap |
+| Observability | OpenTelemetry, Prometheus, Grafana | in-memory tracer with OTel GenAI attribute names, Prometheus text metrics; Grafana roadmap |
 
 ## 17. Repository layout
 

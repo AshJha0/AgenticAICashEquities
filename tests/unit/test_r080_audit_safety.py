@@ -236,7 +236,7 @@ def test_staged_sets_persist_and_are_unique(tmp_path: Path) -> None:
 def test_stage_orders_tool_checks_and_halts() -> None:
     from ceap.data.repositories import DatasetStore
     from ceap.mcp.execution.server import build_server
-    from ceap.mcp.execution.staging import StagedOrderBook, StagingRefusedError
+    from ceap.mcp.execution.staging import StagedOrderBook, StagingRefusedError, report_hash
     from ceap.paper.pretrade import RiskLimits
 
     report = _report()
@@ -245,12 +245,15 @@ def test_stage_orders_tool_checks_and_halts() -> None:
         server = build_server(DatasetStore(), staged=StagedOrderBook(db=db),
                               limits=RiskLimits(restricted=(first,), max_name_weight=1.0, max_gross=10.0))
         tool = server._tools["stage_orders"].fn
-        out = asyncio.run(tool(signal="momentum_12_1", gross_notional=1_000_000.0))
+        # H2 (R-12): staging needs the hash of the approved portfolio
+        out = asyncio.run(tool(signal="momentum_12_1", gross_notional=1_000_000.0,
+                               approved_portfolio_hash=report_hash(report)))
         assert any(b["symbol"] == first and b["detail"]["rule"] == "restricted" for b in out["risk_blocks"])
         assert all(o["symbol"] != first for o in out["orders"])
         KillSwitch(db).set("ops", "halt")
         with pytest.raises(StagingRefusedError):
-            asyncio.run(tool(signal="momentum_12_1", gross_notional=2_000_000.0))
+            asyncio.run(tool(signal="momentum_12_1", gross_notional=1_000_000.0,
+                             approved_portfolio_hash=report_hash(report)))
 
 
 # ------------------------------------------------------------------ G7: durability and health

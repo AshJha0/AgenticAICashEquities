@@ -50,6 +50,7 @@ from ceap.domain.research import (
     BacktestPeriodStats,
     BacktestResult,
 )
+from ceap.paths import data_path
 
 if TYPE_CHECKING:  # pragma: no cover
     from ceap.data.historical import HistoricalDataset
@@ -59,7 +60,7 @@ MIN_NAMES = 8
 EQUITY_CURVE_POINTS = 24
 TOP_CONTRIBUTORS = 5
 MAX_EVENTS_PER_KIND = 25
-RF_PATH = Path(__file__).resolve().parents[3] / "data" / "reference" / "rf.csv"
+RF_PATH = data_path("reference", "rf.csv")
 SSR_TRIGGER = -0.10
 DELISTING_RETURNS: dict[str, dict[str, float]] = {
     "merger": {"NYSE": 0.0, "NASDAQ": 0.0},

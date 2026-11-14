@@ -22,7 +22,7 @@ measure it.
 | Agent evals | full case sets (planner 10; reporter cases from successful plans only, so n varies by seed; critic 15 planted faults) |
 | Golden slice | first 3 golden items (`golden_limit=3`, a compute budget set before the runs); **not measured**, see the correction below |
 | Injection subset | 40 of 200 attacks, 10 per surface, chosen by `ceap.eval.injection --per-surface 10` |
-| Judge | 50 calibration items; a dimension is enabled only if Cohen's kappa > 0.6 |
+| Judge | unvalidated prototype: 50 calibration items labelled by Claude, not by independent raters, so no dimension is enabled (0.10.0 T10) |
 
 ## Results
 
@@ -37,9 +37,12 @@ Wilson interval; the per-seed values are what to read first (see below).
 | Planner: canonical fallback | 1/30 | 0.03 | 0.01-0.17 | 0.10 / 0.00 / 0.00 |
 | Planner: tool precision | 161/161 | 1.00 | 0.98-1.00 | 1.00 / 1.00 / 1.00 |
 | Planner: tool recall | 61/84 | 0.73 | 0.62-0.81 | 0.64 / 0.75 / 0.79 |
-| Reporter: faithful claims | 25/39 | 0.64 | 0.48-0.77 | 0.67 / 0.40 / 0.79 |
-| Reporter: claims dropped by the harness | 14/39 | 0.36 | 0.23-0.52 | 0.33 / 0.60 / 0.21 |
+| Reporter: claims kept by the audit (0.9.0 audit; published as "faithful claims") | 25/39 | 0.64 | 0.48-0.77 | 0.67 / 0.40 / 0.79 |
+| Reporter: claims dropped by the harness (0.9.0 audit) | 14/39 | 0.36 | 0.23-0.52 | 0.33 / 0.60 / 0.21 |
+| Reporter: claims kept by the audit, re-audited in 0.10.0 (see below) | 22/39 | 0.56 | 0.41-0.71 | 0.67 / 0.40 / 0.57 |
+| Reporter: claims with a number outside their own fact keys, 0.10.0 re-audit | 11/39 | 0.28 | 0.17-0.44 | 0.13 / 0.50 / 0.29 |
 | Reporter: untraceable numbers reaching the report | 0/39 | 0.00 | 0.00-0.09 | 0 / 0 / 0 |
+| Reporter: citations verified | 0/0 | not measured | – | n = 0 in each seed, see below |
 | Critic: planted faults detected | 35/45 | 0.78 | 0.64-0.87 | 0.73 / 0.80 / 0.80 |
 | Golden slice (end to end) | not measured | – | – | withdrawn 2026-11-12, see below |
 
@@ -56,11 +59,55 @@ model results; they are regenerated with the 0.10.0 re-run, where an evaluation 
 fallback. The planner, reporter and critic rows above are scored from recorded model replies and are
 not affected.
 
+**Citation verification has n = 0.** The citation audit reads Anthropic `content_block_location`
+citation blocks; the Ollama adapter returns none, so with the local model no policy claim carries a
+citation and `reporter.citation_verified` is 0/0 in every seed (finding R-09). The row was omitted
+until 0.10.0; it is shown now so that the absence is visible. Since 0.10.0 (item H4) a citation counts
+for a claim only if the cited chunk also supports it: the claim's numbers occur in the chunk and the
+chunk shares its key terms (`ceap.agents.reporter.citation_supports`). On ten planted pairs written
+against the shipped knowledge base, 0 of 10 wrong-chunk citations pass and 10 of 10 right-chunk
+citations are kept (`tests/agent/test_r0100_h4_citation_support.py`). That is a lexical check on a
+small planted set, not entailment and not a model result.
+
 Plain reading: a 7B model on a laptop produces a valid plan about half the time and the harness
 repairs most of the rest; it never picks a tool outside the task (precision 1.00) but misses about a
 quarter of the tools the gold plans use. About a third of the reporter's claims are dropped by the
-harness because they are not traceable to tool output, and none of the untraceable numbers reaches
-a report: the guardrail, not the model, is what keeps the report honest.
+harness.
+
+**Correction, 0.10.0 (item T5, finding R-05): what the claims audit checked.** 0.9.0 reported
+"faithful claims" and "0/39 untraceable numbers reaching the report", and said the guardrail, not
+the model, keeps the report honest. That sentence is withdrawn. The 0.9.0 audit tested set
+membership: a number passed if it equalled any fact under any key, so a real figure attached to the
+wrong metric, a wrong direction word or a wrong cause all passed. The model proposed no number that
+was absent from every fact, so "0/39" said nothing about the guardrail; the 14 dropped claims
+failed on fact-key paths that do not resolve and on evidence ids from the policy chunks' namespace.
+The two metrics are renamed to what they check: **claims kept by the audit** and **claims with a
+number outside their own fact keys**.
+
+Since 0.10.0 each number in a claim must come from one of the claim's own fact keys; if the claim
+names a metric next to the number the fact must hold that metric; a direction word must agree with
+the sign of the fact's move ("improved" is down for a cost such as shortfall); a cause stated as
+the cause must be the primary (`src/ceap/agents/reporter.py`, `audit_claim_numbers`,
+`audit_claim_cause`). Re-auditing the same recorded claims (no new model call;
+`qwen2.5_7b-instruct_claims_audit.json`, written by
+`python -m ceap.eval.local_model --replay --claims-audit`) keeps 22/39, not 25/39. Eleven claims
+carry a number outside their own fact keys: seven cite a fact-key path that does not resolve, so
+nothing is bound, and four quote a policy threshold (5 bps, a latency ratio of 3) without citing
+the policy key that holds it. Every reason of every dropped claim, pooled over the three seeds:
+
+| Drop reason | Count |
+|---|---|
+| number not traceable to the claim's own fact keys | 11 |
+| fact key not in the facts | 8 |
+| evidence id unknown (policy chunk ids such as `CH-ESC`, finding ids such as `F-R1`) | 8 |
+| no fact keys and no evidence ids | 1 |
+| wrong metric, wrong direction, wrong cause | 0 |
+
+The model wrote no claim with the wrong metric, sign or cause on these cases. The audit itself is
+scored on planted claims built from each case's real figures (`planted_audit_claims`): wrong metric
+4/4, wrong sign 4/4 and wrong cause 4/4 rejected. The four 0.9.0 examples from the reviewer's report
+are in `tests/agent/test_t5_claim_audit.py`. The per-seed 0.9.0 result files keep the old metric
+names until the 0.10.0 re-recording.
 
 **Prompt injection** (`qwen2.5_7b-instruct_injection.json`, 40 attacks, 10 per surface, one seed):
 
@@ -78,7 +125,8 @@ bound 28 %), not "safe". The count is conservative: a reply that quotes part of 
 as obeyed.
 
 **Judge calibration** (`judge_calibration.json`, 50 items, enable bar kappa > 0.6): `hedged` kappa
-1.00 (enabled); `faithful` 0.51 and `complete` -0.03 (not enabled). The judge therefore scores only
+1.00 (would pass the bar); `faithful` 0.51 and `complete` -0.03. Since 0.10.0 (T10) no dimension is enabled:
+the labels were written by Claude, so agreement with them does not validate the judge. Before 0.10.0 it scored only
 hedging in 0.9.0.
 
 **Challenger (B7): not measured in 0.9.0.** The comparison code asks both models through a bare

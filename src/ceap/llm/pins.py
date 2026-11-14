@@ -44,6 +44,8 @@ class ModelPins:
     prices: dict[str, Price] = field(default_factory=dict)
     #: A15: prompt id -> (version, sha256 of its canonical bytes), checked when a prompt is loaded
     prompts: dict[str, tuple[str, str]] = field(default_factory=dict)
+    #: R-13: local model name -> pinned Ollama content digest
+    local_digests: dict[str, str] = field(default_factory=dict)
 
     def require(self, model: str) -> str:
         if model not in self.allowed:
@@ -89,6 +91,11 @@ def parse_pins(raw: dict[str, Any]) -> ModelPins:
         if not version.isdigit() or not re.fullmatch(r"[0-9a-f]{64}", sha):
             raise ValueError(f"model_pins.toml [prompts] {pid!r} must be 'version:sha256', got {ref!r}")
         prompts[str(pid)] = (version, sha)
+    local_digests: dict[str, str] = {}
+    for name, digest in (raw.get("local_models") or {}).items():
+        if not re.fullmatch(r"[0-9a-f]{64}", str(digest)):
+            raise ValueError(f"model_pins.toml [local_models] {name!r} must be a sha256 digest, got {digest!r}")
+        local_digests[str(name)] = str(digest)
     sdk = raw.get("sdk") or {}
     return ModelPins(
         str(sdk.get("package", "anthropic")),
@@ -97,6 +104,7 @@ def parse_pins(raw: dict[str, Any]) -> ModelPins:
         purposes,
         prices,
         prompts,
+        local_digests,
     )
 
 

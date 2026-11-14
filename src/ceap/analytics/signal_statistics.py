@@ -16,6 +16,10 @@
   signal at the rebalance lag (range 0 to 2). It is *not* portfolio turnover;
   the backtest reports that.
 * Non-members (2.13) are NaN in the signal and never ranked.
+* 0.10 (Q4, finding R-20): ``ic_t_stat_factor_neutral`` is the gate statistic on the same
+  non-overlapping dates with the signal ranks and the forward return residualised, date by date, on an
+  intercept and each name's trailing five-year market beta (:func:`ceap.analytics.risk_research.factor_neutral_ic`). The alpha gate
+  applies the same hurdle to it.
 
 Rank ICs are computed row-wise in a vectorised way with ordinal ranks; with
 continuous prices ties have probability zero, and :func:`spearman` (average
@@ -272,6 +276,38 @@ def period_signal_stats(
     )
 
 
+def gate_dates(overlap: np.ndarray, i0: int, i1: int, horizon: int) -> np.ndarray:
+    """Indices of the non-overlapping gate sample in ``[i0, i1]``: every ``horizon``-th date from the first
+    finite IC, exactly as :func:`period_signal_stats` samples them."""
+    if i1 < i0:
+        return np.zeros(0, dtype=int)
+    finite = np.flatnonzero(np.isfinite(overlap[i0 : i1 + 1]))
+    return np.arange(i0 + int(finite[0]), i1 + 1, horizon) if finite.size else np.zeros(0, dtype=int)
+
+
+def _with_factor_neutral(
+    ds: HistoricalDataset,
+    signal: np.ndarray,
+    overlap: np.ndarray,
+    ranges: dict[str, tuple[int, int]],
+    periods: dict[str, PeriodSignalStats],
+    horizon: int,
+    lag: int,
+) -> dict[str, PeriodSignalStats]:
+    from dataclasses import replace
+
+    from ceap.analytics.risk_research import factor_neutral_ic, rolling_betas
+
+    betas = rolling_betas(ds.close)
+    fwd = forward_returns(ds.close, horizon, lag)
+    out = {}
+    for label, (a, b) in ranges.items():
+        ic = factor_neutral_ic(signal, fwd, betas, gate_dates(overlap, a, b, horizon))
+        mean, _sd, t, _n = _t(ic)
+        out[label] = replace(periods[label], mean_ic_factor_neutral=mean, ic_t_stat_factor_neutral=float(t))
+    return out
+
+
 def evaluate_signal(
     ds: HistoricalDataset,
     name: str,
@@ -314,6 +350,7 @@ def evaluate_signal(
         label: period_signal_stats(label, ds.dates, a, b, ics, turnover, spread, horizon, lag)
         for label, (a, b) in ranges.items()
     }
+    periods = _with_factor_neutral(ds, signal, ics[horizon], ranges, periods, horizon, lag)
     return SignalStatistics(
         signal=name,
         dataset=ds.scenario.id,

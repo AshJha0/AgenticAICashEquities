@@ -83,7 +83,7 @@ def test_three_verdicts():
 
 def test_sharpe_interval_lo_2002():
     lo, hi = sharpe_interval(0.2, 252 * 19)
-    se = math.sqrt((1 + 0.02) / 19)
+    se = math.sqrt((1 + 0.5 * 0.2**2 / 252) / 19)  # daily form (Q1): the squared term is the daily Sharpe
     assert lo == pytest.approx(0.2 - 1.96 * se) and hi == pytest.approx(0.2 + 1.96 * se)
     assert lo < 0 < 0.5 < hi
 

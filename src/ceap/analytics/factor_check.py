@@ -14,7 +14,9 @@ from pathlib import Path
 
 import numpy as np
 
-FF_PATH = Path(__file__).resolve().parents[3] / "data" / "reference" / "ff_factors.csv"
+from ceap.paths import data_path
+
+FF_PATH = data_path("reference", "ff_factors.csv")
 MIN_CORRELATION = 0.5
 CRASH_MONTHS = ("2009-03", "2009-04", "2009-05", "2020-11")
 FACTORS = ("mkt_rf", "smb", "hml", "rmw", "cma", "umd")

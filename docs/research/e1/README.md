@@ -60,4 +60,4 @@ python scripts/fetch_kf_industries.py     # free, no sign-up; rewrites data_hash
 python scripts/run_e1_industry_momentum.py  # in-sample only; refuses cached files whose hash differs from data_hashes.json
 ```
 The holdout cannot be reopened: `--open-holdout` refuses because the ledger records the opening.
-Code: `src/ceap/studies/industry_momentum.py`; tests: `tests/test_industry_momentum.py`.
+Code: `src/ceap/studies/industry_momentum.py`; tests: `tests/unit/test_industry_momentum.py`.

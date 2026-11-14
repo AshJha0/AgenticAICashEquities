@@ -53,6 +53,7 @@ from typing import Any
 import numpy as np
 
 from ceap.analytics.leakage import forward_return
+from ceap.analytics.numerics import negligible_variation
 from ceap.analytics.research_assessment import TRADING_DAYS, deflated_sharpe
 from ceap.analytics.signals import dataset_signal
 from ceap.analytics.trial_ledger import TrialLedger
@@ -185,7 +186,7 @@ def portfolio_returns(p: Panel, score: np.ndarray, dates: np.ndarray, stop: int 
 
 def _moments(r: np.ndarray) -> tuple[float, float, float]:
     """Per-day Sharpe, skew and (non-excess) kurtosis."""
-    if r.size < 3 or float(r.std(ddof=1)) == 0.0:
+    if r.size < 3 or negligible_variation(r):
         return float("nan"), 0.0, 3.0
     mu, sd = float(r.mean()), float(r.std(ddof=1))
     z = (r - mu) / float(r.std())

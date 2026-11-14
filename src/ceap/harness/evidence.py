@@ -5,6 +5,7 @@ Split out of ``ceap.harness.engine`` in 0.9.0 (H6); ``engine`` re-exports the pu
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from dataclasses import replace
 from typing import Any
@@ -15,7 +16,7 @@ from ceap.analytics.hypotheses import (
     hypothesis_table_dict,
     judge_alternative,
 )
-from ceap.domain.common import new_id, utc_now
+from ceap.domain.common import utc_now
 from ceap.domain.evidence import Evidence, EvidenceType
 from ceap.domain.findings import Finding
 from ceap.domain.plans import PlanStep, StepType
@@ -37,6 +38,7 @@ from ceap.harness.memory import (
     InvestigationMemory,
     evidence_problems,
 )
+from ceap.policy.approvals import SYSTEM_ACTORS
 
 log = logging.getLogger("ceap.harness.engine")
 
@@ -79,8 +81,13 @@ class EvidenceMixin(HarnessBase):
         return dropped
 
     # ------------------------------------------------------------ R3B helpers
-    def _recall_cases(self, task: Task, memory: InvestigationMemory) -> tuple[dict[str, Any], ...]:
-        """R3B 3B.7: the three nearest human-decided cases in this task's dataset (read-only)."""
+    def _recall_cases(
+        self, task: Task, memory: InvestigationMemory, read_any: bool = False
+    ) -> tuple[dict[str, Any], ...]:
+        """R3B 3B.7: the three nearest human-decided cases in this task's dataset (read-only).
+
+        H6 (AI-2-07): only the requester's own cases, unless the principal holds ``tasks:read-any``.
+        """
         cm = self.case_memory
         if cm is None or not cm.enabled:
             memory.agent_outputs["case_memory"] = {"enabled": False, "reads": 0, "retrieved": []}
@@ -88,7 +95,7 @@ class EvidenceMixin(HarnessBase):
         query = (
             f"{task.input.get('kind') or 'investigation'} {task.input.get('symbol') or ''} {task.description}"
         )
-        cases = cm.nearest(_partition(task), query, k=3)
+        cases = cm.nearest(_partition(task), query, k=3, owner=task.requested_by, read_any=read_any)
         memory.agent_outputs["case_memory"] = {
             "enabled": True,
             "reads": 1,
@@ -246,9 +253,14 @@ class EvidenceMixin(HarnessBase):
         return table
 
     def _record_case(self, task: Task, step: PlanStep, decision: Any, memory: InvestigationMemory) -> None:
-        """R3B 3B.7 / 3B.8: after a human decision, the harness appends one compact case record."""
+        """R3B 3B.7 / 3B.8: after a human decision, the harness appends one compact case record.
+
+        H6 (AI-2-06): a decision by the system (auto-approval, timeout, policy) is not a human
+        precedent and is not recorded. The case id is derived from the task and the step, so a resumed
+        run that reuses the decision does not write a second case (H1).
+        """
         cm = self.case_memory
-        if cm is None or not cm.enabled:
+        if cm is None or not cm.enabled or decision.decided_by in SYSTEM_ACTORS:
             return
         table = memory.scratch.get("hypotheses")
         rows = tuple(
@@ -258,7 +270,7 @@ class EvidenceMixin(HarnessBase):
         )
         action = getattr(decision, "action", "") or ("approve" if decision.approved else "reject")
         record = CaseRecord(
-            case_id=new_id("CASE"),
+            case_id="CASE-" + hashlib.sha256(f"{task.id}|{step.id}".encode()).hexdigest()[:8],
             task_id=task.id,
             dataset=_partition(task),
             kind=task_kind(task),
@@ -271,6 +283,7 @@ class EvidenceMixin(HarnessBase):
             reason=str(decision.comment or "")[:500],
             hypotheses=rows,
             recorded_at=utc_now().isoformat(),
+            owner=task.requested_by,
         )
         if cm.append(record):
             memory.agent_outputs.setdefault("case_memory", {})["written"] = record.case_id

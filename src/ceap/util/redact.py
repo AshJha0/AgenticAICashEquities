@@ -87,8 +87,13 @@ _PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("BEARER", re.compile(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{12,}")),
     ("JWT", re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}")),
     ("IBAN", re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}(?: ?[A-Z0-9]{1,3})?\b")),
-    # account-like numbers: 8 to 19 contiguous digits, or card-style groups of four
-    ("ACCOUNT", re.compile(r"(?<![\w.:-])(?:\d{8,19}|\d{4}(?:[ -]\d{4}){2,4})(?![\w.:-])")),
+    # Account-like numbers: card-style groups of four, or 8 to 19 contiguous digits only after an
+    # account word. A bare long number is usually a quantity, notional or order id in a trading
+    # question ("Buy 12000000 shares") and must survive (0.10.0 E7, finding E-09).
+    ("ACCOUNT", re.compile(
+        r"(?<![\w.:-])\d{4}(?:[ -]\d{4}){2,4}(?![\w.:-])"
+        r"|(?i:(?<=account )|(?<=account: )|(?<=account no )|(?<=acct )|(?<=card )|(?<=a/c ))\d{8,19}(?![\w.:-])"
+    )),
 )
 
 SENSITIVE_HEADERS = frozenset(

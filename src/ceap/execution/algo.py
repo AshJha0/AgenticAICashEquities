@@ -110,7 +110,7 @@ def execute(
         target = min(parent.quantity, schedule.adjust(k, int(planned[k]), executed, mkt))
         resting = sim.open_agent_orders()
         working = sum(o.visible for o in resting)
-        final = k == parent.n_slices - 1
+        final = False  # the last slice is worked like the others; completion happens below (X-08)
         actions = decide(
             policy,
             parent.side,
@@ -128,6 +128,17 @@ def execute(
             elif a.kind in ("AGGRESSIVE", "PASSIVE"):
                 sim.submit(parent.side, a.quantity, a.limit, ioc=a.kind == "AGGRESSIVE")
                 sent += 1
+    # Completion (0.10.0 X5, finding X-08): shortly before the end, cancel what rests and take the
+    # remainder with a market order, so a schedule finishes its parent instead of leaving passive
+    # orders to expire. The cost of that sweep lands in the score like any other fill.
+    t_c = max(parent.end_ms - 4 * sim.p.entry_latency_ms, parent.start_ms)
+    fills.extend(sim.run_until(t_c))
+    for o in sim.open_agent_orders():
+        sim.cancel(o.order_id)
+    remaining = parent.quantity - sum(f.quantity for f in fills if f.owner == AGENT)
+    if remaining > 0:
+        sim.submit(parent.side, remaining, None, ioc=True)  # market order: completion over price
+        sent += 1
     fills.extend(sim.run_until(parent.end_ms))
     for o in sim.open_agent_orders():
         sim.cancel(o.order_id)

@@ -77,12 +77,13 @@ async def test_rerun_with_journal_reads_tools_back_and_reproduces_the_report(pla
     task, first = await _run(platform, journal, req)
     assert first.success
     rows = len(journal)
-    assert rows > 0
+    tool_rows = sum(1 for r in journal._rows.values() if r["kind"] == "tool")  # 0.10.0 H1 adds model rows
+    assert tool_rows > 0
     before = _replayed()
     _, second = await _run(platform, journal, req, task)
     assert second.success
     assert len(journal) == rows  # nothing new journalled: every completed call was read back
-    assert _replayed() - before == rows  # and every one of them was replayed, none re-invoked
+    assert _replayed() - before == tool_rows  # and every tool call was replayed, none re-invoked
     assert normalised(second.report)["narrative"] == normalised(first.report)["narrative"]
     assert normalised(second.report)["attribution"] == normalised(first.report)["attribution"]
 

@@ -150,7 +150,7 @@ async def test_sensitivity_every_model_metric_moves_under_its_degraded_client():
 
 
 def test_corpus_matches_its_pin():
-    report = corpus_report(today=date(2026, 11, 9))
+    report = corpus_report(today=date(2026, 11, 14))  # quant.md 0.5.0 is effective 2026-11-14 (Q8)
     assert report["pinned"] and report["problems"] == [], report["problems"]
 
 

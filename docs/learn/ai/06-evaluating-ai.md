@@ -2,7 +2,7 @@
 
 Learning goals: explain what a golden set is and why it is signed off; compute a Wilson interval;
 say what a small sample can and cannot claim; explain a kappa-gated LLM judge; say why seeds that
-share cases are not independent, why replay is the measurement of record, and why the challenger
+share cases are not independent, when replay is the measurement of record (and when it is not), and why the challenger
 was not reported.
 
 ## Plain idea
@@ -32,9 +32,11 @@ From [docs/evaluation/local_model/README.md](../../evaluation/local_model/README
   evaluation run must fail on a fallback, not continue.
 - Seeds share the case set, so the pooled interval is too narrow; read the per-seed values first
   (reporter faithful 0.67 / 0.40 / 0.79).
-- Replay versus live: during live runs backtest tools timed out under the model's CPU load (seed 1
-  live golden cause 0/3, replay of the same cassette 2/3). Model replies are identical; replay is the
-  measurement of record.
+- Replay versus live: for the planner, reporter and critic, the recorded replies give the same
+  numbers live and on replay, so replay is the measurement of record for those rows. This does not
+  hold for the golden slice: live, the backtest tools timed out under the model's CPU load (primary
+  cause 0/3 in each seed), and the replayed answers came from the mock fallback, not from recorded
+  model replies. Neither run measures the model, so no golden number is published.
 - Challenger not measured: the comparison path matched neither model's recordings, so a number would
   measure the harness defect, not the models.
 

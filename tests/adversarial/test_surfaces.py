@@ -19,6 +19,7 @@ from typing import Any
 import pytest
 
 from ceap.config import Settings
+from ceap.domain.common import utc_now
 from ceap.domain.tools import Tool, ToolExecutionContext, ToolRegistry, ToolRequest, ToolResult
 from ceap.harness.memory import CaseMemory, CaseRecord
 from ceap.llm.client import MockLLMClient
@@ -196,7 +197,8 @@ async def test_surface_case_memory(store):
             "approver.b",
             INJECTION_TEXT,
             (("MARKET_VOLATILITY", "SUPPORTED"),),
-            "2026-11-01",
+            utc_now().isoformat(),  # 0.10.0 H6: in date, and owned by the requester, so it is read back
+            "trader.a",
         )
     )
     client, platform, result = await _run(store, cases=cases)

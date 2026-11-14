@@ -101,7 +101,9 @@ def test_vwap_u_profile_is_symmetric_and_heavier_at_the_edges() -> None:
 
 def test_pov_keeps_inside_the_band_and_caps_at_the_parent() -> None:
     pov = POV(rate=0.10, band=0.02, total=5_000)
-    assert pov.adjust(0, 999, 0, 20_000) == 2_000
+    assert pov.adjust(0, 999, 0, 20_000) == 1_600  # plan below the band: raised to (rate - band) V
+    assert pov.adjust(0, 2_100, 0, 20_000) == 2_100  # plan inside the band: followed
+    assert pov.adjust(0, 3_000, 0, 20_000) == 2_400  # plan above the band: held to (rate + band) V
     assert pov.adjust(0, 999, 0, 10**9) == 5_000
     lo, hi = pov.bounds(20_000)
     assert lo == pytest.approx(1_600) and hi == pytest.approx(2_400)
@@ -112,3 +114,12 @@ def test_pov_keeps_inside_the_band_and_caps_at_the_parent() -> None:
 def test_static_schedules_keep_the_plan() -> None:
     for s in (TWAP(), VWAP(), AC):
         assert s.adjust(3, 1234, 10, 1e9) == 1234
+
+
+def test_pov_band_changes_the_schedule() -> None:
+    """0.10.0 X5 (finding X-07): a wider band lets the order follow more of its plan."""
+    narrow, wide = POV(rate=0.10, band=0.0), POV(rate=0.10, band=0.05)
+    plans = [(k, 500 * (k + 1), 10_000 * (k + 1)) for k in range(5)]
+    a = [narrow.adjust(k, p, 0, v) for k, p, v in plans]
+    b = [wide.adjust(k, p, 0, v) for k, p, v in plans]
+    assert a != b and a == [1_000 * (k + 1) for k in range(5)]

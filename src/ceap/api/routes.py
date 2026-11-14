@@ -45,6 +45,7 @@ from ceap.platform import (
     Platform,
     RequestNotPermitted,
     ResearchRequest,
+    ResumeRefused,
 )
 from ceap.policy.approvals import (
     ConcurrencySlot,
@@ -459,6 +460,56 @@ def _cancel(request: Request, task_id: str, principal: Principal, kind: str) -> 
         raise HTTPException(status.HTTP_403_FORBIDDEN, f"only the owner or an admin may cancel a {kind}")
     p.cancel(task_id, f"cancelled by {principal.name}")
     return _status(request, task_id, kind)
+
+
+#: the capability a principal needs to start (and so to resume) each kind of task
+_START_CAPABILITY = {INVESTIGATION: "investigate", RESEARCH: "research"}
+
+
+@router.post(
+    "/tasks/{task_id}/resume",
+    response_model=InvestigationStatus,
+    status_code=status.HTTP_202_ACCEPTED,
+    tags=["tasks"],
+)
+async def resume_task(
+    task_id: str, request: Request, principal: Principal = Depends(current_principal)
+) -> InvestigationStatus:
+    """H1 (R-11): continue an interrupted or failed durable run under its original task id.
+
+    The owner, or a principal with ``tasks:cancel-any``, may resume; either way the principal also needs
+    the capability that starts that kind of task. The run uses the principal and roles it was first
+    submitted with (stored in the run journal). Journalled tool calls, model replies and approval
+    decisions are read back, so nothing already done is repeated and no approver is asked twice.
+    """
+    p = _platform(request)
+    owner = p.owner_of(task_id)
+    kind = _task_kind(p, task_id)
+    if owner is None or kind is None or (owner != principal.name and READ_ANY not in principal.capabilities):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown task {task_id}")  # do not confirm ids
+    if _START_CAPABILITY.get(kind, kind) not in principal.capabilities or (
+        owner != principal.name and "tasks:cancel-any" not in principal.capabilities
+    ):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, f"only the owner or an admin may resume a {kind}")
+    state = request.app.state.ceap
+    if task_id in state.running:
+        raise HTTPException(status.HTTP_409_CONFLICT, f"task {task_id} is running")
+    _rate_limit(request, principal)
+    try:
+        task, ctx = p.prepare_resume(task_id, principal.name)
+    except KeyError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"unknown task {task_id}") from exc
+    except ResumeRefused as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+
+    async def run() -> None:
+        async with ConcurrencySlot(state.semaphore):
+            await p.resume_prepared(task, ctx)
+
+    background = asyncio.create_task(run(), name=f"resume:{task_id}")
+    state.running[task_id] = background
+    background.add_done_callback(functools.partial(_on_done, state, p, task_id))
+    return InvestigationStatus(task_id=task_id, status="RUNNING")
 
 
 @router.post("/investigations/{task_id}/cancel", response_model=InvestigationStatus, tags=["investigations"])

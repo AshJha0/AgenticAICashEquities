@@ -21,7 +21,7 @@ from ceap.harness.common import (
     _approval_payload,
     _w,
 )
-from ceap.harness.durable import APPROVAL_KIND, approval_key
+from ceap.harness.durable import APPROVAL_KIND, approval_key, stable_content_hash
 from ceap.harness.executor import RunContext, race_cancellation
 from ceap.harness.memory import (
     InvestigationMemory,
@@ -66,7 +66,8 @@ class ApprovalsMixin(HarnessBase):
             run.policy_context.principal,
         )
         journal = getattr(self, "journal", None)
-        akey = approval_key(step.id, request.content_hash)
+        # R-11: keyed on stable content, so fresh finding or evidence ids do not make it a new question
+        akey = approval_key(step.id, stable_content_hash(request.tool_id, dict(request.arguments)))
         prior = journal.get(run.task_id, akey) if journal is not None else None
         if prior is not None:  # G5: resumed run - this exact content was already decided
             decision = ApprovalDecision(
@@ -80,7 +81,8 @@ class ApprovalsMixin(HarnessBase):
             if sm.state is HarnessState.EXECUTING:
                 sm.transition(HarnessState.AWAITING_APPROVAL, "human approval step")
             try:
-                decision = await race_cancellation(self.approvals.request(request), run.cancellation)
+                with run.clock.waiting():  # H6 (AI-2-08): the task clock stops while a human decides
+                    decision = await race_cancellation(self.approvals.request(request), run.cancellation)
             finally:
                 if sm.state is HarnessState.AWAITING_APPROVAL:
                     sm.transition(HarnessState.EXECUTING, "human approval decided")

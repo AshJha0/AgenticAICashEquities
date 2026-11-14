@@ -7,6 +7,7 @@ Both the API and the CLI build a :class:`Platform` and call
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from collections import OrderedDict
 from dataclasses import dataclass, field
@@ -34,18 +35,20 @@ from ceap.data.repositories import DatasetStore
 from ceap.data.research_scenarios import get_research_scenario
 from ceap.data.scenarios import SYMBOLS
 from ceap.data.session import SESSION_TZ
+from ceap.domain.common import to_jsonable
 from ceap.domain.policy import PolicyContext
 from ceap.domain.research import DEFAULT_GROSS_NOTIONAL, DEFAULT_REBALANCE_DAYS, DEFAULT_SIGNAL
 from ceap.domain.tasks import Task, TaskPriority
 from ceap.domain.tools import ToolRegistry
 from ceap.harness.cancellation import CancellationToken
-from ceap.harness.durable import SqlRunJournal
+from ceap.harness.durable import CONTEXT_KEY, CONTEXT_KIND, CONTEXT_STEP, SqlRunJournal
 from ceap.harness.engine import AgentHarness, HarnessResult
 from ceap.harness.memory import CaseMemory
 from ceap.llm.client import LLMClient
-from ceap.llm.router import build_router
+from ceap.llm.router import LLMRouter, build_router
 from ceap.mcp.client import MCPClient
 from ceap.mcp.registry import build_in_process_client, build_tool_registry
+from ceap.observability.ai_slo import P95_MS, AISLOMonitor
 from ceap.observability.tracing import ExecutionTracer, InMemoryTracer
 from ceap.persistence.db import Database
 from ceap.persistence.repositories import (
@@ -93,6 +96,14 @@ class RequestNotPermitted(ValueError):  # noqa: N818 - domain vocabulary
     """The principal lacks a capability the request needs (403 at the API)."""
 
 
+class ResumeRefused(ValueError):  # noqa: N818 - domain vocabulary
+    """The task cannot be resumed (409 at the API): running, finished, or never journalled."""
+
+
+#: stored task statuses a resume accepts (H1); a finished task is never re-run
+RESUMABLE_STATUSES = ("INTERRUPTED", "FAILED")
+
+
 @dataclass
 class ResearchRequest:
     """A Stage 2 request: evaluate a signal on a research dataset and propose whether to promote it."""
@@ -133,6 +144,7 @@ class Platform:
         history: HistoricalStore | None = None,
         db: Database | None = None,
         case_memory: CaseMemory | None = None,
+        trial_ledger: Any = None,
     ) -> None:
         self.settings = settings or load_settings()
         self.db = db or Database(self.settings.db_path)
@@ -145,8 +157,11 @@ class Platform:
         self.store = store or DatasetStore()
         self.history = history or HistoricalStore()
         self.llm = llm or build_router(self.settings)
+        self.slo = self._slo_monitor()
         self.knowledge = knowledge or build_knowledge_base(self.settings.knowledge_dir)
-        self.mcp_client = mcp_client or build_in_process_client(self.store, self.knowledge, self.history, self.db)
+        self.mcp_client = mcp_client or build_in_process_client(
+            self.store, self.knowledge, self.history, self.db, trial_ledger
+        )
         self.approvals = approvals or (
             AutoApprovalGateway()
             if self.settings.auto_approve
@@ -161,6 +176,22 @@ class Platform:
         self.cancellations: dict[str, CancellationToken] = {}
         self.owners: dict[str, str] = {}
         self.recovered: dict[str, list[str]] = self.recover()
+
+    def _slo_monitor(self) -> AISLOMonitor:
+        """T11 (R-14): the platform's AI SLO monitor, fed by the router and by the planner.
+
+        A router that already carries a monitor (the evaluation runner) keeps it, and the platform
+        reports through the same one. A local model gets the CPU latency objective.
+        """
+        existing = getattr(self.llm, "slo", None)
+        if isinstance(existing, AISLOMonitor):
+            return existing
+        local = self.settings.llm_provider == "ollama"
+        # a CPU-only 7B model takes minutes per planning call (README, local-model section)
+        monitor = AISLOMonitor(p95_ms=dict.fromkeys(P95_MS, 1_800_000.0) if local else None)
+        if isinstance(self.llm, LLMRouter):
+            self.llm.slo = monitor
+        return monitor
 
     # ------------------------------------------------------------ persistence
     def audit(self, actor: str, action: str, subject: str, payload: dict[str, Any] | None = None) -> str:
@@ -228,9 +259,13 @@ class Platform:
             "portfolio_risk": PortfolioRiskAgent(),
         }
 
-    async def harness(self, tracer: ExecutionTracer | None = None) -> AgentHarness:
+    async def harness(self, tracer: ExecutionTracer | None = None, durable: bool | None = None) -> AgentHarness:
+        """Build a harness. ``durable`` forces the run journal on (a resume) or off; ``None`` follows
+        ``CEAP_DURABLE_RUNS``."""
+        if durable is None:
+            durable = os.getenv("CEAP_DURABLE_RUNS", "0") == "1"
         return AgentHarness(
-            planner=PlannerAgent(self.llm),
+            planner=PlannerAgent(self.llm, slo=self.slo),
             agents=self._agents(),
             tools=await self.registry(),
             policy=self.policy,
@@ -240,7 +275,7 @@ class Platform:
             settings=self.settings,
             case_memory=self.case_memory,
             # G5 (0.9.0): opt-in step-boundary journal, CEAP_DURABLE_RUNS=1 (docs/RUNBOOK.md "Restart")
-            journal=SqlRunJournal(self.db) if os.getenv("CEAP_DURABLE_RUNS", "0") == "1" else None,
+            journal=SqlRunJournal(self.db) if durable else None,
         )
 
     def build_task(self, req: InvestigationRequest) -> Task:
@@ -334,10 +369,27 @@ class Platform:
         token = self.cancellations.setdefault(task.id, CancellationToken())
         return await self._execute(task, self.policy_context(req, task), token)
 
-    async def _execute(self, task: Task, ctx: PolicyContext, token: CancellationToken) -> HarnessResult:
+    async def _execute(
+        self, task: Task, ctx: PolicyContext, token: CancellationToken, durable: bool | None = None
+    ) -> HarnessResult:
         if self.task_repo.get(task.id) is not None:
             await self.db.arun(lambda c: c.execute("UPDATE tasks SET status='RUNNING' WHERE id=?", (task.id,)))
-        harness = await self.harness()
+        harness = await self.harness(durable=durable)
+        if harness.journal is not None:
+            # H1: what a resume needs and the tasks table does not hold (written once, first attempt)
+            harness.journal.put(
+                task.id,
+                CONTEXT_KEY,
+                CONTEXT_KIND,
+                CONTEXT_STEP,
+                {
+                    "principal": ctx.principal,
+                    "roles": sorted(ctx.roles),
+                    "attributes": to_jsonable(dict(ctx.attributes)),
+                    "requested_by": task.requested_by,
+                    "priority": task.priority.value,
+                },
+            )
         result = await harness.execute(task, ctx, token)
         self.results[task.id] = result
         self.cancellations.pop(task.id, None)
@@ -388,6 +440,65 @@ class Platform:
         self.tasks.setdefault(task.id, task)
         token = self.cancellations.setdefault(task.id, CancellationToken())
         return await self._execute(task, self.policy_context(req, task), token)
+
+    # ------------------------------------------------------------- resume (H1)
+    def prepare_resume(self, task_id: str, resumed_by: str) -> tuple[Task, PolicyContext]:
+        """Check that ``task_id`` can be resumed and rebuild its task and policy context (H1, R-11).
+
+        A task can be resumed when this process is not running it, its stored status is ``INTERRUPTED``
+        or ``FAILED``, and its first attempt ran with the journal (the journal holds the principal and
+        roles it ran under; the resume runs under those, not under the caller's). Raises
+        :class:`KeyError` for an unknown task and :class:`ResumeRefused` otherwise.
+        """
+        row = self.task_repo.get(task_id)
+        if row is None:
+            raise KeyError(task_id)
+        if task_id in self.cancellations:
+            raise ResumeRefused(f"task {task_id} is running in this process")
+        if row["status"] not in RESUMABLE_STATUSES:
+            raise ResumeRefused(
+                f"task {task_id} is {row['status']}; only {' or '.join(RESUMABLE_STATUSES)} tasks resume"
+            )
+        stored = SqlRunJournal(self.db).get(task_id, CONTEXT_KEY)
+        if stored is None or stored["kind"] != CONTEXT_KIND:
+            raise ResumeRefused(
+                f"task {task_id} has no run journal (its first attempt ran without CEAP_DURABLE_RUNS=1)"
+            )
+        doc = stored["payload"]
+        task_input = row["input_json"]
+        task = Task(
+            id=task_id,
+            description=row["description"],
+            input=dict(json.loads(task_input) if isinstance(task_input, str) else task_input),
+            priority=TaskPriority(doc.get("priority") or TaskPriority.NORMAL.value),
+            requested_by=str(doc.get("requested_by") or row["owner"]),
+        )
+        roles = frozenset(str(r) for r in doc.get("roles") or ())
+        ctx = PolicyContext(
+            principal=str(doc["principal"]),
+            roles=roles,
+            capabilities=capabilities_for(roles),
+            task_id=task_id,
+            environment=self.settings.environment,
+            attributes=dict(doc.get("attributes") or {}),
+        )
+        self.tasks[task_id] = task
+        self.owners[task_id] = str(row["owner"])
+        self.results.pop(task_id, None)  # the failed attempt's result no longer describes the task
+        self.cancellations[task_id] = CancellationToken()
+        self.audit(resumed_by, "task.resumed", task_id, {"previous_status": row["status"]})
+        return task, ctx
+
+    async def resume_prepared(self, task: Task, ctx: PolicyContext) -> HarnessResult:
+        """Run a task prepared by :meth:`prepare_resume` with the journal on: journalled tool calls,
+        model replies and approval decisions are read back, never repeated."""
+        token = self.cancellations.setdefault(task.id, CancellationToken())
+        return await self._execute(task, ctx, token, durable=True)
+
+    async def resume(self, task_id: str, resumed_by: str = "cli") -> HarnessResult:
+        """``ceap resume <id>`` and ``POST /tasks/{id}/resume``: continue an interrupted task."""
+        task, ctx = self.prepare_resume(task_id, resumed_by)
+        return await self.resume_prepared(task, ctx)
 
     def record_failure(self, task_id: str, error: str) -> HarnessResult:
         """Record a terminal failure that happened outside the harness (setup, crash)."""

@@ -14,7 +14,10 @@ in-process and the network representation never drift apart.
 from __future__ import annotations
 
 import functools
+import hashlib
+import hmac
 import inspect
+import json
 import os
 import typing
 from collections.abc import Awaitable, Callable
@@ -28,10 +31,45 @@ from ceap.domain.tools import RiskLevel
 ToolFn = Callable[..., Awaitable[Any]]
 #: roles of the principal a standalone server acts for (comma-separated); unset means no capabilities
 PRINCIPAL_ROLES_ENV = "CEAP_MCP_PRINCIPAL_ROLES"
+#: HMAC key that signs approval grants for HIGH-risk tools on a standalone server; unset refuses them
+GRANT_KEY_ENV = "CEAP_MCP_GRANT_KEY"
+#: the extra argument a standalone server requires on every HIGH-risk tool (finding R-12)
+GRANT_ARG = "approval_grant"
 
 
 class MCPPolicyError(PermissionError):
     """A standalone server refused a tool call: the principal lacks a required capability."""
+
+
+def _grant_message(tool_id: str, arguments: dict[str, Any]) -> bytes:
+    args = json.dumps(to_jsonable(arguments), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return f"ceap-mcp-grant|{tool_id}|{args}".encode()
+
+
+def full_arguments(fn: Callable[..., Any], arguments: dict[str, Any]) -> dict[str, Any]:
+    """``arguments`` with the tool's defaults filled in: the form a grant signs and verifies."""
+    bound = inspect.signature(fn).bind_partial(**arguments)
+    bound.apply_defaults()
+    return dict(bound.arguments)
+
+
+def sign_grant(tool_id: str, arguments: dict[str, Any], key: str) -> str:
+    """Approval grant for one HIGH-risk call: HMAC-SHA256 over the tool id and the full arguments
+    (defaults filled in with :func:`full_arguments`).
+
+    The approver (who holds ``CEAP_MCP_GRANT_KEY``) signs; the standalone server verifies. A grant covers
+    one argument set, so it cannot be replayed against a different portfolio or signal.
+    """
+    return hmac.new(key.encode("utf-8"), _grant_message(tool_id, arguments), hashlib.sha256).hexdigest()
+
+
+def verify_grant(tool_id: str, arguments: dict[str, Any], grant: str | None) -> None:
+    """Raise :class:`MCPPolicyError` unless ``grant`` signs this call. Fail closed when no key is set."""
+    key = os.getenv(GRANT_KEY_ENV) or ""
+    if not key:
+        raise MCPPolicyError(f"policy: {tool_id} is HIGH risk and {GRANT_KEY_ENV} is unset; refused")
+    if not grant or not hmac.compare_digest(sign_grant(tool_id, arguments, key), grant):
+        raise MCPPolicyError(f"policy: {tool_id} requires a signed approval grant for these arguments")
 
 
 def principal_capabilities_from_env() -> frozenset[str]:
@@ -177,7 +215,9 @@ class MCPServerDefinition:
 
         Every tool enforces its ``required_capabilities`` against ``capabilities`` (default: the
         principal from ``CEAP_MCP_PRINCIPAL_ROLES``), so a standalone server is not an open door
-        around the harness policy engine.
+        around the harness policy engine. A HIGH-risk tool also takes an ``approval_grant`` argument
+        and refuses the call unless it is a valid :func:`sign_grant` for the exact arguments (R-12):
+        a capability alone never stages orders outside the harness approval gate.
         """
         from mcp.server.fastmcp import FastMCP
         from mcp.types import ToolAnnotations
@@ -186,7 +226,13 @@ class MCPServerDefinition:
         server = FastMCP(self.name, instructions=self.description)
         for spec in self._tools.values():
             server.add_tool(
-                _jsonable_wrapper(spec.fn, spec.required_capabilities, caps, f"{self.name}.{spec.name}"),
+                _jsonable_wrapper(
+                    spec.fn,
+                    spec.required_capabilities,
+                    caps,
+                    f"{self.name}.{spec.name}",
+                    needs_grant=spec.risk_level is RiskLevel.HIGH,
+                ),
                 name=spec.name,
                 description=spec.description,
                 annotations=ToolAnnotations(readOnlyHint=spec.read_only, destructiveHint=not spec.read_only),
@@ -197,6 +243,10 @@ class MCPServerDefinition:
             )
         return server
 
+    def sign_grant(self, name: str, arguments: dict[str, Any], key: str) -> str:
+        """Grant for calling tool ``name`` with ``arguments`` (defaults filled in) on this server."""
+        return sign_grant(f"{self.name}.{name}", full_arguments(self.get(name).fn, arguments), key)
+
     def run_stdio(self) -> None:  # pragma: no cover - process entry point
         self.to_fastmcp().run(transport="stdio")
 
@@ -206,17 +256,28 @@ def _jsonable_wrapper(
     required: frozenset[str] = frozenset(),
     capabilities: frozenset[str] = frozenset(),
     tool_id: str = "",
+    *,
+    needs_grant: bool = False,
 ) -> ToolFn:
-    """Enforce capabilities, then make sure dataclasses/NaN become JSON before FastMCP serialises."""
+    """Enforce capabilities (and a signed grant for HIGH risk), then make the result JSON-safe."""
 
     @functools.wraps(fn)
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         missing = required - capabilities
         if missing:
             raise MCPPolicyError(f"policy: {tool_id} requires capabilities {sorted(missing)}")
+        if needs_grant:
+            grant = kwargs.pop(GRANT_ARG, None)
+            verify_grant(tool_id, full_arguments(fn, kwargs), grant)
         return to_jsonable(await fn(*args, **kwargs))
 
     # resolve string annotations (PEP 563) so FastMCP does not look them up in this module
-    wrapper.__annotations__ = typing.get_type_hints(fn)
-    wrapper.__signature__ = inspect.signature(fn)  # type: ignore[attr-defined]
+    hints = typing.get_type_hints(fn)
+    sig = inspect.signature(fn)
+    if needs_grant:
+        grant = inspect.Parameter(GRANT_ARG, inspect.Parameter.KEYWORD_ONLY, default=None, annotation=str | None)
+        sig = sig.replace(parameters=[*sig.parameters.values(), grant])
+        hints = {**hints, GRANT_ARG: str | None}
+    wrapper.__annotations__ = hints
+    wrapper.__signature__ = sig  # type: ignore[attr-defined]
     return wrapper

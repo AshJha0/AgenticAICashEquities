@@ -1,7 +1,8 @@
 name: Release
 
 # Triggered by pushing a tag such as v0.4.0. The gate refuses to release a commit whose CI is not
-# green, whose version disagrees between pyproject, ceap.__version__ and the tag, whose CHANGELOG
+# green (or whose last three nightly runs on main are not all green, E2), whose version disagrees
+# between pyproject, ceap.__version__ and the tag, whose CHANGELOG
 # lacks the section, or whose tree fails the banned-word or licence checks.
 on:
   push:

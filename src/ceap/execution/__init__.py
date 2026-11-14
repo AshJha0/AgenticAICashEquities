@@ -1,5 +1,8 @@
 """Execution: an event-driven book, impact, schedulers, child orders, auctions and cost loops (WS-F).
 
+Status (0.10.0, finding R-23): a simulator library, not used by the default paper book. The paper book imports only the
+auction model and the LOB cost measurement, behind opt-in settings; wiring is planned for 0.11.0.
+
 Everything here is deterministic given a seed and runs on synthetic data; nothing sends an order
 anywhere. See ``docs/execution/execution.md`` for the walkthrough and the evidence behind each
 model, and COOKBOOK recipes 'Execution' for runnable examples.

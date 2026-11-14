@@ -9,9 +9,14 @@ Formal statement. For seeds ``s_1..s_m`` (m >= 3) a run calls
 * :func:`ceap.eval.agents.agent_evals` (planner 10 gold plans, critic 5 cases, reporter 4 cases);
 * :func:`ceap.evaluation_report.golden_scores` on the first ``golden_limit`` investigation items of
   the signed golden set (plus ``max(1, limit // 2)`` research items), through an
-  :class:`ceap.llm.router.LLMRouter` with the deterministic mock as fallback, so the runtime
-  ladder (repair, fallback) is exercised and reported to an :class:`AISLOMonitor` (B8);
+  :class:`ceap.llm.router.LLMRouter` with NO fallback client (R-01): a cassette miss or a model
+  error is an error, never a mock answer; the repair rung is still reported to an
+  :class:`AISLOMonitor` (B8);
 * the claims check: share of proposed claims dropped for an untraceable number.
+
+A run refuses to return ``evidence_class: local_model`` (raises :class:`EvaluationFallbackError`)
+when any call missed the cassette or was answered by a fallback client (R-01: the 0.9.0 golden slice
+was produced by the mock fallback after every request missed).
 
 Pooled rates add ``k`` and ``n`` across seeds. Seeds are not independent draws of the case set
 (the cases are the same), so the pooled interval understates between-case uncertainty; the per-seed
@@ -39,7 +44,7 @@ from pathlib import Path
 from typing import Any
 
 from ceap.eval.stats import rate
-from ceap.llm.client import LLMClient, MockLLMClient
+from ceap.llm.client import LLMClient
 from ceap.llm.ollama import (
     PRIMARY_LOCAL_MODEL,
     LocalCassette,
@@ -50,12 +55,28 @@ from ceap.llm.ollama import (
     model_digest,
     write_local_cassette,
 )
+from ceap.llm.recording import CassetteStaleError
 
 REPO = Path(__file__).resolve().parents[3]
 CASSETTES = REPO / "tests" / "cassettes" / "local_model"
 RESULTS = REPO / "docs" / "evaluation" / "local_model"
 DEFAULT_SEEDS = (1, 2, 3)
 GOLDEN_LIMIT = 3  # a priori compute budget (see module docstring)
+
+
+class EvaluationFallbackError(RuntimeError):
+    """A local-model evaluation call missed its cassette or was answered by a fallback (R-01)."""
+
+
+def refuse_fallback(result: dict[str, Any], client: Any) -> None:
+    """Raise unless every call of ``result`` was answered by the model (or its exact recording)."""
+    misses = int(getattr(client, "misses", 0))
+    fallbacks = int(result.get("fallbacks", 0))
+    if misses or fallbacks:
+        raise EvaluationFallbackError(
+            f"refusing evidence_class local_model: {misses} cassette miss(es), "
+            f"{fallbacks} fallback answer(s) in the run"
+        )
 TEMPERATURE = 0.7  # sampling on, so seeds differ; Ollama's own default is 0.8
 
 
@@ -67,18 +88,59 @@ def cassette_path(model: str, seed: int, kind: str = "eval") -> Path:
     return CASSETTES / f"{slug(model)}_{kind}_s{seed}.json"
 
 
-async def untraceable_rate(client: LLMClient) -> dict[str, Any]:
-    from ceap.eval.agents import _claims, reporter_cases
+async def claims_audit(client: LLMClient) -> dict[str, Any]:
+    """The reporter's claims on :func:`reporter_cases`, audited and explained (0.10.0 T5, R-05).
 
-    proposed = untraceable = 0
+    Names say what is checked. ``claims_kept_by_audit`` is the share of proposed claims that pass
+    :func:`ceap.agents.reporter.validate_claims` (fact keys resolve, evidence ids known, each number
+    traces to the claim's own fact keys with its metric and direction, a stated cause is the
+    primary); it was published in 0.9.0 as "faithful claims". ``claims_with_number_not_in_own_facts``
+    is the share of proposed claims carrying a number that is not traceable to their own fact keys;
+    it was published as "untraceable numbers reaching the report", but it counts what the model
+    proposed, before the audit. ``drop_reasons`` counts every reason of every dropped claim by
+    category, and ``planted_rejected`` scores the audit itself on planted wrong-metric, wrong-sign
+    and wrong-cause claims (deterministic; no model involved).
+    """
+    from ceap.agents.reporter import drop_reason_kind, validate_claims
+    from ceap.eval.agents import _claims, reporter_cases
+    from ceap.eval.clients import PLANTED_AUDIT_KINDS, planted_audit_claims
+
+    proposed = kept_n = untraceable = 0
+    reasons: dict[str, int] = {}
+    dropped_rows: list[dict[str, Any]] = []
+    planted = {k: [0, 0] for k in PLANTED_AUDIT_KINDS}  # kind -> [rejected, n]
     for case in reporter_cases():
         kept, dropped, _ = await _claims(client, case["facts"])
         proposed += len(kept) + len(dropped)
-        untraceable += sum(any("not traceable" in r for r in d.get("reasons", [])) for d in dropped)
-    return rate(untraceable, proposed)
+        kept_n += len(kept)
+        for d in dropped:
+            kinds = [drop_reason_kind(r) for r in d.get("reasons", [])]
+            untraceable += any(k in ("number_not_traceable", "wrong_metric", "wrong_direction") for k in kinds)
+            for k in kinds:
+                reasons[k] = reasons.get(k, 0) + 1
+            dropped_rows.append({"case": case["id"], "text": d.get("text", ""), "reasons": d.get("reasons", [])})
+        for kind, c in planted_audit_claims(case["facts"]):
+            _, rejected = validate_claims([c], case["facts"])
+            planted[kind][0] += len(rejected)
+            planted[kind][1] += 1
+    return {
+        "claims_kept_by_audit": rate(kept_n, proposed),
+        "claims_with_number_not_in_own_facts": rate(untraceable, proposed),
+        "drop_reasons": dict(sorted(reasons.items())),
+        "dropped": dropped_rows,
+        "planted_rejected": {k: rate(r, n) for k, (r, n) in planted.items()},
+    }
 
 
-async def run_seed(client: LLMClient, golden_limit: int = GOLDEN_LIMIT) -> dict[str, Any]:
+async def untraceable_rate(client: LLMClient) -> dict[str, Any]:
+    """Claims carrying a number not traceable to their own fact keys, with the drop-reason counts."""
+    audit = await claims_audit(client)
+    return {**audit["claims_with_number_not_in_own_facts"], "drop_reasons": audit["drop_reasons"]}
+
+
+async def run_seed(
+    client: LLMClient, golden_limit: int = GOLDEN_LIMIT, fallback: LLMClient | None = None
+) -> dict[str, Any]:
     from ceap.eval.agents import agent_evals
     from ceap.evaluation_report import golden_scores
     from ceap.harness.memory import CaseMemory
@@ -91,12 +153,13 @@ async def run_seed(client: LLMClient, golden_limit: int = GOLDEN_LIMIT) -> dict[
     monitor = AISLOMonitor(
         p95_ms={k: 1_800_000 for k in ("planning", "claims", "narrative", "critique", "judge")}
     )
-    router = LLMRouter(client, fallback=MockLLMClient())
+    router = LLMRouter(client, fallback=fallback)  # R-01: None in evaluation runs
     router.slo = monitor
     golden = await golden_scores(
         Platform(llm=router, case_memory=CaseMemory(enabled=False)), limit=golden_limit
     )
     return {
+        "fallbacks": router.usage["fallbacks"],
         "agents": agents,
         "untraceable_number": untrace,
         "golden": {k: v for k, v in golden.items() if k != "rows"},
@@ -115,10 +178,12 @@ RATE_PATHS: dict[str, tuple[str, ...]] = {
     "planner.canonical_fallback": ("agents", "planner", "canonical_fallback"),
     "critic.detection": ("agents", "critic", "detection"),
     "reporter.claims_usable": ("agents", "reporter", "claims_usable"),
-    "reporter.faithfulness": ("agents", "reporter", "faithfulness"),
+    # 0.10.0 T5: published names say what is checked (0.9.0 names: reporter.faithfulness and
+    # claims.untraceable_number; the 0.9.0 result files keep those keys until they are re-recorded)
+    "reporter.claims_kept_by_audit": ("agents", "reporter", "faithfulness"),
     "reporter.claim_drop": ("agents", "reporter", "claim_drop"),
     "reporter.citation_verified": ("agents", "reporter", "citation_verified"),
-    "claims.untraceable_number": ("untraceable_number",),
+    "claims.number_not_in_own_facts": ("untraceable_number",),
 }
 GOLDEN_KEYS = ("primary_cause_accuracy", "must_mention_rate", "no_forbidden_claim_rate", "verdict_accuracy")
 
@@ -173,7 +238,11 @@ async def run(
                 provenance=LocalProvenance(model=model, digest=digest, seed=seed, temperature=TEMPERATURE)
             )
             client = OllamaLLMClient(model, seed=seed, temperature=TEMPERATURE, recorder=cas, checkpoint=path)
-        result = await run_seed(client, golden_limit)
+        try:
+            result = await run_seed(client, golden_limit)
+        except CassetteStaleError as exc:
+            raise EvaluationFallbackError(f"seed {seed}: cassette miss: {exc}") from exc
+        refuse_fallback(result, client)
         result["latency_ms"] = _latency(client)
         per_seed[seed] = result
         if not replay:
@@ -190,6 +259,33 @@ async def run(
         "latency_ms": {str(s): r["latency_ms"] for s, r in per_seed.items()},
         "slo_alerts": {str(s): r["slo_alerts"] for s, r in per_seed.items()},
         "note": "pooled k/n over seeds with a 95% Wilson interval; seeds share the case set, so also read per_seed and seed_range",
+    }
+
+
+async def claims_audit_replay(model: str, seeds: tuple[int, ...]) -> dict[str, Any]:
+    """:func:`claims_audit` on each recorded seed's cassette, pooled (no model call, no golden run)."""
+    per_seed: dict[str, Any] = {}
+    for seed in seeds:
+        per_seed[str(seed)] = await claims_audit(LocalCassetteClient(load_local_cassette(cassette_path(model, seed))))
+    pooled: dict[str, Any] = {}
+    for name in ("claims_kept_by_audit", "claims_with_number_not_in_own_facts"):
+        recs = [r[name] for r in per_seed.values()]
+        pooled[name] = {
+            **rate(sum(x["k"] for x in recs), sum(x["n"] for x in recs)),
+            "per_seed": {s: r[name]["rate"] for s, r in per_seed.items()},
+        }
+    reasons: dict[str, int] = {}
+    for r in per_seed.values():
+        for k, v in r["drop_reasons"].items():
+            reasons[k] = reasons.get(k, 0) + v
+    pooled["drop_reasons"] = dict(sorted(reasons.items()))
+    return {
+        "evidence_class": "local_model",
+        "model": model,
+        "seeds": list(seeds),
+        "audit": "0.10.0 T5: each number bound to the claim's own fact keys, metric, direction and cause checked",
+        "pooled": pooled,
+        "per_seed": per_seed,
     }
 
 
@@ -218,7 +314,18 @@ def main(argv: list[str] | None = None) -> None:
         "--write", action="store_true",
         help="with --replay: write the pooled aggregate (run once after every seed has been recorded)",
     )
+    ap.add_argument(
+        "--claims-audit", action="store_true",
+        help="with --replay: re-audit the recorded reporter claims only and write <model>_claims_audit.json",
+    )
     a = ap.parse_args(argv)
+    if a.claims_audit:
+        if not a.replay:
+            raise SystemExit("--claims-audit re-scores recorded claims; pass --replay")
+        audit = asyncio.run(claims_audit_replay(a.model, tuple(a.seeds)))
+        _write(RESULTS / f"{slug(a.model)}_claims_audit.json", audit)
+        print(json.dumps(audit["pooled"], indent=1))
+        return
     if not a.replay:
         from ceap.llm.ollama import live_enabled
 

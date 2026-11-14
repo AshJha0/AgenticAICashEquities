@@ -505,8 +505,8 @@ See `docs/evaluation/evaluation.md`.
 
 * `InMemoryTracer` records nested spans (`harness.execute`, `harness.plan`, `tool:*`,
   `agent:*`) with events for policy decisions, retries and approvals; the API returns them
-  under `/investigations/{id}/trace`. Set `OTEL_EXPORTER_OTLP_ENDPOINT` and the same spans
-  mirror to OpenTelemetry.
+  under `/investigations/{id}/trace`. Each routed model call adds a `gen_ai.chat:<model>`
+  span under its agent span, with OpenTelemetry GenAI attribute names. There is no OTLP exporter.
 * `MetricsRegistry` exposes counters and histograms in Prometheus text format at `/metrics`
   (`ceap_tool_calls_total{tool,status}`, `ceap_agent_duration_seconds`, …; durations are exported in seconds).
 * Logging is JSON lines with task/execution/step/tool/agent ids.
@@ -697,7 +697,7 @@ settle a Sharpe question for years; read it for breaks, blocks and reconciliatio
 
 Sections 5 and 6 measure an execution after the fact. Up to 0.7.1 the synthetic market also gave
 passive orders free fills at the touch and planted impact as a drift chosen in advance, so nothing
-the platform did could move the price. The `ceap.execution` package (0.8.0) closes that gap, still on
+the platform did could move the price. The `ceap.execution` package (0.8.0), a simulator library, not used by the default paper book, closes that gap, still on
 synthetic data only:
 
 * a limit order book where a resting order fills only when the market trades through the queue
@@ -725,7 +725,7 @@ recorded replies with no model present. The questions asked of it: how often the
 how often a repair or fallback was needed, how often the narrative carried an untraceable number,
 how often a planted instruction in a data block was obeyed (200 attacks, canary-based, Wilson
 intervals), and whether a rubric judge agrees with a hand-built reference (a dimension counts only
-when Cohen's kappa > 0.6). *Results:* plan valid 15/30, critic 35/45, 0/39 untraceable numbers, injection obeyed 3/40; full table in docs/evaluation/local_model/README.md (evidence:
+when Cohen's kappa > 0.6). *Results:* plan valid 15/30, critic 35/45, claims with a number outside their own fact keys 11/39 (0.10.0 re-audit), injection obeyed 3/40; full table in docs/evaluation/local_model/README.md (evidence:
 `docs/evaluation/local_model/`; class: local model, this machine). A 7-billion-parameter model is
 not the hosted model the platform pins, so these numbers bound nothing about that model.
 

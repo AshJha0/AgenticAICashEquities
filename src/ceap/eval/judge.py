@@ -239,13 +239,20 @@ async def calibrate(client: LLMClient, reference: dict[str, Any] | None = None) 
 
 
 def enabled_dimensions(path: Path = CALIBRATION_PATH) -> list[str]:
-    """The judge dimensions that passed calibration (empty when not calibrated)."""
+    """The judge dimensions that passed calibration (empty when not calibrated).
+
+    0.10.0 T10 (finding R-07, decision O3): a dimension is enabled only when its labels come from
+    independent human raters (``labels_by`` starting "independent"). The committed labels were written
+    by Claude, so the judge is an unvalidated prototype and enables nothing until owner labels exist.
+    """
     try:
         doc = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return []
     if not isinstance(doc, dict) or not isinstance(doc.get("dimensions"), dict):
         return []  # a malformed verdict file enables nothing
+    if not str(doc.get("labels_by", "")).lower().startswith("independent"):
+        return []  # model-written labels cannot validate a model judge (T10)
     dims = doc["dimensions"]
     return [
         d

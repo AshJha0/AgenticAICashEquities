@@ -39,6 +39,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from ceap.util.unicode_clean import clean_untrusted
+
 log = logging.getLogger(__name__)
 
 ChunkingStrategy = Literal["section", "sentence", "fixed"]
@@ -108,8 +110,12 @@ class Rejection:
 
 
 def screen_document(doc: Document) -> tuple[str, ...]:
-    """Names of the injection patterns found in ``doc`` (title and body); empty when clean."""
-    text = f"{doc.title}\n{doc.text}"
+    """Names of the injection patterns found in ``doc`` (title and body); empty when clean.
+
+    The text is NFKC-normalised and stripped of zero-width characters first, the same cleaning the
+    prompt path applies (R-08), so "ig​nore previous instructions" is caught like the plain form.
+    """
+    text = clean_untrusted(f"{doc.title}\n{doc.text}")
     return tuple(name for name, pattern in INJECTION_PATTERNS if pattern.search(text))
 
 

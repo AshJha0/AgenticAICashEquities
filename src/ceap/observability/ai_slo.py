@@ -68,6 +68,10 @@ P95_MS: dict[str, float] = {
 }
 
 
+#: purpose of the agent-level series fed by the planner (one event per plan, not per model call)
+PLANNER_PURPOSE = "planner"
+
+
 @dataclass(frozen=True)
 class AICallEvent:
     purpose: str
@@ -216,6 +220,26 @@ class AISLOMonitor:
             )
         self.alerts.extend(fired)
         return fired
+
+    def record_plan(
+        self, *, model: str, plan_valid: bool, repaired: bool, fallback: bool, latency_ms: float = 0.0
+    ) -> list[Alert]:
+        """T11 (R-14): the planner's own outcome for one plan, under purpose ``planner``.
+
+        The per-call ``planning`` series sees each model reply alone; a reply that failed and was
+        repaired by a second call looks like two separate calls there. This series counts the plan:
+        valid only when the first reply was usable as is, so agent-level repairs move it.
+        """
+        return self.record(
+            AICallEvent(
+                purpose=PLANNER_PURPOSE,
+                model=model,
+                latency_ms=latency_ms,
+                plan_valid=plan_valid,
+                repaired=repaired,
+                fallback=fallback,
+            )
+        )
 
     def _p0(self, purpose: str, k: str) -> float | None:
         given = self.given_baseline.get(purpose, {}).get(k)
