@@ -266,10 +266,10 @@ AI evaluation (0.8.0): cases are hand-built; the evidence class says where model
 | ood | venue_and_spreads: primary cause | 1.00 [0.57, 1.00] (5/5) | mock |
 | ood | venue_and_spreads: coverage | 1.00 [0.57, 1.00] (5/5) | mock |
 | ood | all held-out templates: primary cause | 1.00 [0.80, 1.00] (15/15) | mock |
-| retrieval | all answerable queries: recall@3 (n=124) | 0.72 [0.63, 0.79] (89/124) | deterministic |
+| retrieval | all answerable queries: recall@3 (n=124) | 0.71 [0.62, 0.78] (88/124) | deterministic |
 | retrieval | heldout: recall@3 | 1.00 [0.72, 1.00] (10/10) | deterministic |
 | retrieval | multi_hop: recall@3 | 0.55 [0.34, 0.74] (11/20) | deterministic |
-| retrieval | paraphrase: recall@3 | 0.86 [0.73, 0.94] (38/44) | deterministic |
+| retrieval | paraphrase: recall@3 | 0.84 [0.71, 0.92] (37/44) | deterministic |
 | retrieval | train: recall@3 | 0.95 [0.76, 0.99] (19/20) | deterministic |
 | retrieval | typo: recall@3 | 0.37 [0.22, 0.54] (11/30) | deterministic |
 | retrieval | near_miss_negative: leak rate | 0.12 [0.04, 0.30] (3/25) | deterministic |

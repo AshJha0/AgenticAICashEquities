@@ -431,7 +431,7 @@
         "task_id": "TASK-00000001",
         "tool_id": "knowledge.search_documents",
         "values": {
-          "corpus_hash": "2c4016d335b2587619a227bbdb557384f1029836c8ba48fa1cfe485e683a4db5",
+          "corpus_hash": "a5905580a1dcf2f3dfa86114a8d2c19168bd1d74c1bd00ef96768bee9a0c783c",
           "count": 2,
           "query": "out-of-sample cost; research promotion criteria out-of-sample cost drag approval policy"
         }

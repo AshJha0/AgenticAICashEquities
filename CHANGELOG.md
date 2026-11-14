@@ -9,6 +9,8 @@ refuses a tag whose version has no section.
 - Docs: post-0.10.0 pass. README states v0.10.0 and the paused status with the open items; the judge is described as enabling no dimension (T10) in README, results pages and DIAGRAMS; forward-log text names `forward-log-v2`, the 2026-11-12 restart, `ceap paper gate` and the weekday `ceap paper staleness` check (COOKBOOK 43, LEARN 18a, real-data-and-paper); API table and architecture list `POST /tasks/{id}/resume` (H1) and migration 0006 (X3); CI diagram shows 3.13 and the three-nightly release gate; test-pyramid counts re-measured at the tag; evaluation page notes that pinned quant.md still states the old 0.5 deflated Sharpe bar.
 - Correction to the 0.10.0 entry: seven packages, not eight, remain under their branch-coverage floor (docs/testing/coverage-by-package.md). The pinned docs/quant/quant.md still states the old 0.5 deflated-Sharpe bar; the code uses 0.95 (Q2), noted in docs/evaluation/evaluation.md.
 
+- Docs (pinned corpus): `docs/quant/quant.md` 0.5.1 states the deflated-Sharpe bar the code uses since Q2 (0.95, variance floored at 1/T; was written as 0.5). Corpus re-pinned, BM25 retrieval re-measured and dense/rerank caches rebuilt. The train-calibrated abstain gate moves 2.5 -> 2.6 (`DEFAULT_MIN_SUPPORT`; strongest negative 2.09, no negative leaks). `latest.json` retrieval section regenerated (it predated the Q8 corpus): all-positive recall@3 0.71 (88/124, was 0.72), train recall@1 0.95, paraphrase recall@3 0.84 (one more miss, P37), held-out 1.00. Goldens tca_T01/T05 and research_R01/R03 carry the new corpus hash.
+
 ## [0.10.0] - 2026-11-14
 
 **Make every published claim true.** This release fixes or withdraws what the 2026-11-12 review

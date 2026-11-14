@@ -48,7 +48,7 @@ from ceap.rag.text import tokenize
 DEFAULT_KNOWLEDGE_DIR = data_path("reference", "knowledge")
 # The weakest support of a relevant top-3 hit on the train split, rounded down to 0.1
 # (``ceap.rag.evaluation.calibrate_min_support``; table and caveats in docs/ai-agents/ai-agents.md).
-DEFAULT_MIN_SUPPORT = 2.5  # 0.6.0: re-calibrated after the corpus grew (was 2.4)
+DEFAULT_MIN_SUPPORT = 2.6  # re-calibrated on the train split after quant.md 0.5.1 (was 2.5; 2.4 before 0.6.0)
 MAX_K = 50
 log = logging.getLogger(__name__)
 

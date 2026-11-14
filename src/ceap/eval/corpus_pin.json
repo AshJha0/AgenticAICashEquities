@@ -1,5 +1,5 @@
 {
- "corpus_hash": "2c4016d335b2587619a227bbdb557384f1029836c8ba48fa1cfe485e683a4db5",
+ "corpus_hash": "a5905580a1dcf2f3dfa86114a8d2c19168bd1d74c1bd00ef96768bee9a0c783c",
  "documents": [
   {
    "filename": "01_vwap_runbook.md",
@@ -57,9 +57,9 @@
   },
   {
    "filename": "quant.md",
-   "version": "0.5.0",
+   "version": "0.5.1",
    "effective_date": "2026-11-14",
-   "body_sha256": "facd877c69ef1c0fc476fd84f36491755cee5fbd7987d517d9a6f1f7278f5081"
+   "body_sha256": "29d9c6b9ce107afd73894d959bd59b39cfbbd412a1b4b29014a9df4509bdf8ba"
   }
  ]
 }
