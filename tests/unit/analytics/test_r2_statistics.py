@@ -177,7 +177,9 @@ def test_assessment_carries_a_hypothesis_table():
     )
     assert a.hypotheses is not None and a.hypotheses.trials_counted == DEFAULT_THRESHOLDS.trial_floor  # D8
     assert [r.name for r in a.hypotheses.rows] == [
-        "in_sample_ic_t", "deflated_sharpe", "out_of_sample_ic_t", "out_of_sample_sharpe_t"]
+        # Q4 (R-20): the factor-neutral IC is a gate condition, so it has its own row
+        "in_sample_ic_t", "in_sample_ic_t_factor_neutral", "deflated_sharpe", "out_of_sample_ic_t",
+        "out_of_sample_sharpe_t"]
     assert a.metrics["hurdle_t"] == DEFAULT_THRESHOLDS.ic_t_stat_min
     assert "hypotheses" in a.to_dict()
 

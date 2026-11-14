@@ -100,14 +100,19 @@ def test_overfit_flag():
     # 48 published research rows did not move (CHANGELOG, Q1).
     assert a.flags == (ResearchFlag.OVERFIT,) and a.verdict is ResearchVerdict.REJECT
     assert ResearchFlag.OVERFIT in assess_research(_stats(oos_t=0.2), _backtest(), _risk()).flags
-    weak_bt = replace(_backtest(is_sharpe=0.4, oos_sharpe=0.3, oos_gross=0.35),
+    # Q2 (O5): at the 0.95 deflated Sharpe bar an in-sample gross Sharpe of 0.6 over two years (DSR about 0.8)
+    # is NO_ALPHA, correctly; 1.5 clears the alpha gate so the case still tests the out-of-sample net check.
+    weak_bt = replace(_backtest(is_sharpe=1.5, oos_sharpe=0.3, oos_gross=0.35),
                       trial={"n_trials": 1, "preregistered_variants": 1})
     weak = assess_research(_stats(), weak_bt, _risk())
     assert weak.flags == (ResearchFlag.OVERFIT,)
 
 
 def test_cost_drag_flag():
-    bt = replace(_backtest(is_sharpe=0.3, oos_sharpe=0.2, oos_gross=2.5, cost=1500.0),
+    # Q2 (O5): the deflated Sharpe bar is 0.95. The old fixture's in-sample gross Sharpe of 0.5 over two years
+    # has DSR about 0.76 for one trial, so NO_ALPHA is now the right first flag; an in-sample gross Sharpe of
+    # 1.7 clears the alpha gate, which is what this test needs to reach the cost check.
+    bt = replace(_backtest(is_sharpe=1.5, oos_sharpe=0.2, oos_gross=2.5, cost=1500.0),
                  trial={"n_trials": 1, "preregistered_variants": 1})  # one test: no 24-way deflation (D8)
     a = assess_research(_stats(), bt, _risk())
     assert a.flags == (ResearchFlag.COST_DRAG,)
