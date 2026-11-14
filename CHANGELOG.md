@@ -6,6 +6,17 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: the golden-slice withdrawal is complete and pinned (0.10.0 item T2, finding R-01)
+
+- The rows were withdrawn from the README, the results page and the site on 2026-11-12 (see the
+  correction note below). One sentence was left: lesson 6 still said that live and replayed runs
+  give identical model replies, so replay is the measurement of record. For the golden slice that
+  is false; the replayed answers were mock fallback output. The lesson now says replay is the
+  measurement of record for the planner, reporter and critic rows only, and why no golden number
+  is published.
+- `tests/repo/test_t2_golden_slice_withdrawn.py` fails if "golden slice cause 6/9", or the false
+  replay explanation, appears anywhere outside `docs/review/` and this file.
+
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 
 - **E-09.** The redactor removed every 8 to 19 digit number, deleting quantities, notionals and
