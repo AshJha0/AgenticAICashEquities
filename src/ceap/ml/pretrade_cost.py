@@ -249,6 +249,33 @@ def conformal_quantile(scores: np.ndarray, nominal: float) -> float:
     return float(s[k - 1])
 
 
+def group_conformal_quantile(scores_by_group: Sequence[np.ndarray], nominal: float) -> float:
+    """Two-layer (group-level) conformal quantile for coverage in a *new* group (0.10.0 X4, R-24).
+
+    Each group is one scenario regime; its own split-conformal quantile ``q_g`` is the score level
+    that gives nominal coverage inside that regime. If a new regime is exchangeable with the K
+    calibration regimes, its ``q_new`` is exchangeable with the ``q_g``, so the
+    ``ceil((K + 1) * nominal)``-th smallest ``q_g`` bounds it with probability at least ``nominal``
+    (the same rank argument as split conformal, one level up; Dunn, Wasserman and Ramdas 2022,
+    "Distribution-free prediction sets for two-layer hierarchical models"). For K < 9 at 90 % the
+    rank exceeds K and the largest ``q_g`` is used, which is the conservative end of that bound.
+    """
+    qs = sorted(conformal_quantile(np.asarray(g, dtype=float), nominal) for g in scores_by_group)
+    if not qs:
+        return float("inf")
+    k = min(math.ceil((len(qs) + 1) * nominal), len(qs))
+    return float(qs[k - 1])
+
+
+def normalised_scores(model: PretradeModel, rows: Sequence[tuple[PretradeFeatures, float]]) -> np.ndarray:
+    """``|y - E[cost]| / scale`` for each row: the conformal score."""
+    out = []
+    for x, v in rows:
+        e = model.predict(x)
+        out.append(abs(v - e.estimate_bps) / e.scale_bps)
+    return np.array(out, dtype=float)
+
+
 def coverage(model: PretradeModel, rows: Sequence[tuple[PretradeFeatures, float]]) -> float:
     if not rows:
         return float("nan")
