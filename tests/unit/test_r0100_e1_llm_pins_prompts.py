@@ -95,7 +95,7 @@ def test_data_block_cannot_be_closed_from_inside() -> None:
     assert block.endswith('\n</data nonce="0123abcd">')
     inner = block.split("\n", 1)[1].rsplit("\n", 1)[0]
     assert "<data" not in inner.lower() and "</data" not in inner.lower()
-    assert "&lt;/data" in inner and "&lt;DATA" in inner
+    assert "&lt;/data nonce" in inner and "&lt;/DATA surface" in inner
 
 
 def test_data_block_serialises_structures_and_validates_inputs() -> None:
