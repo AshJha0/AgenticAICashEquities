@@ -123,6 +123,9 @@ refuses a tag whose version has no section.
 - Test: `tests/agent/test_r0100_h5_named_baselines.py` runs T06 and finds the named baselines in the
   summary and the observations and no delta line under "the baseline"; a planted finding that prints
   the execution delta under the attribution's name makes the check fire.
+- Regenerated (wording only, reviewed): `tests/golden/tca_T01.json`, `tests/golden/tca_T05.json` and
+  the ten hand-built cassettes `tests/cassettes/investigation_T01.json` to `_T10.json` (the critic
+  request carries the finding statements, so its hash moved).
 
 ### Fixed: a citation must come from a chunk that supports the claim (0.10.0 item H4, finding R-09)
 
