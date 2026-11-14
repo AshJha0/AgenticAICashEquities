@@ -504,29 +504,3 @@ def test_exposition_lint_on_a_fresh_registry():
     m.observe("size_bytes", 10.0)
     _lint_exposition(m.render())
     assert "jobs_total" in m.render() and "work_seconds_sum 0.003" in m.render()
-
-
-async def test_opentelemetry_span_is_exported():
-    pytest.importorskip("opentelemetry.sdk")
-    from opentelemetry import trace
-    from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-
-    from ceap.observability.tracing import OpenTelemetryTracer
-
-    exporter = InMemorySpanExporter()
-    provider = TracerProvider()
-    provider.add_span_processor(SimpleSpanProcessor(exporter))
-    tracer = OpenTelemetryTracer.__new__(OpenTelemetryTracer)
-    OpenTelemetryTracer.__init__(tracer)
-    tracer._otel = provider.get_tracer("ceap-test")  # a private provider: no global state touched
-    async with tracer.span("investigation", task_id="TASK-1", steps=3):
-        async with tracer.span("tool.call", tool="market.get_quotes"):
-            pass
-    spans = {s.name: s for s in exporter.get_finished_spans()}
-    assert set(spans) == {"investigation", "tool.call"}
-    assert spans["investigation"].attributes["task_id"] == "TASK-1"
-    assert spans["tool.call"].parent.span_id == spans["investigation"].context.span_id
-    assert tracer.export()["spans"][0]["name"] == "investigation"
-    assert trace is not None

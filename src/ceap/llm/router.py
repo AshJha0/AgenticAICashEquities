@@ -41,6 +41,7 @@ from ceap.llm.models import (
     LLMResponse,
 )
 from ceap.llm.pins import ModelPins, Price, load_pins
+from ceap.observability.tracing import current_tracer
 from ceap.util.redact import redact
 
 log = logging.getLogger(__name__)
@@ -104,6 +105,9 @@ class TaskCost:
     usd: float = 0.0
     calls: int = 0
     tokens: int = 0
+    # T11: cost of local-model calls (provider ``ollama``), which have no price: seconds of local
+    # compute, measured as the wall-clock time of each call on the machine that runs the model
+    cpu_seconds: float = 0.0
     records: list[LLMCallRecord] = field(default_factory=list)
     # reserved by calls in flight: checked together with what is spent, so two concurrent calls
     # cannot both pass a budget check that only one of them fits (A10)
@@ -124,6 +128,7 @@ def task_cost(task_id: str) -> TaskCost:
             total.usd += meter.usd
             total.calls += meter.calls
             total.tokens += meter.tokens
+            total.cpu_seconds += meter.cpu_seconds
             total.records.extend(meter.records)
     return total
 
@@ -341,8 +346,13 @@ class LLMRouter(LLMClient):
             meter.usd += cost
             meter.calls += 1
             meter.tokens += response.input_tokens + response.output_tokens
+            if self._is_local(response):
+                meter.cpu_seconds += latency_ms / 1000.0
             meter.records.append(record)
         self._report_slo(request, response, latency_ms)
+
+    def _is_local(self, response: LLMResponse) -> bool:
+        return getattr(self.primary, "provenance", None) == "local_model" and not response.fallback_reason
 
     def _report_slo(self, request: LLMRequest, response: LLMResponse, latency_ms: float) -> None:
         from ceap.observability import ai_slo
@@ -365,7 +375,23 @@ class LLMRouter(LLMClient):
         task_id = str(request.metadata.get("task_id") or _current_task.get() or "unattributed")
         reservation = self._reserve(task_id, request, model)
         try:
-            return await self._complete_reserved(request, routed, task_id)
+            tracer = current_tracer()
+            if tracer is None:
+                return await self._complete_reserved(request, routed, task_id)
+            # T11: one GenAI client span per routed call, a child of the agent span that made it
+            name = model or getattr(self.primary, "model", None) or self.primary.name
+            async with tracer.span(
+                f"gen_ai.chat:{name}",
+                **{
+                    "gen_ai.operation.name": "chat",
+                    "gen_ai.system": self._system(),
+                    "gen_ai.request.model": str(name),
+                    "ceap.ai.purpose": request.purpose,
+                },
+            ) as span:
+                response = await self._complete_reserved(request, routed, task_id)
+                span.attributes.update(self._span_attributes(response))
+                return response
         finally:
             self._release(reservation)  # settle: the actual cost was recorded by _record
 
@@ -425,6 +451,27 @@ class LLMRouter(LLMClient):
         self.usage["output_tokens"] += response.output_tokens
         return response
 
+    def _system(self) -> str:
+        provenance = getattr(self.primary, "provenance", None)
+        if provenance == "local_model":
+            return "ollama"
+        return "anthropic" if isinstance(self.primary, AnthropicLLMClient) else "mock"
+
+    def _span_attributes(self, response: LLMResponse) -> dict[str, Any]:
+        """GenAI response attributes; temperature and seed only where the client has them."""
+        attrs: dict[str, Any] = {
+            "gen_ai.response.model": response.model,
+            "gen_ai.usage.input_tokens": response.input_tokens,
+            "gen_ai.usage.output_tokens": response.output_tokens,
+            "gen_ai.response.finish_reasons": str(response.stop_reason or "unknown"),
+            "ceap.ai.fallback": bool(response.fallback_reason),
+        }
+        for key, attr in (("gen_ai.request.temperature", "temperature"), ("gen_ai.request.seed", "seed")):
+            value = getattr(self.primary, attr, None)
+            if isinstance(value, (int, float)) and not response.fallback_reason:
+                attrs[key] = value
+        return attrs
+
     def _fallback_model(self, purpose: str, refused_model: str) -> str | None:
         if self.pins is None:
             return None
@@ -458,6 +505,8 @@ def build_router(settings: Settings | None = None) -> LLMRouter:
     }
     if settings.llm_provider == "mock":
         return LLMRouter(MockLLMClient(), **common)  # type: ignore[arg-type]
+    if settings.llm_provider == "ollama":
+        return LLMRouter(build_local_client(), **common)  # type: ignore[arg-type]
     try:
         primary: LLMClient = AnthropicLLMClient(
             api_key=settings.anthropic_api_key, model=settings.llm_model, timeout_s=settings.llm_timeout_s
@@ -472,3 +521,41 @@ def build_router(settings: Settings | None = None) -> LLMRouter:
         models["planning"] = settings.llm_planning_model
     models["narrative"] = models["critique"] = settings.llm_model
     return LLMRouter(primary, fallback=MockLLMClient(), models_by_purpose=models, **common)  # type: ignore[arg-type]
+
+
+OLLAMA_CASSETTE_ENV = "CEAP_OLLAMA_CASSETTE"
+OLLAMA_MODEL_ENV = "CEAP_OLLAMA_MODEL"
+
+
+def build_local_client() -> LLMClient:
+    """The client for ``CEAP_LLM_PROVIDER=ollama`` (T11).
+
+    ``CEAP_OLLAMA_CASSETTE`` names a recorded local-model cassette, which is replayed with no model
+    running (the CI path). Without it the live model is used, and only when ``CEAP_LOCAL_MODEL=1``
+    is set, so a stray setting never starts minutes of CPU work. There is no mock fallback: a
+    cassette miss or a dead server reaches the agent, which degrades visibly (R-01).
+    """
+    from pathlib import Path
+
+    from ceap.llm.ollama import (
+        PRIMARY_LOCAL_MODEL,
+        LocalCassetteClient,
+        OllamaLLMClient,
+        live_enabled,
+        load_local_cassette,
+    )
+
+    cassette = os.getenv(OLLAMA_CASSETTE_ENV, "").strip()
+    if cassette:
+        path = Path(cassette)
+        if not path.is_file():
+            raise SettingsError(f"{OLLAMA_CASSETTE_ENV}={cassette!r} is not a file")
+        return LocalCassetteClient(load_local_cassette(path))
+    if not live_enabled():
+        raise SettingsError(
+            f"CEAP_LLM_PROVIDER=ollama needs {OLLAMA_CASSETTE_ENV} (replay) or CEAP_LOCAL_MODEL=1 (live)"
+        )
+    try:
+        return OllamaLLMClient(os.getenv(OLLAMA_MODEL_ENV, "").strip() or PRIMARY_LOCAL_MODEL)
+    except Exception as exc:  # noqa: BLE001 - unpinned model or unreachable server becomes one SettingsError
+        raise SettingsError(f"CEAP_LLM_PROVIDER=ollama but the client cannot be built: {exc}") from exc

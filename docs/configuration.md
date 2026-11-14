@@ -46,7 +46,6 @@ modules named in each row; CI jobs are in `.github/workflows/`.
 | `CEAP_OLLAMA_URL` | `http://localhost:11434` | Ollama endpoint for `ceap.llm.ollama` |
 | `CEAP_DURABLE_RUNS` | – | `1` turns on the step-boundary run journal and resumable approvals (`ceap.harness.durable`, 0.9.0) |
 | `CEAP_APPROVAL_SWEEP_S` | `60` | interval of the API's sweep that expires abandoned PENDING approvals (0.9.0) |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | – | mirrors harness spans to OpenTelemetry |
 
 
 ## CI checks

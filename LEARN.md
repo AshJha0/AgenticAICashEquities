@@ -505,8 +505,8 @@ See `docs/evaluation/evaluation.md`.
 
 * `InMemoryTracer` records nested spans (`harness.execute`, `harness.plan`, `tool:*`,
   `agent:*`) with events for policy decisions, retries and approvals; the API returns them
-  under `/investigations/{id}/trace`. Set `OTEL_EXPORTER_OTLP_ENDPOINT` and the same spans
-  mirror to OpenTelemetry.
+  under `/investigations/{id}/trace`. Each routed model call adds a `gen_ai.chat:<model>`
+  span under its agent span, with OpenTelemetry GenAI attribute names. There is no OTLP exporter.
 * `MetricsRegistry` exposes counters and histograms in Prometheus text format at `/metrics`
   (`ceap_tool_calls_total{tool,status}`, `ceap_agent_duration_seconds`, …; durations are exported in seconds).
 * Logging is JSON lines with task/execution/step/tool/agent ids.

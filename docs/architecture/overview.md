@@ -257,7 +257,9 @@ behind that choice are in `docs/ai-agents/rag-hybrid-0.9.0.md`.
 ### 3.10 Observability (`ceap.observability`)
 
 `InMemoryTracer` records nested spans and events per investigation (returned by the API);
-`OpenTelemetryTracer` mirrors them to an OTel SDK when configured. `MetricsRegistry` exposes
+each routed model call is a `gen_ai.chat` child span with OpenTelemetry GenAI attribute names (there
+is no OTLP exporter). `Platform` owns one `AISLOMonitor`, fed by the router per call and by the
+planner per plan. `MetricsRegistry` exposes
 counters and histograms in Prometheus text format at `/metrics`. Logging is JSON lines.
 
 ### 3.10a Utilities (`ceap.util`)
@@ -526,7 +528,7 @@ src/ceap/
 │                  judge, challenger (0.9.0)
 ├── persistence/   SQLite (WAL, single writer, forward-only migrations) · HMAC chain keys · chain anchors
 ├── util/          canonical bytes for hashing (LF, sorted-key JSON, UTC datetimes) · redaction, cassette scrubbing
-├── observability/ tracing (in-memory + OpenTelemetry) · metrics (Prometheus text) · JSON logging · AI SLOs (0.9.0)
+├── observability/ tracing (in-memory, GenAI span attributes) · metrics (Prometheus text) · JSON logging · AI SLOs (0.9.0)
 ├── api/           FastAPI app · routes · auth · schemas · request parsing
 ├── platform.py    composition root (InvestigationRequest · ResearchRequest)
 ├── evaluation.py  50-scenario execution evaluation · 30-scenario research evaluation

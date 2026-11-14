@@ -6,6 +6,23 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Changed: AI SLO monitor wired into the platform; GenAI spans; Ollama as a provider (0.10.0 item T11, findings R-14, R-34)
+
+- **R-14.** `Platform` now owns one `AISLOMonitor` and sets it on its router. The planner reports
+  each plan under a new `planner` series: valid only when the first reply was usable as is, so a
+  repaired or fallback plan moves the indicator. The per-call `planning` series is unchanged.
+- Each routed model call is one `gen_ai.chat:<model>` span under the agent span that made it, with
+  OpenTelemetry GenAI attribute names (model, token counts, finish reason, and temperature and seed
+  where the client has them).
+- **R-34.** `CEAP_LLM_PROVIDER=ollama` is accepted. `CEAP_OLLAMA_CASSETTE` replays a recorded
+  cassette; otherwise the live model runs only with `CEAP_LOCAL_MODEL=1`. There is no mock
+  fallback. Cost is recorded as `cpu_seconds` (wall-clock seconds of each local call), not dollars.
+- Removed `OpenTelemetryTracer` and `build_tracer()`: nothing in the product called them. The
+  README no longer says "OpenTelemetry-ready"; cookbook recipe 25 now reads the GenAI spans from
+  the trace API. The `[observability]` extra still lists the OpenTelemetry packages until the lock
+  file is regenerated.
+- Tests: `tests/unit/test_r0100_t11_ai_slo_wiring.py`. No snapshot changed.
+
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 
 - **E-09.** The redactor removed every 8 to 19 digit number, deleting quantities, notionals and

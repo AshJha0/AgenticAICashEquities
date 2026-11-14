@@ -43,9 +43,10 @@ from ceap.harness.durable import SqlRunJournal
 from ceap.harness.engine import AgentHarness, HarnessResult
 from ceap.harness.memory import CaseMemory
 from ceap.llm.client import LLMClient
-from ceap.llm.router import build_router
+from ceap.llm.router import LLMRouter, build_router
 from ceap.mcp.client import MCPClient
 from ceap.mcp.registry import build_in_process_client, build_tool_registry
+from ceap.observability.ai_slo import P95_MS, AISLOMonitor
 from ceap.observability.tracing import ExecutionTracer, InMemoryTracer
 from ceap.persistence.db import Database
 from ceap.persistence.repositories import (
@@ -145,6 +146,7 @@ class Platform:
         self.store = store or DatasetStore()
         self.history = history or HistoricalStore()
         self.llm = llm or build_router(self.settings)
+        self.slo = self._slo_monitor()
         self.knowledge = knowledge or build_knowledge_base(self.settings.knowledge_dir)
         self.mcp_client = mcp_client or build_in_process_client(self.store, self.knowledge, self.history, self.db)
         self.approvals = approvals or (
@@ -161,6 +163,22 @@ class Platform:
         self.cancellations: dict[str, CancellationToken] = {}
         self.owners: dict[str, str] = {}
         self.recovered: dict[str, list[str]] = self.recover()
+
+    def _slo_monitor(self) -> AISLOMonitor:
+        """T11 (R-14): the platform's AI SLO monitor, fed by the router and by the planner.
+
+        A router that already carries a monitor (the evaluation runner) keeps it, and the platform
+        reports through the same one. A local model gets the CPU latency objective.
+        """
+        existing = getattr(self.llm, "slo", None)
+        if isinstance(existing, AISLOMonitor):
+            return existing
+        local = self.settings.llm_provider == "ollama"
+        # a CPU-only 7B model takes minutes per planning call (README, local-model section)
+        monitor = AISLOMonitor(p95_ms=dict.fromkeys(P95_MS, 1_800_000.0) if local else None)
+        if isinstance(self.llm, LLMRouter):
+            self.llm.slo = monitor
+        return monitor
 
     # ------------------------------------------------------------ persistence
     def audit(self, actor: str, action: str, subject: str, payload: dict[str, Any] | None = None) -> str:
@@ -230,7 +248,7 @@ class Platform:
 
     async def harness(self, tracer: ExecutionTracer | None = None) -> AgentHarness:
         return AgentHarness(
-            planner=PlannerAgent(self.llm),
+            planner=PlannerAgent(self.llm, slo=self.slo),
             agents=self._agents(),
             tools=await self.registry(),
             policy=self.policy,
