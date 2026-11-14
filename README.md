@@ -17,10 +17,10 @@
 > - **Nothing trades**: the only write path stages **paper orders**, behind two human approvals
 >   from two different people.
 > - **No hosted-model numbers.** No test, demo or CI job calls a hosted model; those paths are proven
->   offline (fake clients, wire contracts) and labelled UNKNOWN / NOT RUN LIVE. 0.9.0 adds runs
+>   offline (fake clients, wire contracts) and labelled UNKNOWN / NOT RUN LIVE. 0.9.0 added runs
 >   against a **local open-weight model** (Ollama, `qwen2.5:7b-instruct` with
 >   `llama3.1:8b-instruct-q4_K_M` as challenger); CI replays their recorded cassettes. Results:
->   <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); claims with a number outside their own fact keys 11/39 (0.10.0 re-audit); end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) (`docs/evaluation/local_model/README.md`).
+>   <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); claims with a number outside their own fact keys 11/39 (0.10.0 re-audit); end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables no dimension (`hedged` kappa 1.00 against labels written by Claude, so not validated; 0.10.0 T10); challenger not measured (known issue) (`docs/evaluation/local_model/README.md`).
 
 An agentic AI platform that investigates, analyses and explains cash-equity trading and market
 behaviour. Ask it:
@@ -46,7 +46,13 @@ step behind the platform's only non-read-only tool.
 Python 3.11+  ·  MCP  ·  LLM (Anthropic, local Ollama for evaluation, or offline mock)  ·  multi-agent harness  ·  FastAPI  ·  RAG  ·  policy engine  ·  GenAI spans (OTel attribute names)
 ```
 
-**Current release: v0.9.0**, the last planned release (details in [CHANGELOG.md](CHANGELOG.md)).
+**Current release: v0.10.0** (2026-11-14). It fixes or withdraws what the 2026-11-12 review found.
+**The project is paused after 0.10.0.** Open items, all listed in [CHANGELOG.md](CHANGELOG.md)
+[0.10.0] "Not done": the local-model runs were not re-recorded (T8/T9), so every AI metric below is
+the 0.9.0 recording, re-audited where stated; the hash-changing schema items (T4); pre-trade interval
+coverage below nominal in T08 (X4); eight packages under their branch-coverage floor (E1); the
+mutation baseline and three green nightlies (E2); a v1.2 re-sign of the research golden set; and
+the five-session forward-log gate, moved to 0.11.0.
 
 ## The boundary
 
@@ -159,7 +165,7 @@ PRIMARY OBSERVATIONS
 | R5 momentum study (S&P 500) | free daily prices, not committed | real, **VOID** | [docs/research/README.md](docs/research/README.md) |
 | E1 industry momentum | Ken French 49 industries, hashes recorded | real, **NULL** | [docs/research/e1/README.md](docs/research/e1/README.md) |
 | Evaluation numbers below | mock LLM over synthetic scenarios | synthetic, deterministic pipeline | `docs/evaluation/latest.json` |
-| Local open-weight model evaluation | recorded Ollama runs on this machine | local model, offline replay | <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); claims with a number outside their own fact keys 11/39 (0.10.0 re-audit); end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables only `hedged` (kappa 1.00); challenger not measured (known issue) |
+| Local open-weight model evaluation | recorded Ollama runs on this machine | local model, offline replay | <!-- source: docs/evaluation/local_model/qwen2.5_7b-instruct.json --> qwen2.5:7b on one laptop, pooled over 3 seeds from replay: plan valid 15/30 (0.50), tool precision 1.00, recall 0.73; critic 35/45 (0.78); claims with a number outside their own fact keys 11/39 (0.10.0 re-audit); end-to-end golden slice not measured (the 6/9 and 3/3 first published were mock-fallback output, withdrawn 2026-11-12); injection obeyed 3/40 (all via the question); judge enables no dimension (`hedged` kappa 1.00 against labels written by Claude, so not validated; 0.10.0 T10); challenger not measured (known issue) |
 | Hosted model (Anthropic) quality | – | NOT RUN LIVE | [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md) |
 
 ## Results, stated plainly
@@ -174,13 +180,13 @@ None says anything about real markets or about a hosted model's quality.
 - **Retrieval (0.9.0):** a cross-encoder reranker beat BM25 on R@3 by +0.065 (paired 95 % CI +0.016 to +0.113) over 124 queries (<!-- source: docs/ai-agents/rag-hybrid-0.9.0.md --> details). BM25 stays the default because the reranker needs a model at query time, the rule fixed before the run. Near-miss abstention is still open: 3/25 near-miss negatives leak.
 - **E1, real data:** 49-industry momentum, preregistered and hash-locked; holdout 1990-2015 opened once: **NULL** (net of 10 bps, Newey-West t 1.16 against 1.645; <!-- source: docs/research/e1/result_holdout.json --> result file).
 - **R5, real data:** **VOID** twice: point-in-time coverage <!-- source: docs/research/result_momentum_2026-11.md --> 75.1 % and then <!-- source: docs/research/result_momentum_2026-11-v2.md --> 74.9 % against a required 95 %, because free sources lack delisted names. No statistic was computed; the pseudo-holdout is unspent. Why stock-level R5 could not pass on free data: [docs/research/e2_why_r5_could_not_pass.md](docs/research/e2_why_r5_could_not_pass.md).
-- **Paper forward log:** a daily job on synthetic data. The record restarted on 2026-11-12 on branch `forward-log-v2` after the first one failed (see CHANGELOG, Unreleased); branch `forward-log` is kept as a disclosed false start. Two sessions recorded so far (12 and 13 November). Each run verifies the previous day's anchor, replays the book from the feed (replay gate) and commits the new chain head; a weekday staleness check opens an issue after one missed session. The rows are keyed with the published development key, so the log is append-only by git history, not by key. It checks operations and controls, not profitability; telling a true Sharpe of 1 from 0 needs about 1980 sessions (<!-- source: tests/unit/paper/test_forward_and_ledger.py --> power formula, LEARN section 18a). Forward result: UNKNOWN.
+- **Paper forward log:** a daily job on synthetic data. The record restarted on 2026-11-12 on branch `forward-log-v2` after the first one failed (CHANGELOG [0.10.0], X1); branch `forward-log` is kept as a disclosed false start. Two sessions recorded at the 0.10.0 tag (12 and 13 November). Each run verifies the previous day's anchor, replays the book from the feed (replay gate) and commits the new chain head; a weekday staleness check opens an issue after one missed session. The rows are keyed with the published development key, so the log is append-only by git history, not by key. It checks operations and controls, not profitability; telling a true Sharpe of 1 from 0 needs about 1980 sessions (<!-- source: tests/unit/paper/test_forward_and_ledger.py --> power formula, LEARN section 18a). Forward result: UNKNOWN.
 
 ---
 
-## What 0.9.0 adds
+## What 0.9.0 added
 
-Six parallel lanes integrated on one branch; the full list, with every number and disclosure, is in
+What 0.10.0 changed is in [CHANGELOG.md](CHANGELOG.md) [0.10.0]. For 0.9.0: six parallel lanes integrated on one branch; the full list, with every number and disclosure, is in
 [CHANGELOG.md](CHANGELOG.md). Plan and per-step status: [docs/review/2026-11-09/PLAN.md](docs/review/2026-11-09/PLAN.md).
 
 - **Local model evaluation:** `ceap.llm.ollama.OllamaLLMClient` behind the same `LLMClient` interface

@@ -342,7 +342,7 @@ flowchart LR
     PR --> W["test-windows"]
     PR --> BM["benchmarks gate"]
     PR --> AR["api-reference<br/>checked-in OpenAPI"]
-    PR --> T["test 3.11 / 3.12<br/>xdist · branch coverage >= 85 %<br/>pytest-timeout 120/600/1800 s"]
+    PR --> T["test 3.11 / 3.12 / 3.13<br/>xdist · branch coverage >= 85 %<br/>pytest-timeout 120/600/1800 s"]
     PR --> LF["lock-fresh<br/>uv --universal --generate-hashes"]
     PR --> A["audit<br/>pip-audit"]
     PR --> S["secrets<br/>gitleaks + planted-key self-test"]
@@ -352,10 +352,10 @@ flowchart LR
     PR --> GC["golden-change<br/>label + owner sign-off"]
     L & T & W & BM & AR & LF & A & S & D & C & K & GC --> M["merge to main<br/>CI re-runs on main"]
     M --> TAG["tag vX.Y.Z"]
-    TAG --> G{"release_check.py<br/>latest CI workflow run green? versions agree?<br/>CHANGELOG section? banned words? licences?"}
+    TAG --> G{"release_check.py<br/>latest CI run and last 3 nightlies green? versions agree?<br/>CHANGELOG section? banned words? licences?"}
     G -- no --> X["no release"]
     G -- yes --> P["build wheel, sdist, image<br/>gh release create"]
-    N["nightly.yml<br/>all tiers · random order · 1000 examples<br/>mutation ratchet · API fuzz"] -.-> M
+    N["nightly.yml<br/>full tier · sweeps job · random order<br/>mutation ratchet · API fuzz"] -.-> M
 ```
 
 ## 11. LLM, RAG, ML and evaluation (0.6.0)
@@ -575,8 +575,9 @@ forever.
 
 Two gates fixed before their runs. Retrieval: BM25 is the default; `HybridRetriever` is opt-in
 because the reranker needs a model at query time. Judge: a rubric dimension is used only when
-Cohen's kappa against a hand-labelled reference exceeds 0.6 (`KAPPA_BAR` in `ceap/eval/judge.py`);
-the committed calibration enables `hedged` only (`docs/evaluation/local_model/judge_calibration.json`).
+Cohen's kappa against a hand-labelled reference exceeds 0.6 (`KAPPA_BAR` in `ceap/eval/judge.py`)
+and the labels come from independent human raters. Since 0.10.0 (T10) no dimension is enabled: the
+committed labels were written by Claude (`docs/evaluation/local_model/judge_calibration.json`).
 
 ```mermaid
 flowchart LR
