@@ -6,6 +6,14 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
+
+- **E-09.** The redactor removed every 8 to 19 digit number, deleting quantities, notionals and
+  order ids from the user's question. A bare long number now survives ("Buy 12000000 shares"); it
+  is redacted only after an account word (account, acct, card, a/c) or in card-style groups.
+- **E-08.** A malformed `CEAP_API_KEYS` entry no longer appears in the error message.
+- Tests: `tests/unit/test_redact_e7.py`.
+
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 
 - **Why the scheduled job wrote nothing on 10 and 11 November.** Both scheduled runs failed with

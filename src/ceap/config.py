@@ -217,7 +217,8 @@ def _parse_api_keys(raw: str) -> dict[str, str]:
         if not pair:
             continue
         if ":" not in pair:
-            raise SettingsError(f"CEAP_API_KEYS entry {pair!r} must be key:role")
+            # never echo the entry: it is (or contains) the raw key (0.10.0 E7, finding E-08)
+            raise SettingsError("a CEAP_API_KEYS entry must be key:role (entry not shown: it holds key material)")
         key, role = (part.strip() for part in pair.split(":", 1))
         if len(key) < 8:
             raise SettingsError("API keys must be at least 8 characters")
