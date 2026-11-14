@@ -6,6 +6,29 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+## [0.10.0] - 2026-11-14
+
+**Make every published claim true.** This release fixes or withdraws what the 2026-11-12 review
+found (docs/review/2026-11-12/). **After 0.10.0 the project is paused**: the owner decided not to
+spend the remaining plan on a 26 CPU-hour local-model re-recording whose small samples could not
+settle model quality.
+
+**Not done in 0.10.0 (open, project paused):**
+
+- T8/T9: the local-model runs were not re-recorded. Every AI metric on the results page is the 0.9.0
+  recording, re-audited where stated (reporter 22/39 after T5); the challenger agreement is still
+  not measured. T6 (generated results table) depends on it and is not done.
+- T4: the schema changes that alter request hashes (null-free optional members, window enum,
+  dataset and symbol constants) were not made, because they would need the re-recording.
+- X4: pre-trade interval coverage still misses nominal 90 % in T08 (orders ten times larger,
+  87.1 %, Wilson interval 84.5-89.3 %); `scripts/train_pretrade.py` exits 1; the test is a strict xfail.
+- E1: eight packages remain under their branch-coverage floor; analytics and paper read slightly
+  below their ratchet under machine load (docs/testing/coverage-by-package.md).
+- E2: the mutation baseline has never been measured (the ratchet fails on a null baseline after
+  2026-11-30); the release gate's three green nightlies were not yet available at tagging.
+- The forward log has 2 sessions at tagging (12 and 13 November; restarted 2026-11-12); the five-session gate moved to 0.11.0 (O12).
+
+
 ### Changed: the rubric judge is an unvalidated prototype (0.10.0 item T10, finding R-07, decision O3)
 
 - The 50 calibration labels were written by Claude, not by independent raters, so agreement with
