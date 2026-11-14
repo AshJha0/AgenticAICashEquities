@@ -786,7 +786,7 @@
       ],
       "riskLevel": "HIGH"
     },
-    "description": "Stage a PAPER order list that moves the book to the signal's recomputed target portfolio at as_of. Nothing is routed to a venue. Idempotent per (signal, dataset, as_of, gross_notional, long_short). Pre-trade checks (restricted, hard to borrow, per-name and gross limits) run first; refused while the kill switch is set. Requires the trading:execute capability and human approval.",
+    "description": "Stage a PAPER order list that moves the book to the signal's recomputed target portfolio at as_of. Nothing is routed to a venue. Idempotent per (signal, dataset, as_of, gross_notional, long_short). Pre-trade checks (restricted, hard to borrow, per-name and gross limits) run first; refused while the kill switch is set. Requires the trading:execute capability and the approved portfolio hash; a standalone server also requires a signed approval_grant.",
     "inputSchema": {
       "properties": {
         "approved_portfolio_hash": {
