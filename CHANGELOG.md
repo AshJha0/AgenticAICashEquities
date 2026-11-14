@@ -101,6 +101,29 @@ refuses a tag whose version has no section.
   disabled the same test fails (6 model calls against 4). `test_r090_durable.py` and
   `test_r090_chaos.py` now count tool rows only, since the journal also holds model rows.
 
+### Fixed: two baselines, two names (0.10.0 item H5, finding R-03)
+
+- One report gave two values for the same quantity under the same word. T06 at 0.9.0: the summary
+  said "implementation shortfall delta -3.7 bps" and observation 5 said shortfall "decreased by
+  28.6 bps relative to the baseline's +13.9 bps". The attribution measures against the pooled matched
+  peer windows; the execution agent measures against the task's baseline window, the hour before.
+  Each number was right, and both were "the baseline".
+- The two now have names, `ceap.analytics.attribution.baseline_name`: "matched peer windows" and
+  "prior window". The mock narrative's summary names the attribution's baseline; the execution
+  observations, the EXECUTION and MARKET CONDITIONS sections and the latency line name the prior
+  window; the quant agent's delta finding names its own. Findings that carry a delta also carry a
+  `baseline` attribute.
+- The critic has a new deterministic check, `critic_checks.baseline_conflicts`: two deltas of one
+  metric (from findings or the attribution) under the same baseline name must agree to 0.05 bps, or
+  the critic records a contradiction prefixed `baseline_conflict`.
+- Scope: the attribution's own rationale strings ("latency ratio vs baseline = 10.10") still say
+  "baseline"; they carry ratios, not a second delta of the same metric, and renaming them would
+  change every attribution record. The README example (already stale before this change: its
+  numbers are from an older run) is left for the documentation pass.
+- Test: `tests/agent/test_r0100_h5_named_baselines.py` runs T06 and finds the named baselines in the
+  summary and the observations and no delta line under "the baseline"; a planted finding that prints
+  the execution delta under the attribution's name makes the check fire.
+
 ### Fixed: a citation must come from a chunk that supports the claim (0.10.0 item H4, finding R-09)
 
 - The citation audit proved that the quoted text is a real chunk, and that the citation is attached to
