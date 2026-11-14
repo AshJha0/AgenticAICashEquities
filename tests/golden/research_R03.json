@@ -331,6 +331,7 @@
         "values": {
           "as_of": "2026-09-18",
           "beta": 0.0207,
+          "covariance_shrinkage": 0.045581,
           "dataset": "R03",
           "effective_names": 18.0,
           "gross": 1.0,
@@ -340,6 +341,7 @@
           "max_abs_weight": 0.055556,
           "max_adv_participation": 0.01932,
           "net": 0.0,
+          "predicted_vol_ann": 0.09227,
           "signal": "reversal_5",
           "stress": null
         }
@@ -529,9 +531,11 @@
               "ic_std": 0.186379807,
               "ic_t_stat": 12.7192394,
               "ic_t_stat_1d": 23.7140759,
+              "ic_t_stat_factor_neutral": 12.6266129,
               "ic_t_stat_nw": 18.0799801,
               "mean_ic": 0.0766309183,
               "mean_ic_1d": 0.0665014058,
+              "mean_ic_factor_neutral": 0.0776154915,
               "mean_ic_horizon": 0.0779553355,
               "n_dates": 957,
               "name": "full",
@@ -554,9 +558,11 @@
               "ic_std": 0.185932507,
               "ic_t_stat": 10.406796,
               "ic_t_stat_1d": 20.1688122,
+              "ic_t_stat_factor_neutral": 10.2162683,
               "ic_t_stat_nw": 15.0648447,
               "mean_ic": 0.0728748723,
               "mean_ic_1d": 0.0661069296,
+              "mean_ic_factor_neutral": 0.0728571446,
               "mean_ic_horizon": 0.0747706994,
               "n_dates": 705,
               "name": "in_sample",
@@ -579,9 +585,11 @@
               "ic_std": 0.197438339,
               "ic_t_stat": 6.13493507,
               "ic_t_stat_1d": 12.4844401,
+              "ic_t_stat_factor_neutral": 6.18764834,
               "ic_t_stat_nw": 10.7365945,
               "mean_ic": 0.076454772,
               "mean_ic_1d": 0.0676372226,
+              "mean_ic_factor_neutral": 0.0803045072,
               "mean_ic_horizon": 0.0876290343,
               "n_dates": 251,
               "name": "out_of_sample",
@@ -1246,9 +1254,25 @@
           "trial": {
             "dataset_hash": "934fa1746abdac751e61a67a449c5fe9b71da50a494aa323481f2566060d8d9b",
             "n_trials": 1,
+            "n_trials_effective": 3.6048,
             "new_trial": true,
             "params_hash": "db37c657b550edbddb735653fe3545a8c1d669598fe5e9b6dd501e762d31adb0",
-            "sharpe_variance": null
+            "search": {
+              "basis": "in-sample net daily excess returns of the 24 enumerated configurations",
+              "cluster_threshold": 0.7,
+              "n_days": 3528,
+              "n_trials": 24,
+              "n_trials_effective": 3.6048,
+              "n_trials_effective_cluster": 5,
+              "pbo": 0.100233,
+              "pbo_median_logit": 0.753772,
+              "pbo_n_blocks": 16,
+              "pbo_n_splits": 12870,
+              "pbo_oos_on_is_slope": -0.702934
+            },
+            "sharpe_basis": "gross",
+            "sharpe_variance": null,
+            "sharpe_variance_net": null
           }
         },
         "derived_from": [
@@ -1282,6 +1306,13 @@
               "verdict": "PASS"
             },
             {
+              "n_obs": 705,
+              "name": "in_sample_ic_t_factor_neutral",
+              "p_value": 0.0,
+              "statistic": 10.2162683,
+              "verdict": "PASS"
+            },
+            {
               "n_obs": 3528,
               "name": "deflated_sharpe",
               "p_value": 1.0468164e-07,
@@ -1308,20 +1339,26 @@
         "metrics": {
           "breached_checks": 0.0,
           "cost_share": 0.844199089,
+          "covariance_shrinkage": 0.045581,
           "deflated_sharpe": 0.999999895,
           "deflated_sharpe_bar": 0.529116621,
           "full_sharpe_ci_high": 0.578629526,
           "full_sharpe_ci_low": -0.32069499,
           "hurdle_t": 3.0,
+          "is_ic_t_factor_neutral": 10.2162683,
           "is_ic_t_stat": 10.406796,
           "is_ic_t_stat_nw": 15.0648447,
           "is_sharpe": 0.0892019453,
           "max_adv_participation": 0.01932,
           "n_trials": 24.0,
+          "n_trials_effective": 3.6048,
+          "n_trials_effective_cluster": 5.0,
           "oos_gross_sharpe": 2.23190841,
           "oos_ic_t_stat": 6.13493507,
           "oos_sharpe": 0.242381088,
+          "pbo": 0.100233,
           "pnl_concentration_top3": 0.277561992,
+          "predicted_vol_ann": 0.09227,
           "sharpe_ratio_oos_is": 2.71721752
         },
         "rationale": [
@@ -2728,9 +2765,25 @@
       "trial": {
         "dataset_hash": "934fa1746abdac751e61a67a449c5fe9b71da50a494aa323481f2566060d8d9b",
         "n_trials": 1,
+        "n_trials_effective": 3.6048,
         "new_trial": true,
         "params_hash": "db37c657b550edbddb735653fe3545a8c1d669598fe5e9b6dd501e762d31adb0",
-        "sharpe_variance": null
+        "search": {
+          "basis": "in-sample net daily excess returns of the 24 enumerated configurations",
+          "cluster_threshold": 0.7,
+          "n_days": 3528,
+          "n_trials": 24,
+          "n_trials_effective": 3.6048,
+          "n_trials_effective_cluster": 5,
+          "pbo": 0.100233,
+          "pbo_median_logit": 0.753772,
+          "pbo_n_blocks": 16,
+          "pbo_n_splits": 12870,
+          "pbo_oos_on_is_slope": -0.702934
+        },
+        "sharpe_basis": "gross",
+        "sharpe_variance": null,
+        "sharpe_variance_net": null
       }
     },
     "risk": {
@@ -2738,6 +2791,7 @@
         "as_of": "2026-09-18",
         "beta": 0.0207,
         "checks": [],
+        "covariance_shrinkage": 0.045581,
         "dataset": "R03",
         "effective_names": 18.0,
         "gross": 1.0,
@@ -2894,6 +2948,7 @@
             "weight": 0.055556
           }
         ],
+        "predicted_vol_ann": 0.09227,
         "signal": "reversal_5",
         "stress": null
       },
@@ -3048,9 +3103,11 @@
           "ic_std": 0.186379807,
           "ic_t_stat": 12.7192394,
           "ic_t_stat_1d": 23.7140759,
+          "ic_t_stat_factor_neutral": 12.6266129,
           "ic_t_stat_nw": 18.0799801,
           "mean_ic": 0.0766309183,
           "mean_ic_1d": 0.0665014058,
+          "mean_ic_factor_neutral": 0.0776154915,
           "mean_ic_horizon": 0.0779553355,
           "n_dates": 957,
           "name": "full",
@@ -3073,9 +3130,11 @@
           "ic_std": 0.185932507,
           "ic_t_stat": 10.406796,
           "ic_t_stat_1d": 20.1688122,
+          "ic_t_stat_factor_neutral": 10.2162683,
           "ic_t_stat_nw": 15.0648447,
           "mean_ic": 0.0728748723,
           "mean_ic_1d": 0.0661069296,
+          "mean_ic_factor_neutral": 0.0728571446,
           "mean_ic_horizon": 0.0747706994,
           "n_dates": 705,
           "name": "in_sample",
@@ -3098,9 +3157,11 @@
           "ic_std": 0.197438339,
           "ic_t_stat": 6.13493507,
           "ic_t_stat_1d": 12.4844401,
+          "ic_t_stat_factor_neutral": 6.18764834,
           "ic_t_stat_nw": 10.7365945,
           "mean_ic": 0.076454772,
           "mean_ic_1d": 0.0676372226,
+          "mean_ic_factor_neutral": 0.0803045072,
           "mean_ic_horizon": 0.0876290343,
           "n_dates": 251,
           "name": "out_of_sample",

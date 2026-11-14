@@ -122,7 +122,9 @@ Student-t shocks, latent premia the signal code never touches, delistings and la
 
 Full chain in `docs/quant/quant.md`: IC t >= 3.0 for a
 searched result and 1.645 for one preregistered test, fixed a priori since 0.8.0 (it was t >= 0.40,
-read from the 500-seed null sweep, hash `ef474869...`), deflated Sharpe >= 0.5 over ledger-counted trials, out-of-sample IC t >= 1
+read from the 500-seed null sweep, hash `ef474869...`), deflated Sharpe >= 0.95 over ledger-counted trials with the
+ledger variance floored at `1 / T` (0.10.0 Q2; it was 0.5, unfloored), the same IC hurdle on the factor-neutral IC
+(signal and return residualised on trailing five-year market beta; 0.10.0 Q4), out-of-sample IC t >= 1
 (REGIME_BREAK at <= -2), out-of-sample net Sharpe >= 0.5, costs < 50 % of gross, concentration,
 and limits over the out-of-sample history.
 
@@ -208,6 +210,7 @@ LLM: mock (deterministic); no live model call (D15). Complete run: True.
 | capability | completed | 1.00 |
 | capability | research_scenarios | 30 |
 | capability | research_verdict_accuracy | 0.8333 |
+| capability | research_500 agreement_with_30_name_truth (500 names) | 0.7 |
 | capability | golden set v1.0.0 (sign-off SIGNED_OFF) primary_cause_accuracy | 0.9667 |
 | capability | golden must_mention_rate | 1.00 |
 | capability | golden no_forbidden_claim_rate | 0.9667 |

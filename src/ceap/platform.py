@@ -144,6 +144,7 @@ class Platform:
         history: HistoricalStore | None = None,
         db: Database | None = None,
         case_memory: CaseMemory | None = None,
+        trial_ledger: Any = None,
     ) -> None:
         self.settings = settings or load_settings()
         self.db = db or Database(self.settings.db_path)
@@ -158,7 +159,9 @@ class Platform:
         self.llm = llm or build_router(self.settings)
         self.slo = self._slo_monitor()
         self.knowledge = knowledge or build_knowledge_base(self.settings.knowledge_dir)
-        self.mcp_client = mcp_client or build_in_process_client(self.store, self.knowledge, self.history, self.db)
+        self.mcp_client = mcp_client or build_in_process_client(
+            self.store, self.knowledge, self.history, self.db, trial_ledger
+        )
         self.approvals = approvals or (
             AutoApprovalGateway()
             if self.settings.auto_approve

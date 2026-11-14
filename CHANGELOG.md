@@ -172,6 +172,106 @@ refuses a tag whose version has no section.
   except T08 at 52.4 %, where the model under-predicts cost by 18.6 bps.
 - Snapshot change: `src/ceap/ml/pretrade_model.json` (new q, evaluation tables); the pre-trade
   interval bounds in the TCA goldens (`tests/golden/tca_T01.json`, `tca_T05.json`) move with q.
+### Added: research evaluation on the 500-name universe (0.10.0 item Q6, finding R-30)
+
+- `evaluation_platform(universe)` builds the research datasets on `core30` (default) or
+  `synthetic500`; `scripts/research_eval_universes.py` runs the 30 scenarios on both (in parallel
+  slices, each on a fresh platform and in-memory ledger), refuses to publish unless every scenario
+  completes, and writes `capability.research_500` into `latest.json` (the report builder does the same).
+- **Results.** 30 names: 25/30 verdicts match the truth (0.8333, unchanged). 500 names: 21/30 agree
+  with the 30-name truth (0.70; clear scenarios 0.875); verdicts 14 PROMOTE, 16 REJECT. Nine verdicts
+  move, all to PROMOTE: RS02, RS22, RS24 (truth PROMOTE or INCONCLUSIVE) and RS07, RS08, RS09, RS19,
+  RS20, RS21 (30-name truth REJECT). The ground truth is derived for 30 names, so the 500-name figure
+  is agreement, not accuracy; deriving truth for 500 names is not done. The 500-name run needs
+  `CEAP_STEP_TIMEOUT_SECONDS` well above the 30 s default (1800 was used; about 140 s a scenario).
+- README corrected: the scenarios run on the 30-name universe and are re-run on 500 names.
+- Tests: `tests/unit/test_q6_universe_eval.py`.
+
+### Added: research realism toolkit wired into the verdict (0.10.0 item Q4, findings R-17, R-20)
+
+- **Factor-neutral IC is a gate condition.** `evaluate_signal` now reports
+  `ic_t_stat_factor_neutral`: the gate's non-overlapping IC with the signal ranks and the forward return
+  both residualised, date by date, on each name's trailing five-year market beta
+  (`risk_research.rolling_betas`, ex-self market; `risk_research.factor_neutral_ic`, which calls
+  `residualise`). `NO_ALPHA` is raised when it is below the hurdle, with its own rationale and
+  hypothesis row. A one-year beta was tried first and left a 2400 bps beta premium at IC t 5-7.
+- **Market-beta family through the full verdict** (`adversarial.full_verdict_study`, 16 seeds a point,
+  `docs/research/adversarial_full_verdict.json`): PROMOTE 0, 0, 0 and **2 of 16** at 0, 600, 1100 and
+  2400 bps; re-scored without the new statistic, 0, 0, 1 and 16 of 16. The drift baseline keeps
+  14 of 16 at 2400 bps (unchanged). The two that still pass are the limit of residualising on an
+  estimated beta.
+- **PBO and effective trial count on the 24-trial matrix.** The backtest tool's trial record carries
+  `search` (`ceap.analytics.search_diagnostics`: PBO by CSCV with 16 blocks, effective trials by the
+  eigenvalue participation ratio and by clusters at 0.7) and writes `n_trials_effective`, which the
+  deflated Sharpe reads (floored at 24, so it cannot relax the gate). Cached per dataset and window;
+  the tool's description and schema are unchanged, so the catalogue hash and cassettes do not move.
+  `pbo_cscv` is now vectorised (12,870 splits in about 0.3 s; equal to the per-split definition).
+- **Ledoit-Wolf predicted volatility in the risk step.** The as-of target portfolio reports
+  `predicted_vol_ann` and `covariance_shrinkage` from the held names' trailing 252-day returns.
+- All of these are fields of the assessment's metrics.
+- **What moved.** The 30 research scenarios and 18 golden research items were re-run: **no verdict
+  and no flag moved** relative to Q2 (scenarios 25/30). **Snapshot change:** `tests/golden/research_R01.json`
+  and `research_R03.json` regenerated; the diff only adds fields (the new metrics, the factor-neutral
+  hypothesis row, the trial `search` block, and the Q2 ledger fields `sharpe_basis` and
+  `sharpe_variance_net`, which the Q2 commit had left out of these two files).
+- Tests: `tests/unit/analytics/test_q4_realism_wiring.py`.
+
+### Fixed: model registry checks staleness and drift at load; trial ledger persistent (0.10.0 item Q7, findings Q-10, Q-12)
+
+- **Stale models fail a test.** All three registered models had been fitted to generator
+  `ce0da55d75b78559` and the model-card header named a third hash, `d3074158ce168b03`; the generator
+  is now `7f59073801a673bc`. `ModelRegistry.load` emits a `StaleModelWarning` when a card's generator
+  hash differs from the current one, and `tests/unit/ml/test_q7_registry.py` fails for any stored model
+  in that state and for a card header that names any other hash.
+- **Retrained.** `python scripts/train_ml_models.py` refitted the change detector, the change-point
+  calibration and the ridge combination. **No parameter and no metric moved**: the three model hashes
+  are unchanged (`b2a6c3822c3e4459`, `29d16b7ea00c171f`, `1b5b2fcd6870c289`); only the card provenance
+  (generator hash, label, date, the 0.10 inventory fields, and the training-data hash of the two
+  engineering models, which embeds the generator hash) changed, in
+  `data/models/*.json` and `docs/ml/model_cards.md`.
+- **Drift checked at load.** `ModelRegistry.load(name, features=...)` runs the PSI drift check and keeps
+  the values on `RegisteredModel.drift`. The engineering change-point scan now calls
+  `anomaly.detector_drift` on the live reference window before detecting, so the check runs in
+  production rather than only in tests (finding R-17 listed `check_drift` as uncalled).
+- **Trial ledger persistent by default.** Without `CEAP_TRIAL_LEDGER` the ledger was per process, so
+  the trial count reset at every restart and undercounted the search. It now appends to
+  `var/trial_ledger.jsonl` by default; `CEAP_TRIAL_LEDGER=:memory:` opts out. The test suite, the
+  scenario evaluation (`evaluation_platform`, beside case memory being off) and model training use an
+  in-memory ledger so one run cannot change another's verdict. `Platform` and
+  `build_in_process_client` take an optional `trial_ledger`.
+- Tests: `tests/unit/ml/test_q7_registry.py`.
+
+### Fixed: deflated Sharpe gate floored, tested on the production path, bar 0.95 (0.10.0 item Q2, finding R-16, decision O5)
+
+- **Variance floored at `1 / T`.** The trial ledger's cross-trial variance of the per-day Sharpe
+  replaced the null value `1 / T` whenever it was positive, so a ledger of near-identical trials
+  shrank the expected maximum Sharpe. The reviewer's case (Sharpe 0.3, ten years, 24 trials, ledger
+  variance 1e-8) scored 0.83; it now scores 0.15, as with the null variance. Under the null each
+  trial's per-day Sharpe has sampling variance about `1 / T` (Lo 2002), so a smaller spread means
+  correlated trials, not a lower bar.
+- **One production call.** `research_assessment.alpha_deflated_sharpe` is used by the verdict and
+  by the null sweep, which used to call the formula with its own arguments. The sweep passes no
+  ledger variance, which is the floor itself, so its rate bounds the shipped gate from above.
+- **Gross and net recorded consistently.** The backtest tool wrote the *net* in-sample Sharpe to the
+  ledger while the gate deflates the *gross* one. Records now carry the gross per-day Sharpe
+  (`sharpe_basis: "gross"`) with the net beside it (`sharpe_daily_net`, `sharpe_variance_net`);
+  pre-0.10 records, whose basis is unknown, are counted as trials but left out of the variance.
+- **Bar 0.5 -> 0.95** (one-sided 5 %, Bailey and Lopez de Prado 2014). **False-PROMOTE rate at the
+  new bar:** the 500-seed null sweep over the full 24-configuration search found 0 of 500 at every
+  grid hurdle, t >= 0 included (95 % Clopper-Pearson upper bound 0.74 %); the old bar gave 17 of 500
+  at t >= 0, 5 of 500 at 1.645 and 0 of 500 at 3.0. New sweep hash `8d1dc8bd91e4...`
+  (`data/reference/research_thresholds.json`, `docs/research/null_sweep_per_seed.json`, one line
+  appended to `data/reference/sweep_ledger.jsonl`).
+- **What moved.** The 30 research scenarios and the 18 research items of both golden sets were run
+  before and after on the same code base. **No verdict moved** (scenarios 25/30; golden verdicts
+  13/15 and 2/3). Flags moved in five rows: RS23 (`G-RES11-12`) `COST_DRAG` -> `NO_ALPHA` (DSR
+  0.93), RS25 (`G-RES11-13`) and RS26 `COST_DRAG` -> `NO_ALPHA` (DSR 0.82 and 0.81). Scenario flag
+  coverage goes from 25/30 to 24/30 (RS23 now carries its expected `NO_ALPHA`; the two reversal
+  scenarios lose their expected `COST_DRAG` because the alpha chain stops at `NO_ALPHA` first). The
+  golden must-flag counts are unchanged (13/15, 1/3: `G-RES11-12` gains, `G-RES11-13` loses). No
+  golden file and no ground truth was edited.
+- Tests: `tests/unit/analytics/test_q2_deflated_sharpe.py`.
+
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 
 - **E-09.** The redactor removed every 8 to 19 digit number, deleting quantities, notionals and

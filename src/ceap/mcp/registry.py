@@ -15,6 +15,7 @@ from ceap.mcp.server import MCPServerDefinition
 from ceap.rag.retrieval import KnowledgeBase, build_knowledge_base
 
 if TYPE_CHECKING:
+    from ceap.analytics.trial_ledger import TrialLedger
     from ceap.persistence.db import Database
 
 
@@ -23,8 +24,10 @@ def build_default_servers(
     knowledge: KnowledgeBase | None = None,
     history: HistoricalStore | None = None,
     db: Database | None = None,
+    trials: TrialLedger | None = None,
 ) -> dict[str, MCPServerDefinition]:
-    """``db``: when given, staged paper order sets persist there and staging honours its kill switch."""
+    """``db``: when given, staged paper order sets persist there and staging honours its kill switch.
+    ``trials``: the trial ledger (default: the persistent one, Q7); evaluation passes an in-memory ledger."""
     from ceap.mcp.alpha.server import build_server as alpha
     from ceap.mcp.backtest.server import build_server as backtest
     from ceap.mcp.engineering.server import build_server as engineering
@@ -40,7 +43,8 @@ def build_default_servers(
     history = history or HistoricalStore()
     from ceap.analytics.trial_ledger import TrialLedger
 
-    trials = TrialLedger()  # one ledger: combination trials and backtest trials deflate together (2B.2)
+    # one ledger: combination trials and backtest trials deflate together (2B.2)
+    trials = trials if trials is not None else TrialLedger()
     servers = [
         market_data(store),
         execution(store, history=history, staged=StagedOrderBook(db=db) if db is not None else None),
@@ -59,8 +63,9 @@ def build_in_process_client(
     knowledge: KnowledgeBase | None = None,
     history: HistoricalStore | None = None,
     db: Database | None = None,
+    trials: TrialLedger | None = None,
 ) -> InProcessMCPClient:
-    return InProcessMCPClient(build_default_servers(store, knowledge, history, db))
+    return InProcessMCPClient(build_default_servers(store, knowledge, history, db, trials))
 
 
 #: ``server=<sha256>,...``: catalogue hashes a deployment has reviewed; a mismatch refuses start-up

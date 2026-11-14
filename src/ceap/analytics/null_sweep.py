@@ -17,6 +17,14 @@ per-seed statistic vector (D20) so anyone can recompute the curve. Each run
 is appended to the sweep ledger with the generator version (D21), so a
 re-sweep after a generator change is visible, not silent.
 
+0.10 (Q2, finding R-16): the deflated-Sharpe gate is the production call,
+:func:`ceap.analytics.research_assessment.alpha_deflated_sharpe`, with the 24
+trials counted and no ledger variance. Production floors the ledger variance
+at the null value ``1 / T``, and omitting it is exactly that floor, the most
+permissive value the shipped gate can use; the measured false-PROMOTE rate is
+therefore an upper bound for the shipped gate. The pass bar is
+``dsr_min = 0.95`` (decision O5).
+
 Each seed therefore has a statistic ``m = max over configurations of the
 in-sample t among configurations that pass every other gate`` (``-inf`` when
 none does); the false-PROMOTE rate at ``h`` is ``#{m >= h} / n``. The hurdle is
@@ -36,7 +44,7 @@ from typing import Any
 import numpy as np
 
 from ceap.analytics.backtest import run_backtest
-from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS, ResearchThresholds, deflated_sharpe
+from ceap.analytics.research_assessment import DEFAULT_THRESHOLDS, ResearchThresholds, alpha_deflated_sharpe
 from ceap.analytics.signal_statistics import evaluate_signal
 from ceap.domain.research import search_space
 from ceap.paths import data_path
@@ -126,7 +134,7 @@ def sweep_seed(seed: int, thresholds: ResearchThresholds | None = None) -> SeedR
         out.backtests += 1
         ins, oos, full = bt.period("in_sample"), bt.period("out_of_sample"), bt.period("full")
         assert ins is not None and oos is not None and full is not None
-        dsr, _ = deflated_sharpe(ins.gross_sharpe, ins.n_days, ins.skew, ins.kurtosis, n_trials, None)
+        dsr, _, _ = alpha_deflated_sharpe(ins, {"n_trials": n_trials}, th)
         if not (math.isfinite(dsr) and dsr >= th.dsr_min):
             continue
         gross = full.gross_ann_return
