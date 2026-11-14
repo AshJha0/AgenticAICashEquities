@@ -6,6 +6,17 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Added: local model digests pinned and checked; cassette manifest (0.10.0 item T7, findings R-13, AI-1-10)
+
+- **Digest pinned, not only the tag.** `model_pins.toml` gains `[local_models]` with the Ollama
+  content digest of each local model (the digests recorded in the 0.9.0 cassettes). The live
+  `OllamaLLMClient` reads `/api/tags` at start and raises `ModelDigestError` when the server's digest
+  is empty or differs from the pin. Before, the digest was fetched for provenance only, came back
+  empty on any error and was never compared.
+- **Every new interaction carries its manifest:** the request text, the prompt id and version, the
+  source commit and the Ollama version (from `/api/version`). Cassettes recorded before 0.10.0 load
+  unchanged with these fields empty.
+
 ### Fixed: the planner validator agrees with the sanitiser on `None` (0.10.0 item T4, finding R-04)
 
 - **A null optional argument is "not given".** `plan_semantic_errors` now skips `None` arguments,

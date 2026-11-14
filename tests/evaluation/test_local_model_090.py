@@ -420,3 +420,49 @@ async def test_rescored_090_planner_cassettes_are_valid_with_errors_attached():
     assert sum(r["plan_valid"] for r in rows) >= 27
     assert all(isinstance(r["validation_errors"], list) for r in rows)
     assert all(r["validation_errors"] for r in rows if r["repairs"])  # every repair says why
+
+
+# ------------------------------------------------------------------------------------ 0.10.0 T7 (R-13, AI-1-10)
+
+
+def _pinned_server(digest: str):
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.path == "/api/tags":
+            return httpx.Response(200, json={"models": [{"name": PRIMARY_LOCAL_MODEL, "digest": digest}]})
+        if req.url.path == "/api/version":
+            return httpx.Response(200, json={"version": "0.12.3"})
+        return httpx.Response(
+            200, json={"message": {"content": "{}"}, "done_reason": "stop", "prompt_eval_count": 1, "eval_count": 1}
+        )
+
+    return httpx.MockTransport(handler)
+
+
+@pytest.mark.parametrize("digest", ["0" * 64, ""])
+def test_wrong_or_empty_digest_refuses_to_start(digest):
+    """T7: the live client compares the server digest with model_pins.toml and refuses on mismatch."""
+    from ceap.llm.ollama import ModelDigestError
+
+    with pytest.raises(ModelDigestError):
+        OllamaLLMClient(transport=_pinned_server(digest), verify=True)
+
+
+async def test_every_new_interaction_carries_the_five_manifest_fields():
+    """T7: request text, prompt id and version, commit and Ollama version are recorded per call."""
+    from ceap.llm.pins import load_pins
+
+    pinned = load_pins().local_digests[PRIMARY_LOCAL_MODEL]
+    cas = LocalCassette(provenance=LocalProvenance(model=PRIMARY_LOCAL_MODEL, seed=0, temperature=0.0))
+    client = OllamaLLMClient(transport=_pinned_server(pinned), verify=True, recorder=cas)
+    assert (client.digest, client.ollama_version) == (pinned, "0.12.3")
+    req = LLMRequest(
+        system_prompt="s",
+        messages=[{"role": "user", "content": "what moved AAPL?"}],
+        purpose="narrative",
+        metadata={"prompt": {"id": "report", "version": "2", "sha256": "x"}},
+    )
+    await client.complete(req)
+    i = cas.interactions[0]
+    assert "what moved AAPL?" in i.request_text
+    assert (i.prompt_id, i.prompt_version, i.ollama_version) == ("report", "2", "0.12.3")
+    assert len(i.commit) == 40  # the test suite runs from a git checkout

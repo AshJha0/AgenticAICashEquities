@@ -19,6 +19,10 @@ Formal statement:
   model, digest, seed, temperature) and one interaction per call, keyed by
   :func:`local_request_sha256` of the canonical request. :class:`LocalCassetteClient` replays it;
   a request with no recording raises :class:`ceap.llm.recording.CassetteStaleError`.
+* Pinning (R-13): at start the live client reads ``/api/tags`` and ``/api/version`` and compares the
+  model's digest with ``[local_models]`` in ``model_pins.toml``; a mismatch or an empty digest raises
+  :class:`ModelDigestError`. Every recorded interaction carries the request text, the prompt id and
+  version, the source commit and the Ollama version (AI-1-10).
 
 Worked example: ``OllamaLLMClient("qwen2.5:7b-instruct", seed=1, recorder=cas)`` answers a planning
 request; ``cas.interactions[0].response["parsed"]`` holds the plan and ``write_local_cassette`` saves
@@ -33,6 +37,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 import time
 from pathlib import Path
 from typing import Any, Literal
@@ -141,6 +146,48 @@ class LocalInteraction(BaseModel):
     request_sha256: str
     response: dict[str, Any]
     latency_ms: float = 0.0
+    # manifest (AI-1-10); empty in cassettes recorded before 0.10.0
+    request_text: str = ""
+    prompt_id: str = ""
+    prompt_version: str = ""
+    commit: str = ""
+    ollama_version: str = ""
+
+
+class ModelDigestError(RuntimeError):
+    """The local model's digest is empty or differs from its pin in ``model_pins.toml`` (R-13)."""
+
+
+def source_commit() -> str:
+    """The checked-out commit (empty outside a git checkout)."""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=Path(__file__).parent, capture_output=True, text=True, timeout=10
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return out.stdout.strip() if out.returncode == 0 else ""
+
+
+def verify_model_pin(model: str, url: str = OLLAMA_URL, transport: Any = None) -> tuple[str, str]:
+    """Return ``(digest, ollama_version)``; raise :class:`ModelDigestError` unless the digest is pinned."""
+    import httpx
+
+    from ceap.llm.pins import load_pins
+
+    pinned = load_pins().local_digests.get(model, "")
+    with httpx.Client(timeout=10.0, transport=transport) as http:
+        tags = http.get(f"{url}/api/tags").json()
+        try:
+            version = str(http.get(f"{url}/api/version").json().get("version", ""))
+        except (httpx.HTTPError, ValueError):
+            version = ""
+    digest = next((str(m.get("digest", "")) for m in tags.get("models", []) if m.get("name") == model), "")
+    if not digest or not pinned or digest != pinned:
+        raise ModelDigestError(
+            f"local model {model!r}: server digest {digest or '(empty)'!r} does not match pin {pinned or '(none)'!r}"
+        )
+    return digest, version
 
 
 class LocalCassette(BaseModel):
@@ -206,9 +253,16 @@ class OllamaLLMClient(LLMClient):
         recorder: LocalCassette | None = None,
         transport: Any = None,
         checkpoint: Path | None = None,
+        verify: bool | None = None,
     ) -> None:
         if model not in LOCAL_MODELS:
             raise ValueError(f"local model {model!r} is not pinned (allowed: {LOCAL_MODELS})")
+        # R-13: against a real server the digest is always checked; an injected transport is a test
+        # double and is checked only when ``verify=True`` is passed
+        self.digest = self.ollama_version = ""
+        if verify if verify is not None else transport is None:
+            self.digest, self.ollama_version = verify_model_pin(model, url.rstrip("/"), transport)
+        self.commit = source_commit() if recorder is not None else ""
         self.model, self.seed, self.temperature = model, seed, temperature
         self.url, self.timeout_s, self.recorder, self.transport = (
             url.rstrip("/"),
@@ -280,6 +334,11 @@ class OllamaLLMClient(LLMClient):
                     request_sha256=sha,
                     response=_response_dict(response),
                     latency_ms=round(latency_ms, 1),
+                    request_text=json.dumps(body["messages"], ensure_ascii=False),
+                    prompt_id=str((request.metadata.get("prompt") or {}).get("id", "")),
+                    prompt_version=str((request.metadata.get("prompt") or {}).get("version", "")),
+                    commit=self.commit,
+                    ollama_version=self.ollama_version,
                 )
             )
         self._memo[sha] = response
