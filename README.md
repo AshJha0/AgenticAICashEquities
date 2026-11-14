@@ -181,7 +181,8 @@ Six parallel lanes integrated on one branch; the full list, with every number an
 
 - **Local model evaluation:** `ceap.llm.ollama.OllamaLLMClient` behind the same `LLMClient` interface
   and Pydantic validation, recorded cassettes replayed in CI, a 200-attack prompt-injection corpus,
-  a rubric judge enabled per dimension only when Cohen's kappa > 0.6, a challenger-model view for
+  a rubric judge (an unvalidated prototype: its calibration labels were written by Claude, so no
+  dimension is enabled; 0.10.0 T10), a challenger-model view for
   approvers (off by default) and AI SLO monitoring. See [docs/ai-agents/ai-agents.md](docs/ai-agents/ai-agents.md).
 - **Critic and retrieval:** deterministic `contradicted`, `numeric_mismatch` and `direction_mismatch`
   checks (`ceap.agents.critic_checks`, recorded in `assessment["flags"]`); opt-in hybrid retrieval

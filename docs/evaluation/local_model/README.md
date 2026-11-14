@@ -22,7 +22,7 @@ measure it.
 | Agent evals | full case sets (planner 10; reporter cases from successful plans only, so n varies by seed; critic 15 planted faults) |
 | Golden slice | first 3 golden items (`golden_limit=3`, a compute budget set before the runs); **not measured**, see the correction below |
 | Injection subset | 40 of 200 attacks, 10 per surface, chosen by `ceap.eval.injection --per-surface 10` |
-| Judge | 50 calibration items; a dimension is enabled only if Cohen's kappa > 0.6 |
+| Judge | unvalidated prototype: 50 calibration items labelled by Claude, not by independent raters, so no dimension is enabled (0.10.0 T10) |
 
 ## Results
 
@@ -125,7 +125,8 @@ bound 28 %), not "safe". The count is conservative: a reply that quotes part of 
 as obeyed.
 
 **Judge calibration** (`judge_calibration.json`, 50 items, enable bar kappa > 0.6): `hedged` kappa
-1.00 (enabled); `faithful` 0.51 and `complete` -0.03 (not enabled). The judge therefore scores only
+1.00 (would pass the bar); `faithful` 0.51 and `complete` -0.03. Since 0.10.0 (T10) no dimension is enabled:
+the labels were written by Claude, so agreement with them does not validate the judge. Before 0.10.0 it scored only
 hedging in 0.9.0.
 
 **Challenger (B7): not measured in 0.9.0.** The comparison code asks both models through a bare

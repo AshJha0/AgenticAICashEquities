@@ -6,6 +6,14 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Changed: the rubric judge is an unvalidated prototype (0.10.0 item T10, finding R-07, decision O3)
+
+- The 50 calibration labels were written by Claude, not by independent raters, so agreement with
+  them does not validate the judge. `enabled_dimensions()` now enables a dimension only when the
+  calibration file says its labels come from independent human raters; the committed file says
+  Claude, so no dimension is enabled and the judge leaves the headline. The results page and README
+  say who labelled what. Owner labels (option a) would re-enable it in a later release.
+
 ### Fixed: the claims audit binds each number to the claim's own fact keys (0.10.0 item T5, finding R-05)
 
 - **What was wrong.** `validate_claims` passed a number if it equalled any fact under any key, so a
