@@ -133,3 +133,14 @@ def test_runner_refuses_a_parent_in_the_past() -> None:
     sim.run_until(50_000)
     with pytest.raises(ValueError):
         execute(sim, ParentOrder(BUY, 100, 10_000, 20_000, 2), TWAP())
+
+
+@pytest.mark.parametrize("schedule", [TWAP(), VWAP(0.4, 0.5)], ids=lambda s: s.name)
+def test_parent_is_completed_over_40_seeds(schedule) -> None:
+    """0.10.0 X5 (finding X-08): the completion step finishes the parent in every seed."""
+    short = []
+    for seed in range(40):
+        r = execute(LOBSimulator(seed=seed), ParentOrder(BUY, 2_000, 30_000, 330_000, 6), schedule, ChildPolicy())
+        if r.executed != 2_000:
+            short.append((seed, r.executed))
+    assert not short

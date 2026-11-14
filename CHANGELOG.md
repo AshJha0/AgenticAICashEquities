@@ -315,6 +315,58 @@ refuses a tag whose version has no section.
   `evidence_class: local_model` when any call in the run missed the cassette or was answered by a
   fallback client. Replaying the 0.9.0 cassettes through the golden path now fails by name instead
   of reproducing the mock's numbers.
+### Changed: pre-trade model card reports point error and a coverage test (0.10.0 item X4, finding R-24, partial)
+
+- The card now shows MAE and bias against a constant and a spread-only challenger, and coverage per
+  shifted family with a Wilson 95 % interval. Result: the model's MAE is within a few hundredths of a
+  bps of the challengers; its gain is lower bias where impact is large (T08, T10).
+- Coverage is significantly below nominal 90 % in T08 (85.9 %) and T10 (88.3 %); the training script
+  now exits 1 when an interval excludes nominal. **Not fixed yet**: the interval repair and a test on a
+  different functional form remain open for this release.
+
+### Added: forward-log tamper evidence and staleness check (0.10.0 item X2, finding R-22)
+
+- Each paper-daily run verifies the previous day's anchor before appending, runs the replay gate
+  (`ceap paper gate`), writes `anchor.json` and puts its digest in the commit message. A rewritten
+  or truncated history fails the next run.
+- New `ceap paper staleness` and a weekday 15:00 UTC job: any NYSE session before today with no row
+  opens a `paper-stale` issue (one miss is enough). Tests: `tests/unit/paper/test_staleness_x2.py`.
+- Wording: the log is append-only by git history, not by key, while the published development key
+  is used. Checked on the real `forward-log-v2` (2 sessions): gate passes, no session missed.
+
+### Fixed: execution library labelled truthfully; POV band and completion (0.10.0 item X5)
+
+- **R-23.** `ceap.execution` is now described everywhere as a *simulator library, not used by the
+  default paper book*; the paper book imports only the auction model and the LOB cost measurement,
+  behind opt-in settings. `tests/repo/test_execution_label.py` keeps the label in place. Wiring a
+  scheduler and the trading rules into the paper path is 0.11.0.
+- **X-07.** The POV band did nothing: the target `clip(rate * V, lo, hi)` is always inside the band.
+  POV now follows its plan and the band clips it.
+- **X-08.** Schedulers left the parent unfinished and the last slice crossed at its start. The last
+  slice is now worked like the others, and a completion step shortly before the end cancels what
+  rests and takes the remainder with a market order. A parent completes in all 40 seeds tested.
+
+### Fixed: schema rollback could re-seal a forged audit chain (0.10.0 item X3, finding R-21)
+
+- Setting `PRAGMA user_version` below v4 made every audit row count as legacy, and the next normal
+  open re-ran migration 0004 and sealed the forged rows with the real key. Migration now refuses a
+  file that already has a `chain_epoch`, a `schema_seal` or any keyed row.
+- New migration **0006** stores the highest schema version reached, sealed with the chain key;
+  `verify_chain()` fails when `user_version` is below it or the seal does not verify.
+- Tests: `tests/unit/test_schema_rollback_r21.py` (the attack end to end, plus an edited seal).
+
+### Fixed: four known issues from 0.9.0 (0.10.0 item X6)
+
+- **Lot larger than the session cap.** A paper order whose single lot exceeds the per-session ADV cap
+  is now cancelled at once (`reason="lot_above_cap"`) instead of sitting unfilled until its TTL.
+- **Zero sigma band.** A name whose window prices never moved gets the band cap, not a zero band
+  that blocked every move.
+- **Andrews lag on constant residuals.** `industry_momentum.andrews_lag` returns 0 instead of
+  dividing by zero.
+- **Idempotency key for non-JSON arguments.** Sets, dataclasses, bytes, dates, enums, decimals,
+  paths and pydantic models now have a canonical form; any other type raises `TypeError` rather
+  than hashing a memory address. All current callers pass JSON-native arguments, so no key changes.
+- One test each (`tests/unit/test_known_issues_090.py`, `tests/unit/paper/test_r090_l4_paper.py`).
 
 ### Fixed: the paper forward log (0.10.0 item X1, finding R-02)
 

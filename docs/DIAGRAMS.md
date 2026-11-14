@@ -497,7 +497,7 @@ flowchart LR
 
 ## 15. Execution package (0.8.0)
 
-`ceap.execution` (guide: [execution/execution.md](execution/execution.md)) runs a parent order
+`ceap.execution` (guide: [execution/execution.md](execution/execution.md)), a simulator library, not used by the default paper book, runs a parent order
 through a simulated limit order book. Everything here is synthetic; nothing routes a real order.
 
 ```mermaid

@@ -29,8 +29,13 @@ produces the same report (``tests/unit/test_r090_durable.py``).
 
 from __future__ import annotations
 
+import dataclasses
+import datetime as _dt
+import decimal
+import enum
 import hashlib
 import json
+import pathlib
 from datetime import datetime
 from typing import Any, Protocol
 
@@ -42,9 +47,32 @@ TOOL_KIND = "tool"
 APPROVAL_KIND = "approval"
 
 
+def _canonical(obj: Any) -> Any:
+    """JSON form of a non-JSON argument that is the same in every process.
+
+    ``default=str`` was stable only for JSON-native arguments: a set prints in hash order and an
+    arbitrary object prints its memory address, so a resumed run computed a different key.
+    """
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        return {"__dataclass__": type(obj).__qualname__, **dataclasses.asdict(obj)}
+    if isinstance(obj, (set, frozenset)):
+        return sorted(obj, key=lambda v: json.dumps(v, sort_keys=True, default=_canonical))
+    if isinstance(obj, (bytes, bytearray)):
+        return obj.hex()
+    if isinstance(obj, (_dt.date, _dt.time)):
+        return obj.isoformat()
+    if isinstance(obj, (decimal.Decimal, enum.Enum, pathlib.PurePath)):
+        return str(obj.value if isinstance(obj, enum.Enum) else obj)
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump(mode="json")
+    if hasattr(obj, "tolist"):
+        return obj.tolist()
+    raise TypeError(f"idempotency_key: argument of type {type(obj).__name__} has no stable JSON form")
+
+
 def idempotency_key(task_id: str, step_id: str, request: ToolRequest) -> str:
     """Stable key of one tool call within one run (see the module docstring)."""
-    args = json.dumps(request.arguments, sort_keys=True, default=str, separators=(",", ":"))
+    args = json.dumps(request.arguments, sort_keys=True, default=_canonical, separators=(",", ":"))
     raw = "|".join((task_id, step_id, request.tool_id, args))
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 

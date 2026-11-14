@@ -200,7 +200,10 @@ def andrews_lag(u: np.ndarray) -> int:
     """Andrews (1991) AR(1) plug-in bandwidth for the Bartlett kernel, floored to an integer."""
     u = np.asarray(u, dtype=float) - np.mean(u)
     n = len(u)
-    rho = float(np.dot(u[1:], u[:-1]) / np.dot(u[:-1], u[:-1]))
+    denom = float(np.dot(u[:-1], u[:-1]))
+    if n < 3 or not denom > 1e-300:
+        return 0  # constant residuals: no autocorrelation to correct for
+    rho = float(np.dot(u[1:], u[:-1]) / denom)
     rho = max(min(rho, 0.97), -0.97)
     alpha = 4 * rho**2 / (1 - rho**2) ** 2
     return int(math.floor(1.1447 * (alpha * n) ** (1 / 3)))

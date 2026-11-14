@@ -21,7 +21,10 @@ records ``hash_alg = "hmac-sha256:<key id>"``; the key id is a one-way tag of th
 Rows written before migration 0004 keep ``hash_alg = "sha256"`` and verify as before. They are
 accepted only as a prefix of their chain whose length was counted when the migration ran
 (``chain_epoch``); that count is sealed with an HMAC, so a rewritten chain cannot pass itself off as
-legacy rows. External anchoring (:mod:`ceap.persistence.anchor`) covers what a key cannot: someone who
+legacy rows. Before 0.10.0 that claim had a hole (finding R-21): setting ``PRAGMA user_version``
+back below v4 made every row legacy, and the next open re-ran 0004 and re-sealed forged rows. Now
+migration refuses a file that already has a ``chain_epoch`` or keyed rows, and migration 0006 seals
+the schema high-water version, so a lowered ``user_version`` fails verification. External anchoring (:mod:`ceap.persistence.anchor`) covers what a key cannot: someone who
 holds the key, or the dev default, can still rewrite history, but not without changing the head
 recorded outside the database.
 """
@@ -104,6 +107,12 @@ class ChainKeys:
     def seal_epoch(self, chain: str, legacy_rows: int) -> str:
         msg = f"ceap-chain-epoch\x00{chain}\x00{int(legacy_rows)}".encode()
         return f"{self.current_id}:{hmac.new(self.current, msg, hashlib.sha256).hexdigest()}"
+
+    def seal_schema(self, version: int) -> str:
+        return self.seal_epoch("schema-high-water", version)
+
+    def schema_ok(self, version: int, mac: str | None) -> bool:
+        return self.epoch_ok("schema-high-water", version, mac)
 
     def epoch_ok(self, chain: str, legacy_rows: int, mac: str | None) -> bool:
         if not mac or ":" not in mac:

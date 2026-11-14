@@ -57,6 +57,47 @@ def rows_for(family: str, seed: int) -> list[tuple[PretradeFeatures, float]]:
     return out
 
 
+def wilson(hits: int, n: int, z: float = 1.959964) -> tuple[float, float]:
+    """Wilson 95 % interval for a binomial proportion (Wilson 1927); (nan, nan) when n = 0."""
+    if n == 0:
+        return float("nan"), float("nan")
+    p = hits / n
+    centre = (p + z * z / (2 * n)) / (1 + z * z / n)
+    half = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / (1 + z * z / n)
+    return float(centre - half), float(centre + half)
+
+
+def challengers(fit: list[tuple[PretradeFeatures, float]]) -> dict[str, tuple[float, float]]:
+    """Naive challengers fitted on the same rows: a constant, and intercept + slope on spread only."""
+    y = np.array([v for _, v in fit])
+    s = np.array([x.spread_bps for x, _ in fit])
+    slope, intercept = np.polyfit(s, y, 1)
+    return {"constant": (float(y.mean()), 0.0), "spread_only": (float(intercept), float(slope))}
+
+
+def evaluate(model: PretradeModel, fit: list[tuple[PretradeFeatures, float]]) -> dict[str, dict[str, object]]:
+    """Per shifted family: n, coverage with its Wilson interval, MAE and bias of model and challengers."""
+    ch = challengers(fit)
+    out: dict[str, dict[str, object]] = {}
+    for f in TEST_FAMILIES:
+        rows = [r for s in TEST_SEEDS for r in rows_for(f, s)]
+        y = np.array([v for _, v in rows])
+        preds = {"model": np.array([model.predict(x).estimate_bps for x, _ in rows])}
+        for name, (a, b) in ch.items():
+            preds[name] = np.array([a + b * x.spread_bps for x, _ in rows])
+        hits = sum(int(model.predict(x).lower_bps <= v <= model.predict(x).upper_bps) for x, v in rows)
+        lo, hi = wilson(hits, len(rows))
+        out[f] = {
+            "n": len(rows),
+            "coverage": hits / len(rows) if rows else float("nan"),
+            "coverage_ci95": [lo, hi],
+            "nominal_inside_ci": bool(lo <= model.nominal <= hi),
+            "mae": {k: float(np.mean(np.abs(y - p))) for k, p in preds.items()},
+            "bias": {k: float(np.mean(p - y)) for k, p in preds.items()},
+        }
+    return out
+
+
 def train() -> tuple[PretradeModel, dict[str, float]]:
     fit = [r for f in TRAIN_FAMILIES for s in FIT_SEEDS for r in rows_for(f, s)]
     cal = [r for f in TRAIN_FAMILIES for s in CAL_SEEDS for r in rows_for(f, s)]
@@ -88,7 +129,7 @@ def train() -> tuple[PretradeModel, dict[str, float]]:
     return model, cov
 
 
-def model_card(model: PretradeModel) -> str:
+def model_card(model: PretradeModel, ev: dict[str, dict[str, object]] | None = None) -> str:
     m = model.meta
     rows = "\n".join(f"| {a} | {c0:+.3f} | {c1:+.3f} |" for a, (c0, c1) in sorted(model.algo_terms.items()))
     cov = "\n".join(f"| {f} (shifted) | {v:.1%} |" for f, v in m["coverage_shifted"].items())
@@ -130,6 +171,52 @@ def model_card(model: PretradeModel) -> str:
 |---|---|
 {cov}
 {cov_in}
+{_eval_tables(model, ev) if ev else ""}"""
+
+
+def _eval_tables(model: PretradeModel, ev: dict[str, dict[str, object]]) -> str:
+    """Point error against naive challengers and coverage with a binomial interval (0.10.0 X4, R-24)."""
+    err = "\n".join(
+        f"| {f} | {r['n']} | " + " | ".join(f"{r['mae'][k]:.2f} / {r['bias'][k]:+.2f}"  # type: ignore[index]
+                                       for k in ("model", "spread_only", "constant")) + " |"
+        for f, r in ev.items()
+    )
+    cov = "\n".join(
+        f"| {f} | {r['coverage']:.1%} | [{r['coverage_ci95'][0]:.1%}, {r['coverage_ci95'][1]:.1%}] | "  # type: ignore[index]
+        f"{'yes' if r['nominal_inside_ci'] else '**no**'} |"
+        for f, r in ev.items()
+    )
+    failed = [f for f, r in ev.items() if not r["nominal_inside_ci"]]
+    verdict = (
+        f"**Fails** in {', '.join(failed)}: the 95 % interval excludes the nominal {model.nominal:.0%}, "
+        "so the interval is too narrow under shift there. `scripts/train_pretrade.py` exits 1 until this is fixed."
+        if failed else "Nominal coverage is inside every interval."
+    )
+    return f"""
+## Point error against naive challengers (shifted families, MAE / bias in bps)
+
+The challengers are fitted on the same rows: a constant (the mean cost) and an intercept plus slope
+on the arrival spread. Bias is prediction minus realised.
+
+| family | n | model | spread only | constant |
+|---|---|---|---|---|
+{err}
+
+Reading: the model's MAE is within a few hundredths of a bps of the challengers in most families;
+its gain is in bias where impact is large (T08, T10). Most of the cost variance is price risk that no
+arrival-time feature predicts.
+
+## Coverage against nominal with a Wilson 95 % interval
+
+| family | coverage | 95 % interval | nominal inside |
+|---|---|---|---|
+{cov}
+
+{verdict}
+
+Still open (R-24): every family is drawn from the same generator, which plants the square-root form
+the model fits; a test on a different functional form needs a generator family with another impact
+law and is not done in this release.
 """
 
 
@@ -145,12 +232,17 @@ def main(argv: list[str] | None = None) -> int:
         print("committed model matches a refit" if same else "committed model differs from a refit")
         return 0 if same else 1
     model.save()
-    CARD_PATH.write_text(model_card(model), encoding="utf-8")
+    fit = [r for f in TRAIN_FAMILIES for s in FIT_SEEDS for r in rows_for(f, s)]
+    ev = evaluate(model, fit)
+    CARD_PATH.write_text(model_card(model, ev), encoding="utf-8")
     print(
         json.dumps({"coverage_shifted": cov, "q": model.conformal_q, "b": model.impact_coefficient}, indent=2)
     )
     bad = [f for f, v in cov.items() if not 0.85 <= v <= 0.95]
-    return 1 if bad else 0
+    excluded = [f for f, r in ev.items() if not r["nominal_inside_ci"]]
+    if excluded:
+        print(f"coverage interval excludes nominal in {excluded} (R-24)", file=sys.stderr)
+    return 1 if bad or excluded else 0
 
 
 if __name__ == "__main__":
