@@ -6,6 +6,15 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Changed: pre-trade model card reports point error and a coverage test (0.10.0 item X4, finding R-24, partial)
+
+- The card now shows MAE and bias against a constant and a spread-only challenger, and coverage per
+  shifted family with a Wilson 95 % interval. Result: the model's MAE is within a few hundredths of a
+  bps of the challengers; its gain is lower bias where impact is large (T08, T10).
+- Coverage is significantly below nominal 90 % in T08 (85.9 %) and T10 (88.3 %); the training script
+  now exits 1 when an interval excludes nominal. **Not fixed yet**: the interval repair and a test on a
+  different functional form remain open for this release.
+
 ### Fixed: redaction kept quantities; key errors never echo key material (0.10.0 item E7)
 
 - **E-09.** The redactor removed every 8 to 19 digit number, deleting quantities, notionals and
