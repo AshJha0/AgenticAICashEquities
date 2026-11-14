@@ -24,15 +24,15 @@ from pathlib import Path
 DEFAULT_FLOOR = 90.0
 FLOORS: dict[str, float] = {"analytics": 95.0, "domain": 95.0}
 #: unit tier, ratchet only. First measured 2026-11-14 (E1); raised the same day by lane W2's behaviour
-#: tests (docs/testing/coverage-by-package.md). api, studies and observability now meet the floor.
+#: tests (docs/testing/coverage-by-package.md), and again by lane W9. api, studies, observability and eval
+#: now meet the floor; analytics and paper keep their earlier baselines (see the table note).
 BASELINE: dict[str, float] = {
-    "agents": 81.0,
+    "agents": 84.3,
     "analytics": 89.1,
-    "ceap (top-level)": 79.2,
-    "eval": 73.0,
-    "harness": 78.1,
-    "llm": 74.7,
-    "mcp": 84.3,
+    "ceap (top-level)": 85.5,
+    "harness": 79.9,
+    "llm": 81.1,
+    "mcp": 85.4,
     "paper": 84.0,
 }
 TOLERANCE = 0.1  # percentage points, for run-to-run noise in branch counting
