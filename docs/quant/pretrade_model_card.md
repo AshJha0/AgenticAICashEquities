@@ -44,3 +44,36 @@
 | T05 (fit family, fresh seed) | 89.2% |
 | T07 (fit family, fresh seed) | 89.3% |
 | T09 (fit family, fresh seed) | 87.6% |
+
+## Point error against naive challengers (shifted families, MAE / bias in bps)
+
+The challengers are fitted on the same rows: a constant (the mean cost) and an intercept plus slope
+on the arrival spread. Bias is prediction minus realised.
+
+| family | n | model | spread only | constant |
+|---|---|---|---|---|
+| T02 | 1600 | 37.12 / +0.45 | 37.17 / -3.73 | 37.17 / -3.72 |
+| T04 | 1600 | 12.26 / -0.18 | 12.27 / +0.27 | 12.27 / +0.41 |
+| T06 | 1600 | 13.00 / -0.33 | 13.04 / +0.11 | 13.06 / +0.25 |
+| T08 | 1600 | 16.02 / +0.01 | 16.67 / -4.62 | 16.64 / -4.48 |
+| T10 | 1600 | 37.92 / -0.61 | 38.01 / -4.79 | 38.00 / -4.79 |
+
+Reading: the model's MAE is within a few hundredths of a bps of the challengers in most families;
+its gain is in bias where impact is large (T08, T10). Most of the cost variance is price risk that no
+arrival-time feature predicts.
+
+## Coverage against nominal with a Wilson 95 % interval
+
+| family | coverage | 95 % interval | nominal inside |
+|---|---|---|---|
+| T02 | 89.9% | [88.3%, 91.3%] | yes |
+| T04 | 90.6% | [89.0%, 91.9%] | yes |
+| T06 | 88.7% | [87.0%, 90.1%] | yes |
+| T08 | 85.9% | [84.1%, 87.6%] | **no** |
+| T10 | 88.3% | [86.6%, 89.8%] | **no** |
+
+**Fails** in T08, T10: the 95 % interval excludes the nominal 90%, so the interval is too narrow under shift there. `scripts/train_pretrade.py` exits 1 until this is fixed.
+
+Still open (R-24): every family is drawn from the same generator, which plants the square-root form
+the model fits; a test on a different functional form needs a generator family with another impact
+law and is not done in this release.
