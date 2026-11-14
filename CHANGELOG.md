@@ -6,6 +6,16 @@ refuses a tag whose version has no section.
 
 ## Unreleased
 
+### Added: forward-log tamper evidence and staleness check (0.10.0 item X2, finding R-22)
+
+- Each paper-daily run verifies the previous day's anchor before appending, runs the replay gate
+  (`ceap paper gate`), writes `anchor.json` and puts its digest in the commit message. A rewritten
+  or truncated history fails the next run.
+- New `ceap paper staleness` and a weekday 15:00 UTC job: any NYSE session before today with no row
+  opens a `paper-stale` issue (one miss is enough). Tests: `tests/unit/paper/test_staleness_x2.py`.
+- Wording: the log is append-only by git history, not by key, while the published development key
+  is used. Checked on the real `forward-log-v2` (2 sessions): gate passes, no session missed.
+
 ### Fixed: execution library labelled truthfully; POV band and completion (0.10.0 item X5)
 
 - **R-23.** `ceap.execution` is now described everywhere as a *simulator library, not used by the
