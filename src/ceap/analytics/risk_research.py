@@ -147,7 +147,7 @@ def rolling_betas(close: np.ndarray, window: int = BETA_WINDOW, min_obs: int = B
         rms = np.sqrt(sxx / n)
     flat = ssx <= n * np.maximum((REL_TOL * rms) ** 2, ABS_FLOOR**2)
     beta[(n < min_obs) | flat | ~np.isfinite(beta)] = np.nan
-    return beta
+    return np.asarray(beta, dtype=float)
 
 
 def factor_neutral_ic(

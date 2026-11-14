@@ -203,7 +203,7 @@ def _report_at(
     )
 
 
-def _vol_fields(close: np.ndarray, w: np.ndarray, t: int, on: bool) -> dict[str, float]:
+def _vol_fields(close: np.ndarray, w: np.ndarray, t: int, on: bool) -> dict[str, Any]:
     if not on:
         return {}
     vol, delta = predicted_volatility(close, w, t)

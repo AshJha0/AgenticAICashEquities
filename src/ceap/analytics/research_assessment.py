@@ -249,7 +249,8 @@ def assess_research(
     breached = [c for c in risk.checks if c.breached]
     history_breaches = [c for c in risk.history_checks if c.get("breached")]
     trial = backtest.trial or {}
-    search = trial.get("search") if isinstance(trial.get("search"), dict) else {}
+    raw_search = trial.get("search")
+    search: dict[str, Any] = raw_search if isinstance(raw_search, dict) else {}
     dsr, sr0_ann, n_trials = alpha_deflated_sharpe(is_b, trial, th)
     hurdle = hurdle_for(n_trials, th)
 
