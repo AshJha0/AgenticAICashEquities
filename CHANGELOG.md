@@ -101,6 +101,21 @@ refuses a tag whose version has no section.
   disabled the same test fails (6 model calls against 4). `test_r090_durable.py` and
   `test_r090_chaos.py` now count tool rows only, since the journal also holds model rows.
 
+### Fixed: a citation must come from a chunk that supports the claim (0.10.0 item H4, finding R-09)
+
+- The citation audit proved that the quoted text is a real chunk, and that the citation is attached to
+  the claim's sentence; it never compared the chunk with the claim, so a real quote about venue
+  configuration could back a claim about escalation thresholds. `claim_citations` now also requires
+  `citation_supports`: every number in the claim occurs in the cited chunk, and the chunk shares at
+  least two of the claim's key terms (all of them when it has fewer) and at least half of them.
+- This is a lexical check, not entailment: a chunk that uses the claim's words to say the opposite
+  still passes. An NLI scorer is left for when a real corpus exists.
+- The local-model results page now shows the citation row with n = 0 and the reason: the Ollama
+  adapter returns no citation blocks, so no citation was ever verified against a real model.
+- Test: `tests/agent/test_r0100_h4_citation_support.py`, ten planted right-chunk and wrong-chunk pairs
+  over the shipped knowledge base: 0 of 10 wrong-chunk citations pass, 10 of 10 right-chunk citations
+  are kept, and a claim whose number the chunk does not state fails.
+
 ### Fixed: standalone MCP servers no longer stage on capability alone (0.10.0 item H2, finding R-12)
 
 - **A signed grant for every HIGH-risk call.** A server started on its own (`python -m
