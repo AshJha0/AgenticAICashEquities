@@ -94,9 +94,11 @@ def test_no_alpha_flag():
 
 def test_overfit_flag():
     a = assess_research(_stats(), _backtest(is_sharpe=3.0, oos_sharpe=0.3, oos_gross=0.4), _risk())
-    # 0.10 D4: two years of data cannot separate a net Sharpe of 1.65 from 0 or 0.5, so the statistical
-    # REJECT becomes INCONCLUSIVE; the flag is unchanged
-    assert a.flags == (ResearchFlag.OVERFIT,) and a.verdict is ResearchVerdict.INCONCLUSIVE
+    # 0.10 D4 made this INCONCLUSIVE because the interval could not separate the Sharpe from 0. With the
+    # corrected daily-form Lo (2002) standard error (Q1, R-15) the interval is about 35 % narrower at
+    # two years and excludes 0, so the statistical REJECT stands again for this synthetic fixture. The
+    # 48 published research rows did not move (CHANGELOG, Q1).
+    assert a.flags == (ResearchFlag.OVERFIT,) and a.verdict is ResearchVerdict.REJECT
     assert ResearchFlag.OVERFIT in assess_research(_stats(oos_t=0.2), _backtest(), _risk()).flags
     weak_bt = replace(_backtest(is_sharpe=0.4, oos_sharpe=0.3, oos_gross=0.35),
                       trial={"n_trials": 1, "preregistered_variants": 1})
