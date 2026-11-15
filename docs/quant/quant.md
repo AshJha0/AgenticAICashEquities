@@ -165,7 +165,12 @@ signal/horizon families (momentum at 21 days: 5.6 %), inside the [3.0 %, 7.5 %] 
   cross-trial Sharpe variance from the ledger:
   `SR0 = sqrt(V) ((1 - g) Z(1 - 1/N) + g Z(1 - 1/(N e)))`,
   `DSR = Phi((SR - SR0) sqrt(T - 1) / sqrt(1 - skew SR + (kurt - 1) / 4 SR^2))`.
-  The gate is `DSR >= 0.5`: the observed Sharpe must beat the expected best of the trials run.
+  The cross-trial variance `V` is floored at `1/T` (the sampling variance of a Sharpe estimate
+  from `T` observations), so a ledger of near-identical trials cannot shrink `SR0` towards zero.
+  The gate is `DSR >= 0.95`: the probability that the observed Sharpe beats the expected best of
+  the trials run must reach the one-sided 5 % level (Bailey and Lopez de Prado 2014). A bar of
+  0.5 only asked for "more likely than not"; on the null sweep it let 17 of 500 noise strategies
+  through at a hurdle of t >= 0, against none at 0.95 (`data/reference/research_thresholds.json`).
 - **Locked holdout**: `in_sample_end` is fixed per dataset; a caller may shorten the in-sample
   window but never move the boundary into the holdout.
 - **The PROMOTE hurdle is fixed in advance; the null sweep measures it.** The in-sample IC t
@@ -195,7 +200,7 @@ at `t >= 3` the realistic premia in the power curve below are detected far less 
 
 | Flag | Condition |
 |---|---|
-| `NO_ALPHA` | in-sample non-overlapping IC t below the a-priori hurdle (3.0, or 1.645 for one preregistered trial), fewer than 30 periods, or deflated Sharpe < 0.5 |
+| `NO_ALPHA` | in-sample non-overlapping IC t below the a-priori hurdle (3.0, or 1.645 for one preregistered trial), fewer than 30 periods, or deflated Sharpe < 0.95 |
 | `REGIME_BREAK` | out-of-sample IC t <= -2: the premium reversed |
 | `OOS_DECAY` | out-of-sample IC t < 1, or net out-of-sample Sharpe < 0.5 without a cost explanation (0.4 name `OVERFIT`: nothing is fitted) |
 | `COST_DRAG` | gross out-of-sample Sharpe >= 0.5 but net below it, or costs >= 50 % of gross |

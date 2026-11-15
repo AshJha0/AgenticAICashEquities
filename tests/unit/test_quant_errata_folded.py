@@ -29,6 +29,6 @@ def test_q8_corpus_pin_bumped_and_matches_live_corpus():
     from ceap.eval.corpus import corpus_problems
 
     manifest = json.loads((ROOT / "data/reference/knowledge/manifest.json").read_text(encoding="utf-8"))
-    assert manifest["external"][0]["version"] == "0.5.0"
+    assert manifest["external"][0]["version"] == "0.5.1"
     assert corpus_problems()["problems"] == []
     assert not re.search(r"ee8200cd3d90", (ROOT / "src/ceap/eval/corpus_pin.json").read_text(encoding="utf-8"))
