@@ -1,0 +1,46 @@
+{
+  "label": "paper, synthetic or free daily data, not trading",
+  "book": "forward",
+  "date": "2026-11-16",
+  "status": "OK",
+  "halt": null,
+  "approval_id": null,
+  "staging_id": null,
+  "snapshot": {
+    "date": "2026-11-16",
+    "equity": 10000997.966565674,
+    "cash": 10071161.361365674,
+    "long_mv": 4834895.5162,
+    "short_mv": -4905058.911,
+    "gross_exposure": 0.9738982509307204,
+    "net_exposure": -0.00701563934264991,
+    "traded_notional": 0.0,
+    "turnover": 0.0,
+    "costs": 0.0,
+    "borrow": 376.9894366666667,
+    "financing": 1007.0531297672574,
+    "mark_pnl": 4864.899499999995,
+    "dividends": 0.0,
+    "rf": 0.0001,
+    "daily_return": 0.0005497435387942229,
+    "n_positions": 20,
+    "open_orders": 0,
+    "attribution": {
+      "signal": 4864.899499999995,
+      "drift": 0.0,
+      "financing": 1007.0531297672574,
+      "borrow": -376.9894366666667,
+      "costs": -0.0,
+      "dividends": 0.0
+    },
+    "early_close": false,
+    "halted": false
+  },
+  "reconciliation": {
+    "ok": true,
+    "breaks": [],
+    "drift_tolerance": 0.005
+  },
+  "fills": [],
+  "exceptions": []
+}
