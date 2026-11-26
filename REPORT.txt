@@ -1,8 +1,8 @@
 PAPER REPORT (paper, synthetic or free daily data, not trading)
 book: forward - forward
-forward start: 2026-11-12; sessions 2026-11-12 to 2026-11-24 (9 days elapsed)
-equity: 9977080.63; total return -0.23 %
-Sharpe (excess of rf, annualised): -2.68, 95 % CI [-13.76, 8.40]
+forward start: 2026-11-12; sessions 2026-11-12 to 2026-11-25 (10 days elapsed)
+equity: 9972333.69; total return -0.28 %
+Sharpe (excess of rf, annualised): -3.02, 95 % CI [-13.48, 7.45]
 in-sample Sharpe: 0.63; minimum days to distinguish: 5006
 comparison: in-sample Sharpe lies inside the forward 95 % CI (consistent; not evidence of skill)
 rf: Kenneth R. French data library, daily RF (see data/reference/rf.csv header)
